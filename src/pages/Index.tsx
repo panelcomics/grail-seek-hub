@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ItemCard from "@/components/ItemCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Filter, Package, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import comicSample1 from "@/assets/comic-sample-1.jpg";
 import comicSample2 from "@/assets/comic-sample-2.jpg";
 import cardSample1 from "@/assets/card-sample-1.jpg";
@@ -241,10 +245,146 @@ const mockItems = [
 
 const Index = () => {
   const [filter, setFilter] = useState<"all" | "comic" | "card">("all");
+  const [claimSales, setClaimSales] = useState<any[]>([]);
+  const [claimSaleItems, setClaimSaleItems] = useState<any[]>([]);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Fetch active claim sales
+  useEffect(() => {
+    const fetchClaimSales = async () => {
+      const { data, error } = await supabase
+        .from("claim_sales" as any)
+        .select("*")
+        .eq("status", "active")
+        .order("start_time", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching claim sales:", error);
+        return;
+      }
+
+      setClaimSales(data || []);
+
+      // Fetch items for each claim sale
+      if (data && data.length > 0) {
+        const { data: items, error: itemsError } = await supabase
+          .from("claim_sale_items" as any)
+          .select("*")
+          .in("claim_sale_id", data.map((s: any) => s.id))
+          .eq("is_claimed", false);
+
+        if (!itemsError) {
+          setClaimSaleItems(items || []);
+        }
+      }
+    };
+
+    fetchClaimSales();
+
+    // Set up real-time subscription for claim sales
+    const channel = supabase
+      .channel("claim_sales_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "claim_sales",
+        },
+        () => fetchClaimSales()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "claim_sale_items",
+        },
+        () => fetchClaimSales()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleClaim = async (saleId: string, itemId: string) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to claim items.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      // Insert claim
+      const { error } = await supabase.from("claims" as any).insert({
+        user_id: user.id,
+        claim_sale_id: saleId,
+        item_id: itemId,
+        quantity: 1,
+        shipping_tier: "1-15",
+        total_price: 2.00,
+      });
+
+      if (error) throw error;
+
+      // Update item as claimed
+      await supabase
+        .from("claim_sale_items" as any)
+        .update({ is_claimed: true })
+        .eq("id", itemId);
+
+      // Update claimed count
+      const sale = claimSales.find((s: any) => s.id === saleId);
+      if (sale) {
+        await supabase
+          .from("claim_sales" as any)
+          .update({ claimed_items: sale.claimed_items + 1 })
+          .eq("id", saleId);
+      }
+
+      toast({
+        title: "🎉 Claim Secured!",
+        description: "Your item has been claimed. Check your claims for details.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Claim failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredItems = filter === "all" 
     ? mockItems 
     : mockItems.filter(item => item.category === filter);
+
+  // Convert claim sales to items format
+  const claimSaleCards = claimSales.flatMap((sale: any) => {
+    const items = claimSaleItems.filter((item: any) => item.claim_sale_id === sale.id);
+    return items.slice(0, 3).map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      price: sale.price,
+      condition: item.condition,
+      image: item.category === "comic" ? comicSample1 : cardSample1,
+      category: item.category,
+      isClaimSale: true,
+      claimSaleId: sale.id,
+      itemsLeft: sale.total_items - sale.claimed_items,
+      onClaim: () => handleClaim(sale.id, item.id),
+    }));
+  });
+
+  const allItems = [...claimSaleCards, ...filteredItems];
 
   return (
     <div className="min-h-screen bg-background">
@@ -277,7 +417,7 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item) => (
+          {allItems.map((item) => (
             <ItemCard key={item.id} {...item} />
           ))}
         </div>

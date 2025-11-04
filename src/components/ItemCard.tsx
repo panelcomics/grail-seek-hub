@@ -17,6 +17,10 @@ interface ItemCardProps {
   isAuction?: boolean;
   timeRemaining?: number; // in seconds
   distance?: number; // in miles
+  isClaimSale?: boolean;
+  claimSaleId?: string;
+  itemsLeft?: number;
+  onClaim?: () => void;
 }
 
 const ItemCard = ({ 
@@ -30,7 +34,11 @@ const ItemCard = ({
   category,
   isAuction = false,
   timeRemaining = 0,
-  distance
+  distance,
+  isClaimSale = false,
+  claimSaleId,
+  itemsLeft = 0,
+  onClaim
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
 
@@ -71,7 +79,12 @@ const ItemCard = ({
             <Badge variant="secondary" className="font-semibold">
               {condition}
             </Badge>
-            {isAuction && (
+            {isClaimSale && (
+              <Badge className="font-semibold bg-orange-500 hover:bg-orange-600 text-white animate-pulse">
+                🔥 Claim Mode: ${price} - {itemsLeft} Left
+              </Badge>
+            )}
+            {isAuction && !isClaimSale && (
               <Badge variant="destructive" className="font-semibold animate-pulse">
                 🔥 $2 BIN
               </Badge>
@@ -109,9 +122,23 @@ const ItemCard = ({
             <div className="text-2xl font-bold text-primary">
               ${price}
             </div>
-            <Button size="sm" variant="outline">
-              View Details
-            </Button>
+            {isClaimSale ? (
+              <Button 
+                size="sm" 
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClaim?.();
+                }}
+              >
+                🔥 Claim Now
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline">
+                View Details
+              </Button>
+            )}
           </div>
         </div>
       </Card>

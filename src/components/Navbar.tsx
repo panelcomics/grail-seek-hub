@@ -1,9 +1,20 @@
-import { Search, User, Menu } from "lucide-react";
+import { Search, User, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
+  const { user, signOut } = useAuth();
+
   return (
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
@@ -42,12 +53,33 @@ const Navbar = () => {
           <Button variant="ghost" size="icon" className="md:hidden">
             <Search className="h-5 w-5" />
           </Button>
-          <Link to="/auth">
-            <Button variant="outline" className="gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign In</span>
-            </Button>
-          </Link>
+          
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/auth">
+              <Button variant="outline" className="gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign In</span>
+              </Button>
+            </Link>
+          )}
+          
           <Button variant="default" className="hidden sm:flex">
             🔥 Sell Now
           </Button>
