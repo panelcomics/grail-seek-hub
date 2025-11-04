@@ -5,6 +5,9 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ItemCard from "@/components/ItemCard";
+import LocalDiscovery from "@/components/LocalDiscovery";
+import EventsCarousel from "@/components/EventsCarousel";
+import MapView from "@/components/MapView";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Filter, Package, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -247,13 +250,17 @@ const Index = () => {
   const [filter, setFilter] = useState<"all" | "comic" | "card">("all");
   const [claimSales, setClaimSales] = useState<any[]>([]);
   const [claimSaleItems, setClaimSaleItems] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Fetch active claim sales
+  // Fetch active claim sales and events
   useEffect(() => {
-    const fetchClaimSales = async () => {
+    const fetchData = async () => {
+      // Fetch claim sales
       const { data, error } = await supabase
         .from("claim_sales" as any)
         .select("*")
@@ -262,30 +269,41 @@ const Index = () => {
 
       if (error) {
         console.error("Error fetching claim sales:", error);
-        return;
+      } else {
+        setClaimSales(data || []);
+
+        // Fetch items for each claim sale
+        if (data && data.length > 0) {
+          const { data: items, error: itemsError } = await supabase
+            .from("claim_sale_items" as any)
+            .select("*")
+            .in("claim_sale_id", data.map((s: any) => s.id))
+            .eq("is_claimed", false);
+
+          if (!itemsError) {
+            setClaimSaleItems(items || []);
+          }
+        }
       }
 
-      setClaimSales(data || []);
+      // Fetch upcoming events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from("events" as any)
+        .select("*")
+        .gte("start_date", new Date().toISOString())
+        .order("start_date", { ascending: true })
+        .limit(6);
 
-      // Fetch items for each claim sale
-      if (data && data.length > 0) {
-        const { data: items, error: itemsError } = await supabase
-          .from("claim_sale_items" as any)
-          .select("*")
-          .in("claim_sale_id", data.map((s: any) => s.id))
-          .eq("is_claimed", false);
-
-        if (!itemsError) {
-          setClaimSaleItems(items || []);
-        }
+      if (!eventsError) {
+        setEvents(eventsData || []);
       }
     };
 
-    fetchClaimSales();
+    fetchData();
 
-    // Set up real-time subscription for claim sales
+    // Set up real-time subscription
     const channel = supabase
-      .channel("claim_sales_changes")
+      .channel("grail_seek_changes")
       .on(
         "postgres_changes",
         {
@@ -293,7 +311,7 @@ const Index = () => {
           schema: "public",
           table: "claim_sales",
         },
-        () => fetchClaimSales()
+        () => fetchData()
       )
       .on(
         "postgres_changes",
@@ -302,7 +320,16 @@ const Index = () => {
           schema: "public",
           table: "claim_sale_items",
         },
-        () => fetchClaimSales()
+        () => fetchData()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "events",
+        },
+        () => fetchData()
       )
       .subscribe();
 
@@ -386,6 +413,25 @@ const Index = () => {
 
   const allItems = [...claimSaleCards, ...filteredItems];
 
+  // Get items with location for map
+  const itemsWithLocation = claimSaleItems
+    .filter((item: any) => item.latitude && item.longitude)
+    .map((item: any) => ({
+      id: item.id,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      title: item.title,
+      price: 2,
+    }));
+
+  const eventsWithLocation = events.map((event: any) => ({
+    id: event.id,
+    latitude: event.latitude,
+    longitude: event.longitude,
+    name: event.name,
+    city: event.city,
+  }));
+
   return (
     <div className="min-h-screen bg-background">
       {/* TEST MODE BANNER */}
@@ -394,8 +440,43 @@ const Index = () => {
       </div>
       <Navbar />
       <Hero />
+
+      {/* Local Discovery Section */}
+      <section id="local-discovery" className="container py-16 space-y-8">
+        <LocalDiscovery 
+          onCitySelect={setSelectedCity}
+          selectedCity={selectedCity}
+        />
+
+        {/* Events Carousel */}
+        {events.length > 0 && (
+          <EventsCarousel events={events} />
+        )}
+
+        {/* Map View Toggle */}
+        <div className="flex justify-center">
+          <Button
+            variant={showMap ? "default" : "outline"}
+            onClick={() => setShowMap(!showMap)}
+            className="gap-2"
+          >
+            <MapPin className="h-4 w-4" />
+            {showMap ? "Hide Map" : "Show Map View"}
+          </Button>
+        </div>
+
+        {/* Map View */}
+        {showMap && itemsWithLocation.length > 0 && (
+          <MapView 
+            items={itemsWithLocation}
+            events={eventsWithLocation}
+            center={selectedCity ? undefined : [-98.5795, 39.8283]}
+            zoom={selectedCity ? 10 : 4}
+          />
+        )}
+      </section>
       
-      <section className="container py-16">
+      <section id="trending-listings" className="container pb-16">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <h2 className="text-3xl font-bold mb-2">Trending Grails</h2>

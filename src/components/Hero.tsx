@@ -3,6 +3,16 @@ import { Sparkles, MapPin, Clock } from "lucide-react";
 import heroImage from "@/assets/hero-marketplace.jpg";
 
 const Hero = () => {
+  const scrollToLocal = () => {
+    const localSection = document.getElementById("local-discovery");
+    localSection?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToListings = () => {
+    const listingsSection = document.getElementById("trending-listings");
+    listingsSection?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container py-20 md:py-28">
@@ -23,10 +33,19 @@ const Hero = () => {
             </div>
 
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" className="gap-2 shadow-lg hover:shadow-xl transition-shadow">
+              <Button 
+                size="lg" 
+                className="gap-2 shadow-lg hover:shadow-xl transition-shadow"
+                onClick={scrollToListings}
+              >
                 🔥 Start Hunting
               </Button>
-              <Button size="lg" variant="outline" className="gap-2">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="gap-2"
+                onClick={scrollToLocal}
+              >
                 <MapPin className="h-5 w-5" />
                 Browse Local
               </Button>
