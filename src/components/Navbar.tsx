@@ -49,7 +49,7 @@ const Navbar = () => {
             </Button>
           </Link>
           <Button variant="default" className="hidden sm:flex">
-            Sell Now
+            🔥 Sell Now
           </Button>
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />

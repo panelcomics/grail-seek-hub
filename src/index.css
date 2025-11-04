@@ -9,48 +9,48 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 220 15% 15%;
+    --foreground: 0 0% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    --popover-foreground: 0 0% 10%;
 
-    /* Bold superhero blue */
-    --primary: 220 90% 50%;
+    /* Bold comic red */
+    --primary: 0 85% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 220 90% 65%;
+    --primary-glow: 0 85% 60%;
 
-    /* Electric gold for rarity/value */
-    --secondary: 45 100% 55%;
-    --secondary-foreground: 220 15% 15%;
+    /* Slab black */
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Deep red for urgency/auctions */
-    --accent: 0 85% 55%;
+    /* Fire orange for accents */
+    --accent: 15 100% 55%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 220 15% 95%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 45%;
 
-    --destructive: 0 85% 55%;
+    --destructive: 0 85% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
-    --ring: 220 90% 50%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 85% 50%;
 
     --radius: 0.75rem;
     
     /* Custom gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(220, 90%, 50%), hsl(220, 90%, 35%));
-    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%), hsl(220, 15%, 98%));
+    --gradient-hero: linear-gradient(135deg, hsl(0, 85%, 50%), hsl(0, 0%, 12%));
+    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%), hsl(0, 0%, 98%));
     --gradient-shine: linear-gradient(120deg, transparent, hsl(0, 0%, 100%) 50%, transparent);
     
     /* Shadows */
-    --shadow-card: 0 4px 12px hsl(220, 90%, 50% / 0.1);
-    --shadow-card-hover: 0 8px 24px hsl(220, 90%, 50% / 0.2);
-    --shadow-glow: 0 0 30px hsl(220, 90%, 65% / 0.3);
+    --shadow-card: 0 4px 12px hsl(0, 0%, 0% / 0.1);
+    --shadow-card-hover: 0 8px 24px hsl(0, 85%, 50% / 0.2);
+    --shadow-glow: 0 0 30px hsl(0, 85%, 60% / 0.3);
 
     --sidebar-background: 0 0% 98%;
 
@@ -70,39 +70,39 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 220 25% 8%;
-    --foreground: 220 15% 95%;
+    --background: 0 0% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 220 25% 10%;
-    --card-foreground: 220 15% 95%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 220 25% 10%;
-    --popover-foreground: 220 15% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 220 90% 55%;
+    --primary: 0 85% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 220 90% 70%;
+    --primary-glow: 0 85% 65%;
 
-    --secondary: 45 100% 60%;
-    --secondary-foreground: 220 25% 8%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
 
-    --accent: 0 85% 60%;
+    --accent: 15 100% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 220 20% 15%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --destructive: 0 85% 60%;
+    --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 20%;
-    --input: 220 20% 20%;
-    --ring: 220 90% 55%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 85% 55%;
     
-    --gradient-hero: linear-gradient(135deg, hsl(220, 90%, 45%), hsl(220, 90%, 25%));
-    --gradient-card: linear-gradient(145deg, hsl(220, 25%, 10%), hsl(220, 25%, 12%));
+    --gradient-hero: linear-gradient(135deg, hsl(0, 85%, 45%), hsl(0, 0%, 10%));
+    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 10%), hsl(0, 0%, 12%));
     --shadow-card: 0 4px 12px hsl(0, 0%, 0% / 0.4);
-    --shadow-card-hover: 0 8px 24px hsl(220, 90%, 50% / 0.3);
+    --shadow-card-hover: 0 8px 24px hsl(0, 85%, 50% / 0.3);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

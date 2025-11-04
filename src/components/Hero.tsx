@@ -9,8 +9,8 @@ const Hero = () => {
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border bg-background/50 px-4 py-2 text-sm font-medium backdrop-blur">
-              <Sparkles className="h-4 w-4 text-secondary" />
-              <span>Your Grail Is Waiting</span>
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span>🔥 Your Grail Is Waiting 🔥</span>
             </div>
             
             <div className="space-y-4">
@@ -26,8 +26,7 @@ const Hero = () => {
 
             <div className="flex flex-wrap gap-4">
               <Button size="lg" className="gap-2 shadow-lg hover:shadow-xl transition-shadow">
-                <Sparkles className="h-5 w-5" />
-                Start Hunting
+                🔥 Start Hunting
               </Button>
               <Button size="lg" variant="outline" className="gap-2">
                 <MapPin className="h-5 w-5" />
@@ -37,11 +36,11 @@ const Hero = () => {
 
             <div className="grid grid-cols-3 gap-6 pt-8 border-t">
               <div>
-                <div className="text-3xl font-bold text-primary">50K+</div>
+                <div className="text-3xl font-bold text-primary">🔥 50K+</div>
                 <div className="text-sm text-muted-foreground">Active Listings</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-secondary">24/7</div>
+                <div className="text-3xl font-bold text-primary">24/7</div>
                 <div className="text-sm text-muted-foreground">Live Auctions</div>
               </div>
               <div>
@@ -63,11 +62,11 @@ const Hero = () => {
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-accent animate-pulse" />
                   <div className="flex-1">
-                    <div className="text-sm font-semibold">Live Auction Ending Soon</div>
+                    <div className="text-sm font-semibold">🔥 Live Auction Ending Soon</div>
                     <div className="text-xs text-muted-foreground">$2 Bin - 45 items left</div>
                   </div>
                   <Button size="sm" className="bg-accent hover:bg-accent/90">
-                    Claim Now
+                    🔥 Claim Now
                   </Button>
                 </div>
               </div>
