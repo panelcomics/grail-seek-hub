@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,7 @@ const Auth = () => {
   const [signInPassword, setSignInPassword] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -65,6 +67,16 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!acceptedTerms) {
+      toast({
+        title: "Terms Required",
+        description: "You must accept the Terms of Service to create an account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -182,17 +194,41 @@ const Auth = () => {
                       minLength={6}
                     />
                   </div>
+                  
+                  {/* Terms of Service Checkbox */}
+                  <div className="flex items-start space-x-2 py-2">
+                    <Checkbox 
+                      id="terms" 
+                      checked={acceptedTerms}
+                      onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                      disabled={isLoading}
+                      required
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <label
+                        htmlFor="terms"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        I accept the Terms of Service
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        By signing up, you agree to our{" "}
+                        <Link to="/terms" target="_blank" className="underline hover:text-foreground">
+                          Terms of Service
+                        </Link>
+                        {" "}and Privacy Policy
+                      </p>
+                    </div>
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoading}
+                    disabled={isLoading || !acceptedTerms}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
-                  <p className="text-xs text-center text-muted-foreground">
-                    By signing up, you agree to our Terms of Service and Privacy Policy
-                  </p>
                 </form>
               </TabsContent>
             </Tabs>

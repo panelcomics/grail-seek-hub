@@ -12,6 +12,7 @@ import Deals from "./pages/Deals";
 import Profile from "./pages/Profile";
 import TradeBoard from "./pages/TradeBoard";
 import Events from "./pages/Events";
+import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/trade-board" element={<TradeBoard />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/terms" element={<Terms />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

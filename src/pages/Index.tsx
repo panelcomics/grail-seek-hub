@@ -9,6 +9,7 @@ import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import MapView from "@/components/MapView";
 import Onboarding from "@/components/Onboarding";
+import Footer from "@/components/Footer";
 import { calculateSellerFee } from "@/components/PricingCalculator";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -759,6 +760,9 @@ const Index = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };
