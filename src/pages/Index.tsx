@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Filter, Package, MapPin, Clock, Info, Bell, BellOff, Shield } from "lucide-react";
+import { Filter, Package, MapPin, Clock, Info, Bell, BellOff, Shield, TrendingUp, Star, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import comicSample1 from "@/assets/comic-sample-1.jpg";
 import comicSample2 from "@/assets/comic-sample-2.jpg";
@@ -259,6 +259,93 @@ const mockItems = [
   },
 ];
 
+// Mock Seller Spotlight Data
+const spotlightSellers = [
+  {
+    id: "s1",
+    name: "ComicVault Collectibles",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=CV",
+    rating: 4.9,
+    totalSales: 347,
+    specialization: "Golden Age Comics",
+    featuredItem: {
+      title: "Detective Comics #27 Replica",
+      price: 450,
+      image: comicSample1,
+    }
+  },
+  {
+    id: "s2",
+    name: "CardMaster Pro",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=CM",
+    rating: 4.8,
+    totalSales: 521,
+    specialization: "Vintage Sports Cards",
+    featuredItem: {
+      title: "1986 Fleer Michael Jordan PSA 9",
+      price: 3200,
+      image: cardSample2,
+    }
+  },
+  {
+    id: "s3",
+    name: "Grail Hunter Comics",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=GH",
+    rating: 5.0,
+    totalSales: 189,
+    specialization: "Modern Keys",
+    featuredItem: {
+      title: "Spider-Gwen #1 Variant",
+      price: 125,
+      image: comicSample2,
+    }
+  },
+];
+
+// Mock Top Sellers Leaderboard
+const topSellers = [
+  {
+    rank: 1,
+    name: "Elite Collectibles",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=EC",
+    totalSales: 1247,
+    revenue: 125000,
+    rating: 4.9,
+  },
+  {
+    rank: 2,
+    name: "CardMaster Pro",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=CM",
+    totalSales: 1089,
+    revenue: 98500,
+    rating: 4.8,
+  },
+  {
+    rank: 3,
+    name: "Vintage Vault",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=VV",
+    totalSales: 892,
+    revenue: 87200,
+    rating: 4.9,
+  },
+  {
+    rank: 4,
+    name: "Grail Seekers Inc",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=GS",
+    totalSales: 756,
+    revenue: 72100,
+    rating: 5.0,
+  },
+  {
+    rank: 5,
+    name: "Comic Kingdom",
+    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=CK",
+    totalSales: 634,
+    revenue: 61800,
+    rating: 4.7,
+  },
+];
+
 const Index = () => {
   const [filter, setFilter] = useState<"all" | "comic" | "card">("all");
   const [claimSales, setClaimSales] = useState<any[]>([]);
@@ -475,9 +562,16 @@ const Index = () => {
     requireTerms(handleClaimAction);
   };
 
-  const filteredItems = filter === "all" 
-    ? mockItems 
-    : mockItems.filter(item => item.category === filter);
+  // Separate auction items (ending soon) from regular items
+  const auctionItems = mockItems.filter(item => item.isAuction).sort((a, b) => {
+    const timeA = a.timeRemaining || Infinity;
+    const timeB = b.timeRemaining || Infinity;
+    return timeA - timeB;
+  });
+
+  const trendingItems = filter === "all" 
+    ? mockItems.filter(item => !item.isAuction && !item.isLocal)
+    : mockItems.filter(item => !item.isAuction && !item.isLocal && item.category === filter);
 
   // Convert claim sales to items format
   const claimSaleCards = claimSales.flatMap((sale: any) => {
@@ -496,7 +590,7 @@ const Index = () => {
     }));
   });
 
-  const allItems = [...claimSaleCards, ...filteredItems];
+  const allTrendingItems = [...claimSaleCards, ...trendingItems];
 
   // Get items with location for map
   const itemsWithLocation = claimSaleItems
@@ -619,46 +713,15 @@ const Index = () => {
         </div>
       )}
 
-      {/* Local Discovery Section */}
-      <section id="local-discovery" className="container py-16 space-y-8">
-        <LocalDiscovery 
-          onCitySelect={setSelectedCity}
-          selectedCity={selectedCity}
-        />
-
-        {/* Events Carousel */}
-        {events.length > 0 && (
-          <EventsCarousel events={events} />
-        )}
-
-        {/* Map View Toggle */}
-        <div className="flex justify-center">
-          <Button
-            variant={showMap ? "default" : "outline"}
-            onClick={() => setShowMap(!showMap)}
-            className="gap-2"
-          >
-            <MapPin className="h-4 w-4" />
-            {showMap ? "Hide Map" : "Show Map View"}
-          </Button>
-        </div>
-
-        {/* Map View */}
-        {showMap && itemsWithLocation.length > 0 && (
-          <MapView 
-            items={itemsWithLocation}
-            events={eventsWithLocation}
-            center={selectedCity ? undefined : [-98.5795, 39.8283]}
-            zoom={selectedCity ? 10 : 4}
-          />
-        )}
-      </section>
-      
-      <section id="trending-listings" className="container pb-16">
+      {/* 1. TRENDING GRAILS */}
+      <section id="trending-listings" className="container py-16">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Trending Grails</h2>
-            <p className="text-muted-foreground">Discover the hottest collectibles available now</p>
+          <div className="flex items-center gap-3">
+            <TrendingUp className="h-8 w-8 text-primary" />
+            <div>
+              <h2 className="text-3xl font-bold">Trending Grails</h2>
+              <p className="text-muted-foreground">Discover the hottest collectibles available now</p>
+            </div>
           </div>
           
           <div className="flex items-center gap-3">
@@ -676,36 +739,147 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {allItems.map((item) => (
+          {allTrendingItems.map((item) => (
             <ItemCard key={item.id} {...item} />
           ))}
         </div>
       </section>
 
-      <section className="border-t bg-muted/30 py-12">
+      {/* 2. ENDING SOON */}
+      <section className="container pb-16">
+        <div className="flex items-center gap-3 mb-8">
+          <Clock className="h-8 w-8 text-destructive" />
+          <div>
+            <h2 className="text-3xl font-bold">Ending Soon</h2>
+            <p className="text-muted-foreground">Claim these $2 bin auctions before time runs out</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {auctionItems.map((item) => (
+            <ItemCard key={item.id} {...item} />
+          ))}
+        </div>
+      </section>
+
+      {/* 3. SELLER SPOTLIGHT */}
+      <section className="bg-muted/30 py-16">
         <div className="container">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div className="space-y-2">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary mx-auto mb-3">
-                <Package className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-lg">Safe Shipping</h3>
-              <p className="text-sm text-muted-foreground">USPS integrated with insurance options</p>
+          <div className="flex items-center gap-3 mb-8">
+            <Star className="h-8 w-8 text-yellow-500" />
+            <div>
+              <h2 className="text-3xl font-bold">Seller Spotlight</h2>
+              <p className="text-muted-foreground">Featured trusted sellers with top-rated collections</p>
             </div>
-            <div className="space-y-2">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-secondary/10 text-secondary mx-auto mb-3">
-                <MapPin className="h-6 w-6" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {spotlightSellers.map((seller) => (
+              <div key={seller.id} className="bg-card rounded-lg border p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-center gap-4 mb-4">
+                  <img 
+                    src={seller.avatar} 
+                    alt={seller.name} 
+                    className="w-16 h-16 rounded-full"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{seller.name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                      <span>{seller.rating} • {seller.totalSales} sales</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <Badge variant="secondary" className="mb-4">
+                  {seller.specialization}
+                </Badge>
+
+                <div className="border-t pt-4">
+                  <p className="text-sm text-muted-foreground mb-2">Featured Item</p>
+                  <div className="flex gap-3">
+                    <img 
+                      src={seller.featuredItem.image} 
+                      alt={seller.featuredItem.title}
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                    <div>
+                      <p className="font-medium text-sm line-clamp-2">{seller.featuredItem.title}</p>
+                      <p className="text-lg font-bold text-primary mt-1">
+                        ${seller.featuredItem.price}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button className="w-full mt-4" variant="outline">
+                  View Store
+                </Button>
               </div>
-              <h3 className="font-semibold text-lg">Local Meetups</h3>
-              <p className="text-sm text-muted-foreground">Find sellers within 500 miles</p>
-            </div>
-            <div className="space-y-2">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10 text-accent mx-auto mb-3">
-                <Clock className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-lg">Live Auctions</h3>
-              <p className="text-sm text-muted-foreground">Claim deals in real-time $2 bins</p>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. TOP SELLERS LEADERBOARD */}
+      <section className="container py-16">
+        <div className="flex items-center gap-3 mb-8">
+          <Award className="h-8 w-8 text-primary" />
+          <div>
+            <h2 className="text-3xl font-bold">Top Sellers Leaderboard</h2>
+            <p className="text-muted-foreground">Our highest performing sellers this month</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-lg border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50 border-b">
+                <tr>
+                  <th className="text-left p-4 font-semibold">Rank</th>
+                  <th className="text-left p-4 font-semibold">Seller</th>
+                  <th className="text-left p-4 font-semibold">Total Sales</th>
+                  <th className="text-left p-4 font-semibold">Revenue</th>
+                  <th className="text-left p-4 font-semibold">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topSellers.map((seller) => (
+                  <tr key={seller.rank} className="border-b hover:bg-muted/30 transition-colors">
+                    <td className="p-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                        seller.rank === 1 ? 'bg-yellow-500 text-yellow-950' :
+                        seller.rank === 2 ? 'bg-gray-400 text-gray-950' :
+                        seller.rank === 3 ? 'bg-orange-600 text-orange-950' :
+                        'bg-muted text-foreground'
+                      }`}>
+                        {seller.rank}
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={seller.avatar} 
+                          alt={seller.name}
+                          className="w-10 h-10 rounded-full"
+                        />
+                        <span className="font-medium">{seller.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-4 font-medium">{seller.totalSales.toLocaleString()}</td>
+                    <td className="p-4 font-medium text-green-600">
+                      ${(seller.revenue / 1000).toFixed(1)}K
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                        <span className="font-medium">{seller.rating}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
