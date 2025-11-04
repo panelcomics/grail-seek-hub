@@ -15,9 +15,7 @@ const Hero = () => {
             
             <div className="space-y-4">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-                Find Your
-                <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent"> Holy Grail </span>
-                Collectibles
+                🔥 Your Grail Is Waiting 🔥
               </h1>
               <p className="text-lg text-muted-foreground sm:text-xl max-w-2xl">
                 The ultimate marketplace for comic books and sports cards. Buy local, ship nationwide, or score instant deals in timed auctions.
