@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTerms } from "@/hooks/useTerms";
 import { TermsPopup } from "@/components/TermsPopup";
+import { toastSuccess, toastError } from "@/lib/toastUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 import { 
   Package, 
   Clock, 
@@ -141,7 +141,7 @@ const MyOrders = () => {
       setClaims(enrichedClaims);
     } catch (error) {
       console.error("Error fetching claims:", error);
-      toast.error("Failed to load your orders");
+      toastError.generic("Failed to load your orders");
     } finally {
       setIsLoading(false);
     }
@@ -232,7 +232,7 @@ const MyOrders = () => {
     if (claim.order_id) {
       navigate(`/order/${claim.order_id}`);
     } else {
-      toast.error("Order not yet created. Please contact the seller.");
+      toastError.generic("Order not yet created. Please contact the seller.");
     }
   };
 
@@ -273,9 +273,10 @@ const MyOrders = () => {
 
       // Navigate to messages
       navigate(`/messages?conversation=${conversationId}`);
+      toastSuccess.conversationStarted();
     } catch (error: any) {
       console.error("Error creating conversation:", error);
-      toast.error("Failed to start conversation");
+      toastError.generic("Failed to start conversation");
     }
   };
 

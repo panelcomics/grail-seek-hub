@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useModal } from "@/contexts/ModalContext";
 import { useTerms } from "@/hooks/useTerms";
 import { TermsPopup } from "@/components/TermsPopup";
+import { toastSuccess, toastError } from "@/lib/toastUtils";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ItemCard from "@/components/ItemCard";
@@ -24,7 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Filter, Package, MapPin, Clock, Info, Bell, BellOff, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import comicSample1 from "@/assets/comic-sample-1.jpg";
 import comicSample2 from "@/assets/comic-sample-2.jpg";
 import cardSample1 from "@/assets/card-sample-1.jpg";
@@ -273,7 +273,6 @@ const Index = () => {
   
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const notifications = useNotifications();
   const { openModal } = useModal();
   const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
@@ -299,10 +298,7 @@ const Index = () => {
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("grail-seek-onboarding-completed", "true");
-    toast({
-      title: "Welcome to Grail Seek! 🎉",
-      description: "Start scanning comics or browse claim sales to get started",
-    });
+    toastSuccess.onboardingComplete();
   };
 
   // Fetch active claim sales and events
@@ -400,11 +396,7 @@ const Index = () => {
 
   const openClaimDialog = (saleId: string, itemId: string, price: number, title: string) => {
     if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to claim items.",
-        variant: "destructive",
-      });
+      toastError.authRequired();
       navigate("/auth");
       return;
     }
@@ -452,10 +444,7 @@ const Index = () => {
       // Send push notification
       notifications.sendClaimSecuredNotification(title, youReceive);
 
-      toast({
-        title: "🎉 Claim Secured!",
-        description: `You'll receive $${youReceive.toFixed(2)} after ${shippingMethod === 'local_pickup' ? 'local pickup' : 'shipping'}`,
-      });
+      toastSuccess.claimSubmitted();
 
       setClaimDialogOpen(false);
       setSelectedClaimItem(null);
@@ -478,11 +467,7 @@ const Index = () => {
         }
       }
     } catch (error: any) {
-      toast({
-        title: "Claim failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toastError.claimFailed(error.message || "unknown error");
     }
   };
 

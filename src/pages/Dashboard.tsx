@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTerms } from "@/hooks/useTerms";
 import { TermsPopup } from "@/components/TermsPopup";
+import { toastSuccess, toastError } from "@/lib/toastUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -125,7 +126,7 @@ const Dashboard = () => {
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      toast.error("Failed to load dashboard");
+      toastError.generic("Failed to load dashboard");
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +138,7 @@ const Dashboard = () => {
 
   const handleSendInvoiceAction = async (sale: ClaimSale) => {
     // Placeholder for invoice functionality
-    toast.success(`Invoice functionality coming soon for ${sale.title}`);
+    toastSuccess.invoiceSent();
   };
 
   const handleSendInvoice = (sale: ClaimSale) => {

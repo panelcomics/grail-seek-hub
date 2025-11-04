@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { CURRENT_TERMS_VERSION, hasAcceptedLatestTerms } from "@/lib/termsUtils";
+import { toastSuccess } from "@/lib/toastUtils";
 
 export const useTerms = () => {
   const { user } = useAuth();
@@ -59,6 +60,8 @@ export const useTerms = () => {
     if (!error) {
       setHasAcceptedTerms(true);
       setShowTermsPopup(false);
+      
+      toastSuccess.termsAccepted();
       
       // Execute pending action
       if (pendingAction) {

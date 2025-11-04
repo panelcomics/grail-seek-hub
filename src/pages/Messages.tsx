@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toastSuccess, toastError } from "@/lib/toastUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -159,7 +160,7 @@ const Messages = () => {
       setConversations(enrichedConvs);
     } catch (error) {
       console.error("Error fetching conversations:", error);
-      toast.error("Failed to load conversations");
+      toastError.generic("Failed to load conversations");
     } finally {
       setIsLoading(false);
     }
@@ -177,7 +178,7 @@ const Messages = () => {
       setMessages(data || []);
     } catch (error) {
       console.error("Error fetching messages:", error);
-      toast.error("Failed to load messages");
+      toastError.generic("Failed to load messages");
     }
   };
 
@@ -209,9 +210,10 @@ const Messages = () => {
         .eq("id", selectedConversation.id);
 
       setNewMessage("");
+      toastSuccess.messageSent();
     } catch (error: any) {
       console.error("Error sending message:", error);
-      toast.error("Failed to send message");
+      toastError.generic("Failed to send message");
     } finally {
       setIsSending(false);
     }
@@ -261,10 +263,10 @@ const Messages = () => {
         .update({ last_message_time: new Date().toISOString() })
         .eq("id", selectedConversation.id);
 
-      toast.success("Image sent!");
+      toastSuccess.messageSent();
     } catch (error: any) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload image");
+      toastError.uploadFailed();
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
