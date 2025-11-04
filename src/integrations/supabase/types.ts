@@ -17,32 +17,47 @@ export type Database = {
       claim_sale_items: {
         Row: {
           category: string
+          city: string | null
           claim_sale_id: string
           condition: string
           created_at: string
+          distance_miles: number | null
           id: string
           image_url: string | null
           is_claimed: boolean
+          latitude: number | null
+          longitude: number | null
+          state: string | null
           title: string
         }
         Insert: {
           category: string
+          city?: string | null
           claim_sale_id: string
           condition: string
           created_at?: string
+          distance_miles?: number | null
           id?: string
           image_url?: string | null
           is_claimed?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          state?: string | null
           title: string
         }
         Update: {
           category?: string
+          city?: string | null
           claim_sale_id?: string
           condition?: string
           created_at?: string
+          distance_miles?: number | null
           id?: string
           image_url?: string | null
           is_claimed?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          state?: string | null
           title?: string
         }
         Relationships: [
@@ -141,6 +156,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      events: {
+        Row: {
+          city: string
+          created_at: string | null
+          description: string | null
+          end_date: string
+          event_type: string
+          id: string
+          image_url: string | null
+          is_featured: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          start_date: string
+          state: string
+          venue: string | null
+          website_url: string | null
+        }
+        Insert: {
+          city: string
+          created_at?: string | null
+          description?: string | null
+          end_date: string
+          event_type: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          start_date: string
+          state: string
+          venue?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          city?: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string
+          event_type?: string
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          start_date?: string
+          state?: string
+          venue?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
