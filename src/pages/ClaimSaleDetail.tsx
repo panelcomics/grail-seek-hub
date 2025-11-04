@@ -37,6 +37,14 @@ interface UserClaim {
   id: string;
   claimed_at: string;
   rank: number;
+  is_winner: boolean;
+}
+
+interface Winner {
+  user_id: string;
+  claimed_at: string;
+  rank: number;
+  username: string;
 }
 
 const ClaimSaleDetail = () => {
@@ -51,6 +59,7 @@ const ClaimSaleDetail = () => {
   const [isClaiming, setIsClaiming] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [winners, setWinners] = useState<Winner[]>([]);
 
   useEffect(() => {
     fetchSaleData();
@@ -143,7 +152,34 @@ const ClaimSaleDetail = () => {
             id: userClaimData.id,
             claimed_at: userClaimData.claimed_at,
             rank,
+            is_winner: (userClaimData as any).is_winner || false,
           });
+        }
+      }
+
+      // If sale is closed, fetch winners
+      if (saleData.status === "closed") {
+        const { data: winnersData, error: winnersError } = await supabase
+          .from("claims")
+          .select(`
+            user_id,
+            claimed_at,
+            profiles!claims_user_id_fkey (username)
+          `)
+          .eq("claim_sale_id", id)
+          .eq("is_winner", true)
+          .order("claimed_at", { ascending: true });
+
+        if (winnersError) {
+          console.error("Error fetching winners:", winnersError);
+        } else if (winnersData) {
+          const formattedWinners = winnersData.map((w: any, idx: number) => ({
+            user_id: w.user_id,
+            claimed_at: w.claimed_at,
+            rank: idx + 1,
+            username: w.profiles?.username || "Unknown User",
+          }));
+          setWinners(formattedWinners);
         }
       }
     } catch (error) {
@@ -332,47 +368,105 @@ const ClaimSaleDetail = () => {
             </Card>
           </div>
 
-          {/* Claim Widget */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Claim Your Item</CardTitle>
-              <CardDescription>
-                {userClaim
-                  ? `You claimed this item! You're #${userClaim.rank} in line.`
-                  : canClaim
-                  ? "Click below to claim an item from this sale"
-                  : !user
-                  ? "Please sign in to claim items"
-                  : isEnded
-                  ? "This sale has ended"
-                  : itemsLeft === 0
-                  ? "All items have been claimed"
-                  : "You have already claimed from this sale"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {userClaim ? (
-                <div className="flex items-center gap-4 p-4 bg-success/10 border border-success rounded-lg">
-                  <TrendingUp className="h-8 w-8 text-success" />
-                  <div>
-                    <p className="font-semibold text-success">You're in line!</p>
-                    <p className="text-sm text-muted-foreground">
-                      Position #{userClaim.rank} • Claimed {new Date(userClaim.claimed_at).toLocaleString()}
-                    </p>
-                  </div>
+          {/* Claim Widget or Winners List */}
+          {sale.status === "closed" && winners.length > 0 ? (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>🏆 Winners List</CardTitle>
+                <CardDescription>
+                  Sale closed • {winners.length} {winners.length === 1 ? "winner" : "winners"} selected
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {winners.map((winner) => (
+                    <div
+                      key={winner.user_id}
+                      className={`flex items-center justify-between p-4 rounded-lg border ${
+                        userClaim?.is_winner && winner.user_id === user?.id
+                          ? "bg-success/10 border-success"
+                          : "bg-card"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${
+                            winner.rank === 1
+                              ? "bg-yellow-500 text-yellow-950"
+                              : winner.rank === 2
+                              ? "bg-gray-400 text-gray-900"
+                              : winner.rank === 3
+                              ? "bg-orange-600 text-orange-50"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {winner.rank}
+                        </div>
+                        <div>
+                          <p className="font-semibold">
+                            @{winner.username}
+                            {userClaim?.is_winner && winner.user_id === user?.id && (
+                              <Badge variant="default" className="ml-2">You!</Badge>
+                            )}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Claimed at {new Date(winner.claimed_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <Button
-                  size="lg"
-                  className="w-full"
-                  onClick={handleClaim}
-                  disabled={!canClaim || isClaiming}
-                >
-                  {isClaiming ? "Claiming..." : !user ? "Sign In to Claim" : "Claim Now"}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Claim Your Item</CardTitle>
+                <CardDescription>
+                  {userClaim
+                    ? userClaim.is_winner
+                      ? `🎉 You won! You're #${userClaim.rank} in line.`
+                      : `You claimed this item! You're #${userClaim.rank} in line.`
+                    : canClaim
+                    ? "Click below to claim an item from this sale"
+                    : !user
+                    ? "Please sign in to claim items"
+                    : isEnded
+                    ? "This sale has ended"
+                    : itemsLeft === 0
+                    ? "All items have been claimed"
+                    : "You have already claimed from this sale"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {userClaim ? (
+                  <div className={`flex items-center gap-4 p-4 rounded-lg border ${
+                    userClaim.is_winner ? "bg-success/10 border-success" : "bg-card"
+                  }`}>
+                    <TrendingUp className={`h-8 w-8 ${userClaim.is_winner ? "text-success" : "text-primary"}`} />
+                    <div>
+                      <p className={`font-semibold ${userClaim.is_winner ? "text-success" : ""}`}>
+                        {userClaim.is_winner ? "You won!" : "You're in line!"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Position #{userClaim.rank} • Claimed {new Date(userClaim.claimed_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={handleClaim}
+                    disabled={!canClaim || isClaiming}
+                  >
+                    {isClaiming ? "Claiming..." : !user ? "Sign In to Claim" : "Claim Now"}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Gallery */}

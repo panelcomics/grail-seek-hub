@@ -165,6 +165,7 @@ export type Database = {
           claim_sale_id: string
           claimed_at: string
           id: string
+          is_winner: boolean | null
           item_id: string
           item_price: number
           quantity: number
@@ -178,6 +179,7 @@ export type Database = {
           claim_sale_id: string
           claimed_at?: string
           id?: string
+          is_winner?: boolean | null
           item_id: string
           item_price?: number
           quantity?: number
@@ -191,6 +193,7 @@ export type Database = {
           claim_sale_id?: string
           claimed_at?: string
           id?: string
+          is_winner?: boolean | null
           item_id?: string
           item_price?: number
           quantity?: number
