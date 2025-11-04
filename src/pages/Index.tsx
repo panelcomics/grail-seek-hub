@@ -916,6 +916,19 @@ const Index = () => {
               </tbody>
             </table>
           </div>
+          
+          {/* View Full Leaderboard Button */}
+          <div className="flex justify-center mt-8">
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => navigate("/leaderboard")}
+              className="min-w-[250px]"
+            >
+              <Award className="mr-2 h-5 w-5" />
+              View Full Leaderboard
+            </Button>
+          </div>
         </div>
       </section>
 
