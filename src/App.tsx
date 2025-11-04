@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import TradeBoard from "./pages/TradeBoard";
 import Events from "./pages/Events";
 import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/trade-board" element={<TradeBoard />} />
           <Route path="/events" element={<Events />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -216,7 +216,10 @@ const Auth = () => {
                         <Link to="/terms" target="_blank" className="underline hover:text-foreground">
                           Terms of Service
                         </Link>
-                        {" "}and Privacy Policy
+                        {" "}and{" "}
+                        <Link to="/privacy" target="_blank" className="underline hover:text-foreground">
+                          Privacy Policy
+                        </Link>
                       </p>
                     </div>
                   </div>
