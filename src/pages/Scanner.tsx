@@ -14,22 +14,59 @@ export default function Scanner() {
   const [scanning, setScanning] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [scanResult, setScanResult] = useState<any>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkResults, setBulkResults] = useState<any[]>([]);
 
-  const handleFileSelect = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+  const handleFileSelect = async (files: FileList) => {
+    const fileArray = Array.from(files);
+    
+    if (fileArray.length === 0) return;
+    
+    if (fileArray.some(f => !f.type.startsWith('image/'))) {
+      toast.error('Please select only image files');
       return;
     }
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (fileArray.length > 1) {
+      // Bulk mode
+      setBulkMode(true);
+      toast.info(`Scanning ${fileArray.length} items...`);
+      
+      const results = [];
+      for (let i = 0; i < Math.min(fileArray.length, 50); i++) {
+        const file = fileArray[i];
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
 
-    // Scan the image
-    await scanImage(file);
+        try {
+          const imageBase64 = await base64Promise;
+          const { data, error } = await supabase.functions.invoke('scan-item', {
+            body: { imageBase64 }
+          });
+
+          if (!error && data) {
+            results.push({ ...data, image: imageBase64 });
+          }
+        } catch (error) {
+          console.error('Error scanning item:', error);
+        }
+      }
+      
+      setBulkResults(results);
+      toast.success(`Scanned ${results.length} items!`);
+    } else {
+      // Single mode
+      const file = fileArray[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      await scanImage(file);
+    }
   };
 
   const scanImage = async (file: File) => {
@@ -126,11 +163,12 @@ export default function Scanner() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
               />
 
-              {!previewUrl ? (
+              {!previewUrl && bulkResults.length === 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Button
                     size="lg"
@@ -138,7 +176,7 @@ export default function Scanner() {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="mr-2 h-6 w-6" />
-                    Choose File
+                    Choose Files
                   </Button>
                   <Button
                     size="lg"
@@ -147,7 +185,77 @@ export default function Scanner() {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Camera className="mr-2 h-6 w-6" />
-                    Take Photo
+                    Bulk Scan (50 max)
+                  </Button>
+                </div>
+              ) : bulkResults.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Bulk Scan Results ({bulkResults.length} items)</h3>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setBulkResults([]);
+                        setBulkMode(false);
+                        fileInputRef.current!.value = "";
+                      }}
+                    >
+                      New Scan
+                    </Button>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {bulkResults.map((result, idx) => (
+                      <Card key={idx} className="overflow-hidden">
+                        <div className="aspect-[3/4] overflow-hidden">
+                          <img
+                            src={result.image || '/placeholder.svg'}
+                            alt={result.title}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <h4 className="font-semibold text-sm mb-2">{result.title}</h4>
+                          <div className="flex gap-2 mb-2">
+                            <Badge variant="secondary" className="text-xs">{result.category}</Badge>
+                            <Badge variant="outline" className="text-xs">{result.grade}</Badge>
+                          </div>
+                          <p className="text-lg font-bold text-green-500">
+                            ${result.estimatedValue?.toFixed(2)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={async () => {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (!user) {
+                        toast.error('Please sign in to save items');
+                        navigate('/auth');
+                        return;
+                      }
+
+                      for (const result of bulkResults) {
+                        await supabase.from('collections').insert({
+                          user_id: user.id,
+                          title: result.title,
+                          category: result.category,
+                          grade: result.grade,
+                          condition: result.condition,
+                          purchase_price: result.estimatedValue,
+                          purchase_date: new Date().toISOString().split('T')[0],
+                          current_value: result.estimatedValue,
+                          image_url: result.image
+                        });
+                      }
+
+                      toast.success(`Added ${bulkResults.length} items to portfolio!`);
+                      navigate('/portfolio');
+                    }}
+                  >
+                    Add All to Portfolio
                   </Button>
                 </div>
               ) : (

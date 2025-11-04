@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      bulk_scans: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          processed_items: number | null
+          status: string
+          total_items: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          processed_items?: number | null
+          status: string
+          total_items: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          processed_items?: number | null
+          status?: string
+          total_items?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       claim_sale_items: {
         Row: {
           category: string
@@ -308,6 +341,59 @@ export type Database = {
             columns: ["alert_id"]
             isOneToOne: false
             referencedRelation: "custom_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_listings: {
+        Row: {
+          booth_number: string | null
+          category: string
+          condition: string
+          created_at: string
+          event_id: string
+          grade: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean | null
+          price: number
+          seller_id: string
+          title: string
+        }
+        Insert: {
+          booth_number?: string | null
+          category: string
+          condition: string
+          created_at?: string
+          event_id: string
+          grade?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          price: number
+          seller_id: string
+          title: string
+        }
+        Update: {
+          booth_number?: string | null
+          category?: string
+          condition?: string
+          created_at?: string
+          event_id?: string
+          grade?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean | null
+          price?: number
+          seller_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_listings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -653,6 +739,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_event_listing_count: {
+        Args: { target_event_id: string }
+        Returns: number
+      }
       get_user_rating: {
         Args: { target_user_id: string }
         Returns: {

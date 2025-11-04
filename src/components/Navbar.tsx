@@ -53,11 +53,11 @@ export default function Navbar() {
             <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">
               Browse
             </Link>
+            <Link to="/events" className="text-sm font-medium hover:text-primary transition-colors">
+              Events
+            </Link>
             <Link to="/trade-board" className="text-sm font-medium hover:text-primary transition-colors">
               Trade Board
-            </Link>
-            <Link to="#" className="text-sm font-medium hover:text-primary transition-colors">
-              Local Pickup
             </Link>
           </div>
         </div>
