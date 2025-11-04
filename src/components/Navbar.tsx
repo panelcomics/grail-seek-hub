@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, LogOut, Scan, BarChart3, Bell } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -15,7 +15,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function Navbar() {
+interface NavbarProps {
+  onShowOnboarding?: () => void;
+}
+
+export default function Navbar({ onShowOnboarding }: NavbarProps) {
   const { user, signOut } = useAuth();
   const [newDealsCount, setNewDealsCount] = useState(0);
 
@@ -124,6 +128,13 @@ export default function Navbar() {
                     My Profile
                   </Link>
                 </DropdownMenuItem>
+                {onShowOnboarding && (
+                  <DropdownMenuItem onClick={onShowOnboarding}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    View Tutorial
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out

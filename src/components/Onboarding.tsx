@@ -1,0 +1,137 @@
+import { useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Scan, Zap, Truck, ChevronRight, X } from "lucide-react";
+
+interface OnboardingProps {
+  open: boolean;
+  onComplete: () => void;
+}
+
+const onboardingSteps = [
+  {
+    icon: Scan,
+    title: "Scan any comic",
+    description: "Use your phone camera to instantly identify comics and get real-time market values",
+    highlight: "AI-powered recognition",
+    color: "text-blue-500",
+    bgColor: "bg-blue-500/10",
+  },
+  {
+    icon: Zap,
+    title: "Claim in 5 sec",
+    description: "Lightning-fast claims on hot deals. No bidding wars, no waiting - just tap and it's yours",
+    highlight: "$2 bins & claim sales",
+    color: "text-orange-500",
+    bgColor: "bg-orange-500/10",
+  },
+  {
+    icon: Truck,
+    title: "Meet locally or ship",
+    description: "Choose local pickup for 0% fees or ship nationwide with full protection for 5% ($5 min)",
+    highlight: "Your choice, your way",
+    color: "text-green-500",
+    bgColor: "bg-green-500/10",
+  },
+];
+
+export default function Onboarding({ open, onComplete }: OnboardingProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const handleNext = () => {
+    if (currentStep < onboardingSteps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      onComplete();
+    }
+  };
+
+  const handleSkip = () => {
+    onComplete();
+  };
+
+  const step = onboardingSteps[currentStep];
+  const Icon = step.icon;
+
+  return (
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent 
+        className="max-w-md p-0 gap-0 overflow-hidden border-2"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        {/* Skip Button */}
+        <button
+          onClick={handleSkip}
+          className="absolute top-4 right-4 z-50 rounded-full p-2 hover:bg-accent transition-colors"
+          aria-label="Skip onboarding"
+        >
+          <X className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        {/* Step Content */}
+        <div className="p-8 pb-6">
+          {/* Icon */}
+          <div className={`inline-flex h-20 w-20 items-center justify-center rounded-2xl ${step.bgColor} mb-6`}>
+            <Icon className={`h-10 w-10 ${step.color}`} />
+          </div>
+
+          {/* Step indicator */}
+          <div className="flex gap-1.5 mb-6">
+            {onboardingSteps.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1.5 flex-1 rounded-full transition-all ${
+                  index === currentStep
+                    ? "bg-primary"
+                    : index < currentStep
+                    ? "bg-primary/50"
+                    : "bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="space-y-3 mb-8">
+            <Badge variant="secondary" className="mb-2">
+              {step.highlight}
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight">{step.title}</h2>
+            <p className="text-muted-foreground text-lg leading-relaxed">
+              {step.description}
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t bg-muted/30 px-8 py-6 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Step {currentStep + 1} of {onboardingSteps.length}
+          </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleSkip}
+              className="text-muted-foreground"
+            >
+              Skip
+            </Button>
+            <Button onClick={handleNext} className="gap-2">
+              {currentStep < onboardingSteps.length - 1 ? (
+                <>
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              ) : (
+                "Get Started"
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

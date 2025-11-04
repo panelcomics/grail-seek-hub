@@ -8,6 +8,7 @@ import ItemCard from "@/components/ItemCard";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import MapView from "@/components/MapView";
+import Onboarding from "@/components/Onboarding";
 import { calculateSellerFee } from "@/components/PricingCalculator";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -263,10 +264,29 @@ const Index = () => {
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
   const [selectedClaimItem, setSelectedClaimItem] = useState<{ saleId: string; itemId: string; price: number; title: string } | null>(null);
   const [shippingMethod, setShippingMethod] = useState<'local_pickup' | 'ship_nationwide'>('ship_nationwide');
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const notifications = useNotifications();
+
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem("grail-seek-onboarding-completed");
+    if (!hasSeenOnboarding) {
+      // Show onboarding after a short delay for better UX
+      setTimeout(() => setShowOnboarding(true), 500);
+    }
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem("grail-seek-onboarding-completed", "true");
+    setShowOnboarding(false);
+    toast({
+      title: "Welcome to Grail Seek! 🎉",
+      description: "Start scanning comics or browse claim sales to get started",
+    });
+  };
 
   // Fetch active claim sales and events
   useEffect(() => {
@@ -475,11 +495,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Onboarding */}
+      <Onboarding open={showOnboarding} onComplete={handleOnboardingComplete} />
+
       {/* TEST MODE BANNER */}
       <div className="bg-destructive text-destructive-foreground py-2 text-center font-semibold text-sm">
         🧪 TEST MODE - No real payments processed
       </div>
-      <Navbar />
+      <Navbar onShowOnboarding={() => setShowOnboarding(true)} />
       
       {/* Notification Permission Banner */}
       {notifications.isSupported && notifications.permission === "default" && (
