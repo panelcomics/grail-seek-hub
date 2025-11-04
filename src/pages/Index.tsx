@@ -267,6 +267,7 @@ const Index = () => {
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
   const [selectedClaimItem, setSelectedClaimItem] = useState<{ saleId: string; itemId: string; price: number; title: string } | null>(null);
   const [shippingMethod, setShippingMethod] = useState<'local_pickup' | 'ship_nationwide'>('ship_nationwide');
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
   
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -286,6 +287,11 @@ const Index = () => {
       }, 500);
     }
     
+    // Check if user has dismissed the welcome banner
+    const hideWelcomeBanner = localStorage.getItem("hideWelcomeBanner");
+    if (hideWelcomeBanner === "true") {
+      setShowWelcomeBanner(false);
+    }
   }, []);
 
   const handleOnboardingComplete = () => {
@@ -581,6 +587,45 @@ const Index = () => {
       )}
       
       <Hero />
+
+      {/* Welcome Banner */}
+      {showWelcomeBanner && (
+        <div className="border-b bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <p className="text-sm font-medium">
+                Run claim sales without the Facebook hassle. Lower fees than eBay.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button 
+                  size="sm"
+                  onClick={() => navigate("/seller-dashboard")}
+                >
+                  Create Claim Sale
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => document.getElementById("trending-listings")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  Explore
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setShowWelcomeBanner(false);
+                    localStorage.setItem("hideWelcomeBanner", "true");
+                  }}
+                >
+                  Maybe later ×
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Local Discovery Section */}
       <section id="local-discovery" className="container py-16 space-y-8">
