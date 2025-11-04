@@ -47,6 +47,14 @@ interface Winner {
   username: string;
 }
 
+interface Order {
+  id: string;
+  total: number;
+  payment_status: string;
+  payment_method: string | null;
+  created_at: string;
+}
+
 const ClaimSaleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,6 +68,7 @@ const ClaimSaleDetail = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [winners, setWinners] = useState<Winner[]>([]);
+  const [userOrder, setUserOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     fetchSaleData();
@@ -180,6 +189,20 @@ const ClaimSaleDetail = () => {
             username: w.profiles?.username || "Unknown User",
           }));
           setWinners(formattedWinners);
+        }
+
+        // If user is logged in and is a winner, check for order
+        if (user && userClaim?.is_winner) {
+          const { data: orderData, error: orderError } = await supabase
+            .from("orders")
+            .select("*")
+            .eq("claim_id", userClaim.id)
+            .eq("buyer_id", user.id)
+            .maybeSingle();
+
+          if (!orderError && orderData) {
+            setUserOrder(orderData as Order);
+          }
         }
       }
     } catch (error) {
@@ -441,18 +464,45 @@ const ClaimSaleDetail = () => {
               </CardHeader>
               <CardContent>
                 {userClaim ? (
-                  <div className={`flex items-center gap-4 p-4 rounded-lg border ${
-                    userClaim.is_winner ? "bg-success/10 border-success" : "bg-card"
-                  }`}>
-                    <TrendingUp className={`h-8 w-8 ${userClaim.is_winner ? "text-success" : "text-primary"}`} />
-                    <div>
-                      <p className={`font-semibold ${userClaim.is_winner ? "text-success" : ""}`}>
-                        {userClaim.is_winner ? "You won!" : "You're in line!"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Position #{userClaim.rank} • Claimed {new Date(userClaim.claimed_at).toLocaleString()}
-                      </p>
+                  <div className="space-y-4">
+                    <div className={`flex items-center gap-4 p-4 rounded-lg border ${
+                      userClaim.is_winner ? "bg-success/10 border-success" : "bg-card"
+                    }`}>
+                      <TrendingUp className={`h-8 w-8 ${userClaim.is_winner ? "text-success" : "text-primary"}`} />
+                      <div>
+                        <p className={`font-semibold ${userClaim.is_winner ? "text-success" : ""}`}>
+                          {userClaim.is_winner ? "You won!" : "You're in line!"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Position #{userClaim.rank} • Claimed {new Date(userClaim.claimed_at).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
+                    
+                    {/* Payment section for winners */}
+                    {userClaim.is_winner && userOrder && (
+                      <div className="p-4 border rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold">Invoice Total:</p>
+                          <p className="text-2xl font-bold">${userOrder.total.toFixed(2)}</p>
+                        </div>
+                        {userOrder.payment_status === "pending" ? (
+                          <div className="space-y-2">
+                            <Badge variant="secondary">Payment Pending</Badge>
+                            <p className="text-sm text-muted-foreground">
+                              The seller will send you payment instructions shortly.
+                            </p>
+                          </div>
+                        ) : userOrder.payment_status === "paid" ? (
+                          <div className="space-y-2">
+                            <Badge variant="default" className="bg-success">Paid</Badge>
+                            <p className="text-sm text-muted-foreground">
+                              Payment received on {new Date(userOrder.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <Button

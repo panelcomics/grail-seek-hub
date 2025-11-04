@@ -114,6 +114,8 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           price: number
+          seller_id: string | null
+          shipping_amount: number | null
           start_time: string
           state: string | null
           status: string
@@ -132,6 +134,8 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           price?: number
+          seller_id?: string | null
+          shipping_amount?: number | null
           start_time: string
           state?: string | null
           status?: string
@@ -150,6 +154,8 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           price?: number
+          seller_id?: string | null
+          shipping_amount?: number | null
           start_time?: string
           state?: string | null
           status?: string
@@ -565,6 +571,72 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      orders: {
+        Row: {
+          amount: number
+          buyer_id: string
+          claim_id: string
+          claim_sale_id: string
+          created_at: string
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_status: string
+          seller_id: string
+          shipping_amount: number
+          stripe_session_id: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          buyer_id: string
+          claim_id: string
+          claim_sale_id: string
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          seller_id: string
+          shipping_amount?: number
+          stripe_session_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          claim_id?: string
+          claim_sale_id?: string
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          seller_id?: string
+          shipping_amount?: number
+          stripe_session_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_claim_sale_id_fkey"
+            columns: ["claim_sale_id"]
+            isOneToOne: false
+            referencedRelation: "claim_sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_alerts: {
         Row: {

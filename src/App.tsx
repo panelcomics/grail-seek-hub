@@ -17,6 +17,7 @@ import Privacy from "./pages/Privacy";
 import Settings from "./pages/Settings";
 import CreateClaimSale from "./pages/CreateClaimSale";
 import ClaimSaleDetail from "./pages/ClaimSaleDetail";
+import SellerDashboard from "./pages/SellerDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/sell/claim-sale" element={<CreateClaimSale />} />
           <Route path="/claim-sale/:id" element={<ClaimSaleDetail />} />
+          <Route path="/seller/dashboard" element={<SellerDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

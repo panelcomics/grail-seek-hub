@@ -36,6 +36,7 @@ const CreateClaimSale = () => {
     zip: "",
     latitude: "",
     longitude: "",
+    shippingAmount: "0",
   });
 
   const [countdown, setCountdown] = useState("");
@@ -191,6 +192,8 @@ const CreateClaimSale = () => {
           latitude: formData.latitude ? parseFloat(formData.latitude) : null,
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           status: new Date(formData.startTime) <= new Date() ? "open" : "upcoming",
+          seller_id: user?.id,
+          shipping_amount: parseFloat(formData.shippingAmount) || 0,
         })
         .select()
         .single();
@@ -545,6 +548,21 @@ const CreateClaimSale = () => {
                   value={formData.longitude}
                   onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value }))}
                 />
+              </div>
+              <div>
+                <Label htmlFor="shippingAmount">Shipping Amount ($)</Label>
+                <Input
+                  id="shippingAmount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.shippingAmount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, shippingAmount: e.target.value }))}
+                  placeholder="5.00"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Optional: Add shipping cost to invoices (e.g., $5 flat rate)
+                </p>
               </div>
             </div>
 

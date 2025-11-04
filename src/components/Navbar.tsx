@@ -134,6 +134,12 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
                     Settings
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/seller/dashboard" className="cursor-pointer">
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Seller Dashboard
+                  </Link>
+                </DropdownMenuItem>
                 {onShowOnboarding && (
                   <DropdownMenuItem onClick={onShowOnboarding}>
                     <HelpCircle className="mr-2 h-4 w-4" />
