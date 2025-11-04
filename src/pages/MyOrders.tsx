@@ -41,6 +41,10 @@ interface ClaimWithDetails {
   order_id: string | null;
   payment_status: string | null;
   order_total: number | null;
+  shipping_status: string | null;
+  carrier: string | null;
+  tracking_number: string | null;
+  shipped_at: string | null;
 }
 
 type ClaimStatus = 'pending' | 'won' | 'lost' | 'paid' | 'shipped';
@@ -110,7 +114,7 @@ const MyOrders = () => {
       const claimIds = claimsData?.map(c => c.id) || [];
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
-        .select("claim_id, id, payment_status, total")
+        .select("claim_id, id, payment_status, total, shipping_status, carrier, tracking_number, shipped_at")
         .in("claim_id", claimIds);
 
       if (ordersError) throw ordersError;
@@ -135,6 +139,10 @@ const MyOrders = () => {
           order_id: order?.id || null,
           payment_status: order?.payment_status || null,
           order_total: order?.total || null,
+          shipping_status: order?.shipping_status || null,
+          carrier: order?.carrier || null,
+          tracking_number: order?.tracking_number || null,
+          shipped_at: order?.shipped_at || null,
         };
       }) || [];
 
@@ -153,12 +161,13 @@ const MyOrders = () => {
       return 'lost';
     }
 
-    // Check order status
+    // Check order and shipping status
     if (claim.order_id && claim.payment_status) {
-      if (claim.payment_status === 'paid') {
-        // For now, we'll assume paid orders are shipped
-        // In the future, you could add a 'shipping_status' field
+      if (claim.payment_status === 'paid' && claim.shipping_status === 'shipped') {
         return 'shipped';
+      }
+      if (claim.payment_status === 'paid') {
+        return 'paid';
       }
       if (claim.payment_status === 'pending') {
         return 'pending';
@@ -432,8 +441,8 @@ const MyOrders = () => {
                           <TableCell>
                             {getStatusBadge(status)}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
+                           <TableCell className="text-right">
+                            <div className="flex justify-end gap-2 flex-wrap">
                               {canPay(status) && (
                                 <Button
                                   size="sm"
@@ -442,6 +451,36 @@ const MyOrders = () => {
                                 >
                                   <DollarSign className="h-3 w-3" />
                                   Pay Now
+                                </Button>
+                              )}
+                              {status === 'shipped' && claim.tracking_number && claim.carrier && claim.carrier !== "Other" && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    const trackingUrl = 
+                                      claim.carrier === "USPS" 
+                                        ? `https://tools.usps.com/go/TrackConfirmAction?tLabels=${claim.tracking_number}`
+                                        : claim.carrier === "UPS"
+                                        ? `https://www.ups.com/track?tracknum=${claim.tracking_number}`
+                                        : `https://www.fedex.com/fedextrack/?trknbr=${claim.tracking_number}`;
+                                    window.open(trackingUrl, "_blank");
+                                  }}
+                                  className="gap-1"
+                                >
+                                  <Truck className="h-3 w-3" />
+                                  Track
+                                </Button>
+                              )}
+                              {(status === 'paid' || status === 'shipped') && claim.order_id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/order/${claim.order_id}`)}
+                                  className="gap-1"
+                                >
+                                  <Package className="h-3 w-3" />
+                                  View Order
                                 </Button>
                               )}
                               {status !== 'lost' && (

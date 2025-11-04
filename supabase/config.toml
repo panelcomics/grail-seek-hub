@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.confirm-delivery]
 verify_jwt = true
+
+[functions.send-shipping-notification]
+verify_jwt = true

@@ -127,7 +127,9 @@ export const SellerOrderManagement = () => {
 
     try {
       setUpdating(true);
-      const { error } = await supabase
+      
+      // Update order with shipping info
+      const { error: updateError } = await supabase
         .from("orders")
         .update({
           shipping_status: "shipped",
@@ -137,9 +139,21 @@ export const SellerOrderManagement = () => {
         })
         .eq("id", selectedOrder.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      toast.success("Order marked as shipped!");
+      // Send email notification to buyer
+      const { error: emailError } = await supabase.functions.invoke("send-shipping-notification", {
+        body: { orderId: selectedOrder.id },
+      });
+
+      if (emailError) {
+        console.error("Error sending notification:", emailError);
+        // Don't fail the whole operation if email fails
+        toast.warning("Order marked as shipped, but email notification failed");
+      } else {
+        toast.success("Order marked as shipped! Buyer has been notified.");
+      }
+
       setShowShipModal(false);
       setSelectedOrder(null);
       setTrackingNumber("");
