@@ -105,40 +105,58 @@ export type Database = {
       }
       claim_sales: {
         Row: {
+          city: string | null
           claimed_items: number
           created_at: string
+          description: string | null
           end_time: string
           id: string
+          latitude: number | null
+          longitude: number | null
           price: number
           start_time: string
+          state: string | null
           status: string
           title: string
           total_items: number
           updated_at: string
+          zip: string | null
         }
         Insert: {
+          city?: string | null
           claimed_items?: number
           created_at?: string
+          description?: string | null
           end_time: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           price?: number
           start_time: string
+          state?: string | null
           status?: string
           title: string
           total_items?: number
           updated_at?: string
+          zip?: string | null
         }
         Update: {
+          city?: string | null
           claimed_items?: number
           created_at?: string
+          description?: string | null
           end_time?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           price?: number
           start_time?: string
+          state?: string | null
           status?: string
           title?: string
           total_items?: number
           updated_at?: string
+          zip?: string | null
         }
         Relationships: []
       }

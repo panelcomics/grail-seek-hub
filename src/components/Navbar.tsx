@@ -156,9 +156,11 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
             </Link>
           )}
           
-          <Button variant="default" className="hidden sm:flex">
-            🔥 Sell Now
-          </Button>
+          <Link to="/sell/claim-sale">
+            <Button variant="default" className="hidden sm:flex">
+              🔥 Sell Now
+            </Button>
+          </Link>
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />
           </Button>
