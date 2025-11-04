@@ -354,6 +354,54 @@ export type Database = {
           },
         ]
       }
+      discount_usage: {
+        Row: {
+          claim_id: string | null
+          code_id: string
+          created_at: string | null
+          id: string
+          item_price: number
+          month_year: string
+          savings_amount: number
+          user_id: string
+        }
+        Insert: {
+          claim_id?: string | null
+          code_id: string
+          created_at?: string | null
+          id?: string
+          item_price: number
+          month_year: string
+          savings_amount?: number
+          user_id: string
+        }
+        Update: {
+          claim_id?: string | null
+          code_id?: string
+          created_at?: string | null
+          id?: string
+          item_price?: number
+          month_year?: string
+          savings_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_usage_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_usage_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_listings: {
         Row: {
           booth_number: string | null
@@ -458,6 +506,42 @@ export type Database = {
           state?: string
           venue?: string | null
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      influencer_codes: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          created_at: string | null
+          discount_rate: number | null
+          id: string
+          is_active: boolean | null
+          monthly_cap: number | null
+          user_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code: string
+          created_at?: string | null
+          discount_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          monthly_cap?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string | null
+          discount_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          monthly_cap?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -749,15 +833,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      calculate_discounted_fee: {
+        Args: {
+          item_price: number
+          shipping_method: string
+          target_user_id: string
+        }
+        Returns: {
+          cap_reached: boolean
+          discount_applied: boolean
+          discount_rate: number
+          fee_amount: number
+          savings: number
+        }[]
+      }
       get_event_listing_count: {
         Args: { target_event_id: string }
         Returns: number
       }
+      get_monthly_savings: { Args: { target_user_id: string }; Returns: number }
       get_user_rating: {
         Args: { target_user_id: string }
         Returns: {
@@ -765,9 +885,16 @@ export type Database = {
           total_ratings: number
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -894,6 +1021,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
