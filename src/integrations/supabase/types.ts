@@ -14,6 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
+      claim_sale_items: {
+        Row: {
+          category: string
+          claim_sale_id: string
+          condition: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_claimed: boolean
+          title: string
+        }
+        Insert: {
+          category: string
+          claim_sale_id: string
+          condition: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_claimed?: boolean
+          title: string
+        }
+        Update: {
+          category?: string
+          claim_sale_id?: string
+          condition?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_claimed?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_sale_items_claim_sale_id_fkey"
+            columns: ["claim_sale_id"]
+            isOneToOne: false
+            referencedRelation: "claim_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_sales: {
+        Row: {
+          claimed_items: number
+          created_at: string
+          end_time: string
+          id: string
+          price: number
+          start_time: string
+          status: string
+          title: string
+          total_items: number
+          updated_at: string
+        }
+        Insert: {
+          claimed_items?: number
+          created_at?: string
+          end_time: string
+          id?: string
+          price?: number
+          start_time: string
+          status?: string
+          title: string
+          total_items?: number
+          updated_at?: string
+        }
+        Update: {
+          claimed_items?: number
+          created_at?: string
+          end_time?: string
+          id?: string
+          price?: number
+          start_time?: string
+          status?: string
+          title?: string
+          total_items?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      claims: {
+        Row: {
+          claim_sale_id: string
+          claimed_at: string
+          id: string
+          item_id: string
+          quantity: number
+          shipping_tier: string
+          total_price: number
+          user_id: string
+        }
+        Insert: {
+          claim_sale_id: string
+          claimed_at?: string
+          id?: string
+          item_id: string
+          quantity?: number
+          shipping_tier: string
+          total_price: number
+          user_id: string
+        }
+        Update: {
+          claim_sale_id?: string
+          claimed_at?: string
+          id?: string
+          item_id?: string
+          quantity?: number
+          shipping_tier?: string
+          total_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claims_claim_sale_id_fkey"
+            columns: ["claim_sale_id"]
+            isOneToOne: false
+            referencedRelation: "claim_sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "claim_sale_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
