@@ -9,13 +9,14 @@ import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import MapView from "@/components/MapView";
 import { calculateSellerFee } from "@/components/PricingCalculator";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Package, MapPin, Clock, Info } from "lucide-react";
+import { Filter, Package, MapPin, Clock, Info, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import comicSample1 from "@/assets/comic-sample-1.jpg";
@@ -260,11 +261,12 @@ const Index = () => {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
-  const [selectedClaimItem, setSelectedClaimItem] = useState<{ saleId: string; itemId: string; price: number } | null>(null);
+  const [selectedClaimItem, setSelectedClaimItem] = useState<{ saleId: string; itemId: string; price: number; title: string } | null>(null);
   const [shippingMethod, setShippingMethod] = useState<'local_pickup' | 'ship_nationwide'>('ship_nationwide');
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const notifications = useNotifications();
 
   // Fetch active claim sales and events
   useEffect(() => {
@@ -320,7 +322,19 @@ const Index = () => {
           schema: "public",
           table: "claim_sales",
         },
-        () => fetchData()
+        (payload) => {
+          fetchData();
+          // Send notification for new claim sales
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newSale = payload.new as any;
+            if (newSale.status === 'active' && notifications.permission === 'granted') {
+              notifications.sendNewClaimSaleNotification(
+                newSale.title,
+                `${newSale.total_items} items available`
+              );
+            }
+          }
+        }
       )
       .on(
         "postgres_changes",
@@ -347,7 +361,7 @@ const Index = () => {
     };
   }, []);
 
-  const openClaimDialog = (saleId: string, itemId: string, price: number) => {
+  const openClaimDialog = (saleId: string, itemId: string, price: number, title: string) => {
     if (!user) {
       toast({
         title: "Sign in required",
@@ -357,15 +371,16 @@ const Index = () => {
       navigate("/auth");
       return;
     }
-    setSelectedClaimItem({ saleId, itemId, price });
+    setSelectedClaimItem({ saleId, itemId, price, title });
     setClaimDialogOpen(true);
   };
 
   const handleClaim = async () => {
     if (!selectedClaimItem) return;
 
-    const { saleId, itemId, price } = selectedClaimItem;
+    const { saleId, itemId, price, title } = selectedClaimItem;
     const sellerFee = calculateSellerFee(price, shippingMethod);
+    const youReceive = price - sellerFee;
 
     try {
       // Insert claim
@@ -397,9 +412,12 @@ const Index = () => {
           .eq("id", saleId);
       }
 
+      // Send push notification
+      notifications.sendClaimSecuredNotification(title, youReceive);
+
       toast({
         title: "🎉 Claim Secured!",
-        description: `You'll receive $${(price - sellerFee).toFixed(2)} after ${shippingMethod === 'local_pickup' ? 'local pickup' : 'shipping'}`,
+        description: `You'll receive $${youReceive.toFixed(2)} after ${shippingMethod === 'local_pickup' ? 'local pickup' : 'shipping'}`,
       });
 
       setClaimDialogOpen(false);
@@ -430,7 +448,7 @@ const Index = () => {
       isClaimSale: true,
       claimSaleId: sale.id,
       itemsLeft: sale.total_items - sale.claimed_items,
-      onClaim: () => openClaimDialog(sale.id, item.id, sale.price),
+      onClaim: () => openClaimDialog(sale.id, item.id, sale.price, item.title),
     }));
   });
 
@@ -462,6 +480,56 @@ const Index = () => {
         🧪 TEST MODE - No real payments processed
       </div>
       <Navbar />
+      
+      {/* Notification Permission Banner */}
+      {notifications.isSupported && notifications.permission === "default" && (
+        <div className="bg-primary/10 border-b border-primary/20">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-semibold text-sm">Enable push notifications</p>
+                <p className="text-xs text-muted-foreground">Get alerts for new claim sales and secured items</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => notifications.sendTestNotification()}
+              >
+                Test Alert
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => notifications.requestPermission()}
+              >
+                Enable
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {notifications.permission === "granted" && (
+        <div className="bg-green-500/10 border-b border-green-500/20">
+          <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Bell className="h-4 w-4 text-green-600" />
+              <span className="text-green-700 dark:text-green-400">Push notifications enabled</span>
+            </div>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={() => notifications.sendTestNotification()}
+              className="h-7 text-xs"
+            >
+              Send Test
+            </Button>
+          </div>
+        </div>
+      )}
+      
       <Hero />
 
       {/* Local Discovery Section */}
