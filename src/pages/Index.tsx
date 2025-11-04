@@ -9,6 +9,7 @@ import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import MapView from "@/components/MapView";
 import Onboarding from "@/components/Onboarding";
+import SafetyGuide from "@/components/SafetyGuide";
 import Footer from "@/components/Footer";
 import { calculateSellerFee } from "@/components/PricingCalculator";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -18,7 +19,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Filter, Package, MapPin, Clock, Info, Bell, BellOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Filter, Package, MapPin, Clock, Info, Bell, BellOff, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import comicSample1 from "@/assets/comic-sample-1.jpg";
@@ -266,6 +268,8 @@ const Index = () => {
   const [selectedClaimItem, setSelectedClaimItem] = useState<{ saleId: string; itemId: string; price: number; title: string } | null>(null);
   const [shippingMethod, setShippingMethod] = useState<'local_pickup' | 'ship_nationwide'>('ship_nationwide');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSafetyGuide, setShowSafetyGuide] = useState(false);
+  const [safetyGuideLocation, setSafetyGuideLocation] = useState("");
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -443,6 +447,17 @@ const Index = () => {
 
       setClaimDialogOpen(false);
       setSelectedClaimItem(null);
+
+      // Show safety guide for local pickup
+      if (shippingMethod === 'local_pickup') {
+        const hasSeenSafetyGuide = localStorage.getItem("grail-seek-safety-guide-seen");
+        if (!hasSeenSafetyGuide) {
+          // Get item location from claimSaleItems
+          const item = claimSaleItems.find((i: any) => i.id === itemId);
+          setSafetyGuideLocation(item?.city ? `${item.city}, ${item.state}` : "your area");
+          setTimeout(() => setShowSafetyGuide(true), 1000);
+        }
+      }
     } catch (error: any) {
       toast({
         title: "Claim failed",
@@ -498,6 +513,14 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Onboarding */}
       <Onboarding open={showOnboarding} onComplete={handleOnboardingComplete} />
+
+      {/* Safety Guide */}
+      <SafetyGuide 
+        open={showSafetyGuide} 
+        onClose={() => setShowSafetyGuide(false)}
+        meetupLocation={safetyGuideLocation}
+        sellerName="the seller"
+      />
 
       {/* TEST MODE BANNER */}
       <div className="bg-destructive text-destructive-foreground py-2 text-center font-semibold text-sm">
@@ -666,13 +689,16 @@ const Index = () => {
                     <RadioGroupItem value="local_pickup" id="claim-local" />
                     <Label htmlFor="claim-local" className="flex-1 cursor-pointer">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">Local Pickup</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Local Pickup</span>
+                          <Shield className="h-4 w-4 text-green-600" />
+                        </div>
                         <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400">
                           0% Fee
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        No platform fees for local transactions
+                        No platform fees • Safety tips will be provided
                       </p>
                     </Label>
                   </div>
@@ -690,6 +716,23 @@ const Index = () => {
                     </Label>
                   </div>
                 </RadioGroup>
+
+                {/* Safety Mode Notice for Local Pickup */}
+                {shippingMethod === 'local_pickup' && (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                    <div className="flex gap-2">
+                      <Shield className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs space-y-1">
+                        <p className="font-medium text-green-700 dark:text-green-400">
+                          Safe Mode Active
+                        </p>
+                        <p className="text-green-700/90 dark:text-green-300/90">
+                          You'll receive safety tips after claiming. Meet at police stations or public places.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Separator />
