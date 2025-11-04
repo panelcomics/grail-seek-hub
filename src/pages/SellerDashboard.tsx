@@ -24,7 +24,7 @@ interface ClaimSale {
   total_items: number;
   claimed_items: number;
   status: string;
-  shipping_amount: number;
+  shipping_tier_id: string | null;
   end_time: string;
 }
 
@@ -59,7 +59,12 @@ const SellerDashboard = () => {
       setIsLoading(true);
       const { data, error } = await supabase
         .from("claim_sales")
-        .select("*")
+        .select(`
+          *,
+          shipping_tiers (
+            cost
+          )
+        `)
         .eq("seller_id", user?.id)
         .eq("status", "closed")
         .order("end_time", { ascending: false });
@@ -132,14 +137,28 @@ const SellerDashboard = () => {
     try {
       setIsCreatingOrders(true);
 
+      // Fetch shipping tier cost
+      let shippingCost = 0;
+      if (selectedSale.shipping_tier_id) {
+        const { data: tierData, error: tierError } = await supabase
+          .from("shipping_tiers")
+          .select("cost")
+          .eq("id", selectedSale.shipping_tier_id)
+          .single();
+
+        if (!tierError && tierData) {
+          shippingCost = tierData.cost;
+        }
+      }
+
       const { error } = await supabase.from("orders").insert({
         claim_id: winner.claim_id,
         buyer_id: winner.user_id,
         seller_id: user?.id,
         claim_sale_id: selectedSale.id,
         amount: selectedSale.price,
-        shipping_amount: selectedSale.shipping_amount || 0,
-        total: selectedSale.price + (selectedSale.shipping_amount || 0),
+        shipping_amount: shippingCost,
+        total: selectedSale.price + shippingCost,
         payment_status: "pending",
       });
 
@@ -158,14 +177,29 @@ const SellerDashboard = () => {
   const copyPayPalLink = (winner: Winner) => {
     if (!selectedSale) return;
 
-    const total = (selectedSale.price + (selectedSale.shipping_amount || 0)).toFixed(2);
-    const note = `Grail Seeker Claim Sale: ${selectedSale.title} - Winner #${winners.findIndex(w => w.id === winner.id) + 1}`;
-    
-    // PayPal.me link format (seller would need to set their PayPal.me username)
-    const paypalLink = `https://www.paypal.com/paypalme/YOUR_PAYPAL_USERNAME/${total}?note=${encodeURIComponent(note)}`;
-    
-    navigator.clipboard.writeText(paypalLink);
-    toast.success("PayPal link copied! (Update with your PayPal.me username)");
+    // Need to fetch shipping cost for PayPal link
+    const getShippingCost = async () => {
+      if (selectedSale.shipping_tier_id) {
+        const { data } = await supabase
+          .from("shipping_tiers")
+          .select("cost")
+          .eq("id", selectedSale.shipping_tier_id)
+          .single();
+        return data?.cost || 0;
+      }
+      return 0;
+    };
+
+    getShippingCost().then((shippingCost) => {
+      const total = (selectedSale.price + shippingCost).toFixed(2);
+      const note = `Grail Seeker Claim Sale: ${selectedSale.title} - Winner #${winners.findIndex(w => w.id === winner.id) + 1}`;
+      
+      // PayPal.me link format (seller would need to set their PayPal.me username)
+      const paypalLink = `https://www.paypal.com/paypalme/YOUR_PAYPAL_USERNAME/${total}?note=${encodeURIComponent(note)}`;
+      
+      navigator.clipboard.writeText(paypalLink);
+      toast.success("PayPal link copied! (Update with your PayPal.me username)");
+    });
   };
 
   if (isLoading) {
@@ -230,7 +264,7 @@ const SellerDashboard = () => {
                 {selectedSale ? `Winners: ${selectedSale.title}` : "Select a sale"}
               </CardTitle>
               <CardDescription>
-                {selectedSale && `${winners.length} winners • $${selectedSale.price} + $${selectedSale.shipping_amount || 0} shipping`}
+                {selectedSale && `${winners.length} winners • $${selectedSale.price} per item`}
               </CardDescription>
             </CardHeader>
             <CardContent>

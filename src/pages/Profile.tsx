@@ -4,9 +4,11 @@ import { Star, Award, TrendingUp, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
+import { ShippingPresets } from "@/components/ShippingPresets";
 
 interface UserBadge {
   id: string;
@@ -159,88 +161,100 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Badges Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5" />
-                Achievements
-              </CardTitle>
-              <CardDescription>Badges earned through trading</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {badges.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No badges earned yet. Complete trades to earn achievements!
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {badges.map((badge) => (
-                    <div
-                      key={badge.id}
-                      className="flex items-start gap-3 p-4 rounded-lg bg-muted/50"
-                    >
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        {getBadgeIcon(badge.badge_type)}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{badge.badge_name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {badge.badge_description}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Earned {new Date(badge.earned_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="achievements" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="shipping">Shipping Presets</TabsTrigger>
+          </TabsList>
 
-          {/* Reviews Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5" />
-                Recent Reviews
-              </CardTitle>
-              <CardDescription>What others say about trading with you</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {ratings.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No reviews yet. Complete your first trade to get reviewed!
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {ratings.slice(0, 5).map((rating) => (
-                    <div key={rating.id} className="p-4 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex">
-                          {renderStars(rating.rating)}
+          <TabsContent value="achievements">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  Achievements
+                </CardTitle>
+                <CardDescription>Badges earned through trading</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {badges.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No badges earned yet. Complete trades to earn achievements!
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {badges.map((badge) => (
+                      <div
+                        key={badge.id}
+                        className="flex items-start gap-3 p-4 rounded-lg bg-muted/50"
+                      >
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          {getBadgeIcon(badge.badge_type)}
                         </div>
-                        {rating.transaction_type && (
-                          <Badge variant="outline" className="text-xs">
-                            {rating.transaction_type}
-                          </Badge>
-                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{badge.badge_name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {badge.badge_description}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Earned {new Date(badge.earned_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      {rating.review_text && (
-                        <p className="text-sm mb-2">{rating.review_text}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(rating.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reviews">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5" />
+                  Recent Reviews
+                </CardTitle>
+                <CardDescription>What others say about trading with you</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {ratings.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No reviews yet. Complete your first trade to get reviewed!
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {ratings.slice(0, 5).map((rating) => (
+                      <div key={rating.id} className="p-4 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex">
+                            {renderStars(rating.rating)}
+                          </div>
+                          {rating.transaction_type && (
+                            <Badge variant="outline" className="text-xs">
+                              {rating.transaction_type}
+                            </Badge>
+                          )}
+                        </div>
+                        {rating.review_text && (
+                          <p className="text-sm mb-2">{rating.review_text}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(rating.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="shipping">
+            <ShippingPresets />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

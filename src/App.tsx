@@ -18,6 +18,7 @@ import Settings from "./pages/Settings";
 import CreateClaimSale from "./pages/CreateClaimSale";
 import ClaimSaleDetail from "./pages/ClaimSaleDetail";
 import SellerDashboard from "./pages/SellerDashboard";
+import OrderDetail from "./pages/OrderDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/sell/claim-sale" element={<CreateClaimSale />} />
           <Route path="/claim-sale/:id" element={<ClaimSaleDetail />} />
           <Route path="/seller/dashboard" element={<SellerDashboard />} />
+          <Route path="/order/:id" element={<OrderDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -53,6 +53,7 @@ interface Order {
   payment_status: string;
   payment_method: string | null;
   created_at: string;
+  shipping_amount: number;
 }
 
 const ClaimSaleDetail = () => {
@@ -482,9 +483,19 @@ const ClaimSaleDetail = () => {
                     {/* Payment section for winners */}
                     {userClaim.is_winner && userOrder && (
                       <div className="p-4 border rounded-lg space-y-3">
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold">Invoice Total:</p>
-                          <p className="text-2xl font-bold">${userOrder.total.toFixed(2)}</p>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Item Price:</span>
+                            <span className="font-medium">${(userOrder.total - userOrder.shipping_amount).toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Shipping:</span>
+                            <span className="font-medium">${userOrder.shipping_amount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <span className="font-semibold">Total:</span>
+                            <span className="text-2xl font-bold text-primary">${userOrder.total.toFixed(2)}</span>
+                          </div>
                         </div>
                         {userOrder.payment_status === "pending" ? (
                           <div className="space-y-2">
@@ -492,6 +503,13 @@ const ClaimSaleDetail = () => {
                             <p className="text-sm text-muted-foreground">
                               The seller will send you payment instructions shortly.
                             </p>
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => navigate(`/order/${userOrder.id}`)}
+                            >
+                              View Invoice
+                            </Button>
                           </div>
                         ) : userOrder.payment_status === "paid" ? (
                           <div className="space-y-2">
@@ -499,6 +517,13 @@ const ClaimSaleDetail = () => {
                             <p className="text-sm text-muted-foreground">
                               Payment received on {new Date(userOrder.created_at).toLocaleDateString()}
                             </p>
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => navigate(`/order/${userOrder.id}`)}
+                            >
+                              View Receipt
+                            </Button>
                           </div>
                         ) : null}
                       </div>

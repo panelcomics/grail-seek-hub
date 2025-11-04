@@ -36,8 +36,16 @@ const CreateClaimSale = () => {
     zip: "",
     latitude: "",
     longitude: "",
-    shippingAmount: "0",
+    shippingTierId: "",
   });
+
+  const [shippingTiers, setShippingTiers] = useState<Array<{
+    id: string;
+    tier_name: string;
+    cost: number;
+    min_items: number;
+    max_items: number;
+  }>>([]);
 
   const [countdown, setCountdown] = useState("");
 
@@ -45,8 +53,25 @@ const CreateClaimSale = () => {
     if (!user) {
       toast.error("Please sign in to create a claim sale");
       navigate("/auth");
+    } else {
+      fetchShippingTiers();
     }
   }, [user, navigate]);
+
+  const fetchShippingTiers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("shipping_tiers")
+        .select("*")
+        .eq("seller_id", user?.id)
+        .order("min_items", { ascending: true });
+
+      if (error) throw error;
+      setShippingTiers(data || []);
+    } catch (error) {
+      console.error("Error fetching shipping tiers:", error);
+    }
+  };
 
   // Update countdown preview
   useEffect(() => {
@@ -193,7 +218,7 @@ const CreateClaimSale = () => {
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
           status: new Date(formData.startTime) <= new Date() ? "open" : "upcoming",
           seller_id: user?.id,
-          shipping_amount: parseFloat(formData.shippingAmount) || 0,
+          shipping_tier_id: formData.shippingTierId || null,
         })
         .select()
         .single();
@@ -550,19 +575,28 @@ const CreateClaimSale = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="shippingAmount">Shipping Amount ($)</Label>
-                <Input
-                  id="shippingAmount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.shippingAmount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, shippingAmount: e.target.value }))}
-                  placeholder="5.00"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Optional: Add shipping cost to invoices (e.g., $5 flat rate)
-                </p>
+                <Label htmlFor="shippingTier">Shipping Tier (Optional)</Label>
+                <Select 
+                  value={formData.shippingTierId} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, shippingTierId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No shipping tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No shipping tier</SelectItem>
+                    {shippingTiers.map((tier) => (
+                      <SelectItem key={tier.id} value={tier.id}>
+                        {tier.tier_name} - ${tier.cost.toFixed(2)} ({tier.min_items}-{tier.max_items} items)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {shippingTiers.length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    No shipping tiers configured. Add them in your <a href="/profile" className="underline">Profile</a>.
+                  </p>
+                )}
               </div>
             </div>
 

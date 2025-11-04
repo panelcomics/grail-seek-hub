@@ -115,7 +115,7 @@ export type Database = {
           longitude: number | null
           price: number
           seller_id: string | null
-          shipping_amount: number | null
+          shipping_tier_id: string | null
           start_time: string
           state: string | null
           status: string
@@ -135,7 +135,7 @@ export type Database = {
           longitude?: number | null
           price?: number
           seller_id?: string | null
-          shipping_amount?: number | null
+          shipping_tier_id?: string | null
           start_time: string
           state?: string | null
           status?: string
@@ -155,7 +155,7 @@ export type Database = {
           longitude?: number | null
           price?: number
           seller_id?: string | null
-          shipping_amount?: number | null
+          shipping_tier_id?: string | null
           start_time?: string
           state?: string | null
           status?: string
@@ -164,7 +164,15 @@ export type Database = {
           updated_at?: string
           zip?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "claim_sales_shipping_tier_id_fkey"
+            columns: ["shipping_tier_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       claims: {
         Row: {
@@ -783,6 +791,42 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shipping_tiers: {
+        Row: {
+          cost: number
+          country: string
+          created_at: string
+          id: string
+          max_items: number
+          min_items: number
+          seller_id: string
+          tier_name: string
+          updated_at: string
+        }
+        Insert: {
+          cost?: number
+          country?: string
+          created_at?: string
+          id?: string
+          max_items?: number
+          min_items?: number
+          seller_id: string
+          tier_name: string
+          updated_at?: string
+        }
+        Update: {
+          cost?: number
+          country?: string
+          created_at?: string
+          id?: string
+          max_items?: number
+          min_items?: number
+          seller_id?: string
+          tier_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
