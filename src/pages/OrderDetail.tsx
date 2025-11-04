@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { Package, DollarSign, Truck } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Separator } from "@/components/ui/separator";
+import { useTerms } from "@/hooks/useTerms";
+import { TermsPopup } from "@/components/TermsPopup";
 
 interface Order {
   id: string;
@@ -33,6 +35,7 @@ const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
   const [order, setOrder] = useState<Order | null>(null);
   const [sale, setSale] = useState<ClaimSale | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -215,6 +218,13 @@ const OrderDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Terms Popup */}
+      <TermsPopup
+        open={showTermsPopup}
+        onAccept={handleAcceptTerms}
+        onDecline={handleDeclineTerms}
+      />
     </div>
   );
 };

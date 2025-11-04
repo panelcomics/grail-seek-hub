@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTerms } from "@/hooks/useTerms";
+import { TermsPopup } from "@/components/TermsPopup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +62,7 @@ const ClaimSaleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
   const [sale, setSale] = useState<ClaimSale | null>(null);
   const [items, setItems] = useState<ClaimSaleItem[]>([]);
   const [userClaim, setUserClaim] = useState<UserClaim | null>(null);
@@ -214,7 +217,7 @@ const ClaimSaleDetail = () => {
     }
   };
 
-  const handleClaim = async () => {
+  const handleClaimAction = async () => {
     if (!user) {
       toast.error("Please sign in to claim items");
       navigate("/auth");
@@ -275,6 +278,10 @@ const ClaimSaleDetail = () => {
     } finally {
       setIsClaiming(false);
     }
+  };
+
+  const handleClaim = () => {
+    requireTerms(handleClaimAction);
   };
 
   if (isLoading) {
@@ -588,6 +595,13 @@ const ClaimSaleDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Terms Popup */}
+      <TermsPopup
+        open={showTermsPopup}
+        onAccept={handleAcceptTerms}
+        onDecline={handleDeclineTerms}
+      />
     </div>
   );
 };

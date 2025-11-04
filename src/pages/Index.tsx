@@ -10,7 +10,7 @@ import EventsCarousel from "@/components/EventsCarousel";
 import MapView from "@/components/MapView";
 import Onboarding from "@/components/Onboarding";
 import SafetyGuide from "@/components/SafetyGuide";
-import { TermsPopup } from "@/components/TermsPopup";
+
 import Footer from "@/components/Footer";
 import { calculateSellerFee } from "@/components/PricingCalculator";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -271,7 +271,7 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSafetyGuide, setShowSafetyGuide] = useState(false);
   const [safetyGuideLocation, setSafetyGuideLocation] = useState("");
-  const [showTermsPopup, setShowTermsPopup] = useState(false);
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -285,12 +285,6 @@ const Index = () => {
       setTimeout(() => setShowOnboarding(true), 500);
     }
     
-    // Show terms popup on first visit
-    const hasSeenTerms = localStorage.getItem("grail-seek-terms-accepted");
-    if (!hasSeenTerms) {
-      // Show terms popup after onboarding or after short delay
-      setTimeout(() => setShowTermsPopup(true), hasSeenOnboarding ? 500 : 3000);
-    }
   }, []);
 
   const handleOnboardingComplete = () => {
@@ -814,25 +808,6 @@ const Index = () => {
       </Dialog>
 
       {/* Terms Popup */}
-      <TermsPopup
-        open={showTermsPopup}
-        onAccept={() => {
-          localStorage.setItem("grail-seek-terms-accepted", "true");
-          setShowTermsPopup(false);
-          toast({
-            title: "Terms Accepted",
-            description: "Welcome to Grail Seeker!",
-          });
-        }}
-        onDecline={() => {
-          setShowTermsPopup(false);
-          toast({
-            title: "Terms Required",
-            description: "You must accept the terms to use Grail Seeker. The popup will show again on your next visit.",
-            variant: "destructive",
-          });
-        }}
-      />
 
       {/* Footer */}
       <Footer />

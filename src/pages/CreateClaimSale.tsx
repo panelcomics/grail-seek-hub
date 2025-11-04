@@ -11,10 +11,14 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Loader2, MapPin, Wand2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTerms } from "@/hooks/useTerms";
+import { TermsPopup } from "@/components/TermsPopup";
+import Navbar from "@/components/Navbar";
 
 const CreateClaimSale = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingRules, setIsGeneratingRules] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -170,8 +174,8 @@ const CreateClaimSale = () => {
     setImageUrls(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitAction = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     
     // Validation
     if (!formData.title || !formData.description || !formData.totalItems) {
@@ -269,11 +273,25 @@ const CreateClaimSale = () => {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // If we're in preview mode and user clicks "Publish Now", require terms
+    if (showPreview) {
+      requireTerms(() => handleSubmitAction());
+    } else {
+      // Just show preview, no terms check needed yet
+      handleSubmitAction(e);
+    }
+  };
+
   if (showPreview) {
     return (
-      <div className="container max-w-4xl mx-auto py-8 px-4">
-        <Card>
-          <CardHeader>
+      <>
+        <Navbar />
+        <div className="container max-w-4xl mx-auto py-8 px-4 mt-20">
+          <Card>
+            <CardHeader>
             <CardTitle>Preview Your Claim Sale</CardTitle>
             <CardDescription>Review before publishing</CardDescription>
           </CardHeader>
@@ -354,14 +372,17 @@ const CreateClaimSale = () => {
           </CardContent>
         </Card>
       </div>
+      </>
     );
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Claim Sale</CardTitle>
+    <>
+      <Navbar />
+      <div className="container max-w-4xl mx-auto py-8 px-4 mt-20">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Claim Sale</CardTitle>
           <CardDescription>
             Set up your claim sale like Facebook claim sales
           </CardDescription>
@@ -672,7 +693,15 @@ const CreateClaimSale = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* Terms Popup */}
+      <TermsPopup
+        open={showTermsPopup}
+        onAccept={handleAcceptTerms}
+        onDecline={handleDeclineTerms}
+      />
     </div>
+    </>
   );
 };
 

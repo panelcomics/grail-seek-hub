@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
+import { useTerms } from "@/hooks/useTerms";
+import { TermsPopup } from "@/components/TermsPopup";
 
 interface TradePost {
   id: string;
@@ -45,6 +47,7 @@ export default function TradeBoard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
 
   // Filter state
   const [filterEra, setFilterEra] = useState<string>("all");
@@ -108,7 +111,7 @@ export default function TradeBoard() {
     }
   };
 
-  const createPost = async () => {
+  const createPostAction = async () => {
     if (!title || !description || !offering || !seeking) {
       toast.error('Please fill in all required fields');
       return;
@@ -148,7 +151,11 @@ export default function TradeBoard() {
     }
   };
 
-  const addComment = async () => {
+  const createPost = () => {
+    requireTerms(createPostAction);
+  };
+
+  const addCommentAction = async () => {
     if (!newComment.trim() || !selectedPost) return;
 
     try {
@@ -175,6 +182,10 @@ export default function TradeBoard() {
       console.error('Error adding comment:', error);
       toast.error('Failed to add comment');
     }
+  };
+
+  const addComment = () => {
+    requireTerms(addCommentAction);
   };
 
   const openChat = async (post: TradePost) => {
@@ -510,7 +521,7 @@ export default function TradeBoard() {
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addComment()}
                 />
-                <Button onClick={addComment} size="icon">
+                 <Button onClick={addComment} size="icon">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
@@ -518,6 +529,13 @@ export default function TradeBoard() {
           </DialogContent>
         </Dialog>
       </main>
+
+      {/* Terms Popup */}
+      <TermsPopup
+        open={showTermsPopup}
+        onAccept={handleAcceptTerms}
+        onDecline={handleDeclineTerms}
+      />
     </div>
   );
 }

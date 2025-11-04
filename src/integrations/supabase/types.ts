@@ -724,6 +724,8 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
+          terms_accepted_at: string | null
+          terms_version_accepted: string | null
           updated_at: string
           user_id: string
           username: string | null
@@ -732,6 +734,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          terms_accepted_at?: string | null
+          terms_version_accepted?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -740,6 +744,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          terms_accepted_at?: string | null
+          terms_version_accepted?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
