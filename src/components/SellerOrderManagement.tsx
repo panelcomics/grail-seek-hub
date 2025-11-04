@@ -7,7 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Package, Truck, Clock, CheckCircle, DollarSign } from "lucide-react";
+import { Package, Truck, Clock, CheckCircle, DollarSign, Send } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -48,7 +56,11 @@ export const SellerOrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [carrier, setCarrier] = useState("");
+  const [shippingNote, setShippingNote] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [showShipModal, setShowShipModal] = useState(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -79,6 +91,69 @@ export const SellerOrderManagement = () => {
     }
   };
 
+  const validateTrackingNumber = (carrier: string, tracking: string): boolean => {
+    if (!tracking.trim()) return false;
+    
+    switch (carrier) {
+      case "USPS":
+        // USPS: 20-22 digits or starts with specific patterns
+        return /^(9[0-9]{19,21}|[A-Z]{2}[0-9]{9}US)$/.test(tracking);
+      case "UPS":
+        // UPS: 18 characters starting with 1Z
+        return /^1Z[A-Z0-9]{16}$/.test(tracking);
+      case "FedEx":
+        // FedEx: 12 or 14 digits
+        return /^[0-9]{12,14}$/.test(tracking);
+      case "Other":
+        // Other: at least 5 characters
+        return tracking.length >= 5;
+      default:
+        return false;
+    }
+  };
+
+  const handleMarkShipped = async () => {
+    if (!selectedOrder) return;
+
+    if (!carrier) {
+      toast.error("Please select a carrier");
+      return;
+    }
+
+    if (!validateTrackingNumber(carrier, trackingNumber)) {
+      toast.error(`Invalid tracking number format for ${carrier}`);
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          shipping_status: "shipped",
+          carrier,
+          tracking_number: trackingNumber,
+          shipped_at: new Date().toISOString(),
+        })
+        .eq("id", selectedOrder.id);
+
+      if (error) throw error;
+
+      toast.success("Order marked as shipped!");
+      setShowShipModal(false);
+      setSelectedOrder(null);
+      setTrackingNumber("");
+      setCarrier("");
+      setShippingNote("");
+      fetchOrders();
+    } catch (error) {
+      console.error("Error marking as shipped:", error);
+      toast.error("Failed to mark order as shipped");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleConfirmDelivery = async () => {
     if (!selectedOrder) return;
 
@@ -87,13 +162,14 @@ export const SellerOrderManagement = () => {
       const { error } = await supabase.functions.invoke("confirm-delivery", {
         body: {
           orderId: selectedOrder.id,
-          trackingNumber: trackingNumber || undefined,
+          trackingNumber: selectedOrder.tracking_number || trackingNumber || undefined,
         },
       });
 
       if (error) throw error;
 
       toast.success("Delivery confirmed! Payout processing initiated.");
+      setShowDeliveryModal(false);
       setSelectedOrder(null);
       setTrackingNumber("");
       fetchOrders();
@@ -195,12 +271,111 @@ export const SellerOrderManagement = () => {
                       {getPayoutStatusBadge(order.payout_status, order.payout_hold_until)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {order.shipping_status !== "delivered" && (
-                        <Dialog>
+                      {order.shipping_status === "pending" && (
+                        <Dialog open={showShipModal && selectedOrder?.id === order.id} onOpenChange={(open) => {
+                          setShowShipModal(open);
+                          if (!open) {
+                            setSelectedOrder(null);
+                            setTrackingNumber("");
+                            setCarrier("");
+                            setShippingNote("");
+                          }
+                        }}>
                           <DialogTrigger asChild>
                             <Button
                               size="sm"
-                              onClick={() => setSelectedOrder(order)}
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowShipModal(true);
+                              }}
+                            >
+                              <Send className="h-4 w-4 mr-1" />
+                              Mark Shipped
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Mark Order as Shipped</DialogTitle>
+                              <DialogDescription>
+                                Enter shipping details to notify the buyer
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div>
+                                <Label htmlFor="carrier">Carrier *</Label>
+                                <Select value={carrier} onValueChange={setCarrier}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select carrier" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="USPS">USPS</SelectItem>
+                                    <SelectItem value="UPS">UPS</SelectItem>
+                                    <SelectItem value="FedEx">FedEx</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label htmlFor="tracking">Tracking Number *</Label>
+                                <Input
+                                  id="tracking"
+                                  value={trackingNumber}
+                                  onChange={(e) => setTrackingNumber(e.target.value)}
+                                  placeholder={
+                                    carrier === "USPS" ? "9400..." :
+                                    carrier === "UPS" ? "1Z..." :
+                                    carrier === "FedEx" ? "123456789012" :
+                                    "Enter tracking number"
+                                  }
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {carrier === "USPS" && "20-22 digits or format: XX123456789US"}
+                                  {carrier === "UPS" && "18 characters starting with 1Z"}
+                                  {carrier === "FedEx" && "12-14 digits"}
+                                  {carrier === "Other" && "Minimum 5 characters"}
+                                </p>
+                              </div>
+                              <div>
+                                <Label htmlFor="note">Note (Optional)</Label>
+                                <Textarea
+                                  id="note"
+                                  value={shippingNote}
+                                  onChange={(e) => setShippingNote(e.target.value)}
+                                  placeholder="Add any shipping notes..."
+                                  rows={3}
+                                />
+                              </div>
+                              <div className="p-4 bg-muted rounded-lg">
+                                <p className="text-sm text-muted-foreground">
+                                  <strong>Note:</strong> Tracking information will be visible to the buyer. Payout will be released after delivery confirmation.
+                                </p>
+                              </div>
+                              <Button
+                                onClick={handleMarkShipped}
+                                disabled={updating || !carrier || !trackingNumber}
+                                className="w-full"
+                              >
+                                {updating ? "Saving..." : "Mark as Shipped"}
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      {order.shipping_status === "shipped" && (
+                        <Dialog open={showDeliveryModal && selectedOrder?.id === order.id} onOpenChange={(open) => {
+                          setShowDeliveryModal(open);
+                          if (!open) {
+                            setSelectedOrder(null);
+                            setTrackingNumber("");
+                          }
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowDeliveryModal(true);
+                              }}
                             >
                               <Truck className="h-4 w-4 mr-1" />
                               Confirm Delivery
@@ -214,18 +389,12 @@ export const SellerOrderManagement = () => {
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
-                              <div>
-                                <Label htmlFor="tracking">Tracking Number (Optional)</Label>
-                                <Input
-                                  id="tracking"
-                                  value={trackingNumber}
-                                  onChange={(e) => setTrackingNumber(e.target.value)}
-                                  placeholder="Enter tracking number"
-                                />
-                              </div>
                               <div className="p-4 bg-muted rounded-lg">
                                 <p className="text-sm text-muted-foreground">
-                                  <strong>Note:</strong> Confirming delivery will initiate the payout hold period based on your seller tier and transaction value.
+                                  <strong>Current Tracking:</strong> {order.tracking_number}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  Confirming delivery will initiate the payout hold period based on your seller tier and transaction value.
                                 </p>
                               </div>
                               <Button

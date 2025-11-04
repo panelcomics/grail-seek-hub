@@ -24,6 +24,10 @@ interface Order {
   created_at: string;
   paid_at: string | null;
   claim_sale_id: string;
+  tracking_number: string | null;
+  carrier: string | null;
+  shipping_status: string;
+  shipped_at: string | null;
 }
 
 interface ClaimSale {
@@ -229,6 +233,87 @@ const OrderDetail = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Tracking Information */}
+        {order.tracking_number && order.carrier && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="h-5 w-5" />
+                Shipping & Tracking
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">Carrier</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">
+                        {order.carrier === "USPS" && "🇺🇸"}
+                        {order.carrier === "UPS" && "📦"}
+                        {order.carrier === "FedEx" && "✈️"}
+                        {order.carrier === "Other" && "🚚"}
+                      </span>
+                      <span className="text-lg font-semibold">{order.carrier}</span>
+                    </div>
+                  </div>
+                  <Badge variant={order.shipping_status === "delivered" ? "default" : "secondary"}>
+                    {order.shipping_status === "shipped" && "In Transit"}
+                    {order.shipping_status === "delivered" && "Delivered"}
+                    {order.shipping_status === "pending" && "Pending"}
+                  </Badge>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Tracking Number</p>
+                  <p className="text-sm font-mono bg-muted px-3 py-2 rounded">
+                    {order.tracking_number}
+                  </p>
+                </div>
+
+                {order.shipped_at && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold">Shipped Date</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(order.shipped_at).toLocaleDateString()} at {new Date(order.shipped_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                )}
+
+                {order.carrier !== "Other" && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      const trackingUrl = 
+                        order.carrier === "USPS" 
+                          ? `https://tools.usps.com/go/TrackConfirmAction?tLabels=${order.tracking_number}`
+                          : order.carrier === "UPS"
+                          ? `https://www.ups.com/track?tracknum=${order.tracking_number}`
+                          : `https://www.fedex.com/fedextrack/?trknbr=${order.tracking_number}`;
+                      window.open(trackingUrl, "_blank");
+                    }}
+                  >
+                    <Truck className="h-4 w-4 mr-2" />
+                    Track Package
+                  </Button>
+                )}
+
+                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-xs text-center font-semibold">
+                    🛡️ Protected by Grail Seeker
+                  </p>
+                  <p className="text-xs text-center text-muted-foreground mt-1">
+                    Your purchase is covered by buyer protection
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
