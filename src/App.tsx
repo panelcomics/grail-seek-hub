@@ -18,6 +18,7 @@ import Settings from "./pages/Settings";
 import CreateClaimSale from "./pages/CreateClaimSale";
 import ClaimSaleDetail from "./pages/ClaimSaleDetail";
 import SellerDashboard from "./pages/SellerDashboard";
+import Dashboard from "./pages/Dashboard";
 import OrderDetail from "./pages/OrderDetail";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/sell/claim-sale" element={<CreateClaimSale />} />
           <Route path="/claim-sale/:id" element={<ClaimSaleDetail />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/seller/dashboard" element={<SellerDashboard />} />
           <Route path="/order/:id" element={<OrderDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

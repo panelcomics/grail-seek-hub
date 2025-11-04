@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -129,6 +129,12 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="cursor-pointer">
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/settings" className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
@@ -136,8 +142,8 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/seller/dashboard" className="cursor-pointer">
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    Seller Dashboard
+                    <Package className="mr-2 h-4 w-4" />
+                    Winners & Orders
                   </Link>
                 </DropdownMenuItem>
                 {onShowOnboarding && (

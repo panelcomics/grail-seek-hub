@@ -606,7 +606,7 @@ const Index = () => {
               <div className="flex items-center gap-2">
                 <Button 
                   size="sm"
-                  onClick={() => navigate("/seller-dashboard")}
+                  onClick={() => navigate("/dashboard")}
                 >
                   Create Claim Sale
                 </Button>
