@@ -238,6 +238,54 @@ export type Database = {
         }
         Relationships: []
       }
+      scanned_items: {
+        Row: {
+          category: string
+          comparable_sales: Json | null
+          condition: string
+          created_at: string
+          estimated_value: number
+          grade: string
+          id: string
+          image_url: string | null
+          is_listed: boolean | null
+          scan_data: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          comparable_sales?: Json | null
+          condition: string
+          created_at?: string
+          estimated_value: number
+          grade: string
+          id?: string
+          image_url?: string | null
+          is_listed?: boolean | null
+          scan_data?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          comparable_sales?: Json | null
+          condition?: string
+          created_at?: string
+          estimated_value?: number
+          grade?: string
+          id?: string
+          image_url?: string | null
+          is_listed?: boolean | null
+          scan_data?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
