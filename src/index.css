@@ -51,6 +51,16 @@ All colors MUST be HSL.
     --shadow-card: 0 4px 12px hsl(0, 0%, 0% / 0.1);
     --shadow-card-hover: 0 8px 24px hsl(0, 100%, 50% / 0.2);
     --shadow-glow: 0 0 30px hsl(0, 100%, 60% / 0.3);
+    --shadow-seller-glow: 0 0 20px hsl(0, 100%, 50% / 0.15);
+    
+    /* Leaderboard gradients */
+    --gradient-gold: linear-gradient(135deg, hsl(45, 100%, 60%), hsl(35, 100%, 50%));
+    --gradient-silver: linear-gradient(135deg, hsl(0, 0%, 80%), hsl(0, 0%, 65%));
+    --gradient-bronze: linear-gradient(135deg, hsl(25, 75%, 50%), hsl(20, 60%, 40%));
+    
+    /* Comic panel texture */
+    --texture-dots: radial-gradient(circle at 2px 2px, hsl(0, 0%, 90%) 1px, transparent 0);
+    --texture-dots-size: 20px 20px;
 
     --sidebar-background: 0 0% 98%;
 
@@ -103,6 +113,8 @@ All colors MUST be HSL.
     --gradient-card: linear-gradient(145deg, hsl(0, 0%, 10%), hsl(0, 0%, 12%));
     --shadow-card: 0 4px 12px hsl(0, 0%, 0% / 0.4);
     --shadow-card-hover: 0 8px 24px hsl(0, 100%, 50% / 0.3);
+    --shadow-seller-glow: 0 0 25px hsl(0, 100%, 50% / 0.2);
+    --texture-dots: radial-gradient(circle at 2px 2px, hsl(0, 0%, 15%) 1px, transparent 0);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -121,5 +133,32 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .seller-glow {
+    box-shadow: var(--shadow-seller-glow);
+  }
+  
+  .gradient-gold {
+    background: var(--gradient-gold);
+  }
+  
+  .gradient-silver {
+    background: var(--gradient-silver);
+  }
+  
+  .gradient-bronze {
+    background: var(--gradient-bronze);
+  }
+  
+  .comic-texture {
+    background-image: var(--texture-dots);
+    background-size: var(--texture-dots-size);
   }
 }

@@ -63,7 +63,7 @@ const ItemCard = ({
   };
   return (
     <Link to={`/item/${id}`}>
-      <Card className="group overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 cursor-pointer">
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 cursor-pointer">
         <div className="relative aspect-[3/4] overflow-hidden bg-muted">
           <img
             src={image}

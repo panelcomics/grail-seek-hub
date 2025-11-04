@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Filter, Package, MapPin, Clock, Info, Bell, BellOff, Shield, TrendingUp, Star, Award } from "lucide-react";
+import { Filter, Package, MapPin, Clock, Info, Bell, BellOff, Shield, TrendingUp, Star, Award, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import comicSample1 from "@/assets/comic-sample-1.jpg";
 import comicSample2 from "@/assets/comic-sample-2.jpg";
@@ -714,8 +714,8 @@ const Index = () => {
       )}
 
       {/* 1. TRENDING GRAILS */}
-      <section id="trending-listings" className="container py-16">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+      <section id="trending-listings" className="container py-20 comic-texture">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
           <div className="flex items-center gap-3">
             <TrendingUp className="h-8 w-8 text-primary" />
             <div>
@@ -746,8 +746,8 @@ const Index = () => {
       </section>
 
       {/* 2. ENDING SOON */}
-      <section className="container pb-16">
-        <div className="flex items-center gap-3 mb-8">
+      <section className="container py-20 comic-texture">
+        <div className="flex items-center gap-3 mb-10">
           <Clock className="h-8 w-8 text-destructive" />
           <div>
             <h2 className="text-3xl font-bold">Ending Soon</h2>
@@ -763,9 +763,9 @@ const Index = () => {
       </section>
 
       {/* 3. SELLER SPOTLIGHT */}
-      <section className="bg-muted/30 py-16">
+      <section className="bg-muted/30 py-20 comic-texture">
         <div className="container">
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-10">
             <Star className="h-8 w-8 text-yellow-500" />
             <div>
               <h2 className="text-3xl font-bold">Seller Spotlight</h2>
@@ -773,47 +773,54 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {spotlightSellers.map((seller) => (
-              <div key={seller.id} className="bg-card rounded-lg border p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-center gap-4 mb-4">
-                  <img 
-                    src={seller.avatar} 
-                    alt={seller.name} 
-                    className="w-16 h-16 rounded-full"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{seller.name}</h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                      <span>{seller.rating} • {seller.totalSales} sales</span>
+              <div 
+                key={seller.id} 
+                className="bg-card rounded-lg border p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 seller-glow"
+              >
+                <div className="flex flex-col items-center text-center mb-6">
+                  <div className="relative mb-4">
+                    <img 
+                      src={seller.avatar} 
+                      alt={seller.name} 
+                      className="w-24 h-24 rounded-full ring-4 ring-primary/20 hover:ring-primary/40 transition-all"
+                    />
+                    <div className="absolute -bottom-2 -right-2 bg-yellow-500 rounded-full p-1.5">
+                      <Star className="h-4 w-4 fill-yellow-950 text-yellow-950" />
                     </div>
                   </div>
+                  <h3 className="font-bold text-xl mb-2">{seller.name}</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                    <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                    <span className="font-semibold">{seller.rating}</span>
+                    <span>•</span>
+                    <span>{seller.totalSales} sales</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    {seller.specialization}
+                  </Badge>
                 </div>
-                
-                <Badge variant="secondary" className="mb-4">
-                  {seller.specialization}
-                </Badge>
 
-                <div className="border-t pt-4">
-                  <p className="text-sm text-muted-foreground mb-2">Featured Item</p>
-                  <div className="flex gap-3">
+                <div className="border-t pt-4 mb-4">
+                  <p className="text-sm text-muted-foreground mb-3 font-medium">Featured Item</p>
+                  <div className="flex gap-3 items-center">
                     <img 
                       src={seller.featuredItem.image} 
                       alt={seller.featuredItem.title}
-                      className="w-20 h-20 object-cover rounded"
+                      className="w-24 h-24 object-cover rounded shadow-md"
                     />
-                    <div>
-                      <p className="font-medium text-sm line-clamp-2">{seller.featuredItem.title}</p>
-                      <p className="text-lg font-bold text-primary mt-1">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm line-clamp-2 mb-2">{seller.featuredItem.title}</p>
+                      <p className="text-xl font-bold text-primary">
                         ${seller.featuredItem.price}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <Button className="w-full mt-4" variant="outline">
-                  View Store
+                <Button className="w-full shadow-md hover:shadow-lg transition-shadow">
+                  View Shop
                 </Button>
               </div>
             ))}
@@ -822,8 +829,8 @@ const Index = () => {
       </section>
 
       {/* 4. TOP SELLERS LEADERBOARD */}
-      <section className="container py-16">
-        <div className="flex items-center gap-3 mb-8">
+      <section className="container py-20 comic-texture">
+        <div className="flex items-center gap-3 mb-10">
           <Award className="h-8 w-8 text-primary" />
           <div>
             <h2 className="text-3xl font-bold">Top Sellers Leaderboard</h2>
@@ -831,7 +838,7 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="bg-card rounded-lg border overflow-hidden">
+        <div className="bg-card rounded-lg border overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50 border-b">
@@ -845,15 +852,28 @@ const Index = () => {
               </thead>
               <tbody>
                 {topSellers.map((seller) => (
-                  <tr key={seller.rank} className="border-b hover:bg-muted/30 transition-colors">
+                  <tr 
+                    key={seller.rank} 
+                    className={`border-b hover:bg-muted/30 transition-all duration-300 ${
+                      seller.rank === 1 ? 'border-l-4 border-l-yellow-500 bg-yellow-500/5' :
+                      seller.rank === 2 ? 'border-l-4 border-l-gray-400 bg-gray-400/5' :
+                      seller.rank === 3 ? 'border-l-4 border-l-orange-600 bg-orange-600/5' :
+                      ''
+                    }`}
+                  >
                     <td className="p-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                        seller.rank === 1 ? 'bg-yellow-500 text-yellow-950' :
-                        seller.rank === 2 ? 'bg-gray-400 text-gray-950' :
-                        seller.rank === 3 ? 'bg-orange-600 text-orange-950' :
-                        'bg-muted text-foreground'
-                      }`}>
-                        {seller.rank}
+                      <div className="relative inline-block">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg ${
+                          seller.rank === 1 ? 'gradient-gold text-yellow-950' :
+                          seller.rank === 2 ? 'gradient-silver text-gray-950' :
+                          seller.rank === 3 ? 'gradient-bronze text-orange-950' :
+                          'bg-muted text-foreground'
+                        }`}>
+                          {seller.rank}
+                        </div>
+                        {seller.rank === 1 && (
+                          <Crown className="absolute -top-2 -right-2 h-5 w-5 text-yellow-500 fill-yellow-500 animate-pulse" />
+                        )}
                       </div>
                     </td>
                     <td className="p-4">
@@ -861,19 +881,34 @@ const Index = () => {
                         <img 
                           src={seller.avatar} 
                           alt={seller.name}
-                          className="w-10 h-10 rounded-full"
+                          className={`w-12 h-12 rounded-full shadow-md ${
+                            seller.rank <= 3 ? 'ring-2' : ''
+                          } ${
+                            seller.rank === 1 ? 'ring-yellow-500' :
+                            seller.rank === 2 ? 'ring-gray-400' :
+                            seller.rank === 3 ? 'ring-orange-600' :
+                            ''
+                          }`}
                         />
-                        <span className="font-medium">{seller.name}</span>
+                        <div>
+                          <span className="font-semibold text-base">{seller.name}</span>
+                          {seller.rank === 1 && (
+                            <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium flex items-center gap-1">
+                              <Crown className="h-3 w-3" />
+                              Top Seller of the Month
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td className="p-4 font-medium">{seller.totalSales.toLocaleString()}</td>
-                    <td className="p-4 font-medium text-green-600">
+                    <td className="p-4 font-semibold text-base">{seller.totalSales.toLocaleString()}</td>
+                    <td className="p-4 font-bold text-base text-green-600 dark:text-green-400">
                       ${(seller.revenue / 1000).toFixed(1)}K
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                        <span className="font-medium">{seller.rating}</span>
+                        <Star className="h-5 w-5 fill-yellow-500 text-yellow-500" />
+                        <span className="font-semibold text-base">{seller.rating}</span>
                       </div>
                     </td>
                   </tr>
