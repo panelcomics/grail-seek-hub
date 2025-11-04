@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MapPin, Package, Heart, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface ItemCardProps {
   id: string;
@@ -41,6 +43,8 @@ const ItemCard = ({
   onClaim
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
+  const [localPickup, setLocalPickup] = useState(true);
+  const [shipNationwide, setShipNationwide] = useState(false);
 
   useEffect(() => {
     if (!isAuction || countdown <= 0) return;
@@ -103,18 +107,43 @@ const ItemCard = ({
             <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
               {title}
             </h3>
-            <div className="flex items-center gap-2 mt-2">
-              {isLocal ? (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            
+            {/* Shipping Options */}
+            <div 
+              className="mt-3 space-y-2 text-xs"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id={`local-${id}`}
+                  checked={localPickup}
+                  onCheckedChange={(checked) => setLocalPickup(checked as boolean)}
+                />
+                <Label 
+                  htmlFor={`local-${id}`}
+                  className="text-xs font-normal cursor-pointer flex items-center gap-1"
+                >
                   <MapPin className="h-3 w-3" />
-                  <span>{location} {distance && `• ${distance}mi`}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  Local Pickup (500mi)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id={`ship-${id}`}
+                  checked={shipNationwide}
+                  onCheckedChange={(checked) => setShipNationwide(checked as boolean)}
+                />
+                <Label 
+                  htmlFor={`ship-${id}`}
+                  className="text-xs font-normal cursor-pointer flex items-center gap-1"
+                >
                   <Package className="h-3 w-3" />
-                  <span>Ships Nationwide</span>
-                </div>
-              )}
+                  Ship Nationwide ($12+)
+                </Label>
+              </div>
             </div>
           </div>
           
