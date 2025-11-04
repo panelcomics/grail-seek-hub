@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useModal } from "@/contexts/ModalContext";
+import { useTerms } from "@/hooks/useTerms";
+import { TermsPopup } from "@/components/TermsPopup";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ItemCard from "@/components/ItemCard";
@@ -274,6 +276,7 @@ const Index = () => {
   const { toast } = useToast();
   const notifications = useNotifications();
   const { openModal } = useModal();
+  const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
 
   // Check if user has completed onboarding
   useEffect(() => {
@@ -409,7 +412,7 @@ const Index = () => {
     setClaimDialogOpen(true);
   };
 
-  const handleClaim = async () => {
+  const handleClaimAction = async () => {
     if (!selectedClaimItem) return;
 
     const { saleId, itemId, price, title } = selectedClaimItem;
@@ -481,6 +484,10 @@ const Index = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleClaim = () => {
+    requireTerms(handleClaimAction);
   };
 
   const filteredItems = filter === "all" 
@@ -853,6 +860,11 @@ const Index = () => {
       </Dialog>
 
       {/* Terms Popup */}
+      <TermsPopup
+        open={showTermsPopup}
+        onAccept={handleAcceptTerms}
+        onDecline={handleDeclineTerms}
+      />
 
       {/* Footer */}
       <Footer />

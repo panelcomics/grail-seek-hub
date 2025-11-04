@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-
-const CURRENT_TERMS_VERSION = "1.0";
+import { CURRENT_TERMS_VERSION, hasAcceptedLatestTerms } from "@/lib/termsUtils";
 
 export const useTerms = () => {
   const { user } = useAuth();
@@ -24,11 +23,7 @@ export const useTerms = () => {
         .eq("user_id", user.id)
         .single();
 
-      if (profile?.terms_version_accepted === CURRENT_TERMS_VERSION) {
-        setHasAcceptedTerms(true);
-      } else {
-        setHasAcceptedTerms(false);
-      }
+      setHasAcceptedTerms(hasAcceptedLatestTerms(profile));
     };
 
     checkTermsAcceptance();
