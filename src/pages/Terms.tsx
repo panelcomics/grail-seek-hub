@@ -68,29 +68,64 @@ export default function Terms() {
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>
-                    <strong>Meetup Safety:</strong> Any injuries, theft, fraud, or other incidents that occur during 
-                    in-person meetups or local pickups. Users assume all risks associated with meeting strangers.
+                    <strong>Meetup Safety:</strong> Any injuries, theft, fraud, assault, or other incidents that occur during 
+                    in-person meetups or local pickups. Users assume all risks associated with meeting strangers. Grail Seeker 
+                    has ZERO liability for any harm, injury, or loss occurring during in-person transactions.
                   </li>
                   <li>
-                    <strong>Shipping Losses:</strong> Lost, damaged, or stolen items during shipping. While we facilitate 
-                    transactions, we do not guarantee delivery or condition of items.
+                    <strong>Shipping Losses:</strong> Lost, damaged, stolen, or destroyed items during shipping. While we 
+                    facilitate transactions, we do not guarantee delivery or condition of items. Users are responsible for 
+                    purchasing their own shipping insurance if desired (see Section 2.1 below).
                   </li>
                   <li>
-                    <strong>Item Authenticity:</strong> The authenticity, condition, or quality of items listed on the 
-                    platform. Sellers are solely responsible for accurate descriptions.
+                    <strong>Item Authenticity:</strong> The authenticity, condition, grade, or quality of items listed on the 
+                    platform. Sellers are solely responsible for accurate descriptions. Grail Seeker does not verify or 
+                    authenticate items.
                   </li>
                   <li>
-                    <strong>Financial Disputes:</strong> Any payment disputes, chargebacks, or financial losses arising 
-                    from transactions between users.
+                    <strong>Financial Disputes:</strong> Any payment disputes, chargebacks, refunds, or financial losses arising 
+                    from transactions between users. All transactions are between users directly.
                   </li>
                   <li>
-                    <strong>User Conduct:</strong> The actions, behavior, or communications of other users on the platform.
+                    <strong>User Conduct:</strong> The actions, behavior, communications, or criminal activity of other users 
+                    on the platform.
                   </li>
                 </ul>
+                
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mt-4">
+                  <p className="font-bold text-foreground">
+                    MAXIMUM LIABILITY CAP: $100
+                  </p>
+                  <p className="mt-2">
+                    IN NO EVENT SHALL GRAIL SEEKER'S TOTAL LIABILITY TO YOU FOR ALL DAMAGES, LOSSES, AND CAUSES OF ACTION 
+                    EXCEED ONE HUNDRED DOLLARS ($100.00). This cap applies regardless of the nature of the claim, whether in 
+                    contract, tort, warranty, or otherwise.
+                  </p>
+                </div>
+
                 <p className="font-medium text-foreground mt-4">
                   TO THE MAXIMUM EXTENT PERMITTED BY LAW, GRAIL SEEKER SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, 
-                  INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICE.
+                  INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICE, INCLUDING BUT 
+                  NOT LIMITED TO: LOST PROFITS, LOST DATA, PERSONAL INJURY, PROPERTY DAMAGE, OR ANY OTHER LOSSES.
                 </p>
+
+                <h3 className="font-semibold text-foreground mt-4">2.1 Shipping Insurance</h3>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                  <p className="font-medium text-foreground mb-2">
+                    Optional Shipping Insurance Available
+                  </p>
+                  <p>
+                    For nationwide shipping transactions, we strongly recommend that sellers purchase shipping insurance to 
+                    protect against loss, damage, or theft during transit. Insurance options are typically available through 
+                    shipping carriers (USPS, UPS, FedEx) or third-party insurance providers.
+                  </p>
+                  <ul className="list-disc pl-6 space-y-1 mt-2 text-sm">
+                    <li>Sellers are responsible for purchasing and managing shipping insurance</li>
+                    <li>Insurance costs can be built into the item price or charged separately</li>
+                    <li>Grail Seeker does not provide shipping insurance or handle claims</li>
+                    <li>For high-value items ($100+), insurance is highly recommended</li>
+                  </ul>
+                </div>
               </div>
             </section>
 
