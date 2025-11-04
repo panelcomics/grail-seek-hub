@@ -664,7 +664,7 @@ export type Database = {
           seller_id: string
           shipping_amount: number
           stripe_session_id: string | null
-          total: number
+          total: number | null
           updated_at: string
         }
         Insert: {
@@ -680,7 +680,7 @@ export type Database = {
           seller_id: string
           shipping_amount?: number
           stripe_session_id?: string | null
-          total?: number
+          total?: number | null
           updated_at?: string
         }
         Update: {
@@ -696,7 +696,7 @@ export type Database = {
           seller_id?: string
           shipping_amount?: number
           stripe_session_id?: string | null
-          total?: number
+          total?: number | null
           updated_at?: string
         }
         Relationships: [
