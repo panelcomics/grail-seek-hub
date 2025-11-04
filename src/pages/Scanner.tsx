@@ -75,26 +75,25 @@ export default function Scanner() {
         return;
       }
 
-      // Save to scanned_items table
+      // Save to collections table
       const { error } = await supabase
-        .from('scanned_items')
+        .from('collections')
         .insert({
           user_id: user.id,
           title: scanResult.title,
           category: scanResult.category,
           grade: scanResult.grade,
           condition: scanResult.condition,
-          estimated_value: scanResult.estimatedValue,
-          image_url: previewUrl,
-          scan_data: scanResult,
-          comparable_sales: scanResult.comparableSales,
-          is_listed: true
+          purchase_price: scanResult.estimatedValue,
+          purchase_date: new Date().toISOString().split('T')[0],
+          current_value: scanResult.estimatedValue,
+          image_url: previewUrl
         });
 
       if (error) throw error;
 
-      toast.success('Item added to your listings!');
-      navigate('/');
+      toast.success('Item added to your portfolio!');
+      navigate('/portfolio');
 
     } catch (error: any) {
       console.error('Save error:', error);
@@ -241,7 +240,7 @@ export default function Scanner() {
                   className="w-full"
                   onClick={handleSaveToListings}
                 >
-                  Add to My Listings
+                  Add to Portfolio
                 </Button>
               </CardContent>
             </Card>

@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import ItemDetail from "./pages/ItemDetail";
 import Auth from "./pages/Auth";
 import Scanner from "./pages/Scanner";
+import Portfolio from "./pages/Portfolio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/item/:id" element={<ItemDetail />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/scanner" element={<Scanner />} />
+          <Route path="/portfolio" element={<Portfolio />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

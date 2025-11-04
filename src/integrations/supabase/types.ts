@@ -157,6 +157,54 @@ export type Database = {
           },
         ]
       }
+      collections: {
+        Row: {
+          category: string
+          condition: string
+          created_at: string
+          current_value: number
+          grade: string | null
+          id: string
+          image_url: string | null
+          notes: string | null
+          purchase_date: string
+          purchase_price: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          condition: string
+          created_at?: string
+          current_value: number
+          grade?: string | null
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          purchase_date: string
+          purchase_price: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          condition?: string
+          created_at?: string
+          current_value?: number
+          grade?: string | null
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          purchase_date?: string
+          purchase_price?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           city: string
@@ -210,6 +258,79 @@ export type Database = {
           website_url?: string | null
         }
         Relationships: []
+      }
+      price_alerts: {
+        Row: {
+          alert_type: string
+          collection_id: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          percentage_change: number | null
+          threshold_value: number | null
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          collection_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          percentage_change?: number | null
+          threshold_value?: number | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          collection_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          percentage_change?: number | null
+          threshold_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_alerts_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_history: {
+        Row: {
+          collection_id: string
+          id: string
+          price: number
+          recorded_at: string
+          source: string
+        }
+        Insert: {
+          collection_id: string
+          id?: string
+          price: number
+          recorded_at?: string
+          source: string
+        }
+        Update: {
+          collection_id?: string
+          id?: string
+          price?: number
+          recorded_at?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_history_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

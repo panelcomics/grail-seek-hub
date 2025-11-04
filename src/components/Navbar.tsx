@@ -1,4 +1,4 @@
-import { Search, User, Menu, LogOut, Scan } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -50,6 +50,15 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {user && (
+            <Link to="/portfolio">
+              <Button variant="outline" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Portfolio</span>
+              </Button>
+            </Link>
+          )}
+          
           <Link to="/scanner">
             <Button variant="outline" className="gap-2">
               <Scan className="h-4 w-4" />
