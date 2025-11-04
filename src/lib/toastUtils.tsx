@@ -57,6 +57,13 @@ export const toastSuccess = {
       icon: <CheckCircle2 className="h-5 w-5" />,
     });
   },
+  
+  linkCopied: () => {
+    toast.success("Link copied!", {
+      description: "Share link copied to clipboard",
+      icon: <CheckCircle2 className="h-5 w-5" />,
+    });
+  },
 };
 
 // Error toasts with icons

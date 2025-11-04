@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTerms } from "@/hooks/useTerms";
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Clock, MapPin, Tag, Package, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { ShareButton } from "@/components/ShareButton";
 
 interface ClaimSale {
   id: string;
@@ -313,16 +315,34 @@ const ClaimSaleDetail = () => {
   const itemsLeft = sale.total_items - (sale.claimed_items || 0);
   const isEnded = new Date() >= new Date(sale.end_time) || sale.status === "closed";
   const canClaim = user && !isEnded && !userClaim && itemsLeft > 0;
+  
+  // Generate OpenGraph description
+  const ogDescription = `Claim $${sale.price} bin - ${itemsLeft} left, ends ${isEnded ? "ended" : countdown}`;
+  const ogImage = items[0]?.image_url || "";
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{sale.title} - Grail Seeker</title>
+        <meta name="description" content={ogDescription} />
+        <meta property="og:title" content={sale.title} />
+        <meta property="og:description" content={ogDescription} />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${window.location.origin}/claim-sale/${id}`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={sale.title} />
+        <meta name="twitter:description" content={ogDescription} />
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+      </Helmet>
+      
       <Navbar />
       
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2">{sale.title}</h1>
               <div className="flex flex-wrap gap-2">
                 {items.length > 0 && (
@@ -344,19 +364,26 @@ const ClaimSaleDetail = () => {
               </div>
             </div>
             
-            <Card className={isUrgent ? "border-destructive" : ""}>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <Clock className={`h-6 w-6 mx-auto mb-2 ${isUrgent ? "text-destructive" : "text-muted-foreground"}`} />
-                  <p className={`text-2xl font-bold ${isUrgent ? "text-destructive" : "text-primary"}`}>
-                    {countdown}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {isEnded ? "Sale Ended" : "Time Remaining"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex gap-2">
+              <ShareButton 
+                url={`/claim-sale/${id}`}
+                title={sale.title}
+              />
+              
+              <Card className={isUrgent ? "border-destructive" : ""}>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <Clock className={`h-6 w-6 mx-auto mb-2 ${isUrgent ? "text-destructive" : "text-muted-foreground"}`} />
+                    <p className={`text-2xl font-bold ${isUrgent ? "text-destructive" : "text-primary"}`}>
+                      {countdown}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {isEnded ? "Sale Ended" : "Time Remaining"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Description */}

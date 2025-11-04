@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Copy, DollarSign, Package } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { ShareButton } from "@/components/ShareButton";
 import {
   Table,
   TableBody,
@@ -260,12 +261,24 @@ const SellerDashboard = () => {
           {/* Winners & Invoices */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>
-                {selectedSale ? `Winners: ${selectedSale.title}` : "Select a sale"}
-              </CardTitle>
-              <CardDescription>
-                {selectedSale && `${winners.length} winners • $${selectedSale.price} per item`}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>
+                    {selectedSale ? `Winners: ${selectedSale.title}` : "Select a sale"}
+                  </CardTitle>
+                  <CardDescription>
+                    {selectedSale && `${winners.length} winners • $${selectedSale.price} per item`}
+                  </CardDescription>
+                </div>
+                {selectedSale && (
+                  <ShareButton 
+                    url={`/claim-sale/${selectedSale.id}`}
+                    title={selectedSale.title}
+                    variant="secondary"
+                    size="sm"
+                  />
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {!selectedSale ? (
