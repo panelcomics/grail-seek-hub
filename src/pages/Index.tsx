@@ -11,59 +11,228 @@ import cardSample1 from "@/assets/card-sample-1.jpg";
 import cardSample2 from "@/assets/card-sample-2.jpg";
 
 const mockItems = [
+  // 10 SENTINEL-STYLE $2 BIN AUCTIONS (5-min timers)
   {
-    id: "1",
+    id: "a1",
+    title: "Amazing Spider-Man #361 - Carnage",
+    price: 2,
+    condition: "VF",
+    image: comicSample1,
+    isLocal: false,
+    category: "comic" as const,
+    isAuction: true,
+    timeRemaining: 287, // 4:47
+  },
+  {
+    id: "a2",
+    title: "X-Force #2 - Deadpool Card",
+    price: 2,
+    condition: "NM",
+    image: comicSample2,
+    isLocal: false,
+    category: "comic" as const,
+    isAuction: true,
+    timeRemaining: 142, // 2:22
+  },
+  {
+    id: "a3",
+    title: "1991 Fleer Michael Jordan",
+    price: 2,
+    condition: "EX",
+    image: cardSample1,
+    isLocal: false,
+    category: "card" as const,
+    isAuction: true,
+    timeRemaining: 201, // 3:21
+  },
+  {
+    id: "a4",
+    title: "Spawn #1 Todd McFarlane",
+    price: 2,
+    condition: "VF+",
+    image: comicSample1,
+    isLocal: false,
+    category: "comic" as const,
+    isAuction: true,
+    timeRemaining: 89, // 1:29
+  },
+  {
+    id: "a5",
+    title: "1986 Fleer Larry Bird",
+    price: 2,
+    condition: "VG",
+    image: cardSample2,
+    isLocal: false,
+    category: "card" as const,
+    isAuction: true,
+    timeRemaining: 267, // 4:27
+  },
+  {
+    id: "a6",
+    title: "Batman Adventures #12 - Harley Quinn",
+    price: 2,
+    condition: "FN",
+    image: comicSample2,
+    isLocal: false,
+    category: "comic" as const,
+    isAuction: true,
+    timeRemaining: 178, // 2:58
+  },
+  {
+    id: "a7",
+    title: "1989 Upper Deck Griffey Jr.",
+    price: 2,
+    condition: "VF",
+    image: cardSample1,
+    isLocal: false,
+    category: "card" as const,
+    isAuction: true,
+    timeRemaining: 124, // 2:04
+  },
+  {
+    id: "a8",
+    title: "New Mutants #98 - Deadpool 1st",
+    price: 2,
+    condition: "VG+",
+    image: comicSample1,
+    isLocal: false,
+    category: "comic" as const,
+    isAuction: true,
+    timeRemaining: 56, // 0:56
+  },
+  {
+    id: "a9",
+    title: "1992 Topps Shaquille O'Neal RC",
+    price: 2,
+    condition: "NM",
+    image: cardSample2,
+    isLocal: false,
+    category: "card" as const,
+    isAuction: true,
+    timeRemaining: 299, // 4:59
+  },
+  {
+    id: "a10",
+    title: "Venom: Lethal Protector #1",
+    price: 2,
+    condition: "VF/NM",
+    image: comicSample1,
+    isLocal: false,
+    category: "comic" as const,
+    isAuction: true,
+    timeRemaining: 213, // 3:33
+  },
+
+  // 5 LOCAL LISTINGS (within 500mi)
+  {
+    id: "l1",
     title: "Amazing Spider-Man #300 - First Venom",
     price: 450,
     condition: "NM+",
     image: comicSample1,
     isLocal: true,
     location: "Chicago, IL",
+    distance: 127,
     category: "comic" as const,
   },
   {
-    id: "2",
-    title: "2003 LeBron James Rookie Card PSA 10",
+    id: "l2",
+    title: "X-Men #1 Jim Lee Variant CGC 9.8",
+    price: 125,
+    condition: "GEM MT",
+    image: comicSample2,
+    isLocal: true,
+    location: "Milwaukee, WI",
+    distance: 89,
+    category: "comic" as const,
+  },
+  {
+    id: "l3",
+    title: "2003 LeBron James Topps Chrome RC",
     price: 2800,
+    condition: "PSA 10",
+    image: cardSample1,
+    isLocal: true,
+    location: "Indianapolis, IN",
+    distance: 186,
+    category: "card" as const,
+  },
+  {
+    id: "l4",
+    title: "Batman: The Killing Joke First Print",
+    price: 280,
+    condition: "FN+",
+    image: comicSample1,
+    isLocal: true,
+    location: "Detroit, MI",
+    distance: 278,
+    category: "comic" as const,
+  },
+  {
+    id: "l5",
+    title: "1952 Topps Mickey Mantle (Reprint)",
+    price: 85,
+    condition: "VF",
+    image: cardSample2,
+    isLocal: true,
+    location: "Grand Rapids, MI",
+    distance: 173,
+    category: "card" as const,
+  },
+
+  // 3 TRENDING COMICS
+  {
+    id: "tc1",
+    title: "Incredible Hulk #181 - Wolverine 1st",
+    price: 3200,
+    condition: "VG/FN",
+    image: comicSample1,
+    isLocal: false,
+    category: "comic" as const,
+  },
+  {
+    id: "tc2",
+    title: "Ultimate Fallout #4 - Miles Morales",
+    price: 275,
+    condition: "NM+",
+    image: comicSample2,
+    isLocal: false,
+    category: "comic" as const,
+  },
+  {
+    id: "tc3",
+    title: "Saga #1 First Print",
+    price: 180,
+    condition: "NM",
+    image: comicSample1,
+    isLocal: false,
+    category: "comic" as const,
+  },
+
+  // 3 TRENDING SPORTS CARDS
+  {
+    id: "ts1",
+    title: "2021 Patrick Mahomes Prizm Silver",
+    price: 195,
+    condition: "MINT",
+    image: cardSample2,
+    isLocal: false,
+    category: "card" as const,
+  },
+  {
+    id: "ts2",
+    title: "2018 Luka Doncic Prizm RC PSA 10",
+    price: 890,
     condition: "GEM MT",
     image: cardSample1,
     isLocal: false,
     category: "card" as const,
   },
   {
-    id: "3",
-    title: "X-Men #1 Jim Lee Variant",
-    price: 125,
-    condition: "VF/NM",
-    image: comicSample2,
-    isLocal: true,
-    location: "Boston, MA",
-    category: "comic" as const,
-  },
-  {
-    id: "4",
-    title: "1989 Ken Griffey Jr. Upper Deck Rookie",
-    price: 340,
+    id: "ts3",
+    title: "2020 Justin Herbert Prizm Auto",
+    price: 425,
     condition: "PSA 9",
-    image: cardSample2,
-    isLocal: false,
-    category: "card" as const,
-  },
-  {
-    id: "5",
-    title: "Batman: The Killing Joke First Print",
-    price: 280,
-    condition: "FN+",
-    image: comicSample1,
-    isLocal: true,
-    location: "Seattle, WA",
-    category: "comic" as const,
-  },
-  {
-    id: "6",
-    title: "2021 Patrick Mahomes Prizm Silver",
-    price: 195,
-    condition: "MINT",
     image: cardSample2,
     isLocal: false,
     category: "card" as const,
@@ -79,6 +248,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* TEST MODE BANNER */}
+      <div className="bg-destructive text-destructive-foreground py-2 text-center font-semibold text-sm">
+        🧪 TEST MODE - No real payments processed
+      </div>
       <Navbar />
       <Hero />
       
