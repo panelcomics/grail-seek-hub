@@ -8,6 +8,7 @@ import ItemDetail from "./pages/ItemDetail";
 import Auth from "./pages/Auth";
 import Scanner from "./pages/Scanner";
 import Portfolio from "./pages/Portfolio";
+import Deals from "./pages/Deals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/scanner" element={<Scanner />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/deals" element={<Deals />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -205,6 +205,113 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_alerts: {
+        Row: {
+          alert_name: string
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          item_title: string
+          location_city: string | null
+          location_state: string | null
+          max_price: number
+          notify_email: boolean | null
+          notify_push: boolean | null
+          radius_miles: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_name: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          item_title: string
+          location_city?: string | null
+          location_state?: string | null
+          max_price: number
+          notify_email?: boolean | null
+          notify_push?: boolean | null
+          radius_miles?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_name?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          item_title?: string
+          location_city?: string | null
+          location_state?: string | null
+          max_price?: number
+          notify_email?: boolean | null
+          notify_push?: boolean | null
+          radius_miles?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deal_matches: {
+        Row: {
+          alert_id: string
+          distance_miles: number | null
+          id: string
+          image_url: string | null
+          is_saved: boolean | null
+          is_viewed: boolean | null
+          location: string | null
+          matched_at: string
+          price: number
+          source: string
+          source_url: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          alert_id: string
+          distance_miles?: number | null
+          id?: string
+          image_url?: string | null
+          is_saved?: boolean | null
+          is_viewed?: boolean | null
+          location?: string | null
+          matched_at?: string
+          price: number
+          source: string
+          source_url?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string
+          distance_miles?: number | null
+          id?: string
+          image_url?: string | null
+          is_saved?: boolean | null
+          is_viewed?: boolean | null
+          location?: string | null
+          matched_at?: string
+          price?: number
+          source?: string
+          source_url?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_matches_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "custom_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           city: string
