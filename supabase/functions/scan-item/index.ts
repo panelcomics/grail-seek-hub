@@ -42,7 +42,8 @@ serve(async (req) => {
             role: 'system',
             content: `You are an expert comic book and trading card grader with decades of experience. 
             Analyze the image and provide accurate identification, grading, and market value estimation.
-            Be precise with titles, issue numbers, and conditions.`
+            Be precise with titles, issue numbers, and conditions.
+            IMPORTANT: Use category "comic" for comics and "card" for trading cards.`
           },
           {
             role: 'user',
@@ -51,7 +52,7 @@ serve(async (req) => {
                 type: 'text',
                 text: `Analyze this comic or trading card image and provide:
                 1. Exact title and issue number (e.g., "Supergirl #159")
-                2. Category (comic-book, trading-card, or collectible-card)
+                2. Category: ONLY use "comic" or "card" (no other values allowed)
                 3. Grade using industry standard (NM+, NM, VF+, etc.)
                 4. Condition details (any visible defects, centering, corners)
                 5. Estimated market value in USD (be realistic based on current market)
@@ -60,7 +61,7 @@ serve(async (req) => {
                 Return ONLY valid JSON with this structure:
                 {
                   "title": "exact title with issue number",
-                  "category": "comic-book|trading-card|collectible-card",
+                  "category": "comic OR card (exactly these words only)",
                   "grade": "grade like NM+, NM, VF+",
                   "condition": "detailed condition description",
                   "estimatedValue": 195.00,
@@ -133,10 +134,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in scan-item function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to scan item';
+    const errorDetails = error instanceof Error ? error.toString() : String(error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to scan item',
-        details: error.toString()
+        error: errorMessage,
+        details: errorDetails
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

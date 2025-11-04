@@ -1,4 +1,4 @@
-import { Search, User, Menu, LogOut } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -50,6 +50,13 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link to="/scanner">
+            <Button variant="outline" className="gap-2">
+              <Scan className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Scanner</span>
+            </Button>
+          </Link>
+
           <Button variant="ghost" size="icon" className="md:hidden">
             <Search className="h-5 w-5" />
           </Button>
