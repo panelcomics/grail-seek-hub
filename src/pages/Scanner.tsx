@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Upload, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,16 +6,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useModal } from "@/contexts/ModalContext";
 import Navbar from "@/components/Navbar";
 
 export default function Scanner() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { openModal } = useModal();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [scanning, setScanning] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [scanResult, setScanResult] = useState<any>(null);
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkResults, setBulkResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    checkAndShowTour();
+  }, [user]);
+
+  const checkAndShowTour = async () => {
+    // Check if user wants to skip the tour
+    const hideLocalStorage = localStorage.getItem("hideAiScannerTour");
+    
+    if (user) {
+      // For signed-in users, check profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("hide_ai_scanner_tour")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile?.hide_ai_scanner_tour) {
+        showTour();
+      }
+    } else {
+      // For guests, check localStorage
+      if (hideLocalStorage !== "true") {
+        showTour();
+      }
+    }
+  };
+
+  const showTour = () => {
+    openModal("aiScannerTour", {
+      onComplete: async (dontShowAgain: boolean) => {
+        if (dontShowAgain) {
+          // Save preference
+          if (user) {
+            // Save to profile
+            await supabase
+              .from("profiles")
+              .update({ hide_ai_scanner_tour: true })
+              .eq("user_id", user.id);
+          } else {
+            // Save to localStorage
+            localStorage.setItem("hideAiScannerTour", "true");
+          }
+        }
+      }
+    });
+  };
 
   const handleFileSelect = async (files: FileList) => {
     const fileArray = Array.from(files);

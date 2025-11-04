@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import Onboarding from "@/components/Onboarding";
 import SafetyGuide from "@/components/SafetyGuide";
+import AiScannerTour from "@/components/AiScannerTour";
 import { TermsPopup } from "@/components/TermsPopup";
 
-type ModalType = "onboarding" | "safetyGuide" | "terms" | null;
+type ModalType = "onboarding" | "safetyGuide" | "terms" | "aiScannerTour" | null;
 
 interface ModalContextType {
   currentModal: ModalType;
@@ -75,6 +76,16 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
           }}
           onDecline={() => {
             modalProps.onDecline?.();
+            closeModal();
+          }}
+        />
+      )}
+
+      {currentModal === "aiScannerTour" && (
+        <AiScannerTour
+          open={true}
+          onComplete={(dontShowAgain: boolean) => {
+            modalProps.onComplete?.(dontShowAgain);
             closeModal();
           }}
         />

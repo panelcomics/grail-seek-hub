@@ -723,6 +723,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          hide_ai_scanner_tour: boolean | null
           id: string
           terms_accepted_at: string | null
           terms_version_accepted: string | null
@@ -733,6 +734,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          hide_ai_scanner_tour?: boolean | null
           id?: string
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
@@ -743,6 +745,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          hide_ai_scanner_tour?: boolean | null
           id?: string
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
