@@ -654,22 +654,28 @@ export type Database = {
         Row: {
           amount: number
           buyer_id: string
+          buyer_protection_fee: number | null
           carrier: string | null
           charge_id: string | null
           claim_id: string
           claim_sale_id: string
           created_at: string
+          delivery_confirmed_at: string | null
           dispute_status: string | null
           id: string
           paid_at: string | null
           payment_intent_id: string | null
           payment_method: string | null
           payment_status: string
+          payout_hold_until: string | null
+          payout_released_at: string | null
+          payout_status: string | null
           platform_fee_amount: number | null
           platform_fee_rate: number | null
           seller_id: string
           shipped_at: string | null
           shipping_amount: number
+          shipping_status: string | null
           stripe_session_id: string | null
           total: number | null
           tracking_number: string | null
@@ -679,22 +685,28 @@ export type Database = {
         Insert: {
           amount?: number
           buyer_id: string
+          buyer_protection_fee?: number | null
           carrier?: string | null
           charge_id?: string | null
           claim_id: string
           claim_sale_id: string
           created_at?: string
+          delivery_confirmed_at?: string | null
           dispute_status?: string | null
           id?: string
           paid_at?: string | null
           payment_intent_id?: string | null
           payment_method?: string | null
           payment_status?: string
+          payout_hold_until?: string | null
+          payout_released_at?: string | null
+          payout_status?: string | null
           platform_fee_amount?: number | null
           platform_fee_rate?: number | null
           seller_id: string
           shipped_at?: string | null
           shipping_amount?: number
+          shipping_status?: string | null
           stripe_session_id?: string | null
           total?: number | null
           tracking_number?: string | null
@@ -704,22 +716,28 @@ export type Database = {
         Update: {
           amount?: number
           buyer_id?: string
+          buyer_protection_fee?: number | null
           carrier?: string | null
           charge_id?: string | null
           claim_id?: string
           claim_sale_id?: string
           created_at?: string
+          delivery_confirmed_at?: string | null
           dispute_status?: string | null
           id?: string
           paid_at?: string | null
           payment_intent_id?: string | null
           payment_method?: string | null
           payment_status?: string
+          payout_hold_until?: string | null
+          payout_released_at?: string | null
+          payout_status?: string | null
           platform_fee_amount?: number | null
           platform_fee_rate?: number | null
           seller_id?: string
           shipped_at?: string | null
           shipping_amount?: number
+          shipping_status?: string | null
           stripe_session_id?: string | null
           total?: number | null
           tracking_number?: string | null
@@ -819,9 +837,11 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          completed_sales_count: number | null
           created_at: string
           hide_ai_scanner_tour: boolean | null
           id: string
+          seller_tier: string | null
           stripe_account_id: string | null
           stripe_onboarding_complete: boolean | null
           terms_accepted_at: string | null
@@ -832,9 +852,11 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          completed_sales_count?: number | null
           created_at?: string
           hide_ai_scanner_tour?: boolean | null
           id?: string
+          seller_tier?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
           terms_accepted_at?: string | null
@@ -845,9 +867,11 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          completed_sales_count?: number | null
           created_at?: string
           hide_ai_scanner_tour?: boolean | null
           id?: string
+          seller_tier?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
           terms_accepted_at?: string | null

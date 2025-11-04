@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     // Get order details
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, total, amount, shipping_amount, seller_id, buyer_id")
+      .select("id, amount, shipping_amount, buyer_protection_fee, seller_id, buyer_id")
       .eq("id", orderId)
       .single();
 
@@ -48,6 +48,20 @@ Deno.serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Calculate fees
+    const protectionFee = order.buyer_protection_fee || 1.99;
+    const platformFeeRate = 0.035; // 3.5%
+    const platformFeeAmount = Math.round((order.amount + order.shipping_amount) * platformFeeRate * 100) / 100;
+    const total = order.amount + order.shipping_amount + protectionFee;
+    
+    // Update order with calculated fees
+    await supabase
+      .from("orders")
+      .update({ 
+        platform_fee_amount: platformFeeAmount,
+      })
+      .eq("id", order.id);
 
     // Get seller's Stripe account
     const { data: sellerProfile } = await supabase
@@ -63,30 +77,62 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get buyer email
+    // Get buyer email and seller tier
     const { data: { user: buyer } } = await supabase.auth.admin.getUserById(order.buyer_id);
+    
+    const { data: sellerData } = await supabase
+      .from("profiles")
+      .select("completed_sales_count")
+      .eq("user_id", order.seller_id)
+      .single();
 
-    // Create payment intent with connected account
+    const completedSales = sellerData?.completed_sales_count || 0;
+    
+    // Calculate payout hold based on seller tier
+    const now = new Date();
+    let payoutHoldHours = 72; // Default: 3 days for new sellers
+    
+    if (completedSales >= 10) {
+      payoutHoldHours = 24; // Verified sellers: 24 hours
+    }
+    
+    // High-value transactions get extended hold
+    if (total > 1000) {
+      payoutHoldHours = 120; // 5 days (48h dispute window + delivery time)
+    }
+
+    // Create payment intent with application fee
+    const applicationFeeAmount = Math.round((platformFeeAmount + protectionFee) * 100); // Convert to cents
+    
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(order.total * 100), // Convert to cents
+      amount: Math.round(total * 100), // Convert to cents
       currency: "usd",
+      application_fee_amount: applicationFeeAmount,
       metadata: {
         order_id: order.id,
         buyer_id: order.buyer_id,
         seller_id: order.seller_id,
+        platform_fee: platformFeeAmount.toFixed(2),
+        protection_fee: protectionFee.toFixed(2),
       },
       receipt_email: buyer?.email,
       transfer_data: {
         destination: sellerProfile.stripe_account_id,
       },
+      on_behalf_of: sellerProfile.stripe_account_id,
     });
 
-    // Update order with payment intent ID
+    // Set payout hold
+    const payoutHoldUntil = new Date(now.getTime() + payoutHoldHours * 60 * 60 * 1000);
+
+    // Update order with payment intent ID and payout hold
     await supabase
       .from("orders")
       .update({ 
         payment_intent_id: paymentIntent.id,
         stripe_session_id: paymentIntent.id, // For compatibility
+        payout_hold_until: payoutHoldUntil.toISOString(),
+        payout_status: 'held',
       })
       .eq("id", order.id);
 

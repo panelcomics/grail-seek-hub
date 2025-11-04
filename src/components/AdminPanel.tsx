@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PayoutManagement } from "./PayoutManagement";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -132,74 +134,85 @@ export const AdminPanel = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Admin Panel - Discount Codes
-          </CardTitle>
-          <CardDescription>
-            Manage influencer discount codes and track usage
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter new code (e.g., CLANMCDONALDS)"
-              value={newCode}
-              onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === "Enter" && createCode()}
-              disabled={creating}
-            />
-            <Button onClick={createCode} disabled={creating}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create
-            </Button>
-          </div>
+    <Tabs defaultValue="discount-codes" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="discount-codes">Discount Codes</TabsTrigger>
+        <TabsTrigger value="payouts">Payout Management</TabsTrigger>
+      </TabsList>
 
-          <div className="space-y-2">
-            {codes.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No discount codes created yet
-              </div>
-            ) : (
-              codes.map((code) => (
-                <Card key={code.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-semibold">{code.code}</span>
-                          <Badge variant={code.is_active ? "default" : "secondary"}>
-                            {code.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                          {code.user_id && (
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              Assigned
+      <TabsContent value="discount-codes">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Discount Codes
+            </CardTitle>
+            <CardDescription>
+              Manage influencer discount codes and track usage
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter new code (e.g., CLANMCDONALDS)"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && createCode()}
+                disabled={creating}
+              />
+              <Button onClick={createCode} disabled={creating}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {codes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No discount codes created yet
+                </div>
+              ) : (
+                codes.map((code) => (
+                  <Card key={code.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-semibold">{code.code}</span>
+                            <Badge variant={code.is_active ? "default" : "secondary"}>
+                              {code.is_active ? "Active" : "Inactive"}
                             </Badge>
-                          )}
+                            {code.user_id && (
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                Assigned
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {code.discount_rate}% rate • ${code.monthly_cap}/mo cap
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {code.discount_rate}% rate • ${code.monthly_cap}/mo cap
-                        </div>
+                        <Button
+                          variant={code.is_active ? "destructive" : "default"}
+                          size="sm"
+                          onClick={() => toggleCodeStatus(code.id, code.is_active)}
+                        >
+                          {code.is_active ? "Deactivate" : "Activate"}
+                        </Button>
                       </div>
-                      <Button
-                        variant={code.is_active ? "destructive" : "default"}
-                        size="sm"
-                        onClick={() => toggleCodeStatus(code.id, code.is_active)}
-                      >
-                        {code.is_active ? "Deactivate" : "Activate"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="payouts">
+        <PayoutManagement />
+      </TabsContent>
+    </Tabs>
   );
 };
