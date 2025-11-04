@@ -148,7 +148,10 @@ export type Database = {
           claimed_at: string
           id: string
           item_id: string
+          item_price: number
           quantity: number
+          seller_fee: number
+          shipping_method: string | null
           shipping_tier: string
           total_price: number
           user_id: string
@@ -158,7 +161,10 @@ export type Database = {
           claimed_at?: string
           id?: string
           item_id: string
+          item_price?: number
           quantity?: number
+          seller_fee?: number
+          shipping_method?: string | null
           shipping_tier: string
           total_price: number
           user_id: string
@@ -168,7 +174,10 @@ export type Database = {
           claimed_at?: string
           id?: string
           item_id?: string
+          item_price?: number
           quantity?: number
+          seller_fee?: number
+          shipping_method?: string | null
           shipping_tier?: string
           total_price?: number
           user_id?: string

@@ -8,8 +8,14 @@ import ItemCard from "@/components/ItemCard";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import MapView from "@/components/MapView";
+import { calculateSellerFee } from "@/components/PricingCalculator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Filter, Package, MapPin, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Filter, Package, MapPin, Clock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import comicSample1 from "@/assets/comic-sample-1.jpg";
@@ -253,6 +259,9 @@ const Index = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [selectedClaimItem, setSelectedClaimItem] = useState<{ saleId: string; itemId: string; price: number } | null>(null);
+  const [shippingMethod, setShippingMethod] = useState<'local_pickup' | 'ship_nationwide'>('ship_nationwide');
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -338,7 +347,7 @@ const Index = () => {
     };
   }, []);
 
-  const handleClaim = async (saleId: string, itemId: string) => {
+  const openClaimDialog = (saleId: string, itemId: string, price: number) => {
     if (!user) {
       toast({
         title: "Sign in required",
@@ -348,16 +357,27 @@ const Index = () => {
       navigate("/auth");
       return;
     }
+    setSelectedClaimItem({ saleId, itemId, price });
+    setClaimDialogOpen(true);
+  };
+
+  const handleClaim = async () => {
+    if (!selectedClaimItem) return;
+
+    const { saleId, itemId, price } = selectedClaimItem;
+    const sellerFee = calculateSellerFee(price, shippingMethod);
 
     try {
       // Insert claim
       const { error } = await supabase.from("claims" as any).insert({
-        user_id: user.id,
+        user_id: user!.id,
         claim_sale_id: saleId,
         item_id: itemId,
         quantity: 1,
-        shipping_tier: "1-15",
-        total_price: 2.00,
+        shipping_method: shippingMethod,
+        item_price: price,
+        seller_fee: sellerFee,
+        total_price: price,
       });
 
       if (error) throw error;
@@ -379,8 +399,11 @@ const Index = () => {
 
       toast({
         title: "🎉 Claim Secured!",
-        description: "Your item has been claimed. Check your claims for details.",
+        description: `You'll receive $${(price - sellerFee).toFixed(2)} after ${shippingMethod === 'local_pickup' ? 'local pickup' : 'shipping'}`,
       });
+
+      setClaimDialogOpen(false);
+      setSelectedClaimItem(null);
     } catch (error: any) {
       toast({
         title: "Claim failed",
@@ -407,7 +430,7 @@ const Index = () => {
       isClaimSale: true,
       claimSaleId: sale.id,
       itemsLeft: sale.total_items - sale.claimed_items,
-      onClaim: () => handleClaim(sale.id, item.id),
+      onClaim: () => openClaimDialog(sale.id, item.id, sale.price),
     }));
   });
 
@@ -531,6 +554,120 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Claim Dialog */}
+      <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Claim Item</DialogTitle>
+            <DialogDescription>
+              Choose your shipping method and review seller fees
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedClaimItem && (
+            <div className="space-y-6 mt-4">
+              <div className="space-y-3">
+                <Label>Shipping Method</Label>
+                <RadioGroup value={shippingMethod} onValueChange={(value) => setShippingMethod(value as 'local_pickup' | 'ship_nationwide')}>
+                  <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-accent transition-colors">
+                    <RadioGroupItem value="local_pickup" id="claim-local" />
+                    <Label htmlFor="claim-local" className="flex-1 cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Local Pickup</span>
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400">
+                          0% Fee
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        No platform fees for local transactions
+                      </p>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-accent transition-colors">
+                    <RadioGroupItem value="ship_nationwide" id="claim-ship" />
+                    <Label htmlFor="claim-ship" className="flex-1 cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Ship Nationwide</span>
+                        <Badge variant="outline">5% Fee ($5 min)</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Platform handles shipping protection
+                      </p>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Item Price</span>
+                  <span className="font-medium">${selectedClaimItem.price.toFixed(2)}</span>
+                </div>
+
+                {(() => {
+                  const fee = calculateSellerFee(selectedClaimItem.price, shippingMethod);
+                  const youReceive = selectedClaimItem.price - fee;
+                  
+                  return (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          Seller Fee
+                          {shippingMethod === 'ship_nationwide' && fee === 5 && (
+                            <Info className="h-3 w-3" />
+                          )}
+                        </span>
+                        <span className={`font-medium ${fee > 0 ? 'text-orange-500' : 'text-green-500'}`}>
+                          -${fee.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <Separator />
+
+                      <div className="flex justify-between">
+                        <span className="font-semibold">You Receive</span>
+                        <span className="font-bold text-lg text-green-600 dark:text-green-400">
+                          ${youReceive.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {shippingMethod === 'ship_nationwide' && fee === 5 && selectedClaimItem.price < 100 && (
+                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                          <div className="flex gap-2">
+                            <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                              Items under $100 shipped have a minimum $5 fee to cover transaction costs.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {shippingMethod === 'local_pickup' && (
+                        <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3">
+                          <div className="flex gap-2">
+                            <Info className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-green-700 dark:text-green-300">
+                              Local pickup has no platform fees! Keep 100% of your sale price.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+
+              <Button onClick={handleClaim} className="w-full" size="lg">
+                Confirm Claim
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
