@@ -53,8 +53,8 @@ export default function Navbar() {
             <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">
               Browse
             </Link>
-            <Link to="#" className="text-sm font-medium hover:text-primary transition-colors">
-              Auctions
+            <Link to="/trade-board" className="text-sm font-medium hover:text-primary transition-colors">
+              Trade Board
             </Link>
             <Link to="#" className="text-sm font-medium hover:text-primary transition-colors">
               Local Pickup
@@ -118,6 +118,12 @@ export default function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    My Profile
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out

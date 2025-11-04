@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import Scanner from "./pages/Scanner";
 import Portfolio from "./pages/Portfolio";
 import Deals from "./pages/Deals";
+import Profile from "./pages/Profile";
+import TradeBoard from "./pages/TradeBoard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
           <Route path="/scanner" element={<Scanner />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/deals" element={<Deals />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/trade-board" element={<TradeBoard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
