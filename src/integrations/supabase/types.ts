@@ -636,6 +636,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          era: string | null
           id: string
           is_active: boolean | null
           location_city: string | null
@@ -643,6 +644,7 @@ export type Database = {
           offering_items: string[]
           seeking_items: string[]
           title: string
+          type: string | null
           updated_at: string
           user_id: string
           view_count: number | null
@@ -650,6 +652,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description: string
+          era?: string | null
           id?: string
           is_active?: boolean | null
           location_city?: string | null
@@ -657,6 +660,7 @@ export type Database = {
           offering_items: string[]
           seeking_items: string[]
           title: string
+          type?: string | null
           updated_at?: string
           user_id: string
           view_count?: number | null
@@ -664,6 +668,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
+          era?: string | null
           id?: string
           is_active?: boolean | null
           location_city?: string | null
@@ -671,6 +676,7 @@ export type Database = {
           offering_items?: string[]
           seeking_items?: string[]
           title?: string
+          type?: string | null
           updated_at?: string
           user_id?: string
           view_count?: number | null

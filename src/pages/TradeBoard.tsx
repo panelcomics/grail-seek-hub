@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MessageSquare, MapPin, Eye, Send } from "lucide-react";
+import { Plus, MessageSquare, MapPin, Eye, Send, Filter } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -24,6 +25,8 @@ interface TradePost {
   location_state?: string;
   view_count: number;
   created_at: string;
+  era?: string;
+  type?: string;
 }
 
 interface Comment {
@@ -43,6 +46,10 @@ export default function TradeBoard() {
   const [chatOpen, setChatOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
 
+  // Filter state
+  const [filterEra, setFilterEra] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
+
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -50,18 +57,30 @@ export default function TradeBoard() {
   const [seeking, setSeeking] = useState("");
   const [locationCity, setLocationCity] = useState("");
   const [locationState, setLocationState] = useState("");
+  const [era, setEra] = useState<string>("");
+  const [type, setType] = useState<string>("");
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [filterEra, filterType]);
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('trade_posts')
         .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .eq('is_active', true);
+
+      if (filterEra !== "all") {
+        query = query.eq('era', filterEra);
+      }
+      if (filterType !== "all") {
+        query = query.eq('type', filterType);
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setPosts(data || []);
@@ -112,7 +131,9 @@ export default function TradeBoard() {
           offering_items: offering.split(',').map(i => i.trim()),
           seeking_items: seeking.split(',').map(i => i.trim()),
           location_city: locationCity || null,
-          location_state: locationState || null
+          location_state: locationState || null,
+          era: era || null,
+          type: type || null
         });
 
       if (error) throw error;
@@ -175,6 +196,8 @@ export default function TradeBoard() {
     setSeeking("");
     setLocationCity("");
     setLocationState("");
+    setEra("");
+    setType("");
   };
 
   return (
@@ -182,13 +205,14 @@ export default function TradeBoard() {
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 mt-20">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Trade Board</h1>
-            <p className="text-muted-foreground">
-              Connect with collectors and make trades
-            </p>
-          </div>
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Trade Board</h1>
+              <p className="text-muted-foreground">
+                Connect with collectors and make trades
+              </p>
+            </div>
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -268,12 +292,88 @@ export default function TradeBoard() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="era">Era</Label>
+                    <Select value={era} onValueChange={setEra}>
+                      <SelectTrigger id="era">
+                        <SelectValue placeholder="Select era" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Golden">Golden Age</SelectItem>
+                        <SelectItem value="Silver">Silver Age</SelectItem>
+                        <SelectItem value="Bronze">Bronze Age</SelectItem>
+                        <SelectItem value="Copper">Copper Age</SelectItem>
+                        <SelectItem value="Modern">Modern Age</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="type">Type</Label>
+                    <Select value={type} onValueChange={setType}>
+                      <SelectTrigger id="type">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Variants">Variants</SelectItem>
+                        <SelectItem value="Keys">Keys</SelectItem>
+                        <SelectItem value="Slabs">Slabs</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <Button onClick={createPost} className="w-full">
                   Create Post
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 items-center bg-card p-4 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">Filters:</span>
+            </div>
+            <Select value={filterEra} onValueChange={setFilterEra}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All Eras" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Eras</SelectItem>
+                <SelectItem value="Golden">Golden Age</SelectItem>
+                <SelectItem value="Silver">Silver Age</SelectItem>
+                <SelectItem value="Bronze">Bronze Age</SelectItem>
+                <SelectItem value="Copper">Copper Age</SelectItem>
+                <SelectItem value="Modern">Modern Age</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Variants">Variants</SelectItem>
+                <SelectItem value="Keys">Keys</SelectItem>
+                <SelectItem value="Slabs">Slabs</SelectItem>
+              </SelectContent>
+            </Select>
+            {(filterEra !== "all" || filterType !== "all") && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setFilterEra("all");
+                  setFilterType("all");
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Trade Posts */}
@@ -296,7 +396,15 @@ export default function TradeBoard() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="mb-2">{post.title}</CardTitle>
+                      <div className="flex items-center gap-2 mb-2">
+                        <CardTitle>{post.title}</CardTitle>
+                        {post.era && (
+                          <Badge variant="secondary">{post.era} Age</Badge>
+                        )}
+                        {post.type && (
+                          <Badge variant="outline">{post.type}</Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Avatar className="h-6 w-6">
                           <AvatarFallback className="text-xs">
