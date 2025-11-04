@@ -2,14 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useModal } from "@/contexts/ModalContext";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ItemCard from "@/components/ItemCard";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import MapView from "@/components/MapView";
-import Onboarding from "@/components/Onboarding";
-import SafetyGuide from "@/components/SafetyGuide";
 
 import Footer from "@/components/Footer";
 import { calculateSellerFee } from "@/components/PricingCalculator";
@@ -268,28 +267,29 @@ const Index = () => {
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
   const [selectedClaimItem, setSelectedClaimItem] = useState<{ saleId: string; itemId: string; price: number; title: string } | null>(null);
   const [shippingMethod, setShippingMethod] = useState<'local_pickup' | 'ship_nationwide'>('ship_nationwide');
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showSafetyGuide, setShowSafetyGuide] = useState(false);
-  const [safetyGuideLocation, setSafetyGuideLocation] = useState("");
   
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const notifications = useNotifications();
+  const { openModal } = useModal();
 
   // Check if user has completed onboarding
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem("grail-seek-onboarding-completed");
     if (!hasSeenOnboarding) {
       // Show onboarding after a short delay for better UX
-      setTimeout(() => setShowOnboarding(true), 500);
+      setTimeout(() => {
+        openModal("onboarding", {
+          onComplete: handleOnboardingComplete
+        });
+      }, 500);
     }
     
   }, []);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("grail-seek-onboarding-completed", "true");
-    setShowOnboarding(false);
     toast({
       title: "Welcome to Grail Seek! 🎉",
       description: "Start scanning comics or browse claim sales to get started",
@@ -457,8 +457,15 @@ const Index = () => {
         if (!hasSeenSafetyGuide) {
           // Get item location from claimSaleItems
           const item = claimSaleItems.find((i: any) => i.id === itemId);
-          setSafetyGuideLocation(item?.city ? `${item.city}, ${item.state}` : "your area");
-          setTimeout(() => setShowSafetyGuide(true), 1000);
+          const location = item?.city ? `${item.city}, ${item.state}` : "your area";
+          setTimeout(() => {
+            openModal("safetyGuide", {
+              meetupLocation: location,
+              onClose: () => {
+                localStorage.setItem("grail-seek-safety-guide-seen", "true");
+              }
+            });
+          }, 1000);
         }
       }
     } catch (error: any) {
@@ -514,22 +521,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Onboarding */}
-      <Onboarding open={showOnboarding} onComplete={handleOnboardingComplete} />
-
-      {/* Safety Guide */}
-      <SafetyGuide 
-        open={showSafetyGuide} 
-        onClose={() => setShowSafetyGuide(false)}
-        meetupLocation={safetyGuideLocation}
-        sellerName="the seller"
-      />
-
       {/* TEST MODE BANNER */}
       <div className="bg-destructive text-destructive-foreground py-2 text-center font-semibold text-sm">
         🧪 TEST MODE - No real payments processed
       </div>
-      <Navbar onShowOnboarding={() => setShowOnboarding(true)} />
+      <Navbar onShowOnboarding={() => {
+        openModal("onboarding", {
+          onComplete: handleOnboardingComplete
+        });
+      }} />
       
       {/* Notification Permission Banner */}
       {notifications.isSupported && notifications.permission === "default" && (

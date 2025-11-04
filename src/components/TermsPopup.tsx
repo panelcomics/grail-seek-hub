@@ -31,7 +31,7 @@ export const TermsPopup = ({ open, onAccept, onDecline }: TermsPopupProps) => {
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onDecline()}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
+      <DialogContent className="max-w-2xl max-h-[90vh] [&>button]:hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Scale className="h-6 w-6" />

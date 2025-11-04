@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Scan, Zap, Truck, ChevronRight, X } from "lucide-react";
+import { Scan, Zap, Truck, ChevronRight } from "lucide-react";
 
 interface OnboardingProps {
   open: boolean;
@@ -57,18 +57,10 @@ export default function Onboarding({ open, onComplete }: OnboardingProps) {
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent 
-        className="max-w-md p-0 gap-0 overflow-hidden border-2"
+        className="max-w-md p-0 gap-0 overflow-hidden border-2 [&>button]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        {/* Skip Button */}
-        <button
-          onClick={handleSkip}
-          className="absolute top-4 right-4 z-50 rounded-full p-2 hover:bg-accent transition-colors"
-          aria-label="Skip onboarding"
-        >
-          <X className="h-4 w-4 text-muted-foreground" />
-        </button>
 
         {/* Step Content */}
         <div className="p-8 pb-6">
