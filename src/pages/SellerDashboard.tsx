@@ -5,10 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Copy, DollarSign, Package } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { ShareButton } from "@/components/ShareButton";
+import { SellerOrderManagement } from "@/components/SellerOrderManagement";
 import {
   Table,
   TableBody,
@@ -220,127 +222,140 @@ const SellerDashboard = () => {
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Seller Dashboard</h1>
-          <p className="text-muted-foreground">Manage your closed claim sales and send invoices to winners</p>
+          <p className="text-muted-foreground">Manage your sales, orders, and payouts</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sales List */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Closed Sales</CardTitle>
-              <CardDescription>{sales.length} sales</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {sales.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No closed sales yet
-                  </p>
-                ) : (
-                  sales.map((sale) => (
-                    <Button
-                      key={sale.id}
-                      variant={selectedSale?.id === sale.id ? "default" : "outline"}
-                      className="w-full justify-start"
-                      onClick={() => handleSelectSale(sale)}
-                    >
-                      <div className="text-left">
-                        <p className="font-semibold">{sale.title}</p>
-                        <p className="text-xs opacity-70">
-                          {sale.claimed_items} claimed • ${sale.price} each
-                        </p>
-                      </div>
-                    </Button>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="invoices" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="invoices">Sales & Invoices</TabsTrigger>
+            <TabsTrigger value="orders">Order Management</TabsTrigger>
+          </TabsList>
 
-          {/* Winners & Invoices */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    {selectedSale ? `Winners: ${selectedSale.title}` : "Select a sale"}
-                  </CardTitle>
-                  <CardDescription>
-                    {selectedSale && `${winners.length} winners • $${selectedSale.price} per item`}
-                  </CardDescription>
-                </div>
-                {selectedSale && (
-                  <ShareButton 
-                    url={`/claim-sale/${selectedSale.id}`}
-                    title={selectedSale.title}
-                    variant="secondary"
-                    size="sm"
-                  />
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!selectedSale ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Select a closed sale to view winners and send invoices
-                </p>
-              ) : winners.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No winners found
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Rank</TableHead>
-                      <TableHead>Winner</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {winners.map((winner, idx) => (
-                      <TableRow key={winner.id}>
-                        <TableCell>#{idx + 1}</TableCell>
-                        <TableCell>@{winner.username}</TableCell>
-                        <TableCell>
-                          {winner.has_order ? (
-                            <Badge variant="secondary">Invoice Sent</Badge>
-                          ) : (
-                            <Badge variant="outline">No Invoice</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          {!winner.has_order ? (
-                            <Button
-                              size="sm"
-                              onClick={() => createInvoice(winner)}
-                              disabled={isCreatingOrders}
-                            >
-                              <DollarSign className="h-4 w-4 mr-1" />
-                              Create Invoice
-                            </Button>
-                          ) : (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => copyPayPalLink(winner)}
-                              >
-                                <Copy className="h-4 w-4 mr-1" />
-                                PayPal Link
-                              </Button>
-                            </>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+          <TabsContent value="invoices">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Sales List */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle>Closed Sales</CardTitle>
+                  <CardDescription>{sales.length} sales</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {sales.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No closed sales yet
+                      </p>
+                    ) : (
+                      sales.map((sale) => (
+                        <Button
+                          key={sale.id}
+                          variant={selectedSale?.id === sale.id ? "default" : "outline"}
+                          className="w-full justify-start"
+                          onClick={() => handleSelectSale(sale)}
+                        >
+                          <div className="text-left">
+                            <p className="font-semibold">{sale.title}</p>
+                            <p className="text-xs opacity-70">
+                              {sale.claimed_items} claimed • ${sale.price} each
+                            </p>
+                          </div>
+                        </Button>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Winners & Invoices */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>
+                        {selectedSale ? `Winners: ${selectedSale.title}` : "Select a sale"}
+                      </CardTitle>
+                      <CardDescription>
+                        {selectedSale && `${winners.length} winners • $${selectedSale.price} per item`}
+                      </CardDescription>
+                    </div>
+                    {selectedSale && (
+                      <ShareButton 
+                        url={`/claim-sale/${selectedSale.id}`}
+                        title={selectedSale.title}
+                        variant="secondary"
+                        size="sm"
+                      />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {!selectedSale ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      Select a closed sale to view winners and send invoices
+                    </p>
+                  ) : winners.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No winners found
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Rank</TableHead>
+                          <TableHead>Winner</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {winners.map((winner, idx) => (
+                          <TableRow key={winner.id}>
+                            <TableCell>#{idx + 1}</TableCell>
+                            <TableCell>@{winner.username}</TableCell>
+                            <TableCell>
+                              {winner.has_order ? (
+                                <Badge variant="secondary">Invoice Sent</Badge>
+                              ) : (
+                                <Badge variant="outline">No Invoice</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                              {!winner.has_order ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => createInvoice(winner)}
+                                  disabled={isCreatingOrders}
+                                >
+                                  <DollarSign className="h-4 w-4 mr-1" />
+                                  Create Invoice
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => copyPayPalLink(winner)}
+                                  >
+                                    <Copy className="h-4 w-4 mr-1" />
+                                    PayPal Link
+                                  </Button>
+                                </>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <SellerOrderManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

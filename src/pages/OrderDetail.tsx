@@ -16,6 +16,8 @@ interface Order {
   id: string;
   amount: number;
   shipping_amount: number;
+  buyer_protection_fee: number;
+  platform_fee_amount: number;
   total: number;
   payment_status: string;
   payment_method: string | null;
@@ -170,6 +172,21 @@ const OrderDetail = () => {
                   <span className="font-semibold">${order.shipping_amount.toFixed(2)}</span>
                 </div>
 
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-semibold">${(order.amount + order.shipping_amount).toFixed(2)}</span>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-primary" />
+                    <span className="text-sm">Buyer Protection</span>
+                  </div>
+                  <span className="font-semibold text-primary">${order.buyer_protection_fee.toFixed(2)}</span>
+                </div>
+
                 <Separator />
 
                 <div className="flex items-center justify-between">
@@ -181,6 +198,12 @@ const OrderDetail = () => {
                     ${order.total.toFixed(2)}
                   </span>
                 </div>
+                
+                {order.platform_fee_amount && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    Platform fee: ${order.platform_fee_amount.toFixed(2)}
+                  </p>
+                )}
               </div>
 
               {order.payment_status === "pending" && (

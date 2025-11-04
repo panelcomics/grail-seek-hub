@@ -17,3 +17,9 @@ verify_jwt = true
 
 [functions.create-payment-intent]
 verify_jwt = true
+
+[functions.release-payout]
+verify_jwt = true
+
+[functions.confirm-delivery]
+verify_jwt = true
