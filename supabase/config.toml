@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.close-claim-sale]
 verify_jwt = false
+
+[functions.create-connect-account-link]
+verify_jwt = true
+
+[functions.get-connect-account-status]
+verify_jwt = true
+
+[functions.create-payment-intent]
+verify_jwt = true

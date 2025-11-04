@@ -159,7 +159,6 @@ const SellerDashboard = () => {
         claim_sale_id: selectedSale.id,
         amount: selectedSale.price,
         shipping_amount: shippingCost,
-        total: selectedSale.price + shippingCost,
         payment_status: "pending",
       });
 

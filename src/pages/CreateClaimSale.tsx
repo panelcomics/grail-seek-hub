@@ -52,15 +52,38 @@ const CreateClaimSale = () => {
   }>>([]);
 
   const [countdown, setCountdown] = useState("");
+  const [checkingStripe, setCheckingStripe] = useState(true);
 
   useEffect(() => {
     if (!user) {
       toast.error("Please sign in to create a claim sale");
       navigate("/auth");
     } else {
+      checkStripeConnection();
       fetchShippingTiers();
     }
   }, [user, navigate]);
+
+  const checkStripeConnection = async () => {
+    try {
+      setCheckingStripe(true);
+      const { data, error } = await supabase.functions.invoke("get-connect-account-status");
+      
+      if (error) throw error;
+
+      if (!data.isComplete) {
+        toast.error("Please connect your Stripe account before creating a claim sale");
+        navigate("/settings");
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking Stripe connection:", error);
+      toast.error("Failed to verify payment setup");
+      navigate("/settings");
+    } finally {
+      setCheckingStripe(false);
+    }
+  };
 
   const fetchShippingTiers = async () => {
     try {
@@ -372,6 +395,25 @@ const CreateClaimSale = () => {
           </CardContent>
         </Card>
       </div>
+      </>
+    );
+  }
+
+  if (checkingStripe) {
+    return (
+      <>
+        <Navbar />
+        <div className="container max-w-4xl mx-auto py-8 px-4 mt-20">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Claim Sale</CardTitle>
+              <CardDescription>Verifying payment setup...</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </div>
       </>
     );
   }
