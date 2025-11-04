@@ -239,7 +239,11 @@ const MyOrders = () => {
 
   const handlePayNowAction = async (claim: ClaimWithDetails) => {
     if (claim.order_id) {
-      navigate(`/order/${claim.order_id}`);
+      if (claim.payment_status === 'pending') {
+        navigate(`/checkout/${claim.order_id}`);
+      } else {
+        navigate(`/order/${claim.order_id}`);
+      }
     } else {
       toastError.generic("Order not yet created. Please contact the seller.");
     }
