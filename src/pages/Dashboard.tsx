@@ -145,8 +145,8 @@ const Dashboard = () => {
   };
 
   const handleMessageBuyersAction = async (sale: ClaimSale) => {
-    // Placeholder for messaging functionality
-    toast.success(`Messaging functionality coming soon for ${sale.title}`);
+    // Navigate to messages filtered by this sale
+    navigate(`/messages?sale=${sale.id}`);
   };
 
   const handleMessageBuyers = (sale: ClaimSale) => {
@@ -398,6 +398,18 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
+          <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate("/messages")}>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Messages
+              </CardTitle>
+              <CardDescription>
+                Chat with your buyers
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
           <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate("/portfolio")}>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -406,18 +418,6 @@ const Dashboard = () => {
               </CardTitle>
               <CardDescription>
                 View your portfolio
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card className="cursor-pointer hover:bg-accent transition-colors" onClick={() => navigate("/scanner")}>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ExternalLink className="h-5 w-5" />
-                AI Scanner
-              </CardTitle>
-              <CardDescription>
-                Scan items to sell
               </CardDescription>
             </CardHeader>
           </Card>

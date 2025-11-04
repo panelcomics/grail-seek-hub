@@ -241,8 +241,42 @@ const MyOrders = () => {
   };
 
   const handleMessageSellerAction = async (claim: ClaimWithDetails) => {
-    // Placeholder for messaging functionality
-    toast.success("Messaging functionality coming soon!");
+    try {
+      // Check if conversation already exists
+      const { data: existingConv, error: convError } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("buyer_id", user?.id)
+        .eq("seller_id", claim.seller_id)
+        .eq("sale_id", claim.claim_sale_id)
+        .maybeSingle();
+
+      if (convError) throw convError;
+
+      let conversationId = existingConv?.id;
+
+      // Create conversation if it doesn't exist
+      if (!conversationId) {
+        const { data: newConv, error: createError } = await supabase
+          .from("conversations")
+          .insert({
+            buyer_id: user?.id,
+            seller_id: claim.seller_id,
+            sale_id: claim.claim_sale_id,
+          })
+          .select("id")
+          .single();
+
+        if (createError) throw createError;
+        conversationId = newConv.id;
+      }
+
+      // Navigate to messages
+      navigate(`/messages?conversation=${conversationId}`);
+    } catch (error: any) {
+      console.error("Error creating conversation:", error);
+      toast.error("Failed to start conversation");
+    }
   };
 
   const handleMessageSeller = (claim: ClaimWithDetails) => {

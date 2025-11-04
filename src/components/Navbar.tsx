@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -132,6 +132,12 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
                   <Link to="/my-orders" className="cursor-pointer">
                     <ShoppingBag className="mr-2 h-4 w-4" />
                     My Orders
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/messages" className="cursor-pointer">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Messages
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
