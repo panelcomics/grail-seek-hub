@@ -716,7 +716,7 @@ const Index = () => {
         </div>
       )}
 
-      {/* 1. TRENDING GRAILS */}
+      {/* 1. TRENDING GRAILS - One Row */}
       <section id="trending-listings" className="container py-20 comic-texture">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
           <div className="flex items-center gap-3">
@@ -727,31 +727,20 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-auto">
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="comic">Comics</TabsTrigger>
-                <TabsTrigger value="card">Cards</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button variant="link" className="gap-1" onClick={() => navigate("/marketplace")}>
+            View all
+            <TrendingUp className="h-4 w-4" />
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {allTrendingItems.map((item) => (
+          {allTrendingItems.slice(0, 4).map((item) => (
             <ItemCard key={item.id} {...item} />
           ))}
         </div>
       </section>
 
-      {/* Shop by Seller Taskbar */}
-      <SellerChips />
-
-      {/* 2. ENDING SOON */}
+      {/* 2. ENDING SOON - One Row + Browse Local CTA */}
       <section className="container py-20 comic-texture">
         <div className="flex items-center gap-3 mb-10">
           <Clock className="h-8 w-8 text-destructive" />
@@ -761,12 +750,39 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {auctionItems.map((item) => (
-            <ItemCard key={item.id} {...item} />
-          ))}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Items - 3 columns on desktop, full width on mobile */}
+          <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {auctionItems.slice(0, 3).map((item) => (
+              <ItemCard key={item.id} {...item} />
+            ))}
+          </div>
+
+          {/* Browse Local CTA - Desktop only */}
+          <div className="hidden xl:block">
+            <div className="h-full bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10 rounded-lg border border-primary/20 p-6 flex flex-col justify-center items-center text-center space-y-4 hover:shadow-lg transition-shadow">
+              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <MapPin className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-2">Browse Local</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Find collectibles near you and save on shipping
+                </p>
+              </div>
+              <Button 
+                className="w-full" 
+                onClick={() => document.getElementById("local-discovery")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                Explore Nearby
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* 3. Shop by Seller Taskbar */}
+      <SellerChips />
 
       {/* 3. SELLER SPOTLIGHT */}
       <section className="bg-muted/30 py-20 comic-texture">
