@@ -753,8 +753,8 @@ const CreateClaimSale = () => {
                 )}
 
                 <Card className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
-                  <p className="text-sm text-yellow-900 dark:text-yellow-100">
-                    <strong>Legal Notice:</strong> By listing original art, you confirm you are the creator or lawful owner and that your item does not infringe on any copyrighted work. Grail Seeker acts only as a venue and assumes no ownership of listed items.
+                  <p className="text-sm text-yellow-900 dark:text-yellow-100 leading-relaxed">
+                    <strong>Legal Notice:</strong> By listing in the Original Art & Sketches category, you confirm that you are the creator or legal owner of this artwork. Grail Seeker does not claim ownership or responsibility for copyrighted characters or imagery depicted. All transactions are peer-to-peer and subject to our standard Fee & Dispute policies.
                   </p>
                 </Card>
               </Card>
