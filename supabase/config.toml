@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.send-test-notification]
 verify_jwt = true
+
+[functions.process-trade-payment]
+verify_jwt = true
+
+[functions.confirm-trade-payment]
+verify_jwt = true

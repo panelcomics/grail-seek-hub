@@ -1148,6 +1148,33 @@ export type Database = {
           },
         ]
       }
+      trade_fee_settings: {
+        Row: {
+          fees_enabled: boolean
+          flat_fee: number
+          id: string
+          percentage_fee: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          fees_enabled?: boolean
+          flat_fee?: number
+          id?: string
+          percentage_fee?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          fees_enabled?: boolean
+          flat_fee?: number
+          id?: string
+          percentage_fee?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       trade_posts: {
         Row: {
           created_at: string
@@ -1198,6 +1225,68 @@ export type Database = {
           view_count?: number | null
         }
         Relationships: []
+      }
+      trades: {
+        Row: {
+          agreed_value: number
+          completed_at: string | null
+          created_at: string
+          each_user_fee: number | null
+          id: string
+          status: string
+          total_fee: number | null
+          trade_post_id: string | null
+          updated_at: string
+          user_a: string
+          user_a_paid_at: string | null
+          user_a_payment_intent: string | null
+          user_b: string
+          user_b_paid_at: string | null
+          user_b_payment_intent: string | null
+        }
+        Insert: {
+          agreed_value?: number
+          completed_at?: string | null
+          created_at?: string
+          each_user_fee?: number | null
+          id?: string
+          status?: string
+          total_fee?: number | null
+          trade_post_id?: string | null
+          updated_at?: string
+          user_a: string
+          user_a_paid_at?: string | null
+          user_a_payment_intent?: string | null
+          user_b: string
+          user_b_paid_at?: string | null
+          user_b_payment_intent?: string | null
+        }
+        Update: {
+          agreed_value?: number
+          completed_at?: string | null
+          created_at?: string
+          each_user_fee?: number | null
+          id?: string
+          status?: string
+          total_fee?: number | null
+          trade_post_id?: string | null
+          updated_at?: string
+          user_a?: string
+          user_a_paid_at?: string | null
+          user_a_payment_intent?: string | null
+          user_b?: string
+          user_b_paid_at?: string | null
+          user_b_payment_intent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_trade_post_id_fkey"
+            columns: ["trade_post_id"]
+            isOneToOne: false
+            referencedRelation: "trade_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_badges: {
         Row: {
