@@ -24,7 +24,7 @@ const Hero = () => {
                 Your Grail Is Waiting
               </h1>
               <p className="text-lg text-muted-foreground sm:text-xl max-w-2xl">
-                The ultimate marketplace for comic books and sports cards. Buy local, ship nationwide, or score instant deals in timed auctions.
+                The ultimate marketplace for comics, collectibles, and cards. Buy, sell, or trade — local or nationwide.
               </p>
             </div>
 
