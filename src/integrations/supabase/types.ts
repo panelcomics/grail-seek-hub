@@ -963,6 +963,36 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_settings: {
+        Row: {
+          accept_offers: boolean
+          auto_decline_below_min: boolean
+          created_at: string
+          id: string
+          min_offer_percentage: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          accept_offers?: boolean
+          auto_decline_below_min?: boolean
+          created_at?: string
+          id?: string
+          min_offer_percentage?: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          accept_offers?: boolean
+          auto_decline_below_min?: boolean
+          created_at?: string
+          id?: string
+          min_offer_percentage?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipping_tiers: {
         Row: {
           cost: number

@@ -28,6 +28,7 @@ import NotFound from "./pages/NotFound";
 import Leaderboard from "./pages/Leaderboard";
 import AdminFeaturedShops from "./pages/AdminFeaturedShops";
 import Sellers from "./pages/Sellers";
+import SellerProfile from "./pages/SellerProfile";
 import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/admin/featured-shops" element={<AdminFeaturedShops />} />
           <Route path="/sellers" element={<Sellers />} />
+          <Route path="/seller/:slug" element={<SellerProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

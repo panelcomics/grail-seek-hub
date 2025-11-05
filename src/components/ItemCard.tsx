@@ -23,6 +23,8 @@ interface ItemCardProps {
   claimSaleId?: string;
   itemsLeft?: number;
   onClaim?: () => void;
+  showMakeOffer?: boolean;
+  minOfferPercentage?: number;
 }
 
 const ItemCard = ({ 
@@ -40,7 +42,9 @@ const ItemCard = ({
   isClaimSale = false,
   claimSaleId,
   itemsLeft = 0,
-  onClaim
+  onClaim,
+  showMakeOffer = false,
+  minOfferPercentage = 10
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const [localPickup, setLocalPickup] = useState(true);
@@ -162,6 +166,18 @@ const ItemCard = ({
                 }}
               >
                 🔥 Claim Now
+              </Button>
+            ) : showMakeOffer ? (
+              <Button 
+                size="sm" 
+                variant="secondary"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // TODO: Open make offer dialog
+                }}
+              >
+                Make Offer
               </Button>
             ) : (
               <Button size="sm" variant="outline">
