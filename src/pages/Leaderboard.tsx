@@ -141,7 +141,7 @@ const Leaderboard = () => {
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <Trophy className="h-10 w-10 text-primary" />
-              <h1 className="text-4xl md:text-5xl font-bold">Top Sellers Leaderboard</h1>
+              <h1 className="text-4xl md:text-5xl font-bold">Top Sellers of the Month</h1>
             </div>
             <p className="text-muted-foreground text-lg">
               Celebrating our most trusted and active sellers
