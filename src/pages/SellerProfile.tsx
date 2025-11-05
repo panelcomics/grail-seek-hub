@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { MapPin, Star, Award, Shield, UserPlus, Package } from "lucide-react";
+import { MapPin, Star, Award, Shield, UserPlus, Package, Palette } from "lucide-react";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SellerProfile {
   user_id: string;
@@ -29,6 +30,7 @@ interface SellerProfile {
   completed_sales_count: number;
   seller_tier: string | null;
   favorites_total: number;
+  verified_artist: boolean;
 }
 
 interface SellerSettings {
@@ -65,7 +67,7 @@ export default function SellerProfile() {
       
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, username, avatar_url, completed_sales_count, seller_tier, favorites_total")
+        .select("user_id, username, avatar_url, completed_sales_count, seller_tier, favorites_total, verified_artist")
         .ilike("username", username)
         .maybeSingle();
 
@@ -185,7 +187,24 @@ export default function SellerProfile() {
               {/* Info */}
               <div className="flex-1">
                 <div className="flex flex-col gap-2 mb-4">
-                  <h1 className="text-3xl font-bold">{profile.username}</h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-3xl font-bold">{profile.username}</h1>
+                    {profile.verified_artist && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="secondary" className="gap-1.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/30">
+                              <Palette className="h-3.5 w-3.5" />
+                              Verified Artist
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Verified for original art and creator-authenticated listings.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                   
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <SellerStats

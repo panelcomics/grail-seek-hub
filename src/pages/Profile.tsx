@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, Award, TrendingUp, MessageSquare } from "lucide-react";
+import { Star, Award, TrendingUp, MessageSquare, Palette } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -30,6 +31,7 @@ interface Rating {
 export default function Profile() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [badges, setBadges] = useState<UserBadge[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [averageRating, setAverageRating] = useState<number>(0);
@@ -50,6 +52,16 @@ export default function Profile() {
       }
 
       setUser(currentUser);
+
+      // Fetch profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('verified_artist')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      if (profileError) throw profileError;
+      setProfile(profileData);
 
       // Fetch badges
       const { data: badgesData, error: badgesError } = await supabase
@@ -135,9 +147,26 @@ export default function Profile() {
               </Avatar>
               
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold mb-2">
-                  {user?.email?.split('@')[0] || 'User'}
-                </h1>
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                  <h1 className="text-3xl font-bold">
+                    {user?.email?.split('@')[0] || 'User'}
+                  </h1>
+                  {profile?.verified_artist && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge variant="secondary" className="gap-1.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/30">
+                            <Palette className="h-3.5 w-3.5" />
+                            Verified Artist
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Verified for original art and creator-authenticated listings.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
                 <p className="text-muted-foreground mb-4">{user?.email}</p>
                 
                 <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
