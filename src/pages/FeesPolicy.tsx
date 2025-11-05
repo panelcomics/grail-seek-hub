@@ -1,105 +1,205 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 
 export default function FeesPolicy() {
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl sm:text-3xl">Trade Fee Policy</CardTitle>
-          <CardDescription>
-            Understanding Grail Seeker's platform fees for trades
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <strong>No fees for trades under $150!</strong> We want to encourage community trading of lower-value items.
-            </AlertDescription>
-          </Alert>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold">Fee Structure</h2>
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <p className="font-medium">Standard Fee: 2% + $2.00</p>
-              <p className="text-sm text-muted-foreground">
-                This fee is calculated on the agreed trade value and split evenly (50/50) between both traders.
-              </p>
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold">Examples</h2>
-            <div className="space-y-3">
-              <div className="border rounded-lg p-4">
-                <p className="font-medium mb-2">Trade Value: $100</p>
-                <div className="text-sm space-y-1">
-                  <p className="text-green-600 font-medium">✓ No fee (below $150 threshold)</p>
-                  <p className="text-muted-foreground">Each trader pays: $0.00</p>
-                </div>
-              </div>
-
-              <div className="border rounded-lg p-4">
-                <p className="font-medium mb-2">Trade Value: $200</p>
-                <div className="text-sm space-y-1">
-                  <p>Platform Fee: ($200 × 2%) + $2 = <strong>$6.00</strong></p>
-                  <p className="text-muted-foreground">Each trader pays: <strong>$3.00</strong></p>
-                </div>
-              </div>
-
-              <div className="border rounded-lg p-4">
-                <p className="font-medium mb-2">Trade Value: $500</p>
-                <div className="text-sm space-y-1">
-                  <p>Platform Fee: ($500 × 2%) + $2 = <strong>$12.00</strong></p>
-                  <p className="text-muted-foreground">Each trader pays: <strong>$6.00</strong></p>
-                </div>
-              </div>
-
-              <div className="border rounded-lg p-4">
-                <p className="font-medium mb-2">Trade Value: $1,000</p>
-                <div className="text-sm space-y-1">
-                  <p>Platform Fee: ($1,000 × 2%) + $2 = <strong>$22.00</strong></p>
-                  <p className="text-muted-foreground">Each trader pays: <strong>$11.00</strong></p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold">Payment Process</h2>
-            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-              <li>Both traders must agree to the trade value before fees are calculated</li>
-              <li>Each trader pays their 50% share separately via Stripe</li>
-              <li>The trade is only finalized once both payments are successful</li>
-              <li>If either payment fails, both traders are notified and the trade status is updated</li>
-              <li>All fees are rounded to two decimal places</li>
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold">Why We Charge Fees</h2>
-            <p className="text-sm text-muted-foreground">
-              Platform fees help us maintain and improve Grail Seeker, including:
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      
+      <main className="flex-1 container max-w-4xl mx-auto py-8 px-4 sm:py-12">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="text-center space-y-4">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground">
+              Grail Seeker Fees & Trades Policy
+            </h1>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Grail Seeker keeps trading and selling fair and transparent. We charge only small platform fees to cover secure payments, moderation, and site operations — always shown before you confirm.
             </p>
-            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground ml-4">
-              <li>Secure payment processing and fraud protection</li>
-              <li>Customer support for trade disputes</li>
-              <li>Platform maintenance and hosting</li>
-              <li>New features and improvements</li>
-              <li>Community safety and moderation</li>
-            </ul>
-          </section>
+          </div>
 
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              <strong>Questions?</strong> Contact our support team if you have any questions about fees or billing.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+          <Separator className="my-8" />
+
+          {/* Section 1: Trade Fees */}
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="text-2xl sm:text-3xl text-primary">
+                Trade Fees
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm sm:text-base leading-relaxed">
+              <ul className="space-y-3 list-none">
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    Trades over <strong>$150</strong> have a small fee of <strong>2% + $2 total</strong>, split evenly between both traders.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>Example:</strong> a $200 trade = $6 total ($3 each).
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    Trades <strong>under $150 have no fee.</strong>
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    All fees are shown on the confirmation screen before finalizing.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    Payments are securely handled through <strong>Stripe Connect</strong>.
+                  </span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Section 2: Sales & Listings */}
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="text-2xl sm:text-3xl text-primary">
+                Sales & Listings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm sm:text-base leading-relaxed">
+              <ul className="space-y-3 list-none">
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    Standard sales through Grail Seeker use Stripe and include a <strong>3% service fee</strong>.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>Pro Sellers</strong> and <strong>Top Sellers</strong> may qualify for reduced fees.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    Subscription plans are billed through Stripe.
+                  </span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Section 3: Refunds & Disputes */}
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="text-2xl sm:text-3xl text-primary">
+                Refunds & Disputes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm sm:text-base leading-relaxed">
+              <ul className="space-y-3 list-none">
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    Grail Seeker fees are <strong>non-refundable</strong> once a trade or sale completes.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    If a trade is canceled before completion, <strong>no fees are charged</strong>.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    Disputes or issues can be submitted through the Help Center or{" "}
+                    <a 
+                      href="mailto:support@grailseeker.app" 
+                      className="text-primary hover:underline font-medium"
+                    >
+                      support@grailseeker.app
+                    </a>.
+                  </span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Section 4: Why We Keep It Low */}
+          <Card className="border-2">
+            <CardHeader>
+              <CardTitle className="text-2xl sm:text-3xl text-primary">
+                Why We Keep It Low
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm sm:text-base leading-relaxed">
+              <ul className="space-y-3 list-none">
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    No inflated marketplace cuts.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    No hidden processing fees.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    We exist to make collector-to-collector trading <strong>sustainable and fair</strong>.
+                  </span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Footer Links */}
+          <div className="pt-8">
+            <Separator className="mb-6" />
+            <div className="flex flex-wrap gap-4 sm:gap-6 justify-center text-sm">
+              <Link 
+                to="/" 
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                Home
+              </Link>
+              <Link 
+                to="/trade-board" 
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                Trades
+              </Link>
+              <Link 
+                to="/leaderboard" 
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                Leaderboard
+              </Link>
+              <Link 
+                to="/privacy" 
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                Privacy Policy
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }
