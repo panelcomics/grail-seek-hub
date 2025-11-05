@@ -9,6 +9,7 @@ import { toastSuccess, toastError } from "@/lib/toastUtils";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import FeaturedShops from "@/components/FeaturedShops";
+import SellerChips from "@/components/SellerChips";
 import ItemCard from "@/components/ItemCard";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
@@ -746,6 +747,9 @@ const Index = () => {
           ))}
         </div>
       </section>
+
+      {/* Shop by Seller Taskbar */}
+      <SellerChips />
 
       {/* 2. ENDING SOON */}
       <section className="container py-20 comic-texture">
