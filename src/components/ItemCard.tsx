@@ -154,7 +154,7 @@ const ItemCard = ({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Certificate of Authenticity Provided</p>
+                        <p>Verified with Certificate of Authenticity.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
