@@ -92,16 +92,15 @@ export const TrustModal = ({ open, onOpenChange, eligibility }: TrustModalProps)
               return (
                 <div
                   key={index}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                  className={`flex items-center gap-3 p-3 rounded-lg border ${
                     req.met ? 'border-green-500/20 bg-green-500/5' : 'border-border'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`h-5 w-5 ${req.met ? 'text-green-500' : 'text-muted-foreground'}`} />
-                    <div>
-                      <p className="font-medium">{req.label}</p>
-                      <p className="text-sm text-muted-foreground">{req.value}</p>
-                    </div>
+                  <Icon className={`h-5 w-5 ${req.met ? 'text-green-500' : 'text-muted-foreground'}`} />
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      ☑ {req.label} — <span className="text-muted-foreground">{req.value}</span>
+                    </p>
                   </div>
                 </div>
               );
