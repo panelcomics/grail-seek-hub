@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      art_listing_flags: {
+        Row: {
+          created_at: string | null
+          flagged_by: string
+          id: string
+          listing_id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          flagged_by: string
+          id?: string
+          listing_id: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          flagged_by?: string
+          id?: string
+          listing_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "art_listing_flags_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "claim_sale_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_scans: {
         Row: {
           completed_at: string | null
@@ -49,48 +81,75 @@ export type Database = {
       }
       claim_sale_items: {
         Row: {
+          authenticity_flagged: boolean | null
           category: string
           city: string | null
           claim_sale_id: string
+          coa_file_url: string | null
           condition: string
           created_at: string
           distance_miles: number | null
+          flagged_at: string | null
+          flagged_by: string | null
+          flagged_reason: string | null
+          has_coa: boolean | null
           id: string
           image_url: string | null
           is_claimed: boolean
+          is_creator_owner: boolean | null
+          is_original_physical: boolean | null
           latitude: number | null
           longitude: number | null
           state: string | null
+          subcategory: string | null
           title: string
         }
         Insert: {
+          authenticity_flagged?: boolean | null
           category: string
           city?: string | null
           claim_sale_id: string
+          coa_file_url?: string | null
           condition: string
           created_at?: string
           distance_miles?: number | null
+          flagged_at?: string | null
+          flagged_by?: string | null
+          flagged_reason?: string | null
+          has_coa?: boolean | null
           id?: string
           image_url?: string | null
           is_claimed?: boolean
+          is_creator_owner?: boolean | null
+          is_original_physical?: boolean | null
           latitude?: number | null
           longitude?: number | null
           state?: string | null
+          subcategory?: string | null
           title: string
         }
         Update: {
+          authenticity_flagged?: boolean | null
           category?: string
           city?: string | null
           claim_sale_id?: string
+          coa_file_url?: string | null
           condition?: string
           created_at?: string
           distance_miles?: number | null
+          flagged_at?: string | null
+          flagged_by?: string | null
+          flagged_reason?: string | null
+          has_coa?: boolean | null
           id?: string
           image_url?: string | null
           is_claimed?: boolean
+          is_creator_owner?: boolean | null
+          is_original_physical?: boolean | null
           latitude?: number | null
           longitude?: number | null
           state?: string | null
+          subcategory?: string | null
           title?: string
         }
         Relationships: [

@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Package, Heart, Clock } from "lucide-react";
+import { MapPin, Package, Heart, Clock, Shield, Palette } from "lucide-react";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { SellerBadge } from "@/components/SellerBadge";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ItemCardProps {
   id: string;
@@ -20,7 +21,7 @@ interface ItemCardProps {
   sellerName?: string;
   sellerCity?: string;
   sellerBadge?: string | null;
-  category: "comic" | "card";
+  category: "comic" | "card" | "art";
   isAuction?: boolean;
   timeRemaining?: number; // in seconds
   distance?: number; // in miles
@@ -31,6 +32,8 @@ interface ItemCardProps {
   showMakeOffer?: boolean;
   minOfferPercentage?: number;
   showEndingSoonBadge?: boolean;
+  subcategory?: string;
+  hasCoa?: boolean;
 }
 
 const ItemCard = ({ 
@@ -54,7 +57,9 @@ const ItemCard = ({
   onClaim,
   showMakeOffer = false,
   minOfferPercentage = 10,
-  showEndingSoonBadge = false
+  showEndingSoonBadge = false,
+  subcategory,
+  hasCoa = false
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const [localPickup, setLocalPickup] = useState(true);
@@ -92,6 +97,12 @@ const ItemCard = ({
             <FavoriteButton listingId={id} showCount />
           </div>
           <div className="absolute top-3 left-3 flex flex-col gap-2">
+            {category === "art" && (
+              <Badge className="font-semibold bg-purple-500 hover:bg-purple-600 text-white flex items-center gap-1">
+                <Palette className="h-3 w-3" />
+                Original Art
+              </Badge>
+            )}
             {showEndingSoonBadge && (
               <Badge className="font-semibold bg-destructive hover:bg-destructive text-destructive-foreground">
                 <Clock className="h-3 w-3 mr-1" />
@@ -127,6 +138,33 @@ const ItemCard = ({
             <h3 className="font-semibold line-clamp-2 text-base mb-2 group-hover:text-primary transition-colors">
               {title}
             </h3>
+            
+            {/* Art subcategory and COA */}
+            {category === "art" && subcategory && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-muted-foreground capitalize">
+                  {subcategory.replace(/_/g, " ")}
+                </span>
+                {hasCoa && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="outline" className="text-xs flex items-center gap-1">
+                          <Shield className="h-3 w-3 text-green-500" />
+                          COA
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Certificate of Authenticity Provided</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {!hasCoa && (
+                  <span className="text-xs text-muted-foreground">No COA</span>
+                )}
+              </div>
+            )}
             
             {/* Seller Info */}
             {sellerName && sellerCity && (

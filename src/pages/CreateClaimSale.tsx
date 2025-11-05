@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Loader2, MapPin, Wand2 } from "lucide-react";
@@ -24,6 +25,7 @@ const CreateClaimSale = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [sellerEligibility, setSellerEligibility] = useState<{ verified: boolean; salesCount: number } | null>(null);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -35,12 +37,17 @@ const CreateClaimSale = () => {
     endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
     condition: "NM",
     category: "Marvel",
+    subcategory: "",
     city: "",
     state: "",
     zip: "",
     latitude: "",
     longitude: "",
     shippingTierId: "",
+    isCreatorOwner: false,
+    isOriginalPhysical: false,
+    hasCoa: false,
+    coaFile: null as File | null,
   });
 
   const [shippingTiers, setShippingTiers] = useState<Array<{
@@ -61,8 +68,27 @@ const CreateClaimSale = () => {
     } else {
       checkStripeConnection();
       fetchShippingTiers();
+      checkSellerEligibility();
     }
   }, [user, navigate]);
+
+  const checkSellerEligibility = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("stripe_account_verified, completed_sales_count")
+        .eq("user_id", user?.id)
+        .single();
+
+      if (error) throw error;
+      setSellerEligibility({
+        verified: data.stripe_account_verified || false,
+        salesCount: data.completed_sales_count || 0,
+      });
+    } catch (error) {
+      console.error("Error checking seller eligibility:", error);
+    }
+  };
 
   const checkStripeConnection = async () => {
     try {
@@ -216,6 +242,22 @@ const CreateClaimSale = () => {
       return;
     }
 
+    // Art category validation
+    if (formData.category === "art") {
+      if (!formData.subcategory) {
+        toast.error("Please select an art subcategory");
+        return;
+      }
+      if (!formData.isCreatorOwner || !formData.isOriginalPhysical) {
+        toast.error("Please confirm both ownership checkboxes for art listings");
+        return;
+      }
+      if (sellerEligibility && !sellerEligibility.verified && sellerEligibility.salesCount < 3) {
+        toast.error("Original art listings are available to verified sellers only. Complete 3 sales or verify your account with Stripe first.");
+        return;
+      }
+    }
+
     if (!showPreview) {
       setShowPreview(true);
       return;
@@ -252,6 +294,23 @@ const CreateClaimSale = () => {
 
       if (saleError) throw saleError;
 
+      // Upload COA if provided
+      let coaUrl = null;
+      if (formData.category === "art" && formData.coaFile) {
+        const coaExt = formData.coaFile.name.split(".").pop();
+        const coaFileName = `${user?.id}/${claimSale.id}/coa.${coaExt}`;
+        const { error: coaError } = await supabase.storage
+          .from("claim-sale-images")
+          .upload(coaFileName, formData.coaFile);
+
+        if (coaError) throw coaError;
+
+        const { data: { publicUrl: coaPublicUrl } } = supabase.storage
+          .from("claim-sale-images")
+          .getPublicUrl(coaFileName);
+        coaUrl = coaPublicUrl;
+      }
+
       // Upload images and create items
       for (let i = 0; i < images.length; i++) {
         const file = images[i];
@@ -269,19 +328,30 @@ const CreateClaimSale = () => {
           .getPublicUrl(fileName);
 
         // Create item
+        const itemData: any = {
+          claim_sale_id: claimSale.id,
+          title: `${formData.title} - Item ${i + 1}`,
+          category: formData.category,
+          condition: formData.condition,
+          image_url: publicUrl,
+          city: formData.city,
+          state: formData.state,
+          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        };
+
+        // Add art-specific fields
+        if (formData.category === "art") {
+          itemData.subcategory = formData.subcategory;
+          itemData.is_creator_owner = formData.isCreatorOwner;
+          itemData.is_original_physical = formData.isOriginalPhysical;
+          itemData.has_coa = formData.hasCoa;
+          itemData.coa_file_url = coaUrl;
+        }
+
         const { error: itemError } = await supabase
           .from("claim_sale_items")
-          .insert({
-            claim_sale_id: claimSale.id,
-            title: `${formData.title} - Item ${i + 1}`,
-            category: formData.category,
-            condition: formData.condition,
-            image_url: publicUrl,
-            city: formData.city,
-            state: formData.state,
-            latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-            longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-          });
+          .insert(itemData);
 
         if (itemError) throw itemError;
       }
@@ -575,7 +645,12 @@ const CreateClaimSale = () => {
               </div>
               <div>
                 <Label htmlFor="category">Category *</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                <Select value={formData.category} onValueChange={(value) => {
+                  setFormData(prev => ({ ...prev, category: value, subcategory: "" }));
+                  if (value === "art" && sellerEligibility && !sellerEligibility.verified && sellerEligibility.salesCount < 3) {
+                    toast.error("Original art listings are available to verified sellers only. Complete 3 sales or verify your account with Stripe first.");
+                  }
+                }}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -585,11 +660,96 @@ const CreateClaimSale = () => {
                     <SelectItem value="Image">Image</SelectItem>
                     <SelectItem value="Dark Horse">Dark Horse</SelectItem>
                     <SelectItem value="Indie">Indie</SelectItem>
+                    <SelectItem value="art">Original Art & Sketches</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Art Category Fields */}
+            {formData.category === "art" && (
+              <Card className="p-6 space-y-6 bg-muted/30 border-2">
+                <div>
+                  <Label htmlFor="subcategory">Art Subcategory *</Label>
+                  <Select value={formData.subcategory} onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subcategory" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="published_pages">Published Pages</SelectItem>
+                      <SelectItem value="covers">Covers</SelectItem>
+                      <SelectItem value="commissions">Commissions</SelectItem>
+                      <SelectItem value="fan_art">Fan Art</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-4 p-4 bg-background rounded-lg border">
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="isCreatorOwner"
+                      checked={formData.isCreatorOwner}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isCreatorOwner: checked as boolean }))}
+                      className="mt-1"
+                    />
+                    <Label htmlFor="isCreatorOwner" className="font-normal cursor-pointer">
+                      I am the creator or legal owner of this artwork. *
+                    </Label>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Checkbox
+                      id="isOriginalPhysical"
+                      checked={formData.isOriginalPhysical}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOriginalPhysical: checked as boolean }))}
+                      className="mt-1"
+                    />
+                    <Label htmlFor="isOriginalPhysical" className="font-normal cursor-pointer">
+                      This is the original physical piece, not a digital print or reproduction. *
+                    </Label>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="hasCoa">Certificate of Authenticity (COA) Provided?</Label>
+                  <Select value={formData.hasCoa.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, hasCoa: value === "true" }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">No</SelectItem>
+                      <SelectItem value="true">Yes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.hasCoa && (
+                  <div>
+                    <Label htmlFor="coaFile">COA Photo (jpg/pdf)</Label>
+                    <Input
+                      id="coaFile"
+                      type="file"
+                      accept="image/jpeg,image/jpg,application/pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && file.size > 5 * 1024 * 1024) {
+                          toast.error("COA file must be under 5MB");
+                          return;
+                        }
+                        setFormData(prev => ({ ...prev, coaFile: file || null }));
+                      }}
+                      className="mt-2"
+                    />
+                  </div>
+                )}
+
+                <Card className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-yellow-900 dark:text-yellow-100">
+                    <strong>Legal Notice:</strong> By listing original art, you confirm you are the creator or lawful owner and that your item does not infringe on any copyrighted work. Grail Seeker acts only as a venue and assumes no ownership of listed items.
+                  </p>
+                </Card>
+              </Card>
+            )}
 
             {/* Location */}
             <div className="space-y-4">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminTestNotification } from "@/components/AdminTestNotification";
 import { AdminTradeOverrides } from "@/components/AdminTradeOverrides";
+import { AdminArtListings } from "@/components/AdminArtListings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PayoutManagement } from "./PayoutManagement";
 import { Button } from "@/components/ui/button";
@@ -140,6 +141,7 @@ export const AdminPanel = () => {
       <TabsList>
         <TabsTrigger value="discount-codes">Discount Codes</TabsTrigger>
         <TabsTrigger value="trade-overrides">Trade Overrides</TabsTrigger>
+        <TabsTrigger value="art-listings">Art Listings</TabsTrigger>
         <TabsTrigger value="payouts">Payout Management</TabsTrigger>
         <TabsTrigger value="notifications">Test Notifications</TabsTrigger>
       </TabsList>
@@ -220,6 +222,10 @@ export const AdminPanel = () => {
 
       <TabsContent value="trade-overrides">
         <AdminTradeOverrides />
+      </TabsContent>
+
+      <TabsContent value="art-listings">
+        <AdminArtListings />
       </TabsContent>
 
       <TabsContent value="notifications">
