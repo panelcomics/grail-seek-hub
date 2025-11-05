@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AdminTestNotification } from "@/components/AdminTestNotification";
 import { AdminTradeOverrides } from "@/components/AdminTradeOverrides";
 import { AdminArtListings } from "@/components/AdminArtListings";
+import { AdminArtistApplications } from "@/components/AdminArtistApplications";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PayoutManagement } from "./PayoutManagement";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,7 @@ export const AdminPanel = () => {
         <TabsTrigger value="discount-codes">Discount Codes</TabsTrigger>
         <TabsTrigger value="trade-overrides">Trade Overrides</TabsTrigger>
         <TabsTrigger value="art-listings">Art Listings</TabsTrigger>
+        <TabsTrigger value="artist-applications">Artist Applications</TabsTrigger>
         <TabsTrigger value="payouts">Payout Management</TabsTrigger>
         <TabsTrigger value="notifications">Test Notifications</TabsTrigger>
       </TabsList>
@@ -226,6 +228,10 @@ export const AdminPanel = () => {
 
       <TabsContent value="art-listings">
         <AdminArtListings />
+      </TabsContent>
+
+      <TabsContent value="artist-applications">
+        <AdminArtistApplications />
       </TabsContent>
 
       <TabsContent value="notifications">

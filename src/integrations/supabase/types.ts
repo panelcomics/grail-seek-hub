@@ -46,6 +46,57 @@ export type Database = {
           },
         ]
       }
+      artist_applications: {
+        Row: {
+          admin_notes: string | null
+          artist_name: string
+          coa_signature_url: string | null
+          confirmed_creator: boolean
+          created_at: string
+          id: string
+          instagram_url: string | null
+          portfolio_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sample_images: string[]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          artist_name: string
+          coa_signature_url?: string | null
+          confirmed_creator?: boolean
+          created_at?: string
+          id?: string
+          instagram_url?: string | null
+          portfolio_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sample_images: string[]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          artist_name?: string
+          coa_signature_url?: string | null
+          confirmed_creator?: boolean
+          created_at?: string
+          id?: string
+          instagram_url?: string | null
+          portfolio_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sample_images?: string[]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bulk_scans: {
         Row: {
           completed_at: string | null
@@ -1043,6 +1094,7 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string | null
+          verified_artist: boolean | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1065,6 +1117,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           username?: string | null
+          verified_artist?: boolean | null
         }
         Update: {
           avatar_url?: string | null
@@ -1087,6 +1140,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+          verified_artist?: boolean | null
         }
         Relationships: []
       }

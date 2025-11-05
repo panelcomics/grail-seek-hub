@@ -25,7 +25,7 @@ const CreateClaimSale = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [sellerEligibility, setSellerEligibility] = useState<{ verified: boolean; salesCount: number } | null>(null);
+  const [sellerEligibility, setSellerEligibility] = useState<{ verified: boolean; salesCount: number; verifiedArtist: boolean } | null>(null);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -76,7 +76,7 @@ const CreateClaimSale = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("stripe_account_verified, completed_sales_count")
+        .select("stripe_account_verified, completed_sales_count, verified_artist")
         .eq("user_id", user?.id)
         .single();
 
@@ -84,6 +84,7 @@ const CreateClaimSale = () => {
       setSellerEligibility({
         verified: data.stripe_account_verified || false,
         salesCount: data.completed_sales_count || 0,
+        verifiedArtist: data.verified_artist || false,
       });
     } catch (error) {
       console.error("Error checking seller eligibility:", error);
@@ -245,15 +246,15 @@ const CreateClaimSale = () => {
     // Art category validation
     if (formData.category === "art") {
       if (!formData.subcategory) {
-        toast.error("Please select an art subcategory");
+        toast.error("Please select an artwork type");
         return;
       }
       if (!formData.isCreatorOwner || !formData.isOriginalPhysical) {
         toast.error("Please confirm both ownership checkboxes for art listings");
         return;
       }
-      if (sellerEligibility && !sellerEligibility.verified && sellerEligibility.salesCount < 3) {
-        toast.error("Original art listings are available to verified sellers only. Complete 3 sales or verify your account with Stripe first.");
+      if (sellerEligibility && !sellerEligibility.verifiedArtist && !sellerEligibility.verified && sellerEligibility.salesCount < 3) {
+        toast.error("Original art listings are available to verified sellers or Verified Artists only. Complete 3 sales, verify your account with Stripe, or apply for Verified Artist status.");
         return;
       }
     }
@@ -647,8 +648,8 @@ const CreateClaimSale = () => {
                 <Label htmlFor="category">Category *</Label>
                 <Select value={formData.category} onValueChange={(value) => {
                   setFormData(prev => ({ ...prev, category: value, subcategory: "" }));
-                  if (value === "art" && sellerEligibility && !sellerEligibility.verified && sellerEligibility.salesCount < 3) {
-                    toast.error("Original art listings are available to verified sellers only. Complete 3 sales or verify your account with Stripe first.");
+                  if (value === "art" && sellerEligibility && !sellerEligibility.verifiedArtist && !sellerEligibility.verified && sellerEligibility.salesCount < 3) {
+                    toast.error("Original art listings are available to verified sellers or Verified Artists only. Complete 3 sales, verify your account with Stripe, or apply for Verified Artist status.");
                   }
                 }}>
                   <SelectTrigger>

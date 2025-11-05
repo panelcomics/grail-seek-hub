@@ -34,6 +34,7 @@ interface ItemCardProps {
   showEndingSoonBadge?: boolean;
   subcategory?: string;
   hasCoa?: boolean;
+  isVerifiedArtist?: boolean;
 }
 
 const ItemCard = ({ 
@@ -59,7 +60,8 @@ const ItemCard = ({
   minOfferPercentage = 10,
   showEndingSoonBadge = false,
   subcategory,
-  hasCoa = false
+  hasCoa = false,
+  isVerifiedArtist = false
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const [localPickup, setLocalPickup] = useState(true);
@@ -98,9 +100,9 @@ const ItemCard = ({
           </div>
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             {category === "art" && (
-              <Badge className="font-semibold bg-purple-500 hover:bg-purple-600 text-white flex items-center gap-1">
+              <Badge className={`font-semibold ${isVerifiedArtist ? "bg-purple-600 hover:bg-purple-700" : "bg-purple-500 hover:bg-purple-600"} text-white flex items-center gap-1`}>
                 <Palette className="h-3 w-3" />
-                Original Art
+                {isVerifiedArtist ? "Original Art by Verified Artist" : "Original Art"}
               </Badge>
             )}
             {showEndingSoonBadge && (
