@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Sparkles, MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Zap } from "lucide-react";
 import heroImage from "@/assets/hero-marketplace.jpg";
 
 const Hero = () => {
@@ -19,7 +19,8 @@ const Hero = () => {
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-center lg:text-left">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-center lg:text-left flex items-center justify-center lg:justify-start gap-3">
+                <Zap className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-yellow-500 fill-yellow-500/20" />
                 Your Grail Is Waiting
               </h1>
               <p className="text-lg text-muted-foreground sm:text-xl max-w-2xl">
