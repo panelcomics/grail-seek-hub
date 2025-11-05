@@ -39,47 +39,47 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ModalProvider>
-      <TooltipProvider>
+    <TooltipProvider>
+      <ModalProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/item/:id" element={<ItemDetail />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/scanner" element={<Scanner />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/deals" element={<Deals />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/trade-board" element={<TradeBoard />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/sell/claim-sale" element={<CreateClaimSale />} />
-          <Route path="/claim-sale/:id" element={<ClaimSaleDetail />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/my-orders" element={<MyOrders />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/seller/dashboard" element={<SellerDashboard />} />
-          <Route path="/order/:id" element={<OrderDetail />} />
-          <Route path="/checkout/:orderId" element={<Checkout />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/admin/featured-shops" element={<AdminFeaturedShops />} />
-          <Route path="/sellers" element={<Sellers />} />
-          <Route path="/seller/:slug" element={<SellerProfile />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/watchlist" element={<Watchlist />} />
-          <Route path="/fees" element={<FeesPolicy />} />
-          <Route path="/help" element={<Help />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-      </TooltipProvider>
-    </ModalProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/item/:id" element={<ItemDetail />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/scanner" element={<Scanner />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/deals" element={<Deals />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/trade-board" element={<TradeBoard />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/sell/claim-sale" element={<CreateClaimSale />} />
+            <Route path="/claim-sale/:id" element={<ClaimSaleDetail />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/seller/dashboard" element={<SellerDashboard />} />
+            <Route path="/order/:id" element={<OrderDetail />} />
+            <Route path="/checkout/:orderId" element={<Checkout />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/admin/featured-shops" element={<AdminFeaturedShops />} />
+            <Route path="/sellers" element={<Sellers />} />
+            <Route path="/seller/:slug" element={<SellerProfile />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/watchlist" element={<Watchlist />} />
+            <Route path="/fees" element={<FeesPolicy />} />
+            <Route path="/help" element={<Help />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </ModalProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
