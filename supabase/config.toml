@@ -3,6 +3,9 @@ project_id = "fiwmlzrhwvrsrxmcstzk"
 [functions.scan-item]
 verify_jwt = false
 
+[functions.choose-candidate]
+verify_jwt = false
+
 [functions.generate-claim-rules]
 verify_jwt = false
 

@@ -6,6 +6,127 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============= HELPER: Google Cloud Vision =============
+async function extractTextFromImage(imageBase64: string, apiKey: string) {
+  let base64Content = imageBase64;
+  if (imageBase64.includes(',')) {
+    base64Content = imageBase64.split(',')[1];
+  }
+
+  const response = await fetch(
+    `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requests: [{
+          image: { content: base64Content },
+          features: [
+            { type: 'TEXT_DETECTION' },
+            { type: 'LABEL_DETECTION' }
+          ]
+        }]
+      })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Google Vision API error');
+  }
+
+  const data = await response.json();
+  const textAnnotations = data.responses[0]?.textAnnotations || [];
+  const rawText = textAnnotations[0]?.description || '';
+  
+  return rawText;
+}
+
+// ============= HELPER: Parse Comic Details =============
+function parseComicDetails(text: string) {
+  const lines = text.split('\n').map((l: string) => l.trim()).filter(Boolean);
+  let titleGuess = '';
+  let issueGuess = '';
+  let yearGuess = '';
+  
+  // Look for issue numbers (e.g., #159, No. 159, Issue 159)
+  const issuePattern = /#?\s*(\d+)|No\.\s*(\d+)|Issue\s*(\d+)/i;
+  for (const line of lines) {
+    const match = line.match(issuePattern);
+    if (match) {
+      issueGuess = match[1] || match[2] || match[3];
+      const titleMatch = line.replace(issuePattern, '').trim();
+      if (titleMatch.length > 2) {
+        titleGuess = titleMatch;
+      }
+    }
+  }
+
+  // If no title found, use first significant line
+  if (!titleGuess && lines.length > 0) {
+    titleGuess = lines[0];
+  }
+
+  // Look for year (4 digits)
+  const yearPattern = /\b(19\d{2}|20\d{2})\b/;
+  for (const line of lines) {
+    const match = line.match(yearPattern);
+    if (match) {
+      yearGuess = match[1];
+      break;
+    }
+  }
+
+  return { titleGuess, issueGuess, yearGuess };
+}
+
+// ============= HELPER: ComicVine API =============
+async function queryComicVine(title: string, issue: string, apiKey: string) {
+  const searchQuery = encodeURIComponent(title + (issue ? ` ${issue}` : ''));
+  const response = await fetch(
+    `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&query=${searchQuery}&resources=issue&limit=5`,
+    {
+      headers: { 'User-Agent': 'GrailSeeker/1.0' }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('ComicVine API error');
+  }
+
+  const data = await response.json();
+  const results = data.results || [];
+  
+  if (results.length === 0) {
+    return null;
+  }
+
+  const topResult = results[0];
+  const altCandidates = results.slice(1, 4).map((r: any) => ({
+    id: r.id,
+    label: `${r.volume?.name || 'Unknown'} #${r.issue_number || '?'} (${r.cover_date ? r.cover_date.split('-')[0] : '?'})`
+  }));
+
+  return {
+    series: topResult.volume?.name || 'Unknown Series',
+    issue: topResult.issue_number || '?',
+    year: topResult.cover_date ? topResult.cover_date.split('-')[0] : '?',
+    publisher: topResult.volume?.publisher?.name || 'Unknown',
+    creators: topResult.person_credits?.slice(0, 3).map((p: any) => p.name) || [],
+    coverUrl: topResult.image?.medium_url || topResult.image?.small_url || '/placeholder.svg',
+    altCandidates
+  };
+}
+
+// ============= HELPER: Price Estimator (STUB) =============
+function getPriceEstimate() {
+  return {
+    estimate: null,
+    status: 'pending',
+    message: 'Market value estimates coming soon.'
+  };
+}
+
+// ============= MAIN HANDLER =============
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,119 +149,51 @@ serve(async (req) => {
       throw new Error('API keys not configured');
     }
 
-    console.log('Scanning item with Google Cloud Vision...');
+    console.log('Starting comic scan...');
 
-    // Extract base64 content from data URL
-    let base64Content = imageBase64;
-    if (imageBase64.includes(',')) {
-      base64Content = imageBase64.split(',')[1];
-    }
-
-    // Step 1: Extract text from image using Google Cloud Vision
-    const visionResponse = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requests: [{
-            image: { content: base64Content },
-            features: [
-              { type: 'TEXT_DETECTION' },
-              { type: 'LABEL_DETECTION' }
-            ]
-          }]
-        })
-      }
-    );
-
-    if (!visionResponse.ok) {
-      const errorText = await visionResponse.text();
-      console.error('Google Vision API error:', visionResponse.status, errorText);
-      throw new Error('Failed to analyze image with Google Vision API');
-    }
-
-    const visionData = await visionResponse.json();
-    const textAnnotations = visionData.responses[0]?.textAnnotations || [];
-    const extractedText = textAnnotations[0]?.description || '';
+    // Step 1: Extract text using Google Vision
+    const rawText = await extractTextFromImage(imageBase64, GOOGLE_VISION_API_KEY);
     
-    console.log('Extracted text:', extractedText);
+    if (!rawText || rawText.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Couldn't read the cover text. Try a clearer photo or different angle."
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Step 2: Parse text to identify comic details
-    const lines = extractedText.split('\n').map((l: string) => l.trim()).filter(Boolean);
-    let title = '';
-    let issueNumber = '';
+    console.log('Extracted text:', rawText);
+
+    // Step 2: Parse comic details
+    const { titleGuess, issueGuess, yearGuess } = parseComicDetails(rawText);
+    console.log('Parsed:', { titleGuess, issueGuess, yearGuess });
+
+    // Step 3: Query ComicVine
+    const comicvineResult = await queryComicVine(titleGuess, issueGuess, COMICVINE_API_KEY);
     
-    // Look for issue numbers (e.g., #159, No. 159, Issue 159)
-    const issuePattern = /#?\s*(\d+)|No\.\s*(\d+)|Issue\s*(\d+)/i;
-    for (const line of lines) {
-      const match = line.match(issuePattern);
-      if (match) {
-        issueNumber = match[1] || match[2] || match[3];
-        // Title is usually on same line or previous lines
-        const titleMatch = line.replace(issuePattern, '').trim();
-        if (titleMatch.length > 2) {
-          title = titleMatch;
-          break;
-        }
-      }
+    if (!comicvineResult) {
+      return new Response(
+        JSON.stringify({ 
+          error: "No matching comics found. Try adjusting the image or search manually."
+        }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // If no title found, use first significant line
-    if (!title && lines.length > 0) {
-      title = lines[0];
-    }
+    // Step 4: Get price estimate (stub for now)
+    const pricing = getPriceEstimate();
 
-    const fullTitle = issueNumber ? `${title} #${issueNumber}` : title;
-    console.log('Identified:', fullTitle);
-
-    // Step 3: Query ComicVine API for details
-    let comicDetails = null;
-    let estimatedValue = 10.00; // Default value
-    
-    if (title) {
-      try {
-        const searchQuery = encodeURIComponent(title + (issueNumber ? ` ${issueNumber}` : ''));
-        const comicVineResponse = await fetch(
-          `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${searchQuery}&resources=issue&limit=1`,
-          {
-            headers: { 'User-Agent': 'GrailSeeker/1.0' }
-          }
-        );
-
-        if (comicVineResponse.ok) {
-          const comicVineData = await comicVineResponse.json();
-          const results = comicVineData.results || [];
-          
-          if (results.length > 0) {
-            comicDetails = results[0];
-            console.log('ComicVine match:', comicDetails.name);
-            
-            // Estimate value based on publication date and popularity
-            const year = comicDetails.cover_date ? parseInt(comicDetails.cover_date.split('-')[0]) : 2020;
-            const age = new Date().getFullYear() - year;
-            
-            if (age > 40) estimatedValue = 50.00;
-            else if (age > 20) estimatedValue = 25.00;
-            else if (age > 10) estimatedValue = 15.00;
-          }
-        }
-      } catch (e) {
-        console.error('ComicVine API error:', e);
-      }
-    }
-
-    // Construct scan result
+    // Construct final response
     const scanResult = {
-      title: fullTitle || 'Unknown Comic',
-      category: 'comic',
-      grade: 'VF',
-      condition: 'Based on image analysis. Manual grading recommended for accurate assessment.',
-      estimatedValue: estimatedValue,
-      comparableSales: [
-        { source: 'ComicVine', price: estimatedValue * 0.9, date: '2025-01', condition: 'VF' },
-        { source: 'Market Average', price: estimatedValue * 1.1, date: '2025-01', condition: 'VF+' }
-      ]
+      vision: {
+        rawText,
+        titleGuess,
+        issueGuess,
+        yearGuess
+      },
+      comicvine: comicvineResult,
+      pricing
     };
 
     return new Response(
