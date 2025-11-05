@@ -650,6 +650,30 @@ export type Database = {
           },
         ]
       }
+      notification_sent: {
+        Row: {
+          created_at: string
+          id: string
+          notification_type: string
+          reference_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_type: string
+          reference_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_type?: string
+          reference_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -871,6 +895,9 @@ export type Database = {
           created_at: string
           hide_ai_scanner_tour: boolean | null
           id: string
+          notify_auction_ending: boolean | null
+          notify_new_posts: boolean | null
+          notify_via_email: boolean | null
           seller_tier: string | null
           stripe_account_id: string | null
           stripe_onboarding_complete: boolean | null
@@ -886,6 +913,9 @@ export type Database = {
           created_at?: string
           hide_ai_scanner_tour?: boolean | null
           id?: string
+          notify_auction_ending?: boolean | null
+          notify_new_posts?: boolean | null
+          notify_via_email?: boolean | null
           seller_tier?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
@@ -901,6 +931,9 @@ export type Database = {
           created_at?: string
           hide_ai_scanner_tour?: boolean | null
           id?: string
+          notify_auction_ending?: boolean | null
+          notify_new_posts?: boolean | null
+          notify_via_email?: boolean | null
           seller_tier?: string | null
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null

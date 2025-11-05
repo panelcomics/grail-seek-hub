@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminTestNotification } from "@/components/AdminTestNotification";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PayoutManagement } from "./PayoutManagement";
 import { Button } from "@/components/ui/button";
@@ -138,6 +139,7 @@ export const AdminPanel = () => {
       <TabsList>
         <TabsTrigger value="discount-codes">Discount Codes</TabsTrigger>
         <TabsTrigger value="payouts">Payout Management</TabsTrigger>
+        <TabsTrigger value="notifications">Test Notifications</TabsTrigger>
       </TabsList>
 
       <TabsContent value="discount-codes">
@@ -212,6 +214,10 @@ export const AdminPanel = () => {
 
       <TabsContent value="payouts">
         <PayoutManagement />
+      </TabsContent>
+
+      <TabsContent value="notifications">
+        <AdminTestNotification />
       </TabsContent>
     </Tabs>
   );

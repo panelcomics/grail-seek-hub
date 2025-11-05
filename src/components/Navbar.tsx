@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { NotificationDropdown } from "@/components/NotificationDropdown";
 
 interface NavbarProps {
   onShowOnboarding?: () => void;
@@ -106,6 +107,8 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
               <span className="hidden sm:inline">AI Scanner</span>
             </Button>
           </Link>
+
+          {user && <NotificationDropdown />}
 
           <Button variant="ghost" size="icon" className="md:hidden">
             <Search className="h-5 w-5" />

@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import { DiscountSettings } from "@/components/DiscountSettings";
 import { AdminPanel } from "@/components/AdminPanel";
 import { PaymentSettings } from "@/components/PaymentSettings";
+import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { useDiscount } from "@/hooks/useDiscount";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings as SettingsIcon } from "lucide-react";
@@ -25,6 +26,8 @@ const Settings = () => {
 
         <div className="space-y-6">
           <PaymentSettings />
+          
+          <NotificationPreferences />
           
           <DiscountSettings />
           

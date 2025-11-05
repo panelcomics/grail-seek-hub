@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "npm:resend@4.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -255,18 +252,33 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email
-    const emailResponse = await resend.emails.send({
-      from: "Grail Seeker <onboarding@resend.dev>",
-      to: [buyerEmail],
-      subject: `Your item has shipped from ${sellerUsername} on Grail Seeker`,
-      html: emailHtml,
-    });
+    // Send email using fetch to Resend API
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    let emailResult = null;
+    
+    if (resendApiKey) {
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Grail Seeker <onboarding@resend.dev>",
+          to: [buyerEmail],
+          subject: `Your item has shipped from ${sellerUsername} on Grail Seeker`,
+          html: emailHtml,
+        }),
+      });
 
-    console.log("Email sent successfully:", emailResponse);
+      emailResult = await emailResponse.json();
+      console.log("Email sent successfully:", emailResult);
+    } else {
+      console.log("RESEND_API_KEY not configured, skipping email");
+    }
 
     return new Response(
-      JSON.stringify({ success: true, emailId: emailResponse.data?.id }),
+      JSON.stringify({ success: true, emailId: emailResult?.id }),
       {
         status: 200,
         headers: {
