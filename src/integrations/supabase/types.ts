@@ -46,6 +46,47 @@ export type Database = {
           },
         ]
       }
+      art_removal_requests: {
+        Row: {
+          art_id: string
+          artist_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          art_id: string
+          artist_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          art_id?: string
+          artist_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "art_removal_requests_art_id_fkey"
+            columns: ["art_id"]
+            isOneToOne: false
+            referencedRelation: "original_art"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_applications: {
         Row: {
           about_artist: string | null

@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Edit, Trash2, Plus } from "lucide-react";
+import { Search, Edit, Trash2, Plus, CheckCircle, XCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -48,15 +49,30 @@ interface OriginalArt {
   visibility: string;
 }
 
+interface RemovalRequest {
+  id: string;
+  created_at: string;
+  art_id: string;
+  artist_id: string;
+  reason: string | null;
+  status: string;
+}
+
 const ManageOriginalArt = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [items, setItems] = useState<OriginalArt[]>([]);
+  const [removalRequests, setRemovalRequests] = useState<RemovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<OriginalArt | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchItems();
+    fetchRemovalRequests();
+  }, [search]);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -92,6 +108,73 @@ const ManageOriginalArt = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRemovalRequests = async () => {
+    try {
+      const { data } = await supabase
+        .from('art_removal_requests')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      setRemovalRequests(data || []);
+    } catch (error) {
+      console.error("Fetch removal requests error:", error);
+    }
+  };
+
+  const handleApproveRemoval = async (requestId: string, artId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Delete the art item
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-original-art/${artId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete item");
+      }
+
+      // Update request status
+      await supabase
+        .from('art_removal_requests')
+        .update({ status: 'approved', reviewed_by: session.user.id, reviewed_at: new Date().toISOString() })
+        .eq('id', requestId);
+
+      toast({ title: "Success", description: "Art item removed" });
+      fetchItems();
+      fetchRemovalRequests();
+    } catch (error) {
+      console.error("Approve removal error:", error);
+      toast({ title: "Error", description: "Failed to process removal", variant: "destructive" });
+    }
+  };
+
+  const handleRejectRemoval = async (requestId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      await supabase
+        .from('art_removal_requests')
+        .update({ status: 'rejected', reviewed_by: session.user.id, reviewed_at: new Date().toISOString() })
+        .eq('id', requestId);
+
+      toast({ title: "Success", description: "Removal request rejected" });
+      fetchRemovalRequests();
+    } catch (error) {
+      console.error("Reject removal error:", error);
+      toast({ title: "Error", description: "Failed to reject request", variant: "destructive" });
     }
   };
 
@@ -219,24 +302,34 @@ const ManageOriginalArt = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by title or artist..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-          </div>
+          <Tabs defaultValue="items">
+            <TabsList>
+              <TabsTrigger value="items">All Items</TabsTrigger>
+              <TabsTrigger value="requests">
+                Removal Requests
+                {removalRequests.length > 0 && (
+                  <Badge className="ml-2" variant="destructive">{removalRequests.length}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-          {loading ? (
-            <p>Loading...</p>
-          ) : items.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No items found</p>
-          ) : (
-            <Table>
+            <TabsContent value="items" className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by title or artist..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+
+              {loading ? (
+                <p>Loading...</p>
+              ) : items.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No items found</p>
+              ) : (
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Image</TableHead>
@@ -296,6 +389,65 @@ const ManageOriginalArt = () => {
               </TableBody>
             </Table>
           )}
+            </TabsContent>
+
+            <TabsContent value="requests">
+              {removalRequests.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No pending removal requests</p>
+              ) : (
+                <div className="space-y-4">
+                  {removalRequests.map((request) => {
+                    const item = items.find(i => i.id === request.art_id);
+                    return (
+                      <Card key={request.id}>
+                        <CardContent className="pt-6">
+                          <div className="flex items-start gap-4">
+                            {item && (
+                              <img
+                                src={item.image_url}
+                                alt={item.title}
+                                className="h-20 w-20 object-cover rounded"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{item?.title || 'Unknown'}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Artist: {item?.artist_name || 'Unknown'}
+                              </p>
+                              <p className="text-sm mt-2">
+                                <strong>Reason:</strong> {request.reason || 'No reason provided'}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Requested: {new Date(request.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => handleApproveRemoval(request.id, request.art_id)}
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRejectRemoval(request.id)}
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

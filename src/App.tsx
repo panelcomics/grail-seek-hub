@@ -32,6 +32,8 @@ import Leaderboard from "./pages/Leaderboard";
 import AdminFeaturedShops from "./pages/AdminFeaturedShops";
 import UploadOriginalArt from "./pages/admin/UploadOriginalArt";
 import ManageOriginalArt from "./pages/admin/ManageOriginalArt";
+import InviteArtist from "./pages/admin/InviteArtist";
+import MyOriginalArt from "./pages/artist/MyOriginalArt";
 import Sellers from "./pages/Sellers";
 import SellerProfile from "./pages/SellerProfile";
 import FeesPolicy from "./pages/FeesPolicy";
@@ -74,6 +76,8 @@ const App = () => (
             <Route path="/admin/featured-shops" element={<AdminFeaturedShops />} />
             <Route path="/admin/original-art/upload" element={<UploadOriginalArt />} />
             <Route path="/admin/original-art/manage" element={<ManageOriginalArt />} />
+            <Route path="/admin/invite-artist" element={<InviteArtist />} />
+            <Route path="/artist/my-art" element={<MyOriginalArt />} />
             <Route path="/sellers" element={<Sellers />} />
             <Route path="/seller/:slug" element={<SellerProfile />} />
             <Route path="/notifications" element={<Notifications />} />

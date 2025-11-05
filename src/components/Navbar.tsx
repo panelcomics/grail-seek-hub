@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Heart } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Heart, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
@@ -21,28 +21,30 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [newDealsCount, setNewDealsCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isArtist, setIsArtist] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchNewDealsCount();
-      checkAdminStatus();
+      checkRoles();
     }
   }, [user]);
 
-  const checkAdminStatus = async () => {
+  const checkRoles = async () => {
     if (!user) return;
     
     try {
-      const { data } = await supabase
+      const { data: roles } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .single();
+        .eq('user_id', user.id);
       
-      setIsAdmin(!!data);
+      if (roles) {
+        setIsAdmin(roles.some(r => r.role === 'admin'));
+        setIsArtist(roles.some(r => r.role === 'artist'));
+      }
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('Error checking roles:', error);
     }
   };
 
@@ -184,13 +186,30 @@ export default function Navbar() {
                     Winners & Orders
                   </Link>
                 </DropdownMenuItem>
+                {isArtist && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/artist/my-art" className="cursor-pointer">
+                        <Package className="mr-2 h-4 w-4" />
+                        My Original Art
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/admin/original-art/manage" className="cursor-pointer">
                         <Package className="mr-2 h-4 w-4" />
-                        Original Art (Beta)
+                        Original Art (Admin)
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/invite-artist" className="cursor-pointer">
+                        <Mail className="mr-2 h-4 w-4" />
+                        Invite Artist
                       </Link>
                     </DropdownMenuItem>
                   </>

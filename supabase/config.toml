@@ -50,3 +50,9 @@ verify_jwt = true
 
 [functions.manage-original-art]
 verify_jwt = true
+
+[functions.artist-original-art]
+verify_jwt = true
+
+[functions.request-art-removal]
+verify_jwt = true
