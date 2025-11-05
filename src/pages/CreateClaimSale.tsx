@@ -714,7 +714,7 @@ const CreateClaimSale = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="hasCoa">Certificate of Authenticity (COA) Provided?</Label>
+                  <Label htmlFor="hasCoa">Certificate of Authenticity (COA)</Label>
                   <Select value={formData.hasCoa.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, hasCoa: value === "true" }))}>
                     <SelectTrigger>
                       <SelectValue />
