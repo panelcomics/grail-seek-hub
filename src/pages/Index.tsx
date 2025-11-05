@@ -675,7 +675,6 @@ const Index = () => {
       )}
       
       <Hero />
-      <FeaturedShops />
 
       {/* Welcome Banner */}
       {showWelcomeBanner && (
