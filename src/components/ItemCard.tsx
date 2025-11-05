@@ -60,7 +60,7 @@ const ItemCard = ({
   const [localPickup, setLocalPickup] = useState(true);
   const [shipNationwide, setShipNationwide] = useState(false);
   
-  const isUrgent = countdown > 0 && countdown <= 300; // Last 5 minutes
+  const isUrgent = countdown > 0 && countdown <= 180; // Last 3 minutes
 
   useEffect(() => {
     if (!isAuction || countdown <= 0) return;
@@ -80,7 +80,7 @@ const ItemCard = ({
   return (
     <Link to={`/item/${id}`}>
       <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer bg-card border ${
-        isUrgent ? 'animate-pulse ring-2 ring-destructive/50' : ''
+        isUrgent ? 'animate-urgent-glow' : ''
       }`}>
         <div className="relative aspect-[3/4] overflow-hidden bg-muted">
           <img

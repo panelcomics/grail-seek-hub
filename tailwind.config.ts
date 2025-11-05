@@ -83,10 +83,21 @@ export default {
             height: "0",
           },
         },
+        "urgent-glow": {
+          "0%, 100%": {
+            opacity: "0.9",
+            boxShadow: "0 0 0 0 hsl(0 100% 50% / 0)",
+          },
+          "50%": {
+            opacity: "1",
+            boxShadow: "0 0 20px 2px hsl(0 100% 50% / 0.15)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "urgent-glow": "urgent-glow 5s ease-in-out infinite",
       },
     },
   },

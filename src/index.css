@@ -173,4 +173,11 @@ All colors MUST be HSL.
     background-image: var(--texture-dots);
     background-size: var(--texture-dots-size);
   }
+
+  /* Respect user's motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-urgent-glow {
+      animation: none;
+    }
+  }
 }
