@@ -86,6 +86,19 @@ export const TrustModal = ({ open, onOpenChange, eligibility }: TrustModalProps)
             </Badge>
           )}
 
+          {/* Success message when trading is unlocked */}
+          {(eligibility.trade_override_allow || 
+            (eligibility.total_completed_tx >= 3 && 
+             eligibility.stripe_account_verified && 
+             eligibility.account_age_days >= 7 && 
+             eligibility.no_open_disputes_last_30d)) && (
+            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+              <p className="text-center font-medium">
+                🎉 Congrats! You've unlocked trading. You can now securely swap collectibles with other verified members.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3">
             {requirements.map((req, index) => {
               const Icon = req.icon;
