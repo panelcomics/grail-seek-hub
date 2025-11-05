@@ -715,6 +715,9 @@ const CreateClaimSale = () => {
 
                 <div>
                   <Label htmlFor="hasCoa">Certificate of Authenticity (COA)</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    If you have a COA from the artist, publisher, or dealer, mark "Yes." Uploading a photo builds buyer confidence.
+                  </p>
                   <Select value={formData.hasCoa.toString()} onValueChange={(value) => setFormData(prev => ({ ...prev, hasCoa: value === "true" }))}>
                     <SelectTrigger>
                       <SelectValue />
