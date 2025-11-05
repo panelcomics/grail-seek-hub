@@ -914,6 +914,7 @@ export type Database = {
           avatar_url: string | null
           completed_sales_count: number | null
           created_at: string
+          favorites_total: number | null
           hide_ai_scanner_tour: boolean | null
           id: string
           notify_auction_ending: boolean | null
@@ -932,6 +933,7 @@ export type Database = {
           avatar_url?: string | null
           completed_sales_count?: number | null
           created_at?: string
+          favorites_total?: number | null
           hide_ai_scanner_tour?: boolean | null
           id?: string
           notify_auction_ending?: boolean | null
@@ -950,6 +952,7 @@ export type Database = {
           avatar_url?: string | null
           completed_sales_count?: number | null
           created_at?: string
+          favorites_total?: number | null
           hide_ai_scanner_tour?: boolean | null
           id?: string
           notify_auction_ending?: boolean | null
@@ -1293,6 +1296,10 @@ export type Database = {
           savings: number
         }[]
       }
+      calculate_seller_favorites: {
+        Args: { seller_user_id: string }
+        Returns: number
+      }
       get_event_listing_count: {
         Args: { target_event_id: string }
         Returns: number
@@ -1316,6 +1323,7 @@ export type Database = {
         Args: { seller_user_id: string }
         Returns: undefined
       }
+      update_seller_favorites_total: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"

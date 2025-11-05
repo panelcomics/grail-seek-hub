@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MapPin, Package, Heart, Clock } from "lucide-react";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { SellerBadge } from "@/components/SellerBadge";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ interface ItemCardProps {
   location?: string;
   sellerName?: string;
   sellerCity?: string;
+  sellerBadge?: string | null;
   category: "comic" | "card";
   isAuction?: boolean;
   timeRemaining?: number; // in seconds
@@ -41,6 +43,7 @@ const ItemCard = ({
   location,
   sellerName,
   sellerCity,
+  sellerBadge,
   category,
   isAuction = false,
   timeRemaining = 0,
@@ -85,8 +88,8 @@ const ItemCard = ({
             alt={title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute top-3 right-3 z-10">
-            <FavoriteButton listingId={id} />
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+            <FavoriteButton listingId={id} showCount />
           </div>
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             {showEndingSoonBadge && (
@@ -127,10 +130,18 @@ const ItemCard = ({
             
             {/* Seller Info */}
             {sellerName && sellerCity && (
-              <div className="text-xs text-muted-foreground mb-3">
-                <span className="font-medium">{sellerName}</span>
-                <span className="mx-1">•</span>
-                <span>{sellerCity}</span>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                  <span className="font-medium truncate">{sellerName}</span>
+                  <span>•</span>
+                  <span className="truncate">{sellerCity}</span>
+                  {sellerBadge && (
+                    <>
+                      <span>•</span>
+                      <SellerBadge tier={sellerBadge} className="shrink-0" />
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

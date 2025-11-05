@@ -87,7 +87,8 @@ export default function Watchlist() {
             price,
             seller_id,
             profiles!claim_sales_seller_id_fkey (
-              username
+              username,
+              seller_tier
             )
           )
         `)
@@ -210,6 +211,8 @@ export default function Watchlist() {
                     condition={item.condition}
                     location={item.city && item.state ? `${item.city}, ${item.state}` : undefined}
                     sellerName={seller?.username}
+                    sellerCity={item.city || undefined}
+                    sellerBadge={seller?.seller_tier}
                     category={item.category === "comic" || item.category === "card" ? item.category : "comic"}
                     isClaimSale={true}
                     claimSaleId={item.claim_sale_id}
@@ -217,8 +220,9 @@ export default function Watchlist() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    className="absolute top-4 right-4 gap-2"
+                    className="absolute top-4 right-4 gap-2 z-10"
                     onClick={() => removeFavorite(favorite.id)}
+                    aria-label="Remove from watchlist"
                   >
                     <Trash2 className="h-4 w-4" />
                     Remove

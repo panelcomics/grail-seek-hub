@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Star, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { SellerBadge } from "@/components/SellerBadge";
+import { SellerStats } from "@/components/SellerStats";
 import {
   Carousel,
   CarouselContent,
@@ -18,6 +20,7 @@ interface Seller {
   avatar_url: string | null;
   completed_sales_count: number;
   seller_tier?: string;
+  favorites_total?: number;
 }
 
 export default function SellerSpotlight() {
@@ -32,7 +35,7 @@ export default function SellerSpotlight() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, username, avatar_url, completed_sales_count, seller_tier")
+        .select("user_id, username, avatar_url, completed_sales_count, seller_tier, favorites_total")
         .not("username", "is", null)
         .order("completed_sales_count", { ascending: false })
         .limit(4);
@@ -129,19 +132,14 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
         {/* Seller Info */}
         <h3 className="font-bold text-lg mb-2 line-clamp-1">{seller.username || "Unknown Seller"}</h3>
         
-        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
-          <MapPin className="h-3 w-3" />
-          <span className="line-clamp-1">{location}</span>
-        </div>
-
-        {/* Rating and Sales */}
-        <div className="flex items-center gap-3 text-sm mb-6">
-          <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-            <span className="font-semibold">{rating}</span>
-          </div>
-          <span className="text-muted-foreground">•</span>
-          <span className="text-muted-foreground">{seller.completed_sales_count} sales</span>
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <SellerStats
+            rating={parseFloat(rating)}
+            salesCount={seller.completed_sales_count}
+            favoritesTotal={seller.favorites_total}
+            className="justify-center"
+          />
+          <SellerBadge tier={seller.seller_tier || null} />
         </div>
 
         {/* Action Buttons */}

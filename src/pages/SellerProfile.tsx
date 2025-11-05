@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import ItemCard from "@/components/ItemCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SellerBadge } from "@/components/SellerBadge";
+import { SellerStats } from "@/components/SellerStats";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,6 +28,7 @@ interface SellerProfile {
   avatar_url: string | null;
   completed_sales_count: number;
   seller_tier: string | null;
+  favorites_total: number;
 }
 
 interface SellerSettings {
@@ -62,7 +65,7 @@ export default function SellerProfile() {
       
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, username, avatar_url, completed_sales_count, seller_tier")
+        .select("user_id, username, avatar_url, completed_sales_count, seller_tier, favorites_total")
         .ilike("username", username)
         .maybeSingle();
 
@@ -129,8 +132,6 @@ export default function SellerProfile() {
     );
   }
 
-  const tierIcon = profile.seller_tier === "pro" ? <Award className="w-4 h-4" /> : <Shield className="w-4 h-4" />;
-  const tierLabel = profile.seller_tier === "pro" ? "Pro Seller" : profile.seller_tier === "verified" ? "Verified" : null;
 
   // Mock data for items (replace with real data)
   const mockItems = [
@@ -183,31 +184,16 @@ export default function SellerProfile() {
 
               {/* Info */}
               <div className="flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+                <div className="flex flex-col gap-2 mb-4">
                   <h1 className="text-3xl font-bold">{profile.username}</h1>
-                  {tierLabel && (
-                    <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-                      {tierIcon}
-                      <span>{tierLabel}</span>
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>New York, NY</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Package className="w-4 h-4" />
-                    <span>42 Items</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>{profile.completed_sales_count || 0} Sales</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                    <span>4.9 Rating</span>
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <SellerStats
+                      rating={4.9}
+                      salesCount={profile.completed_sales_count || 0}
+                      favoritesTotal={profile.favorites_total || 0}
+                    />
+                    <SellerBadge tier={profile.seller_tier} />
                   </div>
                 </div>
 
@@ -318,6 +304,9 @@ export default function SellerProfile() {
                     <ItemCard
                       key={item.id}
                       {...item}
+                      sellerName={profile.username || undefined}
+                      sellerCity="New York"
+                      sellerBadge={profile.seller_tier}
                       showMakeOffer={sellerSettings?.accept_offers}
                       minOfferPercentage={sellerSettings?.min_offer_percentage}
                     />

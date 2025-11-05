@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { SellerBadge } from "@/components/SellerBadge";
+import { SellerStats } from "@/components/SellerStats";
 
 const leaderboardData = [
   {
@@ -13,61 +15,100 @@ const leaderboardData = [
     name: "Kiss Komixx",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=KK",
     grailPoints: 1240,
-    isTopSeller: true,
+    rating: 4.9,
+    sales: 156,
+    favorites: 342,
+    badge: "top" as const,
   },
   {
     rank: 2,
     name: "ThePanelVault",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=TPV",
     grailPoints: 1180,
+    rating: 4.8,
+    sales: 142,
+    favorites: 298,
+    badge: "pro" as const,
   },
   {
     rank: 3,
     name: "MaskedMerc",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=MM",
     grailPoints: 1010,
+    rating: 4.9,
+    sales: 128,
+    favorites: 267,
+    badge: "pro" as const,
   },
   {
     rank: 4,
     name: "BronzeAgeBlaze",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=BAB",
     grailPoints: 950,
+    rating: 4.7,
+    sales: 115,
+    favorites: 234,
+    badge: "verified" as const,
   },
   {
     rank: 5,
     name: "SlabCity",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=SC",
     grailPoints: 910,
+    rating: 4.8,
+    sales: 108,
+    favorites: 221,
+    badge: "verified" as const,
   },
   {
     rank: 6,
     name: "NOLA_Comics",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=NC",
     grailPoints: 860,
+    rating: 4.6,
+    sales: 98,
+    favorites: 198,
+    badge: "verified" as const,
   },
   {
     rank: 7,
     name: "RetroVault",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=RV",
     grailPoints: 820,
+    rating: 4.7,
+    sales: 92,
+    favorites: 187,
+    badge: null,
   },
   {
     rank: 8,
     name: "ComicCraze",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=CC",
     grailPoints: 790,
+    rating: 4.5,
+    sales: 86,
+    favorites: 165,
+    badge: null,
   },
   {
     rank: 9,
     name: "GrailHunter",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=GH",
     grailPoints: 760,
+    rating: 4.6,
+    sales: 81,
+    favorites: 154,
+    badge: null,
   },
   {
     rank: 10,
     name: "PanelMaster",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=PM",
     grailPoints: 740,
+    rating: 4.5,
+    sales: 76,
+    favorites: 142,
+    badge: null,
   },
 ];
 
@@ -173,14 +214,16 @@ const Leaderboard = () => {
                                 <AvatarImage src={seller.avatar} alt={seller.name} />
                                 <AvatarFallback>{seller.name.slice(0, 2)}</AvatarFallback>
                               </Avatar>
-                              <div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-lg mb-1">{seller.name}</div>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-lg">{seller.name}</span>
-                                  {seller.isTopSeller && (
-                                    <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-500/90">
-                                      🏅 Monthly Top Seller
-                                    </Badge>
-                                  )}
+                                  <SellerStats
+                                    rating={seller.rating}
+                                    salesCount={seller.sales}
+                                    favoritesTotal={seller.favorites}
+                                    showAllStats={false}
+                                  />
+                                  <SellerBadge tier={seller.badge} />
                                 </div>
                               </div>
                             </div>

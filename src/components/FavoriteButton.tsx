@@ -26,20 +26,28 @@ export const FavoriteButton = ({
 
   if (variant === "icon") {
     return (
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn("h-8 w-8", className)}
-        onClick={handleClick}
-        disabled={loading}
-      >
-        <Heart
-          className={cn(
-            "h-4 w-4 transition-all",
-            isFavorite && "fill-primary text-primary"
-          )}
-        />
-      </Button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn("h-8 w-8", className)}
+          onClick={handleClick}
+          disabled={loading}
+          aria-label={isFavorite ? "Remove from watchlist" : "Add to watchlist"}
+        >
+          <Heart
+            className={cn(
+              "h-4 w-4 transition-all",
+              isFavorite && "fill-primary text-primary"
+            )}
+          />
+        </Button>
+        {showCount && favoritesCount > 0 && (
+          <span className="text-xs font-medium text-muted-foreground">
+            {favoritesCount}
+          </span>
+        )}
+      </div>
     );
   }
 
