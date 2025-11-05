@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import FeaturedShops from "@/components/FeaturedShops";
 import SellerChips from "@/components/SellerChips";
+import SellerSpotlight from "@/components/SellerSpotlight";
 import ItemCard from "@/components/ItemCard";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
@@ -772,70 +773,7 @@ const Index = () => {
       <SellerChips />
 
       {/* 3. SELLER SPOTLIGHT */}
-      <section className="bg-muted/30 py-20 comic-texture">
-        <div className="container">
-          <div className="flex items-center gap-3 mb-10">
-            <Star className="h-8 w-8 text-yellow-500" />
-            <div>
-              <h2 className="text-3xl font-bold">Seller Spotlight</h2>
-              <p className="text-muted-foreground">Featured trusted sellers with top-rated collections</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {spotlightSellers.map((seller) => (
-              <div 
-                key={seller.id} 
-                className="bg-card rounded-lg border p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 seller-glow"
-              >
-                <div className="flex flex-col items-center text-center mb-6">
-                  <div className="relative mb-4">
-                    <img 
-                      src={seller.avatar} 
-                      alt={seller.name} 
-                      className="w-24 h-24 rounded-full ring-4 ring-primary/20 hover:ring-primary/40 transition-all"
-                    />
-                    <div className="absolute -bottom-2 -right-2 bg-yellow-500 rounded-full p-1.5">
-                      <Star className="h-4 w-4 fill-yellow-950 text-yellow-950" />
-                    </div>
-                  </div>
-                  <h3 className="font-bold text-xl mb-2">{seller.name}</h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                    <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                    <span className="font-semibold">{seller.rating}</span>
-                    <span>•</span>
-                    <span>{seller.totalSales} sales</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary">
-                    {seller.specialization}
-                  </Badge>
-                </div>
-
-                <div className="border-t pt-4 mb-4">
-                  <p className="text-sm text-muted-foreground mb-3 font-medium">Featured Item</p>
-                  <div className="flex gap-3 items-center">
-                    <img 
-                      src={seller.featuredItem.image} 
-                      alt={seller.featuredItem.title}
-                      className="w-24 h-24 object-cover rounded shadow-md"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm line-clamp-2 mb-2">{seller.featuredItem.title}</p>
-                      <p className="text-xl font-bold text-primary">
-                        ${seller.featuredItem.price}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <Button className="w-full shadow-md hover:shadow-lg transition-shadow">
-                  View Shop
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <SellerSpotlight />
 
       {/* 4. TOP SELLERS LEADERBOARD */}
       <section className="container py-20 comic-texture">
