@@ -1668,7 +1668,7 @@ export type Database = {
       update_seller_favorites_total: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "artist"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1796,7 +1796,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "artist"],
     },
   },
 } as const
