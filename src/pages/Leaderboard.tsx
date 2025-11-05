@@ -14,7 +14,7 @@ const leaderboardData = [
     rank: 1,
     name: "Kiss Komixx",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=KK",
-    grailPoints: 1240,
+    sellerScore: (156 * 4.9) / 5, // 152.88
     rating: 4.9,
     sales: 156,
     favorites: 342,
@@ -24,7 +24,7 @@ const leaderboardData = [
     rank: 2,
     name: "ThePanelVault",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=TPV",
-    grailPoints: 1180,
+    sellerScore: (142 * 4.8) / 5, // 136.32
     rating: 4.8,
     sales: 142,
     favorites: 298,
@@ -34,7 +34,7 @@ const leaderboardData = [
     rank: 3,
     name: "MaskedMerc",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=MM",
-    grailPoints: 1010,
+    sellerScore: (128 * 4.9) / 5, // 125.44
     rating: 4.9,
     sales: 128,
     favorites: 267,
@@ -44,7 +44,7 @@ const leaderboardData = [
     rank: 4,
     name: "BronzeAgeBlaze",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=BAB",
-    grailPoints: 950,
+    sellerScore: (115 * 4.7) / 5, // 108.1
     rating: 4.7,
     sales: 115,
     favorites: 234,
@@ -54,7 +54,7 @@ const leaderboardData = [
     rank: 5,
     name: "SlabCity",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=SC",
-    grailPoints: 910,
+    sellerScore: (108 * 4.8) / 5, // 103.68
     rating: 4.8,
     sales: 108,
     favorites: 221,
@@ -64,7 +64,7 @@ const leaderboardData = [
     rank: 6,
     name: "NOLA_Comics",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=NC",
-    grailPoints: 860,
+    sellerScore: (98 * 4.6) / 5, // 90.16
     rating: 4.6,
     sales: 98,
     favorites: 198,
@@ -74,7 +74,7 @@ const leaderboardData = [
     rank: 7,
     name: "RetroVault",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=RV",
-    grailPoints: 820,
+    sellerScore: (92 * 4.7) / 5, // 86.48
     rating: 4.7,
     sales: 92,
     favorites: 187,
@@ -84,7 +84,7 @@ const leaderboardData = [
     rank: 8,
     name: "ComicCraze",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=CC",
-    grailPoints: 790,
+    sellerScore: (86 * 4.5) / 5, // 77.4
     rating: 4.5,
     sales: 86,
     favorites: 165,
@@ -94,7 +94,7 @@ const leaderboardData = [
     rank: 9,
     name: "GrailHunter",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=GH",
-    grailPoints: 760,
+    sellerScore: (81 * 4.6) / 5, // 74.52
     rating: 4.6,
     sales: 81,
     favorites: 154,
@@ -104,7 +104,7 @@ const leaderboardData = [
     rank: 10,
     name: "PanelMaster",
     avatar: "https://api.dicebear.com/7.x/initials/svg?seed=PM",
-    grailPoints: 740,
+    sellerScore: (76 * 4.5) / 5, // 68.4
     rating: 4.5,
     sales: 76,
     favorites: 142,
@@ -114,6 +114,13 @@ const leaderboardData = [
 
 const Leaderboard = () => {
   const navigate = useNavigate();
+
+  const formatScore = (score: number) => {
+    if (score >= 1000) {
+      return `${(score / 1000).toFixed(2)}K`;
+    }
+    return score.toFixed(1);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -159,7 +166,7 @@ const Leaderboard = () => {
                       <tr className="border-b">
                         <th className="text-left p-4 font-semibold">Rank</th>
                         <th className="text-left p-4 font-semibold">Seller</th>
-                        <th className="text-left p-4 font-semibold">Grail Points</th>
+                        <th className="text-left p-4 font-semibold">Seller Score</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -231,14 +238,19 @@ const Leaderboard = () => {
                           <td className="p-4">
                             <div className="flex items-center gap-2">
                               <Star className="h-5 w-5 text-primary" />
-                              <span className="font-bold text-lg">{seller.grailPoints.toLocaleString()}</span>
-                              <span className="text-muted-foreground">GP</span>
+                              <span className="font-bold text-lg">{formatScore(seller.sellerScore)}</span>
+                              <span className="text-muted-foreground">pts</span>
                             </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-sm text-center text-muted-foreground italic">
+                    Ranking is based on verified sales and ratings — earnings remain private.
+                  </p>
                 </div>
               </CardContent>
             </Card>
