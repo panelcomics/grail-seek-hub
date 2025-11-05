@@ -26,6 +26,7 @@ import Checkout from "./pages/Checkout";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
+import Watchlist from "./pages/Watchlist";
 import Leaderboard from "./pages/Leaderboard";
 import AdminFeaturedShops from "./pages/AdminFeaturedShops";
 import Sellers from "./pages/Sellers";
@@ -68,6 +69,7 @@ const App = () => (
           <Route path="/sellers" element={<Sellers />} />
           <Route path="/seller/:slug" element={<SellerProfile />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/watchlist" element={<Watchlist />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

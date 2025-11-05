@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MapPin, Package, Heart, Clock } from "lucide-react";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -84,15 +85,9 @@ const ItemCard = ({
             alt={title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <button 
-            className="absolute top-3 right-3 p-2 rounded-full bg-background/80 backdrop-blur hover:bg-background transition-colors"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            <Heart className="h-4 w-4" />
-          </button>
+          <div className="absolute top-3 right-3 z-10">
+            <FavoriteButton listingId={id} />
+          </div>
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             {showEndingSoonBadge && (
               <Badge className="font-semibold bg-destructive hover:bg-destructive text-destructive-foreground">

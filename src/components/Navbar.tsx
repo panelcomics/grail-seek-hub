@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
@@ -96,6 +96,13 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
                 <Button variant="outline" className="gap-2">
                   <BarChart3 className="h-4 w-4" />
                   <span className="hidden sm:inline">Portfolio</span>
+                </Button>
+              </Link>
+
+              <Link to="/watchlist">
+                <Button variant="outline" className="gap-2">
+                  <Heart className="h-4 w-4" />
+                  <span className="hidden sm:inline">Watchlist</span>
                 </Button>
               </Link>
             </>
