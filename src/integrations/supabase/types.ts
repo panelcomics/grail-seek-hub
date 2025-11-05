@@ -965,6 +965,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          completed_purchases_count: number | null
           completed_sales_count: number | null
           created_at: string
           favorites_total: number | null
@@ -975,15 +976,18 @@ export type Database = {
           notify_via_email: boolean | null
           seller_tier: string | null
           stripe_account_id: string | null
+          stripe_account_verified: boolean | null
           stripe_onboarding_complete: boolean | null
           terms_accepted_at: string | null
           terms_version_accepted: string | null
+          trade_override_allow: boolean | null
           updated_at: string
           user_id: string
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          completed_purchases_count?: number | null
           completed_sales_count?: number | null
           created_at?: string
           favorites_total?: number | null
@@ -994,15 +998,18 @@ export type Database = {
           notify_via_email?: boolean | null
           seller_tier?: string | null
           stripe_account_id?: string | null
+          stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
+          trade_override_allow?: boolean | null
           updated_at?: string
           user_id: string
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          completed_purchases_count?: number | null
           completed_sales_count?: number | null
           created_at?: string
           favorites_total?: number | null
@@ -1013,9 +1020,11 @@ export type Database = {
           notify_via_email?: boolean | null
           seller_tier?: string | null
           stripe_account_id?: string | null
+          stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
+          trade_override_allow?: boolean | null
           updated_at?: string
           user_id?: string
           username?: string | null
@@ -1421,7 +1430,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_trade_eligibility: {
+        Row: {
+          account_age_days: number | null
+          account_created_at: string | null
+          completed_purchases_count: number | null
+          completed_sales_count: number | null
+          no_open_disputes_last_30d: boolean | null
+          stripe_account_verified: boolean | null
+          total_completed_tx: number | null
+          trade_override_allow: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          account_age_days?: never
+          account_created_at?: string | null
+          completed_purchases_count?: number | null
+          completed_sales_count?: number | null
+          no_open_disputes_last_30d?: never
+          stripe_account_verified?: boolean | null
+          total_completed_tx?: never
+          trade_override_allow?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          account_age_days?: never
+          account_created_at?: string | null
+          completed_purchases_count?: number | null
+          completed_sales_count?: number | null
+          no_open_disputes_last_30d?: never
+          stripe_account_verified?: boolean | null
+          total_completed_tx?: never
+          trade_override_allow?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_discounted_fee: {
@@ -1453,6 +1497,10 @@ export type Database = {
           average_rating: number
           total_ratings: number
         }[]
+      }
+      has_no_open_disputes_last_30d: {
+        Args: { user_uuid: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
