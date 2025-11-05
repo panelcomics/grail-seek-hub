@@ -15,6 +15,8 @@ interface ItemCardProps {
   image: string;
   isLocal?: boolean;
   location?: string;
+  sellerName?: string;
+  sellerCity?: string;
   category: "comic" | "card";
   isAuction?: boolean;
   timeRemaining?: number; // in seconds
@@ -35,6 +37,8 @@ const ItemCard = ({
   image, 
   isLocal = false, 
   location,
+  sellerName,
+  sellerCity,
   category,
   isAuction = false,
   timeRemaining = 0,
@@ -67,12 +71,12 @@ const ItemCard = ({
   };
   return (
     <Link to={`/item/${id}`}>
-      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 cursor-pointer">
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer bg-card border">
         <div className="relative aspect-[3/4] overflow-hidden bg-muted">
           <img
             src={image}
             alt={title}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <button 
             className="absolute top-3 right-3 p-2 rounded-full bg-background/80 backdrop-blur hover:bg-background transition-colors"
@@ -89,12 +93,12 @@ const ItemCard = ({
             </Badge>
             {isClaimSale && (
               <Badge className="font-semibold bg-orange-500 hover:bg-orange-600 text-white animate-pulse">
-                🔥 Claim Mode: ${price} - {itemsLeft} Left
+                Claim Mode: ${price} - {itemsLeft} Left
               </Badge>
             )}
             {isAuction && !isClaimSale && (
               <Badge variant="destructive" className="font-semibold animate-pulse">
-                🔥 $2 BIN
+                $2 BIN
               </Badge>
             )}
           </div>
@@ -108,80 +112,65 @@ const ItemCard = ({
         
         <div className="p-4 space-y-3">
           <div>
-            <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+            <h3 className="font-semibold line-clamp-2 text-base mb-2 group-hover:text-primary transition-colors">
               {title}
             </h3>
             
-            {/* Shipping Options */}
-            <div 
-              className="mt-3 space-y-2 text-xs"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id={`local-${id}`}
-                  checked={localPickup}
-                  onCheckedChange={(checked) => setLocalPickup(checked as boolean)}
-                />
-                <Label 
-                  htmlFor={`local-${id}`}
-                  className="text-xs font-normal cursor-pointer flex items-center gap-1"
-                >
-                  <MapPin className="h-3 w-3" />
-                  Local Pickup (500mi)
-                </Label>
+            {/* Seller Info */}
+            {sellerName && sellerCity && (
+              <div className="text-xs text-muted-foreground mb-3">
+                <span className="font-medium">{sellerName}</span>
+                <span className="mx-1">•</span>
+                <span>{sellerCity}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id={`ship-${id}`}
-                  checked={shipNationwide}
-                  onCheckedChange={(checked) => setShipNationwide(checked as boolean)}
-                />
-                <Label 
-                  htmlFor={`ship-${id}`}
-                  className="text-xs font-normal cursor-pointer flex items-center gap-1"
-                >
-                  <Package className="h-3 w-3" />
-                  Ship Nationwide ($12+)
-                </Label>
-              </div>
-            </div>
+            )}
           </div>
           
           <div className="flex items-center justify-between pt-2 border-t">
             <div className="text-2xl font-bold text-primary">
               ${price}
             </div>
-            {isClaimSale ? (
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            {showMakeOffer ? (
+              <>
+                <Button 
+                  size="sm" 
+                  variant="premium-outline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  Make Offer
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="premium"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  View Listing
+                </Button>
+              </>
+            ) : isClaimSale ? (
               <Button 
                 size="sm" 
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="col-span-2 bg-orange-500 hover:bg-orange-600 text-white"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onClaim?.();
                 }}
               >
-                🔥 Claim Now
-              </Button>
-            ) : showMakeOffer ? (
-              <Button 
-                size="sm" 
-                variant="secondary"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // TODO: Open make offer dialog
-                }}
-              >
-                Make Offer
+                Claim Now
               </Button>
             ) : (
-              <Button size="sm" variant="outline">
-                View Details
+              <Button size="sm" variant="premium" className="col-span-2">
+                View Listing
               </Button>
             )}
           </div>

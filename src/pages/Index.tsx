@@ -211,6 +211,8 @@ const mockItems = [
     image: comicSample1,
     isLocal: false,
     category: "comic" as const,
+    sellerName: "Marvel Vault",
+    sellerCity: "New York, NY",
   },
   {
     id: "tc2",
@@ -220,6 +222,8 @@ const mockItems = [
     image: comicSample2,
     isLocal: false,
     category: "comic" as const,
+    sellerName: "Comic Kingdom",
+    sellerCity: "Los Angeles, CA",
   },
   {
     id: "tc3",
@@ -229,6 +233,8 @@ const mockItems = [
     image: comicSample1,
     isLocal: false,
     category: "comic" as const,
+    sellerName: "Grail Seekers",
+    sellerCity: "Austin, TX",
   },
 
   // 3 TRENDING SPORTS CARDS
@@ -240,6 +246,8 @@ const mockItems = [
     image: cardSample2,
     isLocal: false,
     category: "card" as const,
+    sellerName: "Card Masters",
+    sellerCity: "Chicago, IL",
   },
   {
     id: "ts2",
@@ -249,6 +257,8 @@ const mockItems = [
     image: cardSample1,
     isLocal: false,
     category: "card" as const,
+    sellerName: "Elite Sports Cards",
+    sellerCity: "Dallas, TX",
   },
   {
     id: "ts3",
@@ -258,6 +268,8 @@ const mockItems = [
     image: cardSample2,
     isLocal: false,
     category: "card" as const,
+    sellerName: "Pro Card Vault",
+    sellerCity: "Miami, FL",
   },
 ];
 
@@ -720,24 +732,19 @@ const Index = () => {
 
       {/* 1. TRENDING GRAILS - One Row */}
       <section id="trending-listings" className="container py-20 comic-texture">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <div>
-              <h2 className="text-3xl font-bold">Trending Grails</h2>
-              <p className="text-muted-foreground">Discover the hottest collectibles available now</p>
-            </div>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Trending Grails</h2>
           </div>
           
-          <Button variant="link" className="gap-1" onClick={() => navigate("/marketplace")}>
-            View all
-            <TrendingUp className="h-4 w-4" />
+          <Button variant="link" className="gap-1 text-primary" onClick={() => navigate("/marketplace")}>
+            View All →
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {allTrendingItems.slice(0, 4).map((item) => (
-            <ItemCard key={item.id} {...item} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {allTrendingItems.slice(0, 6).map((item) => (
+            <ItemCard key={item.id} {...item} showMakeOffer={true} />
           ))}
         </div>
       </section>
