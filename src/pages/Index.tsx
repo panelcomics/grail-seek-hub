@@ -8,6 +8,7 @@ import { TermsPopup } from "@/components/TermsPopup";
 import { toastSuccess, toastError } from "@/lib/toastUtils";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
+import FeaturedShops from "@/components/FeaturedShops";
 import ItemCard from "@/components/ItemCard";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
@@ -673,6 +674,7 @@ const Index = () => {
       )}
       
       <Hero />
+      <FeaturedShops />
 
       {/* Welcome Banner */}
       {showWelcomeBanner && (

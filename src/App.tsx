@@ -26,15 +26,18 @@ import Checkout from "./pages/Checkout";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import NotFound from "./pages/NotFound";
 import Leaderboard from "./pages/Leaderboard";
+import AdminFeaturedShops from "./pages/AdminFeaturedShops";
+import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+    <ModalProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/item/:id" element={<ItemDetail />} />
@@ -58,11 +61,13 @@ const App = () => (
           <Route path="/checkout/:orderId" element={<Checkout />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/admin/featured-shops" element={<AdminFeaturedShops />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
+      </TooltipProvider>
+    </ModalProvider>
   </QueryClientProvider>
 );
 

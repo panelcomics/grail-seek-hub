@@ -930,6 +930,39 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_featured: {
+        Row: {
+          active: boolean
+          created_at: string
+          featured_from: string
+          featured_to: string | null
+          id: string
+          rank: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          featured_from?: string
+          featured_to?: string | null
+          id?: string
+          rank?: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          featured_from?: string
+          featured_to?: string | null
+          id?: string
+          rank?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipping_tiers: {
         Row: {
           cost: number
