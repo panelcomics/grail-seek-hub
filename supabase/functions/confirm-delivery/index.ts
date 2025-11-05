@@ -93,6 +93,17 @@ Deno.serve(async (req) => {
     // Update seller completed sales count
     await supabase.rpc("increment_completed_sales", { seller_user_id: user.id });
 
+    // Update buyer completed purchases count
+    const { data: orderDetails } = await supabase
+      .from("orders")
+      .select("buyer_id")
+      .eq("id", orderId)
+      .single();
+    
+    if (orderDetails?.buyer_id) {
+      await supabase.rpc("increment_completed_purchases", { buyer_user_id: orderDetails.buyer_id });
+    }
+
     // Update seller tier based on completed sales
     const { data: profile } = await supabase
       .from("profiles")

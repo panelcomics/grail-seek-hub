@@ -1484,6 +1484,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_completed_purchases: {
+        Args: { buyer_user_id: string }
+        Returns: undefined
+      }
       increment_completed_sales: {
         Args: { seller_user_id: string }
         Returns: undefined
