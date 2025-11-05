@@ -30,6 +30,12 @@ serve(async (req) => {
 
     console.log('Scanning item with Google Cloud Vision...');
 
+    // Extract base64 content from data URL
+    let base64Content = imageBase64;
+    if (imageBase64.includes(',')) {
+      base64Content = imageBase64.split(',')[1];
+    }
+
     // Step 1: Extract text from image using Google Cloud Vision
     const visionResponse = await fetch(
       `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
@@ -38,7 +44,7 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           requests: [{
-            image: { content: imageBase64.split(',')[1] }, // Remove data:image/... prefix
+            image: { content: base64Content },
             features: [
               { type: 'TEXT_DETECTION' },
               { type: 'LABEL_DETECTION' }
@@ -61,7 +67,7 @@ serve(async (req) => {
     console.log('Extracted text:', extractedText);
 
     // Step 2: Parse text to identify comic details
-    const lines = extractedText.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = extractedText.split('\n').map((l: string) => l.trim()).filter(Boolean);
     let title = '';
     let issueNumber = '';
     
