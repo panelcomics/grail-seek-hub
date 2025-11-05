@@ -58,4 +58,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.seed-admin-roles]
-verify_jwt = false
+verify_jwt = true
