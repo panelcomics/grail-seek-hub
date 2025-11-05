@@ -75,7 +75,7 @@ export const TrustModal = ({ open, onOpenChange, eligibility }: TrustModalProps)
             Trading Requirements
           </DialogTitle>
           <DialogDescription>
-            Complete these requirements to unlock trading features
+            We keep trading safe by requiring a little history first. Complete a few deals, verify your account, and you'll unlock full trading access.
           </DialogDescription>
         </DialogHeader>
 
