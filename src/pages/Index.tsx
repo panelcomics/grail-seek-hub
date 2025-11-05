@@ -379,29 +379,13 @@ const Index = () => {
   const { openModal } = useModal();
   const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
 
-  // Check if user has completed onboarding
   useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem("grail-seek-onboarding-completed");
-    if (!hasSeenOnboarding) {
-      // Show onboarding after a short delay for better UX
-      setTimeout(() => {
-        openModal("onboarding", {
-          onComplete: handleOnboardingComplete
-        });
-      }, 500);
-    }
-    
     // Check if user has dismissed the welcome banner
     const hideWelcomeBanner = localStorage.getItem("hideWelcomeBanner");
     if (hideWelcomeBanner === "true") {
       setShowWelcomeBanner(false);
     }
   }, []);
-
-  const handleOnboardingComplete = () => {
-    localStorage.setItem("grail-seek-onboarding-completed", "true");
-    toastSuccess.onboardingComplete();
-  };
 
   // Fetch active claim sales and events
   useEffect(() => {
@@ -632,11 +616,7 @@ const Index = () => {
       <div className="bg-destructive text-destructive-foreground py-2 text-center font-semibold text-sm">
         🧪 TEST MODE - No real payments processed
       </div>
-      <Navbar onShowOnboarding={() => {
-        openModal("onboarding", {
-          onComplete: handleOnboardingComplete
-        });
-      }} />
+      <Navbar />
       
       {/* Notification Permission Banner */}
       {notifications.isSupported && notifications.permission === "default" && (

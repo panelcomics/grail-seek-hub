@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -16,12 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 
-interface NavbarProps {
-  onShowOnboarding?: () => void;
-}
-
-export default function Navbar({ onShowOnboarding }: NavbarProps) {
+export default function Navbar() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [newDealsCount, setNewDealsCount] = useState(0);
 
   useEffect(() => {
@@ -168,12 +165,10 @@ export default function Navbar({ onShowOnboarding }: NavbarProps) {
                     Winners & Orders
                   </Link>
                 </DropdownMenuItem>
-                {onShowOnboarding && (
-                  <DropdownMenuItem onClick={onShowOnboarding}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    View Tutorial
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onClick={() => navigate('/scanner')}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  AI Scanner Tutorial
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
