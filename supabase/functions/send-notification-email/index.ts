@@ -7,10 +7,11 @@ const corsHeaders = {
 };
 
 interface EmailRequest {
-  userId: string;
-  message: string;
+  userId?: string;
+  message?: string;
   link?: string;
   type: string;
+  data?: any;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,7 +24,108 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { userId, message, link, type }: EmailRequest = await req.json();
+    const { userId, message, link, type, data }: EmailRequest = await req.json();
+
+    // Handle admin notifications for artist applications
+    if (type === "artist_application") {
+      console.log("Processing artist application notification");
+      
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (!resendApiKey) {
+        console.log("RESEND_API_KEY not configured, skipping email");
+        return new Response(JSON.stringify({ skipped: true, reason: "No API key" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const artistName = data?.artistName || "Unknown Artist";
+      const portfolioUrl = data?.portfolioUrl || "Not provided";
+      const sampleCount = data?.sampleCount || 0;
+      const userEmail = data?.userEmail || "Unknown";
+      
+      const adminEmailHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              body { font-family: Inter, -apple-system, sans-serif; background: #0a0a0a; margin: 0; padding: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: #1a1a1a; }
+              .header { background: linear-gradient(135deg, #ef4444, #dc2626); padding: 32px 24px; text-align: center; }
+              .logo { color: white; font-size: 24px; font-weight: bold; margin: 0; }
+              .content { padding: 32px 24px; color: #e5e5e5; }
+              .info-row { display: flex; padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
+              .info-label { font-weight: 600; width: 140px; color: #a3a3a3; }
+              .info-value { color: #e5e5e5; flex: 1; }
+              .button { display: inline-block; background: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 24px 0 16px; }
+              .footer { padding: 24px; text-align: center; color: #737373; font-size: 14px; border-top: 1px solid #2a2a2a; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1 class="logo">🎨 New Artist Verification Application</h1>
+              </div>
+              <div class="content">
+                <h2 style="color: #ef4444; margin-top: 0;">Application Details</h2>
+                <div class="info-row">
+                  <div class="info-label">Artist Name:</div>
+                  <div class="info-value">${artistName}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">User Email:</div>
+                  <div class="info-value">${userEmail}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">Portfolio:</div>
+                  <div class="info-value">${portfolioUrl === "Not provided" ? portfolioUrl : `<a href="${portfolioUrl}" style="color: #ef4444;">${portfolioUrl}</a>`}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">Samples Uploaded:</div>
+                  <div class="info-value">${sampleCount} image${sampleCount !== 1 ? 's' : ''}</div>
+                </div>
+                <a href="${supabaseUrl?.replace("supabase.co", "lovable.app")}/settings" class="button">Review Application in Admin Panel</a>
+                <p style="color: #a3a3a3; font-size: 14px; margin-top: 24px;">
+                  Review the application, verify the samples, and approve or deny the artist verification request.
+                </p>
+              </div>
+              <div class="footer">
+                <p>Grail Seeker Admin Notification System</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Grail Seeker Admin <notifications@resend.dev>",
+          to: ["info@panelcomics.com"],
+          subject: `New Verified Artist Application — ${artistName}`,
+          html: adminEmailHtml,
+        }),
+      });
+
+      const emailResult = await emailResponse.json();
+      console.log("Admin email sent successfully:", emailResult);
+
+      return new Response(JSON.stringify(emailResult), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle user notifications (require userId)
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "userId required for user notifications" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch user email and preferences
     const { data: profile, error: profileError } = await supabase

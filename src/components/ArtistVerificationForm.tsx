@@ -138,6 +138,8 @@ export const ArtistVerificationForm = () => {
           type: "artist_application",
           data: {
             artistName: formData.artistName,
+            portfolioUrl: formData.portfolioUrl,
+            sampleCount: uploadedUrls.length,
             userEmail: user?.email,
           },
         },
