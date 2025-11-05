@@ -120,6 +120,19 @@ export const TrustModal = ({ open, onOpenChange, eligibility }: TrustModalProps)
             })}
           </div>
 
+          {/* Encouragement message when trading is locked */}
+          {!(eligibility.trade_override_allow || 
+            (eligibility.total_completed_tx >= 3 && 
+             eligibility.stripe_account_verified && 
+             eligibility.account_age_days >= 7 && 
+             eligibility.no_open_disputes_last_30d)) && (
+            <div className="p-4 rounded-lg bg-muted border">
+              <p className="text-sm text-center">
+                Need a boost? Keep buying and selling through Grail Seeker to reach trusted status faster. Every completed deal gets you closer.
+              </p>
+            </div>
+          )}
+
           {!eligibility.stripe_account_verified && (
             <Button
               variant="destructive"
