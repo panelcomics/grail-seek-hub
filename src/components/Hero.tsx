@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Zap } from "lucide-react";
+import { MapPin, Clock, Zap, Palette, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-marketplace.jpg";
 
 const Hero = () => {
@@ -16,6 +17,28 @@ const Hero = () => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container py-20 md:py-28">
+        {/* Artist Application Banner */}
+        <div className="mb-8 mx-auto max-w-4xl">
+          <div className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 border border-purple-500/20 rounded-xl p-4 backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-center sm:text-left">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Palette className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Now Accepting Verified Artist Applications — Showcase and sell your original art!</p>
+                </div>
+              </div>
+              <Link to="/settings/artist-verification">
+                <Button size="sm" variant="outline" className="border-purple-500/30 hover:bg-purple-500/10 gap-2 flex-shrink-0">
+                  Apply Now
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
           <div className="space-y-8">
             <div className="space-y-4">
