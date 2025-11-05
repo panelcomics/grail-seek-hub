@@ -359,7 +359,7 @@ export default function TradeBoard() {
               </TooltipTrigger>
               {!canTrade && (
                 <TooltipContent aria-label="Trading locked: complete 3 deals, verify Stripe, and wait 7 days.">
-                  <p className="max-w-xs">Trading unlocks after 3 completed deals (buy or sell), Stripe verification, and 7 days account age.</p>
+                  <p className="max-w-xs">Trading unlocks after 3 completed deals (buy or sell), Stripe verification, and 7 days of account history. You're almost there!</p>
                   <Button 
                     variant="link" 
                     size="sm" 
