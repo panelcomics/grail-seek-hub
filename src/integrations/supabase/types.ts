@@ -472,6 +472,59 @@ export type Database = {
           },
         ]
       }
+      disputes: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string
+          email: string
+          file_url: string | null
+          id: string
+          name: string
+          resolved_at: string | null
+          status: string
+          trade_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description: string
+          email: string
+          file_url?: string | null
+          id?: string
+          name: string
+          resolved_at?: string | null
+          status?: string
+          trade_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string
+          email?: string
+          file_url?: string | null
+          id?: string
+          name?: string
+          resolved_at?: string | null
+          status?: string
+          trade_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_listings: {
         Row: {
           booth_number: string | null
