@@ -672,6 +672,9 @@ const CreateClaimSale = () => {
               <Card className="p-6 space-y-6 bg-muted/30 border-2">
                 <div>
                   <Label htmlFor="subcategory">Artwork Type *</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Select whether this is a published comic page, cover, commission, or fan piece.
+                  </p>
                   <Select value={formData.subcategory} onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select artwork type" />
