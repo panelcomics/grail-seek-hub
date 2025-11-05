@@ -31,15 +31,14 @@ const Hero = () => {
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
               <Button 
                 size="lg" 
-                className="gap-2 shadow-lg hover:shadow-xl transition-shadow"
+                variant="premium"
                 onClick={scrollToListings}
               >
                 Start Hunting
               </Button>
               <Button 
                 size="lg" 
-                variant="outline" 
-                className="gap-2"
+                variant="premium-outline"
                 onClick={scrollToLocal}
               >
                 <MapPin className="h-5 w-5" />
