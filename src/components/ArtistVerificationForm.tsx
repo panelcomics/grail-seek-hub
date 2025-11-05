@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Upload, Paintbrush } from "lucide-react";
@@ -22,6 +23,7 @@ export const ArtistVerificationForm = () => {
     artistName: "",
     portfolioUrl: "",
     instagramUrl: "",
+    aboutArtist: "",
     confirmedCreator: false,
   });
 
@@ -124,6 +126,7 @@ export const ArtistVerificationForm = () => {
           instagram_url: formData.instagramUrl || null,
           sample_images: uploadedUrls,
           coa_signature_url: coaUrl,
+          about_artist: formData.aboutArtist || null,
           confirmed_creator: formData.confirmedCreator,
         });
 
@@ -186,13 +189,24 @@ export const ArtistVerificationForm = () => {
           </div>
 
           <div>
-            <Label htmlFor="instagramUrl">Instagram URL</Label>
+            <Label htmlFor="instagramUrl">Instagram Handle (optional)</Label>
             <Input
               id="instagramUrl"
               type="url"
               value={formData.instagramUrl}
               onChange={(e) => setFormData(prev => ({ ...prev, instagramUrl: e.target.value }))}
               placeholder="https://instagram.com/yourhandle"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="aboutArtist">About the Artist</Label>
+            <Textarea
+              id="aboutArtist"
+              value={formData.aboutArtist}
+              onChange={(e) => setFormData(prev => ({ ...prev, aboutArtist: e.target.value }))}
+              placeholder="Tell us about your artistic journey, style, and inspirations..."
+              rows={4}
             />
           </div>
 

@@ -6,7 +6,9 @@ import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { TrustSettings } from "@/components/TrustSettings";
 import { useDiscount } from "@/hooks/useDiscount";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings as SettingsIcon } from "lucide-react";
+import { Settings as SettingsIcon, Paintbrush } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Settings = () => {
   const { isAdmin, loading } = useDiscount();
@@ -26,6 +28,25 @@ const Settings = () => {
         </div>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Paintbrush className="h-5 w-5" />
+                Artist Verification
+              </CardTitle>
+              <CardDescription>
+                Apply to become a verified artist and showcase your original artwork
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/settings/artist-verification">
+                <Button variant="outline" className="w-full">
+                  Apply for Verified Artist Status
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
           <TrustSettings />
           
           <PaymentSettings />

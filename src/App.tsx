@@ -15,6 +15,7 @@ import Events from "./pages/Events";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Settings from "./pages/Settings";
+import ArtistVerification from "./pages/ArtistVerification";
 import CreateClaimSale from "./pages/CreateClaimSale";
 import ClaimSaleDetail from "./pages/ClaimSaleDetail";
 import SellerDashboard from "./pages/SellerDashboard";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/artist-verification" element={<ArtistVerification />} />
             <Route path="/sell/claim-sale" element={<CreateClaimSale />} />
             <Route path="/claim-sale/:id" element={<ClaimSaleDetail />} />
             <Route path="/dashboard" element={<Dashboard />} />

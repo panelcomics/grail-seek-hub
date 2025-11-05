@@ -48,6 +48,7 @@ export type Database = {
       }
       artist_applications: {
         Row: {
+          about_artist: string | null
           admin_notes: string | null
           artist_name: string
           coa_signature_url: string | null
@@ -64,6 +65,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          about_artist?: string | null
           admin_notes?: string | null
           artist_name: string
           coa_signature_url?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          about_artist?: string | null
           admin_notes?: string | null
           artist_name?: string
           coa_signature_url?: string | null
