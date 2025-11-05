@@ -113,11 +113,11 @@ export default function FeaturedShops() {
     <section className="py-12 bg-background/50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            🔥 Featured Shops
+          <h2 className="text-foreground">
+            Featured Shops
           </h2>
           <Link to="/sellers">
-            <Button variant="link" className="gap-1">
+            <Button variant="link" className="gap-1 text-primary hover:text-primary/80">
               View All Sellers →
             </Button>
           </Link>
@@ -187,8 +187,7 @@ function ShopTile({ shop }: { shop: FeaturedShop }) {
         {/* CTA */}
         <Link to={`/seller/${slug}`} className="w-full">
           <Button 
-            variant="destructive" 
-            className="w-full bg-destructive hover:bg-destructive/90"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5"
           >
             Shop Now
           </Button>

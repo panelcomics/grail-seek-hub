@@ -19,8 +19,7 @@ const Hero = () => {
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-center lg:text-left flex items-center justify-center lg:justify-start gap-3">
-                <Zap className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-yellow-500 fill-yellow-500/20" />
+              <h1 className="text-center lg:text-left">
                 Your Grail Is Waiting
               </h1>
               <p className="text-lg text-muted-foreground sm:text-xl max-w-2xl">
@@ -31,14 +30,15 @@ const Hero = () => {
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
               <Button 
                 size="lg" 
-                variant="premium"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-lg hover:-translate-y-0.5"
                 onClick={scrollToListings}
               >
                 Start Hunting
               </Button>
               <Button 
                 size="lg" 
-                variant="premium-outline"
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/5 transition-all hover:shadow-md hover:-translate-y-0.5"
                 onClick={scrollToLocal}
               >
                 <MapPin className="h-5 w-5" />
@@ -77,7 +77,7 @@ const Hero = () => {
                     <div className="text-sm font-semibold">Live Auction Ending Soon</div>
                     <div className="text-xs text-muted-foreground">$2 Bin - 45 items left</div>
                   </div>
-                  <Button size="sm" className="bg-accent hover:bg-accent/90">
+                  <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                     Claim Now
                   </Button>
                 </div>

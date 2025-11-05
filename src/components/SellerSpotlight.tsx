@@ -59,12 +59,12 @@ export default function SellerSpotlight() {
       <div className="container">
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h2 className="text-3xl font-bold">Seller Spotlight</h2>
-            <p className="text-muted-foreground mt-1">Featured trusted sellers with top-rated collections</p>
+            <h2>Seller Spotlight</h2>
+            <p className="text-muted-foreground mt-2">Featured trusted sellers with top-rated collections</p>
           </div>
           
           <Link to="/sellers">
-            <Button variant="link" className="gap-1 text-primary">
+            <Button variant="link" className="gap-1 text-primary hover:text-primary/80">
               View All Sellers →
             </Button>
           </Link>
@@ -147,11 +147,11 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 w-full">
           <Link to={`/seller/${slug}`} className="w-full">
-            <Button variant="premium" size="sm" className="w-full">
+            <Button size="sm" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5">
               View Shop
             </Button>
           </Link>
-          <Button variant="premium-outline" size="sm" className="w-full">
+          <Button size="sm" variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 transition-all hover:shadow-sm hover:-translate-y-0.5">
             Follow
           </Button>
         </div>

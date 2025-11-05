@@ -151,7 +151,8 @@ const ItemCard = ({
               <>
                 <Button 
                   size="sm" 
-                  variant="premium-outline"
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/5 transition-all hover:shadow-sm hover:-translate-y-0.5"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -161,7 +162,7 @@ const ItemCard = ({
                 </Button>
                 <Button 
                   size="sm" 
-                  variant="premium"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -173,7 +174,7 @@ const ItemCard = ({
             ) : isClaimSale ? (
               <Button 
                 size="sm" 
-                className="col-span-2 bg-orange-500 hover:bg-orange-600 text-white"
+                className="col-span-2 bg-orange-500 hover:bg-orange-600 text-white transition-all hover:shadow-md hover:-translate-y-0.5"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -185,8 +186,7 @@ const ItemCard = ({
             ) : showEndingSoonBadge && isAuction ? (
               <Button 
                 size="sm" 
-                variant="premium"
-                className="col-span-2"
+                className="col-span-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -195,7 +195,7 @@ const ItemCard = ({
                 Bid Now
               </Button>
             ) : (
-              <Button size="sm" variant="premium" className="col-span-2">
+              <Button size="sm" className="col-span-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5">
                 View Listing
               </Button>
             )}

@@ -734,11 +734,9 @@ const Index = () => {
       {/* 1. TRENDING GRAILS - One Row */}
       <section id="trending-listings" className="container py-20 comic-texture">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Trending Grails</h2>
-          </div>
+          <h2>Trending Grails</h2>
           
-          <Button variant="link" className="gap-1 text-primary" onClick={() => navigate("/marketplace")}>
+          <Button variant="link" className="gap-1 text-primary hover:text-primary/80" onClick={() => navigate("/marketplace")}>
             View All →
           </Button>
         </div>
@@ -753,11 +751,9 @@ const Index = () => {
       {/* 2. ENDING SOON */}
       <section className="container py-20 comic-texture">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Ending Soon</h2>
-          </div>
+          <h2>Ending Soon</h2>
           
-          <Button variant="link" className="gap-1 text-primary" onClick={() => navigate("/marketplace")}>
+          <Button variant="link" className="gap-1 text-primary hover:text-primary/80" onClick={() => navigate("/marketplace")}>
             View All →
           </Button>
         </div>
@@ -777,12 +773,9 @@ const Index = () => {
 
       {/* 4. TOP SELLERS LEADERBOARD */}
       <section className="container py-20 comic-texture">
-        <div className="flex items-center gap-3 mb-10">
-          <Award className="h-8 w-8 text-primary" />
-          <div>
-            <h2 className="text-3xl font-bold">Top Sellers Leaderboard</h2>
-            <p className="text-muted-foreground">Our highest performing sellers this month</p>
-          </div>
+        <div className="mb-10">
+          <h2>Top Sellers Leaderboard</h2>
+          <p className="text-muted-foreground mt-2">Our highest performing sellers this month</p>
         </div>
 
         <div className="bg-card rounded-lg border overflow-hidden shadow-xl">
