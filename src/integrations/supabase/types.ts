@@ -1002,6 +1002,63 @@ export type Database = {
           },
         ]
       }
+      original_art: {
+        Row: {
+          artist_name: string
+          created_at: string
+          date_created: string | null
+          description: string | null
+          dimensions: string | null
+          for_sale: boolean
+          id: string
+          image_url: string
+          medium: string | null
+          owner_user_id: string | null
+          price: number | null
+          provenance: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          artist_name: string
+          created_at?: string
+          date_created?: string | null
+          description?: string | null
+          dimensions?: string | null
+          for_sale?: boolean
+          id?: string
+          image_url: string
+          medium?: string | null
+          owner_user_id?: string | null
+          price?: number | null
+          provenance?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          artist_name?: string
+          created_at?: string
+          date_created?: string | null
+          description?: string | null
+          dimensions?: string | null
+          for_sale?: boolean
+          id?: string
+          image_url?: string
+          medium?: string | null
+          owner_user_id?: string | null
+          price?: number | null
+          provenance?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       price_alerts: {
         Row: {
           alert_type: string

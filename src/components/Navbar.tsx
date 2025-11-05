@@ -20,12 +20,31 @@ export default function Navbar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [newDealsCount, setNewDealsCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchNewDealsCount();
+      checkAdminStatus();
     }
   }, [user]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+      
+      setIsAdmin(!!data);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
 
   const fetchNewDealsCount = async () => {
     try {
@@ -165,6 +184,17 @@ export default function Navbar() {
                     Winners & Orders
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/original-art/manage" className="cursor-pointer">
+                        <Package className="mr-2 h-4 w-4" />
+                        Original Art (Beta)
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/scanner')}>
                   <HelpCircle className="mr-2 h-4 w-4" />
                   AI Scanner Tutorial

@@ -30,6 +30,8 @@ import Notifications from "./pages/Notifications";
 import Watchlist from "./pages/Watchlist";
 import Leaderboard from "./pages/Leaderboard";
 import AdminFeaturedShops from "./pages/AdminFeaturedShops";
+import UploadOriginalArt from "./pages/admin/UploadOriginalArt";
+import ManageOriginalArt from "./pages/admin/ManageOriginalArt";
 import Sellers from "./pages/Sellers";
 import SellerProfile from "./pages/SellerProfile";
 import FeesPolicy from "./pages/FeesPolicy";
@@ -70,6 +72,8 @@ const App = () => (
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin/featured-shops" element={<AdminFeaturedShops />} />
+            <Route path="/admin/original-art/upload" element={<UploadOriginalArt />} />
+            <Route path="/admin/original-art/manage" element={<ManageOriginalArt />} />
             <Route path="/sellers" element={<Sellers />} />
             <Route path="/seller/:slug" element={<SellerProfile />} />
             <Route path="/notifications" element={<Notifications />} />
