@@ -148,20 +148,16 @@ const ItemCard = ({
                 {hasCoa && (
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Badge variant="outline" className="text-xs flex items-center gap-1">
-                          <Shield className="h-3 w-3 text-green-500" />
-                          COA
-                        </Badge>
+                      <TooltipTrigger asChild>
+                        <div className="cursor-help">
+                          <Shield className="h-3.5 w-3.5 text-blue-500" />
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Certificate of Authenticity Provided</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                )}
-                {!hasCoa && (
-                  <span className="text-xs text-muted-foreground">No COA</span>
                 )}
               </div>
             )}
