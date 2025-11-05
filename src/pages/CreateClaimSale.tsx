@@ -671,10 +671,10 @@ const CreateClaimSale = () => {
             {formData.category === "art" && (
               <Card className="p-6 space-y-6 bg-muted/30 border-2">
                 <div>
-                  <Label htmlFor="subcategory">Art Subcategory *</Label>
+                  <Label htmlFor="subcategory">Artwork Type *</Label>
                   <Select value={formData.subcategory} onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select subcategory" />
+                      <SelectValue placeholder="Select artwork type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="published_pages">Published Pages</SelectItem>
