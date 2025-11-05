@@ -31,6 +31,7 @@ import Leaderboard from "./pages/Leaderboard";
 import AdminFeaturedShops from "./pages/AdminFeaturedShops";
 import Sellers from "./pages/Sellers";
 import SellerProfile from "./pages/SellerProfile";
+import FeesPolicy from "./pages/FeesPolicy";
 import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
           <Route path="/seller/:slug" element={<SellerProfile />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/watchlist" element={<Watchlist />} />
+          <Route path="/fees" element={<FeesPolicy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

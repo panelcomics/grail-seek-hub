@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const FEE_THRESHOLD = 150;
+
 interface ProcessTradePaymentRequest {
   tradeId: string;
 }
@@ -91,11 +93,22 @@ Deno.serve(async (req) => {
       .select("*")
       .single();
 
-    if (!feeSettings?.fees_enabled) {
-      // No fees enabled, mark as paid
+    // Check if fees should be applied
+    const shouldChargeFee = feeSettings?.fees_enabled && trade.agreed_value >= FEE_THRESHOLD;
+
+    if (!shouldChargeFee) {
+      // No fees required - mark as paid
       const updateData = isUserA 
-        ? { user_a_paid_at: new Date().toISOString() }
-        : { user_b_paid_at: new Date().toISOString() };
+        ? { 
+            user_a_paid_at: new Date().toISOString(),
+            total_fee: 0,
+            each_user_fee: 0
+          }
+        : { 
+            user_b_paid_at: new Date().toISOString(),
+            total_fee: 0,
+            each_user_fee: 0
+          };
 
       await supabase
         .from("trades")
@@ -103,14 +116,20 @@ Deno.serve(async (req) => {
         .eq("id", tradeId);
 
       return new Response(
-        JSON.stringify({ success: true, noFeesRequired: true }),
+        JSON.stringify({ 
+          success: true, 
+          noFeesRequired: true,
+          reason: trade.agreed_value < FEE_THRESHOLD 
+            ? `Trade value under $${FEE_THRESHOLD} threshold` 
+            : "Fees disabled"
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Calculate fees
-    const totalFee = (trade.agreed_value * feeSettings.percentage_fee) + feeSettings.flat_fee;
-    const eachUserFee = totalFee / 2;
+    // Calculate fees (rounded to 2 decimals)
+    const totalFee = Number(((trade.agreed_value * feeSettings.percentage_fee) + feeSettings.flat_fee).toFixed(2));
+    const eachUserFee = Number((totalFee / 2).toFixed(2));
 
     // Update trade with fee amounts if not set
     if (!trade.total_fee) {
