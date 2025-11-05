@@ -249,7 +249,7 @@ const Leaderboard = () => {
                 </div>
                 <div className="mt-6 pt-4 border-t">
                   <p className="text-sm text-center text-muted-foreground italic">
-                    Ranking is based on verified sales and ratings — earnings remain private.
+                    Ranking is based on verified sales and buyer ratings. Seller earnings remain private.
                   </p>
                 </div>
               </CardContent>
