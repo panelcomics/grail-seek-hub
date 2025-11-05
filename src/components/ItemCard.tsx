@@ -145,7 +145,7 @@ const ItemCard = ({
                 <span className="text-xs text-muted-foreground capitalize">
                   {subcategory.replace(/_/g, " ")}
                 </span>
-                {hasCoa && (
+                {hasCoa ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -155,6 +155,19 @@ const ItemCard = ({
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Verified with Certificate of Authenticity.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="cursor-help">
+                          <Shield className="h-3.5 w-3.5 text-gray-400" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>COA not provided — verify authenticity before purchase.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
