@@ -144,7 +144,7 @@ const Leaderboard = () => {
               <h1 className="text-4xl md:text-5xl font-bold">Top Sellers of the Month</h1>
             </div>
             <p className="text-muted-foreground text-lg">
-              Celebrating our most trusted and active sellers
+              The most trusted and active sellers across Grail Seeker — ranked by verified sales and community ratings.
             </p>
           </div>
         </div>
