@@ -688,28 +688,31 @@ const CreateClaimSale = () => {
                   </Select>
                 </div>
 
-                <div className="space-y-4 p-4 bg-background rounded-lg border">
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="isCreatorOwner"
-                      checked={formData.isCreatorOwner}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isCreatorOwner: checked as boolean }))}
-                      className="mt-1"
-                    />
-                    <Label htmlFor="isCreatorOwner" className="font-normal cursor-pointer">
-                      I am the creator or legal owner of this artwork. *
-                    </Label>
-                  </div>
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="isOriginalPhysical"
-                      checked={formData.isOriginalPhysical}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOriginalPhysical: checked as boolean }))}
-                      className="mt-1"
-                    />
-                    <Label htmlFor="isOriginalPhysical" className="font-normal cursor-pointer">
-                      This is the original physical piece, not a digital print or reproduction. *
-                    </Label>
+                <div>
+                  <Label>Ownership Confirmation *</Label>
+                  <div className="space-y-4 p-4 bg-background rounded-lg border mt-2">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="isCreatorOwner"
+                        checked={formData.isCreatorOwner}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isCreatorOwner: checked as boolean }))}
+                        className="mt-1"
+                      />
+                      <Label htmlFor="isCreatorOwner" className="font-normal cursor-pointer">
+                        I am the creator or legal owner of this artwork.
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="isOriginalPhysical"
+                        checked={formData.isOriginalPhysical}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isOriginalPhysical: checked as boolean }))}
+                        className="mt-1"
+                      />
+                      <Label htmlFor="isOriginalPhysical" className="font-normal cursor-pointer">
+                        This is the original physical piece, not a digital print or reproduction.
+                      </Label>
+                    </div>
                   </div>
                 </div>
 
