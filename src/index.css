@@ -138,6 +138,22 @@ All colors MUST be HSL.
   html {
     scroll-behavior: smooth;
   }
+  
+  /* WCAG 2.1 Accessibility: Respect user motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 
   h1 {
     @apply text-4xl md:text-5xl lg:text-6xl font-bold;
@@ -174,10 +190,48 @@ All colors MUST be HSL.
     background-size: var(--texture-dots-size);
   }
 
-  /* Respect user's motion preferences */
+  /* WCAG 2.1 Accessibility: Comprehensive motion reduction */
   @media (prefers-reduced-motion: reduce) {
-    .animate-urgent-glow {
-      animation: none;
+    /* Disable all custom animations */
+    .animate-urgent-glow,
+    .animate-pulse,
+    .animate-spin,
+    .animate-ping,
+    .animate-bounce,
+    [class*="animate-"] {
+      animation: none !important;
     }
+    
+    /* Disable hover scaling and transforms */
+    .hover\:-translate-y-1:hover,
+    .hover\:-translate-y-2:hover,
+    .hover\:scale-105:hover,
+    .group-hover\:scale-105,
+    [class*="hover:scale"],
+    [class*="hover:-translate"] {
+      transform: none !important;
+    }
+    
+    /* Remove parallax and motion effects */
+    .seller-glow {
+      box-shadow: var(--shadow-seller-glow);
+      transition: none !important;
+    }
+    
+    /* Ensure content remains visible */
+    * {
+      opacity: 1 !important;
+    }
+  }
+  
+  /* WCAG 2.1: Prevent flashing (max 3 flashes per second) */
+  @keyframes safe-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.95; }
+  }
+  
+  /* Ensure no animation exceeds 3Hz frequency */
+  [class*="animate-"] {
+    animation-duration: 0.334s; /* Minimum duration for 3Hz compliance */
   }
 }
