@@ -21,7 +21,7 @@ export const TrustSettings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
-            Trading Trust & Verification
+            Unlock Trading on Grail Seeker
           </CardTitle>
           <CardDescription>
             {canTrade 
