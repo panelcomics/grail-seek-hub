@@ -716,6 +716,9 @@ const Index = () => {
         </div>
       )}
 
+      {/* FEATURED SHOPS */}
+      <FeaturedShops />
+
       {/* 1. TRENDING GRAILS - One Row */}
       <section id="trending-listings" className="container py-20 comic-texture">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">

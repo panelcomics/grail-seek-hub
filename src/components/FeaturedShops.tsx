@@ -112,7 +112,16 @@ export default function FeaturedShops() {
   return (
     <section className="py-12 bg-background/50">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-foreground mb-8">Featured Shops</h2>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            🔥 Featured Shops
+          </h2>
+          <Link to="/sellers">
+            <Button variant="link" className="gap-1">
+              View All Sellers →
+            </Button>
+          </Link>
+        </div>
         
         {/* Desktop: Grid */}
         <div className="hidden md:grid md:grid-cols-4 gap-6">
