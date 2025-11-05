@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MessageSquare, MapPin, Eye, Send, Filter } from "lucide-react";
+import { Plus, MessageSquare, MapPin, Eye, Send, Filter, Lock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import { useTerms } from "@/hooks/useTerms";
 import { TermsPopup } from "@/components/TermsPopup";
+import { useAuth } from "@/hooks/useAuth";
+import { useTradeEligibility } from "@/hooks/useTradeEligibility";
+import { TrustModal } from "@/components/TrustModal";
 
 interface TradePost {
   id: string;
@@ -40,12 +44,15 @@ interface Comment {
 
 export default function TradeBoard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { eligibility, canTrade } = useTradeEligibility(user?.id);
   const [posts, setPosts] = useState<TradePost[]>([]);
   const [selectedPost, setSelectedPost] = useState<TradePost | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [trustModalOpen, setTrustModalOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
   const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
 
@@ -225,121 +232,146 @@ export default function TradeBoard() {
               </p>
             </div>
           
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create Post
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create Trade Post</DialogTitle>
-                <DialogDescription>
-                  List what you're offering and what you're looking for
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4 mt-4">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <div>
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="e.g., Trade X-Men for Jordan RC"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="gap-2" 
+                        disabled={!canTrade}
+                      >
+                        {!canTrade && <Lock className="h-4 w-4" />}
+                        <Plus className="h-4 w-4" />
+                        Create Post
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Create Trade Post</DialogTitle>
+                        <DialogDescription>
+                          List what you're offering and what you're looking for
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-4 mt-4">
+                        <div>
+                          <Label htmlFor="title">Title *</Label>
+                          <Input
+                            id="title"
+                            placeholder="e.g., Trade X-Men for Jordan RC"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                          />
+                        </div>
 
-                <div>
-                  <Label htmlFor="description">Description *</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe the condition and any details..."
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
+                        <div>
+                          <Label htmlFor="description">Description *</Label>
+                          <Textarea
+                            id="description"
+                            placeholder="Describe the condition and any details..."
+                            rows={4}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                          />
+                        </div>
 
-                <div>
-                  <Label htmlFor="offering">Offering * (comma separated)</Label>
-                  <Input
-                    id="offering"
-                    placeholder="e.g., X-Men #94, X-Men #101"
-                    value={offering}
-                    onChange={(e) => setOffering(e.target.value)}
-                  />
-                </div>
+                        <div>
+                          <Label htmlFor="offering">Offering * (comma separated)</Label>
+                          <Input
+                            id="offering"
+                            placeholder="e.g., X-Men #94, X-Men #101"
+                            value={offering}
+                            onChange={(e) => setOffering(e.target.value)}
+                          />
+                        </div>
 
-                <div>
-                  <Label htmlFor="seeking">Seeking * (comma separated)</Label>
-                  <Input
-                    id="seeking"
-                    placeholder="e.g., Michael Jordan RC, Kobe Bryant RC"
-                    value={seeking}
-                    onChange={(e) => setSeeking(e.target.value)}
-                  />
-                </div>
+                        <div>
+                          <Label htmlFor="seeking">Seeking * (comma separated)</Label>
+                          <Input
+                            id="seeking"
+                            placeholder="e.g., Michael Jordan RC, Kobe Bryant RC"
+                            value={seeking}
+                            onChange={(e) => setSeeking(e.target.value)}
+                          />
+                        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      placeholder="New York"
-                      value={locationCity}
-                      onChange={(e) => setLocationCity(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      placeholder="NY"
-                      value={locationState}
-                      onChange={(e) => setLocationState(e.target.value)}
-                    />
-                  </div>
-                </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="city">City</Label>
+                            <Input
+                              id="city"
+                              placeholder="New York"
+                              value={locationCity}
+                              onChange={(e) => setLocationCity(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="state">State</Label>
+                            <Input
+                              id="state"
+                              placeholder="NY"
+                              value={locationState}
+                              onChange={(e) => setLocationState(e.target.value)}
+                            />
+                          </div>
+                        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="era">Era</Label>
-                    <Select value={era} onValueChange={setEra}>
-                      <SelectTrigger id="era">
-                        <SelectValue placeholder="Select era" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Golden">Golden Age</SelectItem>
-                        <SelectItem value="Silver">Silver Age</SelectItem>
-                        <SelectItem value="Bronze">Bronze Age</SelectItem>
-                        <SelectItem value="Copper">Copper Age</SelectItem>
-                        <SelectItem value="Modern">Modern Age</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="type">Type</Label>
-                    <Select value={type} onValueChange={setType}>
-                      <SelectTrigger id="type">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Variants">Variants</SelectItem>
-                        <SelectItem value="Keys">Keys</SelectItem>
-                        <SelectItem value="Slabs">Slabs</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="era">Era</Label>
+                            <Select value={era} onValueChange={setEra}>
+                              <SelectTrigger id="era">
+                                <SelectValue placeholder="Select era" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Golden">Golden Age</SelectItem>
+                                <SelectItem value="Silver">Silver Age</SelectItem>
+                                <SelectItem value="Bronze">Bronze Age</SelectItem>
+                                <SelectItem value="Copper">Copper Age</SelectItem>
+                                <SelectItem value="Modern">Modern Age</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="type">Type</Label>
+                            <Select value={type} onValueChange={setType}>
+                              <SelectTrigger id="type">
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Variants">Variants</SelectItem>
+                                <SelectItem value="Keys">Keys</SelectItem>
+                                <SelectItem value="Slabs">Slabs</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
 
-                <Button onClick={createPost} className="w-full">
-                  Create Post
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+                        <Button onClick={createPost} className="w-full">
+                          Create Post
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </TooltipTrigger>
+              {!canTrade && (
+                <TooltipContent aria-label="Trading locked: complete 3 deals, verify Stripe, and wait 7 days.">
+                  <p className="max-w-xs">Trading unlocks after 3 completed deals (buy or sell), Stripe verification, and 7 days account age.</p>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 mt-1 text-xs"
+                    onClick={() => setTrustModalOpen(true)}
+                  >
+                    See progress →
+                  </Button>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           </div>
 
           {/* Filters */}
@@ -535,6 +567,13 @@ export default function TradeBoard() {
         open={showTermsPopup}
         onAccept={handleAcceptTerms}
         onDecline={handleDeclineTerms}
+      />
+
+      {/* Trust Modal */}
+      <TrustModal
+        open={trustModalOpen}
+        onOpenChange={setTrustModalOpen}
+        eligibility={eligibility}
       />
     </div>
   );

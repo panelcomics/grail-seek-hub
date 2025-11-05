@@ -56,11 +56,14 @@ Deno.serve(async (req) => {
 
     const isComplete = account.charges_enabled && account.payouts_enabled;
 
-    // Update profile with onboarding status
+    // Update profile with onboarding status and verification
     if (isComplete) {
       await supabase
         .from("profiles")
-        .update({ stripe_onboarding_complete: true })
+        .update({ 
+          stripe_onboarding_complete: true,
+          stripe_account_verified: true 
+        })
         .eq("user_id", user.id);
     }
 

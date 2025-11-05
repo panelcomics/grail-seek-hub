@@ -1430,42 +1430,7 @@ export type Database = {
       }
     }
     Views: {
-      user_trade_eligibility: {
-        Row: {
-          account_age_days: number | null
-          account_created_at: string | null
-          completed_purchases_count: number | null
-          completed_sales_count: number | null
-          no_open_disputes_last_30d: boolean | null
-          stripe_account_verified: boolean | null
-          total_completed_tx: number | null
-          trade_override_allow: boolean | null
-          user_id: string | null
-        }
-        Insert: {
-          account_age_days?: never
-          account_created_at?: string | null
-          completed_purchases_count?: number | null
-          completed_sales_count?: number | null
-          no_open_disputes_last_30d?: never
-          stripe_account_verified?: boolean | null
-          total_completed_tx?: never
-          trade_override_allow?: boolean | null
-          user_id?: string | null
-        }
-        Update: {
-          account_age_days?: never
-          account_created_at?: string | null
-          completed_purchases_count?: number | null
-          completed_sales_count?: number | null
-          no_open_disputes_last_30d?: never
-          stripe_account_verified?: boolean | null
-          total_completed_tx?: never
-          trade_override_allow?: boolean | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       calculate_discounted_fee: {
@@ -1491,16 +1456,26 @@ export type Database = {
         Returns: number
       }
       get_monthly_savings: { Args: { target_user_id: string }; Returns: number }
+      get_trade_eligibility: {
+        Args: { target_user_id?: string }
+        Returns: {
+          account_age_days: number
+          account_created_at: string
+          completed_purchases_count: number
+          completed_sales_count: number
+          no_open_disputes_last_30d: boolean
+          stripe_account_verified: boolean
+          total_completed_tx: number
+          trade_override_allow: boolean
+          user_id: string
+        }[]
+      }
       get_user_rating: {
         Args: { target_user_id: string }
         Returns: {
           average_rating: number
           total_ratings: number
         }[]
-      }
-      has_no_open_disputes_last_30d: {
-        Args: { user_uuid: string }
-        Returns: boolean
       }
       has_role: {
         Args: {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminTestNotification } from "@/components/AdminTestNotification";
+import { AdminTradeOverrides } from "@/components/AdminTradeOverrides";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PayoutManagement } from "./PayoutManagement";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Shield, Plus, Trash2, User } from "lucide-react";
+import { Shield, Plus, Trash2, User, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface InfluencerCode {
@@ -138,6 +139,7 @@ export const AdminPanel = () => {
     <Tabs defaultValue="discount-codes" className="space-y-6">
       <TabsList>
         <TabsTrigger value="discount-codes">Discount Codes</TabsTrigger>
+        <TabsTrigger value="trade-overrides">Trade Overrides</TabsTrigger>
         <TabsTrigger value="payouts">Payout Management</TabsTrigger>
         <TabsTrigger value="notifications">Test Notifications</TabsTrigger>
       </TabsList>
@@ -214,6 +216,10 @@ export const AdminPanel = () => {
 
       <TabsContent value="payouts">
         <PayoutManagement />
+      </TabsContent>
+
+      <TabsContent value="trade-overrides">
+        <AdminTradeOverrides />
       </TabsContent>
 
       <TabsContent value="notifications">
