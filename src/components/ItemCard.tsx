@@ -27,6 +27,7 @@ interface ItemCardProps {
   onClaim?: () => void;
   showMakeOffer?: boolean;
   minOfferPercentage?: number;
+  showEndingSoonBadge?: boolean;
 }
 
 const ItemCard = ({ 
@@ -48,11 +49,14 @@ const ItemCard = ({
   itemsLeft = 0,
   onClaim,
   showMakeOffer = false,
-  minOfferPercentage = 10
+  minOfferPercentage = 10,
+  showEndingSoonBadge = false
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const [localPickup, setLocalPickup] = useState(true);
   const [shipNationwide, setShipNationwide] = useState(false);
+  
+  const isUrgent = countdown > 0 && countdown <= 300; // Last 5 minutes
 
   useEffect(() => {
     if (!isAuction || countdown <= 0) return;
@@ -71,7 +75,9 @@ const ItemCard = ({
   };
   return (
     <Link to={`/item/${id}`}>
-      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer bg-card border">
+      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer bg-card border ${
+        isUrgent ? 'animate-pulse ring-2 ring-destructive/50' : ''
+      }`}>
         <div className="relative aspect-[3/4] overflow-hidden bg-muted">
           <img
             src={image}
@@ -88,6 +94,12 @@ const ItemCard = ({
             <Heart className="h-4 w-4" />
           </button>
           <div className="absolute top-3 left-3 flex flex-col gap-2">
+            {showEndingSoonBadge && (
+              <Badge className="font-semibold bg-destructive hover:bg-destructive text-destructive-foreground">
+                <Clock className="h-3 w-3 mr-1" />
+                Ending Soon
+              </Badge>
+            )}
             <Badge variant="secondary" className="font-semibold">
               {condition}
             </Badge>
@@ -96,14 +108,16 @@ const ItemCard = ({
                 Claim Mode: ${price} - {itemsLeft} Left
               </Badge>
             )}
-            {isAuction && !isClaimSale && (
+            {isAuction && !isClaimSale && !showEndingSoonBadge && (
               <Badge variant="destructive" className="font-semibold animate-pulse">
                 $2 BIN
               </Badge>
             )}
           </div>
           {isAuction && countdown > 0 && (
-            <div className="absolute bottom-3 left-3 right-3 bg-destructive/90 backdrop-blur text-destructive-foreground px-3 py-2 rounded-md flex items-center justify-center gap-2 font-bold">
+            <div className={`absolute bottom-3 left-3 right-3 backdrop-blur px-3 py-2 rounded-md flex items-center justify-center gap-2 font-bold ${
+              isUrgent ? 'bg-destructive text-destructive-foreground' : 'bg-destructive/90 text-destructive-foreground'
+            }`}>
               <Clock className="h-4 w-4" />
               {formatTime(countdown)}
             </div>
@@ -167,6 +181,18 @@ const ItemCard = ({
                 }}
               >
                 Claim Now
+              </Button>
+            ) : showEndingSoonBadge && isAuction ? (
+              <Button 
+                size="sm" 
+                variant="premium"
+                className="col-span-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                Bid Now
               </Button>
             ) : (
               <Button size="sm" variant="premium" className="col-span-2">

@@ -749,44 +749,22 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 2. ENDING SOON - One Row + Browse Local CTA */}
+      {/* 2. ENDING SOON */}
       <section className="container py-20 comic-texture">
-        <div className="flex items-center gap-3 mb-10">
-          <Clock className="h-8 w-8 text-destructive" />
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold">Ending Soon</h2>
-            <p className="text-muted-foreground">Claim these $2 bin auctions before time runs out</p>
+            <h2 className="text-3xl font-bold mb-2">Ending Soon</h2>
           </div>
+          
+          <Button variant="link" className="gap-1 text-primary" onClick={() => navigate("/marketplace")}>
+            View All →
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Items - 3 columns on desktop, full width on mobile */}
-          <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {auctionItems.slice(0, 3).map((item) => (
-              <ItemCard key={item.id} {...item} />
-            ))}
-          </div>
-
-          {/* Browse Local CTA - Desktop only */}
-          <div className="hidden xl:block">
-            <div className="h-full bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10 rounded-lg border border-primary/20 p-6 flex flex-col justify-center items-center text-center space-y-4 hover:shadow-lg transition-shadow">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <MapPin className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-2">Browse Local</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Find collectibles near you and save on shipping
-                </p>
-              </div>
-              <Button 
-                className="w-full" 
-                onClick={() => document.getElementById("local-discovery")?.scrollIntoView({ behavior: "smooth" })}
-              >
-                Explore Nearby
-              </Button>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {auctionItems.slice(0, 6).map((item) => (
+            <ItemCard key={item.id} {...item} showEndingSoonBadge={true} />
+          ))}
         </div>
       </section>
 
