@@ -149,6 +149,13 @@ const Leaderboard = () => {
           </div>
         </div>
 
+        {/* Tagline */}
+        <div className="text-center mb-8">
+          <p className="text-xl font-semibold text-foreground">
+            Trading. Trusted. Transparent. <span className="text-primary">See who's setting the bar high on Grail Seeker.</span>
+          </p>
+        </div>
+
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Leaderboard Table */}
           <div className="lg:col-span-3">
