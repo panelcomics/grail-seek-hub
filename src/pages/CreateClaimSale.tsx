@@ -699,7 +699,7 @@ const CreateClaimSale = () => {
                         className="mt-1"
                       />
                       <Label htmlFor="isCreatorOwner" className="font-normal cursor-pointer">
-                        I am the creator or legal owner of this artwork.
+                        I am the creator or lawful owner of this original artwork and understand that Grail Seeker is a venue only.
                       </Label>
                     </div>
                     <div className="flex items-start space-x-2">
