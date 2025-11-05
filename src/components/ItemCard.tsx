@@ -102,7 +102,7 @@ const ItemCard = ({
               {condition}
             </Badge>
             {isClaimSale && (
-              <Badge className="font-semibold bg-orange-500 hover:bg-orange-600 text-white animate-pulse">
+              <Badge className="font-semibold bg-orange-500 hover:bg-orange-600 text-white animate-claim-fade">
                 Claim Mode: ${price} - {itemsLeft} Left
               </Badge>
             )}

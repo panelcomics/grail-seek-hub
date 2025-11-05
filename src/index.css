@@ -194,6 +194,7 @@ All colors MUST be HSL.
   @media (prefers-reduced-motion: reduce) {
     /* Disable all custom animations */
     .animate-urgent-glow,
+    .animate-claim-fade,
     .animate-pulse,
     .animate-spin,
     .animate-ping,
