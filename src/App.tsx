@@ -34,6 +34,8 @@ import UploadOriginalArt from "./pages/admin/UploadOriginalArt";
 import ManageOriginalArt from "./pages/admin/ManageOriginalArt";
 import InviteArtist from "./pages/admin/InviteArtist";
 import MyOriginalArt from "./pages/artist/MyOriginalArt";
+import MyCollection from "./pages/MyCollection";
+import MyAccount from "./pages/MyAccount";
 import Sellers from "./pages/Sellers";
 import SellerProfile from "./pages/SellerProfile";
 import FeesPolicy from "./pages/FeesPolicy";
@@ -78,6 +80,8 @@ const App = () => (
             <Route path="/admin/original-art/manage" element={<ManageOriginalArt />} />
             <Route path="/admin/invite-artist" element={<InviteArtist />} />
             <Route path="/artist/my-art" element={<MyOriginalArt />} />
+            <Route path="/my-collection" element={<MyCollection />} />
+            <Route path="/my-account" element={<MyAccount />} />
             <Route path="/sellers" element={<Sellers />} />
             <Route path="/seller/:slug" element={<SellerProfile />} />
             <Route path="/notifications" element={<Notifications />} />

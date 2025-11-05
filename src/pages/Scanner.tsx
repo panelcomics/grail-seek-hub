@@ -146,11 +146,52 @@ export default function Scanner() {
       setScanResult(data);
       toast.success('Comic identified successfully!');
 
+      // Auto-save to library if user is logged in
+      if (user && data.comicvine) {
+        await saveToLibrary(data);
+      }
+
     } catch (error: any) {
       console.error('Scan error:', error);
       toast.error(error.message || 'Failed to scan comic');
     } finally {
       setScanning(false);
+    }
+  };
+
+  const saveToLibrary = async (scanData: any) => {
+    try {
+      const { error } = await supabase
+        .from('comics')
+        .insert({
+          user_id: user!.id,
+          series: scanData.comicvine.series,
+          issue: scanData.comicvine.issue,
+          year: scanData.comicvine.year,
+          publisher: scanData.comicvine.publisher,
+          creators: scanData.comicvine.creators || [],
+          cover_url: scanData.comicvine.coverUrl,
+          notes: null,
+        });
+
+      if (error) {
+        // Check if it's a duplicate (unique constraint violation)
+        if (error.code === '23505') {
+          toast.info('This comic is already in your library');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success('Saved to your collection!', {
+          action: {
+            label: 'View',
+            onClick: () => navigate('/my-collection'),
+          },
+        });
+      }
+    } catch (error: any) {
+      console.error('Save to library error:', error);
+      // Don't show error toast as this is a background operation
     }
   };
 

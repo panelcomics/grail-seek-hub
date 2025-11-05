@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Heart, Mail } from "lucide-react";
+import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Heart, Mail, UserCircle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
@@ -149,6 +149,19 @@ export default function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/my-collection" className="cursor-pointer">
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    My Collection
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/my-account" className="cursor-pointer">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    My Account
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="cursor-pointer">

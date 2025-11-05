@@ -436,6 +436,48 @@ export type Database = {
         }
         Relationships: []
       }
+      comics: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          creators: string[] | null
+          id: string
+          issue: string | null
+          notes: string | null
+          publisher: string | null
+          series: string
+          updated_at: string
+          user_id: string
+          year: string | null
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          creators?: string[] | null
+          id?: string
+          issue?: string | null
+          notes?: string | null
+          publisher?: string | null
+          series: string
+          updated_at?: string
+          user_id: string
+          year?: string | null
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          creators?: string[] | null
+          id?: string
+          issue?: string | null
+          notes?: string | null
+          publisher?: string | null
+          series?: string
+          updated_at?: string
+          user_id?: string
+          year?: string | null
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           buyer_id: string
