@@ -11,9 +11,8 @@ import Footer from "@/components/Footer";
 interface ComicResult {
   name: string;
   issue_number: string;
-  volume: { name: string } | null;
-  cover_date: string;
-  image?: string;
+  volume: string;
+  year: string;
 }
 
 interface ScanResponse {
@@ -165,13 +164,6 @@ export default function Scanner() {
                         {result.comicvineResults.map((comic, idx) => (
                           <Card key={idx}>
                             <CardContent className="flex gap-4 p-4">
-                              {comic.image && (
-                                <img 
-                                  src={comic.image} 
-                                  alt={comic.name}
-                                  className="w-16 h-24 object-cover rounded"
-                                />
-                              )}
                               <div className="flex-1 space-y-1">
                                 <div className="font-semibold">
                                   {comic.name}
@@ -183,12 +175,12 @@ export default function Scanner() {
                                 </div>
                                 {comic.volume && (
                                   <div className="text-sm text-muted-foreground">
-                                    {comic.volume.name}
+                                    {comic.volume}
                                   </div>
                                 )}
-                                {comic.cover_date && (
+                                {comic.year && (
                                   <div className="text-xs text-muted-foreground">
-                                    {new Date(comic.cover_date).getFullYear()}
+                                    {comic.year}
                                   </div>
                                 )}
                               </div>
