@@ -85,6 +85,7 @@ const Auth = () => {
       }
 
       await logAuthEvent('login_success', { email: signInEmail });
+      navigate("/dashboard", { replace: true });
       toast({
         title: "Welcome back!",
         description: "Successfully signed in.",
