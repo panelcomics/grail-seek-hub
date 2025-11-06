@@ -19,6 +19,11 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
       });
     }
+    // 🔧 TEMP: prove the edge function is being reached from the UI
+    return new Response(JSON.stringify({ ok: true, reached: "edge-function", note: "temp bypass" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
 
     const { imageBase64 } = (await req.json()) as ScanRequest;
     if (!imageBase64 || typeof imageBase64 !== "string") {
