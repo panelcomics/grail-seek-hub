@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,43 +20,51 @@ const Auth = () => {
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
-  const [googleFallbackEmail, setGoogleFallbackEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const logAuthEvent = async (event: string, metadata?: any) => {
     try {
-      await supabase.from('event_logs').insert({
-        event,
-        metadata
-      });
+      await supabase.from('event_logs').insert({ event, metadata });
     } catch (error) {
       console.error('Failed to log auth event:', error);
     }
   };
 
   useEffect(() => {
-    // Clear password fields on mount to prevent autofill
-    setSignInPassword("");
-    setSignUpPassword("");
-    
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const validatePassword = (password: string) => {
+    if (password.length < 8) return { valid: false, message: "Password must be at least 8 characters" };
+    if (!/[A-Z]/.test(password)) return { valid: false, message: "Password must include uppercase letter" };
+    if (!/[a-z]/.test(password)) return { valid: false, message: "Password must include lowercase letter" };
+    if (!/[0-9]/.test(password)) return { valid: false, message: "Password must include a number" };
+    if (!/[^A-Za-z0-9]/.test(password)) return { valid: false, message: "Password must include a symbol" };
+    return { valid: true, message: "Strong password" };
+  };
+
+  const getPasswordStrength = (password: string) => {
+    const validation = validatePassword(password);
+    if (!password) return { strength: 0, label: "" };
+    if (!validation.valid) return { strength: 33, label: "Weak" };
+    if (password.length < 12) return { strength: 66, label: "Medium" };
+    return { strength: 100, label: "Strong" };
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,10 +111,11 @@ const Auth = () => {
       return;
     }
 
-    if (!isPasswordValid) {
+    const passwordValidation = validatePassword(signUpPassword);
+    if (!passwordValidation.valid) {
       toast({
         title: "Invalid Password",
-        description: "Add a number or symbol (e.g., SpaceCowboy1!)",
+        description: passwordValidation.message,
         variant: "destructive",
       });
       return;
@@ -116,11 +124,11 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: signUpEmail,
         password: signUpPassword,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -129,6 +137,17 @@ const Auth = () => {
           throw new Error("Email in use — try another or sign in");
         }
         throw error;
+      }
+
+      if (data.user) {
+        try {
+          await supabase.from('profiles').insert({
+            user_id: data.user.id,
+            email: data.user.email
+          });
+        } catch (profileError) {
+          console.error('Profile creation error:', profileError);
+        }
       }
 
       await logAuthEvent('signup_email', { email: signUpEmail });
@@ -157,7 +176,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email: magicLinkEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -179,54 +198,76 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!signInEmail) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: signInEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Magic link sent!",
+        description: "Check your email for the login link",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/v1/callback`,
-          scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
       if (error) throw error;
       await logAuthEvent('signup_google');
     } catch (error: any) {
-      const is403 = error.message.includes('403') || error.status === 403;
-      await logAuthEvent('google_failed', { error: error.message, is403 });
+      await logAuthEvent('google_failed', { error: error.message });
       
-      const emailMatch = error.message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
-      const fallbackEmail = emailMatch ? emailMatch[0] : '';
-      
-      if (fallbackEmail) {
-        setGoogleFallbackEmail(fallbackEmail);
-        setSignUpEmail(fallbackEmail);
-      }
-
       toast({
-        title: is403 ? "Google config issue — try email" : "Google login issue — using email instead",
-        description: fallbackEmail 
-          ? "We've pre-filled your email address"
-          : "Please use email/password login",
+        title: "Google login issue",
+        description: "Please use email/password login instead",
         variant: "default",
       });
       setIsLoading(false);
     }
   };
 
+  const passwordStrength = getPasswordStrength(signUpPassword);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background/95 to-muted/30 p-4">
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center justify-center gap-3 mb-8">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
-            <span className="text-2xl font-bold text-primary-foreground">GS</span>
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(355,78%,56%)] to-[hsl(355,75%,51%)] shadow-lg">
+            <span className="text-2xl font-bold text-white">GS</span>
           </div>
-          <span className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <span className="text-3xl font-bold bg-gradient-to-r from-[hsl(355,78%,56%)] to-[hsl(355,75%,51%)] bg-clip-text text-transparent">
             Grail Seeker
           </span>
         </Link>
@@ -292,10 +333,9 @@ const Auth = () => {
                         placeholder="Enter your password"
                         value={signInPassword}
                         onChange={(e) => setSignInPassword(e.target.value)}
-                        autoComplete="new-password"
+                        autoComplete="current-password"
                         required
                         disabled={isLoading}
-                        minLength={8}
                         className="h-11 pr-10"
                       />
                       <button
@@ -310,7 +350,7 @@ const Auth = () => {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full h-11 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold"
+                    className="w-full h-11 bg-gradient-to-r from-[hsl(355,78%,56%)] to-[hsl(355,75%,51%)] hover:from-[hsl(355,78%,51%)] hover:to-[hsl(355,75%,46%)] text-white font-semibold"
                     disabled={isLoading}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -319,8 +359,9 @@ const Auth = () => {
                   <div className="text-center text-sm">
                     <button
                       type="button"
-                      onClick={handleMagicLink}
+                      onClick={handleForgotPassword}
                       className="text-muted-foreground hover:text-primary underline transition-colors"
+                      disabled={isLoading}
                     >
                       Forgot password? Get a magic link
                     </button>
@@ -329,13 +370,6 @@ const Auth = () => {
               </TabsContent>
               
               <TabsContent value="signup" className="space-y-4 pt-4">
-                {googleFallbackEmail && (
-                  <div className="mb-4 p-3 bg-muted/50 rounded-lg border border-primary/20">
-                    <p className="text-sm text-muted-foreground">
-                      Google sign-in encountered an issue. Please set a password to complete your registration.
-                    </p>
-                  </div>
-                )}
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email" className="font-medium">Email</Label>
@@ -375,10 +409,23 @@ const Auth = () => {
                         {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <PasswordStrengthMeter 
-                      password={signUpPassword} 
-                      onValidationChange={setIsPasswordValid}
-                    />
+                    {signUpPassword && (
+                      <div className="space-y-2 mt-2">
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-300 ${
+                              passwordStrength.strength === 100 ? 'bg-green-500' :
+                              passwordStrength.strength === 66 ? 'bg-yellow-500' :
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${passwordStrength.strength}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {passwordStrength.label}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-start space-x-2 py-2">
@@ -412,21 +459,13 @@ const Auth = () => {
 
                   <Button
                     type="submit"
-                    className="w-full h-11 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold"
-                    disabled={isLoading || !acceptedTerms || !isPasswordValid}
+                    className="w-full h-11 bg-gradient-to-r from-[hsl(355,78%,56%)] to-[hsl(355,75%,51%)] hover:from-[hsl(355,78%,51%)] hover:to-[hsl(355,75%,46%)] text-white font-semibold"
+                    disabled={isLoading || !acceptedTerms}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
-                <div className="mt-4 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    Trouble logging in? Contact{" "}
-                    <a href="mailto:support@panelcomics.com" className="underline hover:text-primary transition-colors">
-                      support@panelcomics.com
-                    </a>
-                  </p>
-                </div>
               </TabsContent>
 
               <TabsContent value="magic" className="space-y-4 pt-4">
@@ -473,7 +512,7 @@ const Auth = () => {
                     </div>
                     <Button 
                       type="submit" 
-                      className="w-full h-11 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold" 
+                      className="w-full h-11 bg-gradient-to-r from-[hsl(355,78%,56%)] to-[hsl(355,75%,51%)] hover:from-[hsl(355,78%,51%)] hover:to-[hsl(355,75%,46%)] text-white font-semibold" 
                       disabled={isLoading}
                     >
                       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
