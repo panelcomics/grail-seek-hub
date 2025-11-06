@@ -952,11 +952,15 @@ export type Database = {
           id: string
           images: Json | null
           issue_number: string | null
+          listed_price: number | null
+          listing_status: string | null
           owner_id: string | null
           private_location: string | null
           private_notes: string | null
           publisher: string | null
           series: string | null
+          sold_at: string | null
+          storage_container_id: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -971,11 +975,15 @@ export type Database = {
           id?: string
           images?: Json | null
           issue_number?: string | null
+          listed_price?: number | null
+          listing_status?: string | null
           owner_id?: string | null
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null
           series?: string | null
+          sold_at?: string | null
+          storage_container_id?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -990,16 +998,28 @@ export type Database = {
           id?: string
           images?: Json | null
           issue_number?: string | null
+          listed_price?: number | null
+          listing_status?: string | null
           owner_id?: string | null
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null
           series?: string | null
+          sold_at?: string | null
+          storage_container_id?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_storage_container_id_fkey"
+            columns: ["storage_container_id"]
+            isOneToOne: false
+            referencedRelation: "storage_containers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       listings: {
         Row: {
@@ -1738,6 +1758,36 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_containers: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          qr_code_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          qr_code_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          qr_code_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trade_comments: {
         Row: {
           comment_text: string
@@ -2086,6 +2136,28 @@ export type Database = {
           series?: string | null
           title?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      seller_stats: {
+        Row: {
+          active_listings: number | null
+          gross_sales: number | null
+          items_sold: number | null
+          total_listed_value: number | null
+          total_scans: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      top_scanned_titles: {
+        Row: {
+          listed_count: number | null
+          scan_count: number | null
+          series: string | null
+          sold_count: number | null
+          title: string | null
+          user_id: string | null
         }
         Relationships: []
       }
