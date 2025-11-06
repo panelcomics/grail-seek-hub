@@ -806,6 +806,30 @@ export type Database = {
           },
         ]
       }
+      event_logs: {
+        Row: {
+          created_at: string | null
+          event: string
+          id: string
+          meta: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event: string
+          id?: string
+          meta?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event?: string
+          id?: string
+          meta?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           city: string
@@ -919,37 +943,58 @@ export type Database = {
       }
       inventory_items: {
         Row: {
+          cgc_grade: string | null
           comicvine_issue_id: string | null
+          condition: string | null
+          cover_date: string | null
           created_at: string
           grade: string | null
           id: string
+          images: Json | null
           issue_number: string | null
+          owner_id: string | null
           private_location: string | null
           private_notes: string | null
+          publisher: string | null
+          series: string | null
           title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          cgc_grade?: string | null
           comicvine_issue_id?: string | null
+          condition?: string | null
+          cover_date?: string | null
           created_at?: string
           grade?: string | null
           id?: string
+          images?: Json | null
           issue_number?: string | null
+          owner_id?: string | null
           private_location?: string | null
           private_notes?: string | null
+          publisher?: string | null
+          series?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          cgc_grade?: string | null
           comicvine_issue_id?: string | null
+          condition?: string | null
+          cover_date?: string | null
           created_at?: string
           grade?: string | null
           id?: string
+          images?: Json | null
           issue_number?: string | null
+          owner_id?: string | null
           private_location?: string | null
           private_notes?: string | null
+          publisher?: string | null
+          series?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
@@ -964,12 +1009,16 @@ export type Database = {
           created_at: string | null
           duration_days: number | null
           ends_at: string | null
+          fee_cents: number | null
           id: string
           image_url: string | null
           inventory_item_id: string | null
           issue_number: string | null
+          payout_cents: number | null
           price: number | null
+          price_cents: number | null
           private_notes: string | null
+          quantity: number | null
           reserve: number | null
           shipping_price: number | null
           start_bid: number | null
@@ -987,12 +1036,16 @@ export type Database = {
           created_at?: string | null
           duration_days?: number | null
           ends_at?: string | null
+          fee_cents?: number | null
           id?: string
           image_url?: string | null
           inventory_item_id?: string | null
           issue_number?: string | null
+          payout_cents?: number | null
           price?: number | null
+          price_cents?: number | null
           private_notes?: string | null
+          quantity?: number | null
           reserve?: number | null
           shipping_price?: number | null
           start_bid?: number | null
@@ -1010,12 +1063,16 @@ export type Database = {
           created_at?: string | null
           duration_days?: number | null
           ends_at?: string | null
+          fee_cents?: number | null
           id?: string
           image_url?: string | null
           inventory_item_id?: string | null
           issue_number?: string | null
+          payout_cents?: number | null
           price?: number | null
+          price_cents?: number | null
           private_notes?: string | null
+          quantity?: number | null
           reserve?: number | null
           shipping_price?: number | null
           start_bid?: number | null
@@ -1039,6 +1096,13 @@ export type Database = {
             columns: ["inventory_item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1135,16 +1199,18 @@ export type Database = {
       orders: {
         Row: {
           amount: number
+          amount_cents: number | null
           buyer_id: string
           buyer_protection_fee: number | null
           carrier: string | null
           charge_id: string | null
-          claim_id: string
-          claim_sale_id: string
+          claim_id: string | null
+          claim_sale_id: string | null
           created_at: string
           delivery_confirmed_at: string | null
           dispute_status: string | null
           id: string
+          listing_id: string | null
           paid_at: string | null
           payment_intent_id: string | null
           payment_method: string | null
@@ -1156,8 +1222,11 @@ export type Database = {
           platform_fee_rate: number | null
           seller_id: string
           shipped_at: string | null
+          shipping_address: Json | null
           shipping_amount: number
+          shipping_name: string | null
           shipping_status: string | null
+          status: string | null
           stripe_session_id: string | null
           total: number | null
           tracking_number: string | null
@@ -1166,16 +1235,18 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          amount_cents?: number | null
           buyer_id: string
           buyer_protection_fee?: number | null
           carrier?: string | null
           charge_id?: string | null
-          claim_id: string
-          claim_sale_id: string
+          claim_id?: string | null
+          claim_sale_id?: string | null
           created_at?: string
           delivery_confirmed_at?: string | null
           dispute_status?: string | null
           id?: string
+          listing_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
           payment_method?: string | null
@@ -1187,8 +1258,11 @@ export type Database = {
           platform_fee_rate?: number | null
           seller_id: string
           shipped_at?: string | null
+          shipping_address?: Json | null
           shipping_amount?: number
+          shipping_name?: string | null
           shipping_status?: string | null
+          status?: string | null
           stripe_session_id?: string | null
           total?: number | null
           tracking_number?: string | null
@@ -1197,16 +1271,18 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_cents?: number | null
           buyer_id?: string
           buyer_protection_fee?: number | null
           carrier?: string | null
           charge_id?: string | null
-          claim_id?: string
-          claim_sale_id?: string
+          claim_id?: string | null
+          claim_sale_id?: string | null
           created_at?: string
           delivery_confirmed_at?: string | null
           dispute_status?: string | null
           id?: string
+          listing_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
           payment_method?: string | null
@@ -1218,8 +1294,11 @@ export type Database = {
           platform_fee_rate?: number | null
           seller_id?: string
           shipped_at?: string | null
+          shipping_address?: Json | null
           shipping_amount?: number
+          shipping_name?: string | null
           shipping_status?: string | null
+          status?: string | null
           stripe_session_id?: string | null
           total?: number | null
           tracking_number?: string | null
@@ -1239,6 +1318,13 @@ export type Database = {
             columns: ["claim_sale_id"]
             isOneToOne: false
             referencedRelation: "claim_sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
             referencedColumns: ["id"]
           },
         ]
@@ -1379,6 +1465,7 @@ export type Database = {
           completed_purchases_count: number | null
           completed_sales_count: number | null
           created_at: string
+          display_name: string | null
           favorites_total: number | null
           hide_ai_scanner_tour: boolean | null
           id: string
@@ -1402,6 +1489,7 @@ export type Database = {
           completed_purchases_count?: number | null
           completed_sales_count?: number | null
           created_at?: string
+          display_name?: string | null
           favorites_total?: number | null
           hide_ai_scanner_tour?: boolean | null
           id?: string
@@ -1425,6 +1513,7 @@ export type Database = {
           completed_purchases_count?: number | null
           completed_sales_count?: number | null
           created_at?: string
+          display_name?: string | null
           favorites_total?: number | null
           hide_ai_scanner_tour?: boolean | null
           id?: string
@@ -1949,7 +2038,57 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      inventory_items_public: {
+        Row: {
+          cgc_grade: string | null
+          comicvine_issue_id: string | null
+          condition: string | null
+          cover_date: string | null
+          created_at: string | null
+          grade: string | null
+          id: string | null
+          images: Json | null
+          issue_number: string | null
+          owner_id: string | null
+          publisher: string | null
+          series: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cgc_grade?: string | null
+          comicvine_issue_id?: string | null
+          condition?: string | null
+          cover_date?: string | null
+          created_at?: string | null
+          grade?: string | null
+          id?: string | null
+          images?: Json | null
+          issue_number?: string | null
+          owner_id?: string | null
+          publisher?: string | null
+          series?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cgc_grade?: string | null
+          comicvine_issue_id?: string | null
+          condition?: string | null
+          cover_date?: string | null
+          created_at?: string | null
+          grade?: string | null
+          id?: string | null
+          images?: Json | null
+          issue_number?: string | null
+          owner_id?: string | null
+          publisher?: string | null
+          series?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_discounted_fee: {
