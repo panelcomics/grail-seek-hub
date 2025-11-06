@@ -77,20 +77,30 @@ serve(async (req) => {
     console.log('Calling ComicVine with query:', cleaned);
     const cvRes = await fetch(
       `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleaned)}&resources=issue&limit=10`,
+      {
+        headers: {
+          "User-Agent": "GrailSeeker/1.0 (panelcomics.com)",
+        },
+      }
     );
 
     console.log('ComicVine response status:', cvRes.status);
     const cvData = await cvRes.json();
-    if (!cvRes.ok || cvData.error) {
-      console.error('ComicVine error:', cvData.error);
+    console.log('ComicVine data:', JSON.stringify(cvData).substring(0, 200));
+    
+    // ComicVine uses status_code: 1 for success (not error field)
+    if (!cvRes.ok || cvData.status_code !== 1) {
+      console.error('ComicVine failed:', { status_code: cvData.status_code, error: cvData.error });
       throw new Error(cvData.error ?? "ComicVine API failed");
     }
 
     const results = (cvData.results ?? []).map((i: any) => ({
+      id: i.id ?? null,
       name: i.name ?? "Unknown",
       issue_number: i.issue_number ?? "",
       volume: i.volume?.name ?? "Unknown",
-      year: i.cover_date?.split("-")[0] ?? "",
+      cover_date: i.cover_date ?? "",
+      image: i.image?.small_url ?? i.image?.thumb_url ?? null,
     }));
 
     console.log('Success – results count:', results.length);

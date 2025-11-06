@@ -9,10 +9,12 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 interface ComicResult {
+  id: number | null;
   name: string;
   issue_number: string;
   volume: string;
-  year: string;
+  cover_date: string;
+  image: string | null;
 }
 
 interface ScanResponse {
@@ -178,9 +180,9 @@ export default function Scanner() {
                                     {comic.volume}
                                   </div>
                                 )}
-                                {comic.year && (
+                                {comic.cover_date && (
                                   <div className="text-xs text-muted-foreground">
-                                    {comic.year}
+                                    {new Date(comic.cover_date).toLocaleDateString()}
                                   </div>
                                 )}
                               </div>
