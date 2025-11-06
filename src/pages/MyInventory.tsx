@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Search, Download, Upload, Loader2, Edit2, Save, X, Filter } from "lucide-react";
+import { Search, Download, Upload, Loader2, Edit2, Save, X, Filter, DollarSign } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { exportInventoryToCSV, downloadCSV } from "@/lib/csvUtils";
 import { CSVImportModal } from "@/components/CSVImportModal";
+import { ListItemModal } from "@/components/ListItemModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -34,6 +35,8 @@ export default function MyInventory() {
   const [search, setSearch] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [listModalOpen, setListModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLocation, setEditLocation] = useState("");
   const [editNotes, setEditNotes] = useState("");
@@ -294,6 +297,15 @@ export default function MyInventory() {
         onOpenChange={setImportModalOpen}
         onImportComplete={fetchInventory}
       />
+
+      {selectedItem && (
+        <ListItemModal
+          open={listModalOpen}
+          onOpenChange={setListModalOpen}
+          inventoryItem={selectedItem}
+          onSuccess={fetchInventory}
+        />
+      )}
     </div>
   );
 }

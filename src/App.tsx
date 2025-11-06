@@ -44,6 +44,9 @@ import FeesPolicy from "./pages/FeesPolicy";
 import Help from "./pages/Help";
 import DevScanTest from "./pages/DevScanTest";
 import SellComic from "./pages/SellComic";
+import Marketplace from "./pages/Marketplace";
+import ListingDetail from "./pages/ListingDetail";
+import Orders from "./pages/Orders";
 import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
@@ -96,6 +99,10 @@ const App = () => (
             <Route path="/fees" element={<FeesPolicy />} />
             <Route path="/help" element={<Help />} />
             <Route path="/dev/scan-test" element={<DevScanTest />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/listing/:id" element={<ListingDetail />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/orders/:id" element={<OrderDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
