@@ -6,8 +6,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ComicResult {
   id: number | null;
@@ -27,9 +29,11 @@ interface ScanResponse {
 
 export default function Scanner() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedImageBase64, setUploadedImageBase64] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,6 +60,7 @@ export default function Scanner() {
 
     try {
       const imageBase64 = await fileToBase64(file);
+      setUploadedImageBase64(imageBase64);
       
       const { data, error: invokeError } = await supabase.functions.invoke('scan-item', {
         body: { imageBase64 }
@@ -74,6 +79,44 @@ export default function Scanner() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function saveOcrToCollection() {
+    if (!user) {
+      toast.error("Please sign in to add to your collection");
+      navigate("/auth");
+      return;
+    }
+
+    if (!result?.ocrPreview || !uploadedImageBase64) {
+      toast.error("No OCR data to save");
+      return;
+    }
+
+    const firstLine = result.ocrPreview.split('\n')[0].trim();
+    const title = firstLine || "Custom Scan";
+
+    const { error } = await supabase.from("user_comics").insert({
+      user_id: user.id,
+      comicvine_id: 0,
+      title,
+      issue_number: "Custom",
+      volume_name: "Manual Entry",
+      cover_date: new Date().toISOString().split('T')[0],
+      image_url: null,
+      ocr_text: result.ocrPreview,
+      photo_base64: uploadedImageBase64,
+      source: "ocr_custom"
+    });
+
+    if (error) {
+      console.error("Error saving OCR to collection:", error);
+      toast.error("Failed to add to collection");
+      return;
+    }
+
+    toast.success("Added to collection!");
+    navigate("/my-collection");
   }
 
   return (
@@ -158,6 +201,13 @@ export default function Scanner() {
                       <div className="bg-muted p-3 rounded-md text-sm font-mono">
                         {result.ocrPreview}
                       </div>
+                      <Button 
+                        onClick={saveOcrToCollection}
+                        variant="destructive"
+                        className="w-full"
+                      >
+                        Add This OCR Text to My Collection
+                      </Button>
                     </div>
                   )}
 

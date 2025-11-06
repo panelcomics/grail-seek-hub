@@ -1641,6 +1641,9 @@ export type Database = {
           id: string
           image_url: string | null
           issue_number: string | null
+          ocr_text: string | null
+          photo_base64: string | null
+          source: string | null
           title: string | null
           user_id: string
           volume_name: string | null
@@ -1652,6 +1655,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           issue_number?: string | null
+          ocr_text?: string | null
+          photo_base64?: string | null
+          source?: string | null
           title?: string | null
           user_id: string
           volume_name?: string | null
@@ -1663,6 +1669,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           issue_number?: string | null
+          ocr_text?: string | null
+          photo_base64?: string | null
+          source?: string | null
           title?: string | null
           user_id?: string
           volume_name?: string | null
