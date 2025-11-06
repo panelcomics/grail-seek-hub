@@ -1637,6 +1637,7 @@ export type Database = {
         Row: {
           added_at: string | null
           comicvine_id: number
+          condition_notes: string | null
           cover_date: string | null
           id: string
           image_url: string | null
@@ -1651,6 +1652,7 @@ export type Database = {
         Insert: {
           added_at?: string | null
           comicvine_id: number
+          condition_notes?: string | null
           cover_date?: string | null
           id?: string
           image_url?: string | null
@@ -1665,6 +1667,7 @@ export type Database = {
         Update: {
           added_at?: string | null
           comicvine_id?: number
+          condition_notes?: string | null
           cover_date?: string | null
           id?: string
           image_url?: string | null

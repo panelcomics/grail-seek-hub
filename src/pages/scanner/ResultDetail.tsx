@@ -2,6 +2,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft, Plus, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +30,7 @@ export default function ResultDetail() {
   const { user } = useAuth();
   const [adding, setAdding] = useState(false);
   const [isInCollection, setIsInCollection] = useState(false);
+  const [conditionNotes, setConditionNotes] = useState("");
 
   const comic = location.state as ComicDetailState;
 
@@ -114,6 +117,7 @@ export default function ResultDetail() {
         cover_date: comic.cover_date || null,
         image_url: imageUrl,
         ocr_text: comic.ocrText,
+        condition_notes: conditionNotes.trim() || null,
         source: "comicvine_with_photo",
       });
 
@@ -124,8 +128,8 @@ export default function ResultDetail() {
           throw error;
         }
       } else {
-        toast.success("Added to your collection!");
-        setIsInCollection(true);
+        toast.success("Added to collection!");
+        navigate("/my-collection");
       }
     } catch (err) {
       console.error(err);
@@ -174,60 +178,54 @@ export default function ResultDetail() {
             </CardHeader>
             <CardContent className="space-y-6">
               {comic.userPhotoBase64 && (
-                <div className="w-full">
+                <div className="w-full flex justify-center">
                   <img
                     src={`data:image/jpeg;base64,${comic.userPhotoBase64}`}
                     alt={comic.name}
-                    className="w-full rounded-lg shadow-lg"
+                    className="max-w-full w-auto max-h-[500px] rounded-lg shadow-lg"
                   />
-                  <p className="text-xs text-muted-foreground mt-2 text-center">Your scanned photo</p>
                 </div>
               )}
 
-              <div className="flex gap-6 flex-col md:flex-row">
-                {!comic.userPhotoBase64 && comic.image && (
-                  <div className="flex-shrink-0">
-                    <img
-                      src={comic.image}
-                      alt={comic.name}
-                      className="w-48 h-auto rounded-lg shadow-md"
-                    />
-                  </div>
-                )}
-                
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <h2 className="text-2xl font-bold">{comic.name}</h2>
-                    {comic.issue_number && (
-                      <Badge variant="secondary" className="mt-2">
-                        Issue #{comic.issue_number}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {comic.volume && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">Volume:</span>
-                      <p className="font-medium">{comic.volume}</p>
-                    </div>
-                  )}
-
-                  {comic.cover_date && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">Cover Date:</span>
-                      <p className="font-medium">
-                        {new Date(comic.cover_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
-
-                  {comic.description && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">Description:</span>
-                      <p className="text-sm mt-1">{comic.description}</p>
-                    </div>
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-2xl font-bold">{comic.name}</h2>
+                  {comic.issue_number && (
+                    <Badge variant="secondary" className="mt-2">
+                      Issue #{comic.issue_number}
+                    </Badge>
                   )}
                 </div>
+
+                {comic.volume && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Volume:</span>
+                    <p className="font-medium">{comic.volume}</p>
+                  </div>
+                )}
+
+                {comic.cover_date && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Cover Date:</span>
+                    <p className="font-medium">
+                      {new Date(comic.cover_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="condition-notes">
+                  Condition Notes (optional)
+                </Label>
+                <Textarea
+                  id="condition-notes"
+                  placeholder="e.g. Minor spine ticks, CGC 9.8 candidate"
+                  value={conditionNotes}
+                  onChange={(e) => setConditionNotes(e.target.value)}
+                  rows={3}
+                  disabled={isInCollection}
+                />
               </div>
 
               <div className="pt-4">
