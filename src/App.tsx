@@ -102,8 +102,10 @@ const App = () => (
             <Route path="/fees" element={<FeesPolicy />} />
             <Route path="/help" element={<Help />} />
             <Route path="/dev/scan-test" element={<DevScanTest />} />
-            <Route path="/marketplace" element={<Marketplace />} />
-            <Route path="/listing/:id" element={<ListingDetail />} />
+            <Route path="/market" element={<Marketplace />} />
+            <Route path="/marketplace" element={<Marketplace />} /> {/* redirect old route */}
+            <Route path="/l/:id" element={<ListingDetail />} />
+            <Route path="/listing/:id" element={<ListingDetail />} /> {/* redirect old route */}
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2, Shield, User } from "lucide-react";
 import { formatCents } from "@/lib/fees";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
@@ -64,6 +65,7 @@ export default function ListingDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [listing, setListing] = useState<any>(null);
+  const [seller, setSeller] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
@@ -78,23 +80,42 @@ export default function ListingDetail() {
   });
 
   useEffect(() => {
-    if (id) fetchListing();
+    if (id) {
+      fetchListing();
+      logListingView();
+    }
   }, [id]);
+
+  const logListingView = async () => {
+    try {
+      await supabase.from("event_logs").insert({
+        event: "listing_view",
+        meta: { listing_id: id }
+      });
+    } catch (error) {
+      console.error("Error logging listing view:", error);
+    }
+  };
 
   const fetchListing = async () => {
     try {
       const { data, error } = await supabase
         .from("listings")
-        .select("*, inventory_items_public(*)")
+        .select(`
+          *,
+          inventory_items_public(*),
+          profiles!user_id(user_id, username, display_name, avatar_url, completed_sales_count)
+        `)
         .eq("id", id)
         .single();
 
       if (error) throw error;
       setListing(data);
+      setSeller(data.profiles);
     } catch (error) {
       console.error("Error fetching listing:", error);
       toast.error("Listing not found");
-      navigate("/marketplace");
+      navigate("/market");
     } finally {
       setLoading(false);
     }
@@ -152,42 +173,134 @@ export default function ListingDetail() {
     return null;
   }
 
+  const title = listing.title || listing.inventory_items_public?.title || "Comic Listing";
+  const description = `${title}${listing.issue_number ? ` #${listing.issue_number}` : ""} - ${formatCents(listing.price_cents)} - Available now on our marketplace`;
+  const imageUrl = listing.image_url || listing.inventory_items_public?.images?.[0]?.url || "";
+  const canonicalUrl = `${window.location.origin}/l/${id}`;
+  const sellerName = seller?.display_name || seller?.username || "Seller";
+  const sellerSlug = seller?.username?.toLowerCase().replace(/\s+/g, '-');
+
+  // JSON-LD structured data for Product
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: title,
+    description: description,
+    image: imageUrl,
+    offers: {
+      "@type": "Offer",
+      price: (listing.price_cents / 100).toFixed(2),
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      seller: {
+        "@type": "Person",
+        name: sellerName,
+      }
+    }
+  };
+
   const options = clientSecret ? { clientSecret } : undefined;
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>{title} | Buy Now</title>
+        <meta name="description" content={description} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={imageUrl} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="product" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={imageUrl} />
+        <link rel="canonical" href={canonicalUrl} />
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
+
       <Navbar />
 
-      <main className="flex-1 container py-8">
+      <main className="flex-1 container py-4 md:py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8">
             <div>
-              <div className="aspect-[2/3] bg-muted rounded-lg mb-4" />
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={title}
+                  className="aspect-[2/3] w-full object-cover rounded-lg mb-4"
+                />
+              ) : (
+                <div className="aspect-[2/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
+                  <span className="text-muted-foreground">No image available</span>
+                </div>
+              )}
               {listing.inventory_items_public?.comicvine_issue_id && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="h-4 w-4" />
                   Verified Scan
                 </div>
               )}
+              
+              {seller && sellerSlug && (
+                <Card className="mt-4">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      {seller.avatar_url ? (
+                        <img src={seller.avatar_url} alt={sellerName} className="h-12 w-12 rounded-full" />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                          <User className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground">Sold by</p>
+                        <Link to={`/seller/${sellerSlug}`} className="font-semibold hover:underline">
+                          {sellerName}
+                        </Link>
+                        {seller.completed_sales_count > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {seller.completed_sales_count} sales
+                          </p>
+                        )}
+                      </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/seller/${sellerSlug}`}>View Profile</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <div>
-              <h1 className="text-3xl font-bold mb-2">
-                {listing.title || listing.inventory_items_public?.title}
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                {title}
               </h1>
               {listing.issue_number && (
-                <p className="text-lg text-muted-foreground mb-4">
+                <p className="text-base md:text-lg text-muted-foreground mb-4">
                   Issue #{listing.issue_number}
                 </p>
               )}
 
-              <div className="text-3xl font-bold text-primary mb-6">
+              <div className="text-2xl md:text-3xl font-bold text-primary mb-6">
                 {formatCents(listing.price_cents)}
               </div>
 
+              {listing.condition_notes && (
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-2">Condition Notes</h3>
+                  <p className="text-sm text-muted-foreground">{listing.condition_notes}</p>
+                </div>
+              )}
+
               {!checkoutMode ? (
                 <Card>
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-4 md:p-6 space-y-4">
+                    <h3 className="font-semibold">Shipping Information</h3>
                     <div>
                       <Label htmlFor="name">Full Name</Label>
                       <Input
@@ -252,7 +365,7 @@ export default function ListingDetail() {
                 </Card>
               ) : options ? (
                 <Card>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 md:p-6">
                     <Elements stripe={stripePromise} options={options}>
                       <CheckoutForm
                         orderId={orderId}

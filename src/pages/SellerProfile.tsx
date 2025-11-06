@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
@@ -155,8 +156,39 @@ export default function SellerProfile() {
     },
   ];
 
+  const canonicalUrl = `${window.location.origin}/seller/${slug}`;
+  const sellerName = profile.username || "Seller";
+  const description = `${sellerName}'s shop - ${profile.completed_sales_count} sales completed. Browse their collection of comics and collectibles.`;
+
+  // JSON-LD structured data for Person/Seller
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: sellerName,
+    ...(profile.avatar_url && { image: profile.avatar_url }),
+    jobTitle: "Seller",
+    description: description,
+    ...(profile.verified_artist && { 
+      additionalType: "https://schema.org/Artist",
+    }),
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>{sellerName}'s Shop | Comic Marketplace</title>
+        <meta name="description" content={description} />
+        <meta property="og:title" content={`${sellerName}'s Shop`} />
+        <meta property="og:description" content={description} />
+        {profile.avatar_url && <meta property="og:image" content={profile.avatar_url} />}
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="profile" />
+        <meta name="twitter:card" content="summary" />
+        <link rel="canonical" href={canonicalUrl} />
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
       <Navbar />
 
       {/* Banner */}

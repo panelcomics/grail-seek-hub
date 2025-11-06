@@ -1,14 +1,19 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Allow: /market
+Allow: /l/*
+Allow: /seller/*
+Allow: /sellers
+Allow: /events
+Allow: /help
+
+Disallow: /auth
+Disallow: /my-*
+Disallow: /admin*
+Disallow: /settings*
+Disallow: /dashboard*
+Disallow: /inventory*
+Disallow: /orders*
+Disallow: /messages*
+
+Sitemap: https://your-domain.com/sitemap.xml
