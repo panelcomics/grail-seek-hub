@@ -160,6 +160,11 @@ const Auth = () => {
         title: "Account created!",
         description: "Check your email to verify your account.",
       });
+      
+      // If user is automatically signed in (auto-confirm enabled), redirect
+      if (data.session) {
+        window.location.href = "/dashboard";
+      }
     } catch (error: any) {
       await logAuthEvent('signup_failed', { email: signUpEmail, error: error.message });
       toast({
@@ -250,6 +255,7 @@ const Auth = () => {
 
       if (error) throw error;
       await logAuthEvent('signup_google');
+      // OAuth will handle the redirect automatically
     } catch (error: any) {
       await logAuthEvent('google_failed', { error: error.message });
       
