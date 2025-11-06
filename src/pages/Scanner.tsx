@@ -1,114 +1,217 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { Camera, Upload, Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+
+interface ComicResult {
+  name: string;
+  issue_number: string;
+  volume: { name: string } | null;
+  cover_date: string;
+  image?: string;
+}
+
+interface ScanResponse {
+  ok: boolean;
+  ocrPreview?: string;
+  comicvineResults?: ComicResult[];
+  error?: string;
+}
 
 export default function Scanner() {
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ScanResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  async function fileToBase64(file: File) {
-    const img = new Image();
-    const reader = new FileReader();
-
-    const dataUrl: string = await new Promise((resolve, reject) => {
-      reader.onload = () => resolve(reader.result as string);
+  async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        // Strip the "data:image/...;base64," prefix
+        const base64 = dataUrl.split(',')[1];
+        resolve(base64);
+      };
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-
-    await new Promise<void>((res, rej) => {
-      img.onload = () => res();
-      img.onerror = rej;
-      img.src = dataUrl;
-    });
-
-    // Resize to keep payload small for the edge function
-    const maxSide = 1600;
-    let w = (img as HTMLImageElement).width;
-    let h = (img as HTMLImageElement).height;
-    const scale = Math.min(1, maxSide / Math.max(w, h));
-    w = Math.round(w * scale);
-    h = Math.round(h * scale);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0, w, h);
-
-    const compressed = canvas.toDataURL("image/jpeg", 0.85);
-    return compressed.split(",")[1];
   }
 
   async function handleFile(file?: File) {
     if (!file) return;
+    
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
       const imageBase64 = await fileToBase64(file);
-      const res = await fetch("/functions/v1/scan-item", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64 }),
+      
+      const { data, error: invokeError } = await supabase.functions.invoke('scan-item', {
+        body: { imageBase64 }
       });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setResult(data);
+
+      if (invokeError) throw invokeError;
+      
+      setResult(data as ScanResponse);
+      
+      if (data && !data.ok) {
+        setError(data.error || "Scan failed");
+      }
     } catch (err) {
       console.error(err);
-      setError("Scan failed. Try a straight-on, well-lit cover photo.");
+      setError("Network error. Try a straight-on, well-lit cover photo.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div style={{ padding: "1.5rem", maxWidth: 900, margin: "0 auto" }}>
-      <h2>📷 AI Comic Scanner</h2>
-      <p>Upload a clear cover photo. We’ll OCR with Google Vision and match on ComicVine.</p>
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      
+      <main className="flex-1 container py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-bold">AI Comic Scanner</h1>
+            <p className="text-muted-foreground">
+              Upload or take a photo of a comic cover. We'll identify it using OCR and ComicVine.
+            </p>
+          </div>
 
-      {/* Two hidden inputs: library and camera */}
-      <input
-        id="pickLibrary"
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={(e) => handleFile(e.target.files?.[0])}
-      />
-      <input
-        id="pickCamera"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: "none" }}
-        onChange={(e) => handleFile(e.target.files?.[0])}
-      />
+          <Card>
+            <CardHeader>
+              <CardTitle>Scan Comic Cover</CardTitle>
+              <CardDescription>
+                For best results, use a clear, straight-on photo with good lighting
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-3 flex-wrap">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                />
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                />
+                
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  className="gap-2"
+                  size="lg"
+                >
+                  <Upload className="h-5 w-5" />
+                  Choose from Photos
+                </Button>
+                
+                <Button
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={loading}
+                  variant="outline"
+                  className="gap-2"
+                  size="lg"
+                >
+                  <Camera className="h-5 w-5" />
+                  Use Camera
+                </Button>
+              </div>
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-        <button onClick={() => (document.getElementById("pickLibrary") as HTMLInputElement).click()}>
-          Choose from Photos
-        </button>
-        <button onClick={() => (document.getElementById("pickCamera") as HTMLInputElement).click()}>Use Camera</button>
-      </div>
+              {loading && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Scanning cover and searching database...</span>
+                </div>
+              )}
 
-      {loading && <p style={{ marginTop: 12 }}>Scanning…</p>}
-      {error && <p style={{ marginTop: 12, color: "#f66" }}>{error}</p>}
-      {result && (
-        <pre
-          style={{
-            background: "#111",
-            color: "#0f0",
-            padding: "1rem",
-            marginTop: "1rem",
-            maxHeight: 480,
-            overflow: "auto",
-            borderRadius: 8,
-          }}
-        >
-          {JSON.stringify(result, null, 2)}
-        </pre>
-      )}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {result && result.ok && (
+                <div className="space-y-4">
+                  {result.ocrPreview && (
+                    <div className="space-y-2">
+                      <h3 className="font-semibold">OCR Text Detected:</h3>
+                      <div className="bg-muted p-3 rounded-md text-sm font-mono">
+                        {result.ocrPreview}
+                      </div>
+                    </div>
+                  )}
+
+                  {result.comicvineResults && result.comicvineResults.length > 0 ? (
+                    <div className="space-y-3">
+                      <h3 className="font-semibold">ComicVine Results ({result.comicvineResults.length}):</h3>
+                      <div className="grid gap-3">
+                        {result.comicvineResults.map((comic, idx) => (
+                          <Card key={idx}>
+                            <CardContent className="flex gap-4 p-4">
+                              {comic.image && (
+                                <img 
+                                  src={comic.image} 
+                                  alt={comic.name}
+                                  className="w-16 h-24 object-cover rounded"
+                                />
+                              )}
+                              <div className="flex-1 space-y-1">
+                                <div className="font-semibold">
+                                  {comic.name}
+                                  {comic.issue_number && (
+                                    <Badge variant="secondary" className="ml-2">
+                                      #{comic.issue_number}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {comic.volume && (
+                                  <div className="text-sm text-muted-foreground">
+                                    {comic.volume.name}
+                                  </div>
+                                )}
+                                {comic.cover_date && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {new Date(comic.cover_date).getFullYear()}
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Alert>
+                      <AlertDescription>
+                        No matches found in ComicVine. Try a different image or angle.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+      
+      <Footer />
     </div>
   );
 }
