@@ -272,6 +272,7 @@ const Auth = () => {
                       placeholder="••••••••"
                       value={signInPassword}
                       onChange={(e) => setSignInPassword(e.target.value)}
+                      autoComplete="current-password"
                       required
                       disabled={isLoading}
                       minLength={6}
@@ -326,6 +327,7 @@ const Auth = () => {
                       placeholder="SpaceCowboy1!"
                       value={signUpPassword}
                       onChange={(e) => setSignUpPassword(e.target.value)}
+                      autoComplete="new-password"
                       required
                       disabled={isLoading}
                       minLength={8}
