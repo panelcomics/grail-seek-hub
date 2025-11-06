@@ -1,5 +1,8 @@
 project_id = "fiwmlzrhwvrsrxmcstzk"
 
+[functions.validate-password]
+verify_jwt = false
+
 [functions.scan-item]
 verify_jwt = false
 
@@ -59,3 +62,16 @@ verify_jwt = true
 
 [functions.seed-admin-roles]
 verify_jwt = true
+
+[functions.generate-sitemap]
+verify_jwt = false
+
+[functions.marketplace-create-payment-intent]
+verify_jwt = true
+
+[functions.marketplace-webhook]
+verify_jwt = false
+
+[functions.send-daily-digest]
+verify_jwt = true
+

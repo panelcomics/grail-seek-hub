@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
+import { PasswordStrengthMeter } from "@/components/PasswordStrengthMeter";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,8 +21,21 @@ const Auth = () => {
   const [magicLinkEmail, setMagicLinkEmail] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [googleFallbackEmail, setGoogleFallbackEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const logAuthEvent = async (event: string, metadata?: any) => {
+    try {
+      await supabase.from('event_logs').insert({
+        event,
+        metadata
+      });
+    } catch (error) {
+      console.error('Failed to log auth event:', error);
+    }
+  };
 
   useEffect(() => {
     // Check if user is already logged in
@@ -79,6 +93,15 @@ const Auth = () => {
       });
       return;
     }
+
+    if (!isPasswordValid) {
+      toast({
+        title: "Invalid Password",
+        description: "Please ensure your password meets the requirements.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsLoading(true);
 
@@ -93,11 +116,14 @@ const Auth = () => {
 
       if (error) throw error;
 
+      await logAuthEvent('signup_success', { email: signUpEmail });
+
       toast({
         title: "Account created!",
         description: "Check your email to verify your account.",
       });
     } catch (error: any) {
+      await logAuthEvent('signup_failed', { email: signUpEmail, error: error.message });
       toast({
         title: "Error",
         description: error.message,
@@ -141,19 +167,38 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: window.location.origin,
+          scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         },
       });
 
       if (error) throw error;
+      await logAuthEvent('google_signin_initiated');
     } catch (error: any) {
+      await logAuthEvent('google_failed', { error: error.message });
+      
+      // Try to extract email from error if available
+      const emailMatch = error.message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+      const fallbackEmail = emailMatch ? emailMatch[0] : '';
+      
+      if (fallbackEmail) {
+        setGoogleFallbackEmail(fallbackEmail);
+        setSignUpEmail(fallbackEmail);
+      }
+
       toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+        title: "Google login issue",
+        description: fallbackEmail 
+          ? "Using email instead — we've pre-filled your address"
+          : "Please use email/password login instead",
+        variant: "default",
       });
       setIsLoading(false);
     }
@@ -240,10 +285,26 @@ const Auth = () => {
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
+                  <div className="text-center text-sm">
+                    <button
+                      type="button"
+                      onClick={handleMagicLink}
+                      className="text-muted-foreground hover:text-foreground underline"
+                    >
+                      Forgot password? Get a magic link
+                    </button>
+                  </div>
                 </form>
               </TabsContent>
               
               <TabsContent value="signup">
+                {googleFallbackEmail && (
+                  <div className="mb-4 p-3 bg-muted rounded-lg border">
+                    <p className="text-sm text-muted-foreground">
+                      Google sign-in encountered an issue. Please set a password to complete your registration.
+                    </p>
+                  </div>
+                )}
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
@@ -262,12 +323,16 @@ const Auth = () => {
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="••••••••"
+                      placeholder="SpaceCowboy1!"
                       value={signUpPassword}
                       onChange={(e) => setSignUpPassword(e.target.value)}
                       required
                       disabled={isLoading}
-                      minLength={6}
+                      minLength={8}
+                    />
+                    <PasswordStrengthMeter 
+                      password={signUpPassword} 
+                      onValidationChange={setIsPasswordValid}
                     />
                   </div>
                   
@@ -303,12 +368,20 @@ const Auth = () => {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoading || !acceptedTerms}
+                    disabled={isLoading || !acceptedTerms || !isPasswordValid}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Trouble logging in? Contact{" "}
+                    <a href="mailto:support@panelcomics.com" className="underline hover:text-foreground">
+                      support@panelcomics.com
+                    </a>
+                  </p>
+                </div>
               </TabsContent>
 
               <TabsContent value="magic">
