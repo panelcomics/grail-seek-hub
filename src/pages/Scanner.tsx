@@ -93,30 +93,54 @@ export default function Scanner() {
       return;
     }
 
-    const firstLine = result.ocrPreview.split('\n')[0].trim();
-    const title = firstLine || "Custom Scan";
+    setLoading(true);
 
-    const { error } = await supabase.from("user_comics").insert({
-      user_id: user.id,
-      comicvine_id: 0,
-      title,
-      issue_number: "Custom",
-      volume_name: "Manual Entry",
-      cover_date: new Date().toISOString().split('T')[0],
-      image_url: null,
-      ocr_text: result.ocrPreview,
-      photo_base64: uploadedImageBase64,
-      source: "ocr_custom"
-    });
+    try {
+      // Upload photo to storage
+      const response = await fetch(`data:image/jpeg;base64,${uploadedImageBase64}`);
+      const blob = await response.blob();
+      
+      const fileName = `${Date.now()}.jpg`;
+      const filePath = `${user.id}/${fileName}`;
 
-    if (error) {
+      const { error: uploadError } = await supabase.storage
+        .from("comic-photos")
+        .upload(filePath, blob, {
+          contentType: "image/jpeg",
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("comic-photos")
+        .getPublicUrl(filePath);
+
+      const firstLine = result.ocrPreview.split('\n')[0].trim();
+      const title = firstLine || "Custom Scan";
+
+      const { error } = await supabase.from("user_comics").insert({
+        user_id: user.id,
+        comicvine_id: null,
+        title,
+        issue_number: "Custom",
+        volume_name: "Manual Entry",
+        cover_date: new Date().toISOString().split('T')[0],
+        image_url: publicUrl,
+        ocr_text: result.ocrPreview,
+        source: "ocr_custom"
+      });
+
+      if (error) throw error;
+
+      toast.success("Added to collection!");
+      navigate("/my-collection");
+    } catch (error) {
       console.error("Error saving OCR to collection:", error);
       toast.error("Failed to add to collection");
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    toast.success("Added to collection!");
-    navigate("/my-collection");
   }
 
   return (
@@ -218,7 +242,13 @@ export default function Scanner() {
                         {result.comicvineResults.map((comic, idx) => (
                           <button
                             key={idx}
-                            onClick={() => navigate("/scanner/result", { state: comic })}
+                            onClick={() => navigate("/scanner/result", { 
+                              state: { 
+                                ...comic, 
+                                userPhotoBase64: uploadedImageBase64,
+                                ocrText: result.ocrPreview 
+                              } 
+                            })}
                             className="w-full text-left transition-transform hover:scale-[1.02]"
                           >
                             <Card className="cursor-pointer hover:border-primary">

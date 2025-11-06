@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Check } from "lucide-react";
+import { ArrowLeft, Plus, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -18,6 +18,8 @@ interface ComicDetailState {
   cover_date: string;
   image: string | null;
   description?: string;
+  userPhotoBase64?: string;
+  ocrText?: string;
 }
 
 export default function ResultDetail() {
@@ -47,6 +49,36 @@ export default function ResultDetail() {
     setIsInCollection(!!data);
   }
 
+  async function uploadPhotoToStorage(base64: string): Promise<string | null> {
+    if (!user) return null;
+
+    try {
+      const response = await fetch(`data:image/jpeg;base64,${base64}`);
+      const blob = await response.blob();
+      
+      const fileName = `${Date.now()}.jpg`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from("comic-photos")
+        .upload(filePath, blob, {
+          contentType: "image/jpeg",
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("comic-photos")
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      return null;
+    }
+  }
+
   async function handleAddToCollection() {
     if (!user) {
       toast.error("Please sign in to add to your collection");
@@ -62,6 +94,17 @@ export default function ResultDetail() {
     setAdding(true);
 
     try {
+      // Upload user's scanned photo if available
+      let imageUrl = null;
+      if (comic.userPhotoBase64) {
+        imageUrl = await uploadPhotoToStorage(comic.userPhotoBase64);
+        if (!imageUrl) {
+          toast.error("Failed to upload photo");
+          setAdding(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from("user_comics").insert({
         user_id: user.id,
         comicvine_id: comic.id,
@@ -69,7 +112,9 @@ export default function ResultDetail() {
         issue_number: comic.issue_number,
         volume_name: comic.volume,
         cover_date: comic.cover_date || null,
-        image_url: comic.image,
+        image_url: imageUrl,
+        ocr_text: comic.ocrText,
+        source: "comicvine_with_photo",
       });
 
       if (error) {
@@ -128,8 +173,19 @@ export default function ResultDetail() {
               <CardTitle>Comic Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {comic.userPhotoBase64 && (
+                <div className="w-full">
+                  <img
+                    src={`data:image/jpeg;base64,${comic.userPhotoBase64}`}
+                    alt={comic.name}
+                    className="w-full rounded-lg shadow-lg"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2 text-center">Your scanned photo</p>
+                </div>
+              )}
+
               <div className="flex gap-6 flex-col md:flex-row">
-                {comic.image && (
+                {!comic.userPhotoBase64 && comic.image && (
                   <div className="flex-shrink-0">
                     <img
                       src={comic.image}
@@ -178,19 +234,24 @@ export default function ResultDetail() {
                 <Button
                   onClick={handleAddToCollection}
                   disabled={adding || isInCollection}
-                  className="w-full md:w-auto"
+                  className="w-full"
                   size="lg"
-                  variant={isInCollection ? "outline" : "default"}
+                  variant={isInCollection ? "outline" : "destructive"}
                 >
                   {isInCollection ? (
                     <>
                       <Check className="mr-2 h-5 w-5" />
                       In Your Collection
                     </>
+                  ) : adding ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Saving...
+                    </>
                   ) : (
                     <>
                       <Plus className="mr-2 h-5 w-5" />
-                      {adding ? "Adding..." : "Add to My Collection"}
+                      Add to My Collection
                     </>
                   )}
                 </Button>
