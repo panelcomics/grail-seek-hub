@@ -5,7 +5,6 @@ export default function Scanner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Smaller, reliable uploads from phone photos
   async function fileToBase64(file: File) {
     const img = new Image();
     const reader = new FileReader();
@@ -22,28 +21,26 @@ export default function Scanner() {
       img.src = dataUrl;
     });
 
-    // Resize to max 1600px on the largest edge (keeps payload small)
+    // Resize to keep payload small for the edge function
     const maxSide = 1600;
-    let width = (img as HTMLImageElement).width;
-    let height = (img as HTMLImageElement).height;
-    const scale = Math.min(1, maxSide / Math.max(width, height));
-    width = Math.round(width * scale);
-    height = Math.round(height * scale);
+    let w = (img as HTMLImageElement).width;
+    let h = (img as HTMLImageElement).height;
+    const scale = Math.min(1, maxSide / Math.max(w, h));
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
 
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0, width, height);
+    ctx.drawImage(img, 0, 0, w, h);
 
     const compressed = canvas.toDataURL("image/jpeg", 0.85);
-    return compressed.split(",")[1]; // strip "data:" prefix
+    return compressed.split(",")[1];
   }
 
-  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handleFile(file?: File) {
     if (!file) return;
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -71,7 +68,29 @@ export default function Scanner() {
       <h2>📷 AI Comic Scanner</h2>
       <p>Upload a clear cover photo. We’ll OCR with Google Vision and match on ComicVine.</p>
 
-      <input type="file" accept="image/*" capture="environment" onChange={onPick} />
+      {/* Two hidden inputs: library and camera */}
+      <input
+        id="pickLibrary"
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => handleFile(e.target.files?.[0])}
+      />
+      <input
+        id="pickCamera"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={(e) => handleFile(e.target.files?.[0])}
+      />
+
+      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+        <button onClick={() => (document.getElementById("pickLibrary") as HTMLInputElement).click()}>
+          Choose from Photos
+        </button>
+        <button onClick={() => (document.getElementById("pickCamera") as HTMLInputElement).click()}>Use Camera</button>
+      </div>
 
       {loading && <p style={{ marginTop: 12 }}>Scanning…</p>}
       {error && <p style={{ marginTop: 12, color: "#f66" }}>{error}</p>}
