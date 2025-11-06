@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ const Auth = () => {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const hasRedirected = useRef(false);
 
   const logAuthEvent = async (event: string, metadata?: any) => {
     try {
@@ -35,14 +36,16 @@ const Auth = () => {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate("/dashboard");
+      if (session && !hasRedirected.current) {
+        hasRedirected.current = true;
+        navigate("/dashboard", { replace: true });
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/dashboard");
+      if (session && !hasRedirected.current) {
+        hasRedirected.current = true;
+        navigate("/dashboard", { replace: true });
       }
     });
 
