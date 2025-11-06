@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -25,6 +26,7 @@ interface ScanResponse {
 }
 
 export default function Scanner() {
+  const navigate = useNavigate();
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,30 +166,43 @@ export default function Scanner() {
                       <h3 className="font-semibold">ComicVine Results ({result.comicvineResults.length}):</h3>
                       <div className="grid gap-3">
                         {result.comicvineResults.map((comic, idx) => (
-                          <Card key={idx}>
-                            <CardContent className="flex gap-4 p-4">
-                              <div className="flex-1 space-y-1">
-                                <div className="font-semibold">
-                                  {comic.name}
-                                  {comic.issue_number && (
-                                    <Badge variant="secondary" className="ml-2">
-                                      #{comic.issue_number}
-                                    </Badge>
+                          <button
+                            key={idx}
+                            onClick={() => navigate("/scanner/result", { state: comic })}
+                            className="w-full text-left transition-transform hover:scale-[1.02]"
+                          >
+                            <Card className="cursor-pointer hover:border-primary">
+                              <CardContent className="flex gap-4 p-4">
+                                {comic.image && (
+                                  <img
+                                    src={comic.image}
+                                    alt={comic.name}
+                                    className="w-16 h-24 object-cover rounded"
+                                  />
+                                )}
+                                <div className="flex-1 space-y-1">
+                                  <div className="font-semibold">
+                                    {comic.name}
+                                    {comic.issue_number && (
+                                      <Badge variant="secondary" className="ml-2">
+                                        #{comic.issue_number}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {comic.volume && (
+                                    <div className="text-sm text-muted-foreground">
+                                      {comic.volume}
+                                    </div>
+                                  )}
+                                  {comic.cover_date && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(comic.cover_date).toLocaleDateString()}
+                                    </div>
                                   )}
                                 </div>
-                                {comic.volume && (
-                                  <div className="text-sm text-muted-foreground">
-                                    {comic.volume}
-                                  </div>
-                                )}
-                                {comic.cover_date && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {new Date(comic.cover_date).toLocaleDateString()}
-                                  </div>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
+                              </CardContent>
+                            </Card>
+                          </button>
                         ))}
                       </div>
                     </div>

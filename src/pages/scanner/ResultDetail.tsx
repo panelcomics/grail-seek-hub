@@ -1,0 +1,206 @@
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Plus, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+
+interface ComicDetailState {
+  id: number;
+  name: string;
+  issue_number: string;
+  volume: string;
+  cover_date: string;
+  image: string | null;
+  description?: string;
+}
+
+export default function ResultDetail() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [adding, setAdding] = useState(false);
+  const [isInCollection, setIsInCollection] = useState(false);
+
+  const comic = location.state as ComicDetailState;
+
+  useEffect(() => {
+    if (!comic) return;
+    checkIfInCollection();
+  }, [comic, user]);
+
+  async function checkIfInCollection() {
+    if (!user || !comic?.id) return;
+    
+    const { data } = await supabase
+      .from("user_comics")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("comicvine_id", comic.id)
+      .single();
+
+    setIsInCollection(!!data);
+  }
+
+  async function handleAddToCollection() {
+    if (!user) {
+      toast.error("Please sign in to add to your collection");
+      navigate("/auth");
+      return;
+    }
+
+    if (!comic) {
+      toast.error("Comic data not found");
+      return;
+    }
+
+    setAdding(true);
+
+    try {
+      const { error } = await supabase.from("user_comics").insert({
+        user_id: user.id,
+        comicvine_id: comic.id,
+        title: comic.name,
+        issue_number: comic.issue_number,
+        volume_name: comic.volume,
+        cover_date: comic.cover_date || null,
+        image_url: comic.image,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.error("This comic is already in your collection");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("Added to your collection!");
+        setIsInCollection(true);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to add to collection");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  if (!comic) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 container py-8">
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="text-2xl font-bold mb-4">Comic not found</h1>
+            <Button onClick={() => navigate("/scanner")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Scanner
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      
+      <main className="flex-1 container py-8">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/scanner")}
+            className="mb-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Scanner
+          </Button>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Comic Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex gap-6 flex-col md:flex-row">
+                {comic.image && (
+                  <div className="flex-shrink-0">
+                    <img
+                      src={comic.image}
+                      alt={comic.name}
+                      className="w-48 h-auto rounded-lg shadow-md"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <h2 className="text-2xl font-bold">{comic.name}</h2>
+                    {comic.issue_number && (
+                      <Badge variant="secondary" className="mt-2">
+                        Issue #{comic.issue_number}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {comic.volume && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Volume:</span>
+                      <p className="font-medium">{comic.volume}</p>
+                    </div>
+                  )}
+
+                  {comic.cover_date && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Cover Date:</span>
+                      <p className="font-medium">
+                        {new Date(comic.cover_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+
+                  {comic.description && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Description:</span>
+                      <p className="text-sm mt-1">{comic.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <Button
+                  onClick={handleAddToCollection}
+                  disabled={adding || isInCollection}
+                  className="w-full md:w-auto"
+                  size="lg"
+                  variant={isInCollection ? "outline" : "default"}
+                >
+                  {isInCollection ? (
+                    <>
+                      <Check className="mr-2 h-5 w-5" />
+                      In Your Collection
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-5 w-5" />
+                      {adding ? "Adding..." : "Add to My Collection"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+      
+      <Footer />
+    </div>
+  );
+}

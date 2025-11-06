@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import ItemDetail from "./pages/ItemDetail";
 import Auth from "./pages/Auth";
 import Scanner from "./pages/Scanner";
+import ResultDetail from "./pages/scanner/ResultDetail";
 import Portfolio from "./pages/Portfolio";
 import Deals from "./pages/Deals";
 import Profile from "./pages/Profile";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/scanner" element={<Scanner />} />
+            <Route path="/scanner/result" element={<ResultDetail />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/deals" element={<Deals />} />
             <Route path="/profile" element={<Profile />} />

@@ -1633,6 +1633,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_comics: {
+        Row: {
+          added_at: string | null
+          comicvine_id: number
+          cover_date: string | null
+          id: string
+          image_url: string | null
+          issue_number: string | null
+          title: string | null
+          user_id: string
+          volume_name: string | null
+        }
+        Insert: {
+          added_at?: string | null
+          comicvine_id: number
+          cover_date?: string | null
+          id?: string
+          image_url?: string | null
+          issue_number?: string | null
+          title?: string | null
+          user_id: string
+          volume_name?: string | null
+        }
+        Update: {
+          added_at?: string | null
+          comicvine_id?: number
+          cover_date?: string | null
+          id?: string
+          image_url?: string | null
+          issue_number?: string | null
+          title?: string | null
+          user_id?: string
+          volume_name?: string | null
+        }
+        Relationships: []
+      }
       user_ratings: {
         Row: {
           created_at: string
