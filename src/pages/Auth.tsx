@@ -185,8 +185,8 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/`,
-          scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid',
+          redirectTo: `${window.location.origin}/auth/v1/callback`,
+          scopes: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -197,7 +197,8 @@ const Auth = () => {
       if (error) throw error;
       await logAuthEvent('signup_google');
     } catch (error: any) {
-      await logAuthEvent('google_failed', { error: error.message });
+      const is403 = error.message.includes('403') || error.status === 403;
+      await logAuthEvent('google_failed', { error: error.message, is403 });
       
       const emailMatch = error.message.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
       const fallbackEmail = emailMatch ? emailMatch[0] : '';
@@ -208,7 +209,7 @@ const Auth = () => {
       }
 
       toast({
-        title: "Google login issue — using email instead",
+        title: is403 ? "Google config issue — try email" : "Google login issue — using email instead",
         description: fallbackEmail 
           ? "We've pre-filled your email address"
           : "Please use email/password login",
