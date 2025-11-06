@@ -5,8 +5,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 // ---- Secrets pulled from Lovable/Cloud → Secrets ----
-const VISION_KEY = Deno.env.get("GOOGLE_CLOUD_VISION_API_KEY")!;
-const COMICVINE_KEY = Deno.env.get("COMICVINE_API_KEY")!;
+const VISION_KEY = "YOUR_GOOGLE_VISION_KEY";
+const COMICVINE_KEY = "YOUR_COMICVINE_KEY";
 // Optional: const EBAY_APP_ID = Deno.env.get("EBAY_APP_ID");
 
 type ScanRequest = { imageBase64: string };
