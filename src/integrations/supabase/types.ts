@@ -917,6 +917,45 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_items: {
+        Row: {
+          comicvine_issue_id: string | null
+          created_at: string
+          grade: string | null
+          id: string
+          issue_number: string | null
+          private_location: string | null
+          private_notes: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comicvine_issue_id?: string | null
+          created_at?: string
+          grade?: string | null
+          id?: string
+          issue_number?: string | null
+          private_location?: string | null
+          private_notes?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comicvine_issue_id?: string | null
+          created_at?: string
+          grade?: string | null
+          id?: string
+          issue_number?: string | null
+          private_location?: string | null
+          private_notes?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           comic_id: string
@@ -927,6 +966,7 @@ export type Database = {
           ends_at: string | null
           id: string
           image_url: string | null
+          inventory_item_id: string | null
           issue_number: string | null
           price: number | null
           private_notes: string | null
@@ -949,6 +989,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          inventory_item_id?: string | null
           issue_number?: string | null
           price?: number | null
           private_notes?: string | null
@@ -971,6 +1012,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           image_url?: string | null
+          inventory_item_id?: string | null
           issue_number?: string | null
           price?: number | null
           private_notes?: string | null
@@ -990,6 +1032,13 @@ export type Database = {
             columns: ["comic_id"]
             isOneToOne: false
             referencedRelation: "user_comics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
