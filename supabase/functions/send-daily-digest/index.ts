@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +26,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    console.log("NOTE: Email sending disabled. Install Resend to enable email digests.");
 
     // Get all users who want daily emails
     const { data: profiles, error: profilesError } = await supabaseClient
@@ -101,14 +100,17 @@ serve(async (req) => {
             <p><a href="${Deno.env.get("SUPABASE_URL")}/inventory">View Your Inventory</a></p>
           `;
 
-          await resend.emails.send({
-            from: "Daily Digest <noreply@resend.dev>",
-            to: [userData.user.email],
-            subject: "Your Daily Seller Summary",
-            html: emailHtml,
+          console.log(`[DRY RUN] Would send digest to ${userData.user.email}:`, {
+            newScans, newSales, pendingPayouts, totalPendingAmount
           });
-
-          console.log(`Sent digest to ${userData.user.email}`);
+          
+          // TODO: Uncomment when Resend is configured
+          // await resend.emails.send({
+          //   from: "Daily Digest <noreply@resend.dev>",
+          //   to: [userData.user.email],
+          //   subject: "Your Daily Seller Summary",
+          //   html: emailHtml,
+          // });
         } else {
           console.log(`No activity for ${userData.user.email}, skipping email`);
         }

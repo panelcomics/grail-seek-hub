@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       art_listing_flags: {
         Row: {
           created_at: string | null
@@ -1162,6 +1186,53 @@ export type Database = {
           },
         ]
       }
+      moderation_flags: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          listing_id: string
+          reason: string
+          reporter_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          listing_id: string
+          reason: string
+          reporter_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string
+          reason?: string
+          reporter_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_flags_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_sent: {
         Row: {
           created_at: string
@@ -1496,6 +1567,7 @@ export type Database = {
           stripe_account_id: string | null
           stripe_account_verified: boolean | null
           stripe_onboarding_complete: boolean | null
+          suspended_at: string | null
           terms_accepted_at: string | null
           terms_version_accepted: string | null
           trade_override_allow: boolean | null
@@ -1520,6 +1592,7 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
+          suspended_at?: string | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
           trade_override_allow?: boolean | null
@@ -1544,6 +1617,7 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
+          suspended_at?: string | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
           trade_override_allow?: boolean | null

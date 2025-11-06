@@ -31,6 +31,8 @@ import Notifications from "./pages/Notifications";
 import Watchlist from "./pages/Watchlist";
 import Leaderboard from "./pages/Leaderboard";
 import AdminFeaturedShops from "./pages/AdminFeaturedShops";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminSettings from "./pages/admin/Settings";
 import UploadOriginalArt from "./pages/admin/UploadOriginalArt";
 import ManageOriginalArt from "./pages/admin/ManageOriginalArt";
 import InviteArtist from "./pages/admin/InviteArtist";
@@ -86,6 +88,9 @@ const App = () => (
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin/featured-shops" element={<AdminFeaturedShops />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/original-art/upload" element={<UploadOriginalArt />} />
             <Route path="/admin/original-art/manage" element={<ManageOriginalArt />} />
             <Route path="/admin/invite-artist" element={<InviteArtist />} />

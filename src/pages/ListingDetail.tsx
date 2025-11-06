@@ -14,6 +14,7 @@ import { formatCents } from "@/lib/fees";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { ReportListingButton } from "@/components/ReportListingButton";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -267,9 +268,12 @@ export default function ListingDetail() {
                           </p>
                         )}
                       </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/seller/${sellerSlug}`}>View Profile</Link>
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/seller/${sellerSlug}`}>View Profile</Link>
+                        </Button>
+                        <ReportListingButton listingId={id!} variant="outline" />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
