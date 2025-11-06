@@ -141,6 +141,38 @@ export type Database = {
         }
         Relationships: []
       }
+      bids: {
+        Row: {
+          bid_amount: number
+          created_at: string | null
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          bid_amount: number
+          created_at?: string | null
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          bid_amount?: number
+          created_at?: string | null
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulk_scans: {
         Row: {
           completed_at: string | null
@@ -884,6 +916,83 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      listings: {
+        Row: {
+          comic_id: string
+          condition_notes: string | null
+          cover_date: string | null
+          created_at: string | null
+          duration_days: number | null
+          ends_at: string | null
+          id: string
+          image_url: string | null
+          issue_number: string | null
+          price: number | null
+          private_notes: string | null
+          reserve: number | null
+          shipping_price: number | null
+          start_bid: number | null
+          status: string
+          title: string
+          type: string
+          updated_at: string | null
+          user_id: string
+          volume_name: string | null
+        }
+        Insert: {
+          comic_id: string
+          condition_notes?: string | null
+          cover_date?: string | null
+          created_at?: string | null
+          duration_days?: number | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          issue_number?: string | null
+          price?: number | null
+          private_notes?: string | null
+          reserve?: number | null
+          shipping_price?: number | null
+          start_bid?: number | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+          volume_name?: string | null
+        }
+        Update: {
+          comic_id?: string
+          condition_notes?: string | null
+          cover_date?: string | null
+          created_at?: string | null
+          duration_days?: number | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          issue_number?: string | null
+          price?: number | null
+          private_notes?: string | null
+          reserve?: number | null
+          shipping_price?: number | null
+          start_bid?: number | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+          volume_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_comic_id_fkey"
+            columns: ["comic_id"]
+            isOneToOne: false
+            referencedRelation: "user_comics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {

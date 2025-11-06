@@ -30,6 +30,7 @@ export default function ResultDetail() {
   const { user } = useAuth();
   const [adding, setAdding] = useState(false);
   const [isInCollection, setIsInCollection] = useState(false);
+  const [savedComicId, setSavedComicId] = useState<string | null>(null);
   const [conditionNotes, setConditionNotes] = useState("");
 
   const comic = location.state as ComicDetailState;
@@ -49,7 +50,10 @@ export default function ResultDetail() {
       .eq("comicvine_id", comic.id)
       .single();
 
-    setIsInCollection(!!data);
+    if (data) {
+      setIsInCollection(true);
+      setSavedComicId(data.id);
+    }
   }
 
   async function uploadPhotoToStorage(base64: string): Promise<string | null> {
@@ -128,8 +132,20 @@ export default function ResultDetail() {
           throw error;
         }
       } else {
+        // Fetch the newly created comic ID
+        const { data: savedComic } = await supabase
+          .from("user_comics")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("comicvine_id", comic.id)
+          .single();
+        
+        if (savedComic) {
+          setSavedComicId(savedComic.id);
+        }
+        
         toast.success("Added to collection!");
-        navigate("/my-collection");
+        setIsInCollection(true);
       }
     } catch (err) {
       console.error(err);
@@ -228,7 +244,7 @@ export default function ResultDetail() {
                 />
               </div>
 
-              <div className="pt-4">
+              <div className="pt-4 space-y-3">
                 <Button
                   onClick={handleAddToCollection}
                   disabled={adding || isInCollection}
@@ -253,6 +269,17 @@ export default function ResultDetail() {
                     </>
                   )}
                 </Button>
+
+                {isInCollection && savedComicId && (
+                  <Button
+                    onClick={() => navigate(`/sell/${savedComicId}`)}
+                    className="w-full"
+                    size="lg"
+                    variant="premium"
+                  >
+                    Sell This Comic
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

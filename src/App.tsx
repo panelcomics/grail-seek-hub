@@ -42,6 +42,7 @@ import SellerProfile from "./pages/SellerProfile";
 import FeesPolicy from "./pages/FeesPolicy";
 import Help from "./pages/Help";
 import DevScanTest from "./pages/DevScanTest";
+import SellComic from "./pages/SellComic";
 import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/scanner/result" element={<ResultDetail />} />
+            <Route path="/sell/:comicId" element={<SellComic />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/deals" element={<Deals />} />
             <Route path="/profile" element={<Profile />} />
