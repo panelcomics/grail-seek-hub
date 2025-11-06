@@ -40,6 +40,10 @@ const Auth = () => {
   };
 
   useEffect(() => {
+    // Clear password fields on mount to prevent autofill
+    setSignInPassword("");
+    setSignUpPassword("");
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/");
@@ -284,10 +288,10 @@ const Auth = () => {
                       <Input
                         id="signin-password"
                         type={showSignInPassword ? "text" : "password"}
-                        placeholder="••••••••"
+                        placeholder="Enter your password"
                         value={signInPassword}
                         onChange={(e) => setSignInPassword(e.target.value)}
-                        autoComplete="current-password"
+                        autoComplete="new-password"
                         required
                         disabled={isLoading}
                         minLength={8}
@@ -352,7 +356,7 @@ const Auth = () => {
                       <Input
                         id="signup-password"
                         type={showSignUpPassword ? "text" : "password"}
-                        placeholder="SpaceCowboy1!"
+                        placeholder="Enter your password"
                         value={signUpPassword}
                         onChange={(e) => setSignUpPassword(e.target.value)}
                         autoComplete="new-password"
