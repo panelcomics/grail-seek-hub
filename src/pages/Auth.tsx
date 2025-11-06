@@ -38,14 +38,14 @@ const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session && !hasRedirected.current) {
         hasRedirected.current = true;
-        navigate("/dashboard", { replace: true });
+        window.location.href = "/dashboard";
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && !hasRedirected.current) {
         hasRedirected.current = true;
-        navigate("/dashboard", { replace: true });
+        window.location.href = "/dashboard";
       }
     });
 
@@ -85,11 +85,11 @@ const Auth = () => {
       }
 
       await logAuthEvent('login_success', { email: signInEmail });
-      navigate("/dashboard", { replace: true });
       toast({
         title: "Welcome back!",
         description: "Successfully signed in.",
       });
+      window.location.href = "/dashboard";
     } catch (error: any) {
       toast({
         title: "Login failed",
