@@ -1445,6 +1445,63 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_cache: {
+        Row: {
+          comicvine_results: Json | null
+          created_at: string
+          id: string
+          image_sha256: string
+          ocr: string | null
+          user_id: string | null
+        }
+        Insert: {
+          comicvine_results?: Json | null
+          created_at?: string
+          id?: string
+          image_sha256: string
+          ocr?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          comicvine_results?: Json | null
+          created_at?: string
+          id?: string
+          image_sha256?: string
+          ocr?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      scan_rate_limits: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          scan_count: number
+          updated_at: string
+          user_id: string | null
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          scan_count?: number
+          updated_at?: string
+          user_id?: string | null
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          scan_count?: number
+          updated_at?: string
+          user_id?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       scanned_items: {
         Row: {
           category: string

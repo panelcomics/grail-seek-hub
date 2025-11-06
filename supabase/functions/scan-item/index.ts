@@ -1,17 +1,68 @@
 // supabase/functions/scan-item/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Helper to compute SHA-256 hash
+async function computeSHA256(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Helper to check rate limit
+async function checkRateLimit(supabase: any, userId: string | null, ipAddress: string): Promise<boolean> {
+  const identifier = userId || ipAddress;
+  const windowMinutes = 1;
+  const maxScans = 10;
+
+  // Clean old windows first
+  const cutoff = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
+  await supabase.from('scan_rate_limits').delete().lt('window_start', cutoff);
+
+  // Check current window
+  const { data: existing } = await supabase
+    .from('scan_rate_limits')
+    .select('*')
+    .or(`user_id.eq.${userId},ip_address.eq.${ipAddress}`)
+    .gte('window_start', cutoff)
+    .single();
+
+  if (existing) {
+    if (existing.scan_count >= maxScans) {
+      return false; // Rate limit exceeded
+    }
+    // Increment count
+    await supabase
+      .from('scan_rate_limits')
+      .update({ scan_count: existing.scan_count + 1, updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+  } else {
+    // Create new window
+    await supabase.from('scan_rate_limits').insert({
+      user_id: userId,
+      ip_address: ipAddress,
+      scan_count: 1,
+      window_start: new Date().toISOString(),
+    });
+  }
+
+  return true;
+}
 
 serve(async (req) => {
   console.log('Function invoked:', req.method, req.url);
   
-  // Handle OPTIONS for CORS
+  // Handle OPTIONS for CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -21,6 +72,36 @@ serve(async (req) => {
         status: 405,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Initialize Supabase client with service role
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get user ID from auth header if available
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | null = null;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const { data: { user } } = await supabase.auth.getUser(token);
+      userId = user?.id || null;
+    }
+
+    // Get IP address for rate limiting
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+
+    // Check rate limit
+    const allowed = await checkRateLimit(supabase, userId, ipAddress);
+    if (!allowed) {
+      console.log('Rate limit exceeded');
+      return new Response(
+        JSON.stringify({ 
+          ok: false, 
+          error: "Rate limit exceeded. Please wait a minute and try again (max 10 scans/min)." 
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const body = await req.json();
@@ -33,6 +114,35 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Compute SHA-256 hash for caching
+    const imageSha256 = await computeSHA256(imageBase64);
+    console.log('Image SHA-256:', imageSha256);
+
+    // Check cache (7 days TTL)
+    const cacheTTLDays = 7;
+    const cacheMinDate = new Date(Date.now() - cacheTTLDays * 24 * 60 * 60 * 1000).toISOString();
+    const { data: cachedResult } = await supabase
+      .from('scan_cache')
+      .select('*')
+      .eq('image_sha256', imageSha256)
+      .gte('created_at', cacheMinDate)
+      .single();
+
+    if (cachedResult) {
+      console.log('Cache hit - returning cached result');
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          ocrPreview: cachedResult.ocr?.slice(0, 120) + (cachedResult.ocr?.length > 120 ? "..." : ""),
+          comicvineResults: cachedResult.comicvine_results || [],
+          cached: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log('Cache miss - calling APIs');
 
     const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
     const COMICVINE_API_KEY = Deno.env.get("COMICVINE_API_KEY");
@@ -104,11 +214,22 @@ serve(async (req) => {
     }));
 
     console.log('Success – results count:', results.length);
+
+    // Store in cache
+    await supabase.from('scan_cache').upsert({
+      image_sha256: imageSha256,
+      user_id: userId,
+      ocr: ocrText,
+      comicvine_results: results,
+    }, { onConflict: 'image_sha256' });
+    console.log('Cached result for future requests');
+
     return new Response(
       JSON.stringify({
         ok: true,
         ocrPreview: ocrText.slice(0, 120) + (ocrText.length > 120 ? "..." : ""),
         comicvineResults: results,
+        cached: false,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

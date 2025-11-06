@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Camera, Upload, Loader2, AlertCircle } from "lucide-react";
+import { Camera, Upload, Loader2, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
+import { compressImageForScanning, getScanningTips } from "@/lib/imageCompression";
+import { SaveToInventoryModal } from "@/components/SaveToInventoryModal";
 
 interface ComicResult {
   id: number | null;
@@ -25,6 +27,7 @@ interface ScanResponse {
   ocrPreview?: string;
   comicvineResults?: ComicResult[];
   error?: string;
+  cached?: boolean;
 }
 
 export default function Scanner() {
@@ -34,22 +37,9 @@ export default function Scanner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedImageBase64, setUploadedImageBase64] = useState<string | null>(null);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  async function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
-        // Strip the "data:image/...;base64," prefix
-        const base64 = dataUrl.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
 
   async function handleFile(file?: File) {
     if (!file) return;
@@ -59,19 +49,41 @@ export default function Scanner() {
     setResult(null);
 
     try {
-      const imageBase64 = await fileToBase64(file);
-      setUploadedImageBase64(imageBase64);
+      // Compress image on client side
+      const compressed = await compressImageForScanning(file);
       
+      if ('error' in compressed) {
+        setError(compressed.error);
+        setLoading(false);
+        return;
+      }
+
+      console.log(`Image compressed: ${compressed.sizeKB}KB (${compressed.width}x${compressed.height})`);
+      setUploadedImageBase64(compressed.base64);
+      
+      // Get auth token if user is logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const { data, error: invokeError } = await supabase.functions.invoke('scan-item', {
-        body: { imageBase64 }
+        body: { imageBase64: compressed.base64 },
+        headers,
       });
 
       if (invokeError) throw invokeError;
       
-      setResult(data as ScanResponse);
+      const scanResult = data as ScanResponse;
+      setResult(scanResult);
       
-      if (data && !data.ok) {
-        setError(data.error || "Scan failed");
+      if (scanResult && !scanResult.ok) {
+        setError(scanResult.error || "Scan failed");
+      } else if (scanResult.cached) {
+        toast.success("Scan loaded from cache (no API cost)");
       }
     } catch (err) {
       console.error(err);
@@ -162,6 +174,12 @@ export default function Scanner() {
               <CardDescription>
                 For best results, use a clear, straight-on photo with good lighting
               </CardDescription>
+              <Alert className="mt-4">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Tips:</strong> {getScanningTips().join(" • ")}
+                </AlertDescription>
+              </Alert>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-3 flex-wrap">
@@ -225,13 +243,21 @@ export default function Scanner() {
                       <div className="bg-muted p-3 rounded-md text-sm font-mono">
                         {result.ocrPreview}
                       </div>
-                      <Button 
-                        onClick={saveOcrToCollection}
-                        variant="destructive"
-                        className="w-full"
-                      >
-                        Add This OCR Text to My Collection
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => setSaveModalOpen(true)}
+                          className="flex-1"
+                        >
+                          Save to My Inventory
+                        </Button>
+                        <Button 
+                          onClick={saveOcrToCollection}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Add OCR to Collection
+                        </Button>
+                      </div>
                     </div>
                   )}
 
@@ -301,6 +327,13 @@ export default function Scanner() {
       </main>
       
       <Footer />
+
+      <SaveToInventoryModal
+        open={saveModalOpen}
+        onOpenChange={setSaveModalOpen}
+        ocrText={result?.ocrPreview || ""}
+        comicvineResults={result?.comicvineResults || []}
+      />
     </div>
   );
 }
