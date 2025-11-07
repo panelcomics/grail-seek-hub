@@ -104,15 +104,27 @@ serve(async (req) => {
       );
     }
 
-    const body = await req.json();
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('Failed to parse request body:', e);
+      return new Response(
+        JSON.stringify({ ok: false, error: "No scan image received. Please try again." }), 
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log('Body received:', { hasImage: !!body.imageBase64, length: body.imageBase64?.length });
     const { imageBase64 } = body;
-    if (!imageBase64 || typeof imageBase64 !== "string") {
-      console.log('Invalid imageBase64');
-      return new Response(JSON.stringify({ ok: false, error: "Missing or invalid imageBase64" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    
+    if (!imageBase64 || typeof imageBase64 !== "string" || imageBase64.trim().length === 0) {
+      console.log('Invalid imageBase64:', { exists: !!imageBase64, type: typeof imageBase64, length: imageBase64?.length });
+      return new Response(
+        JSON.stringify({ ok: false, error: "No scan image received. Please try again." }), 
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Compute SHA-256 hash for caching
@@ -235,8 +247,13 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error('Function error:', err);
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     return new Response(
-      JSON.stringify({ ok: false, error: err instanceof Error ? err.message : "Unknown error" }),
+      JSON.stringify({ 
+        ok: false, 
+        error: "Scan failed. Please retake the photo or try again.",
+        details: errorMessage 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

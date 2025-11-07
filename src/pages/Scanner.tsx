@@ -115,20 +115,36 @@ export default function Scanner() {
     setComic(null);
 
     try {
+      // Strip the data URL prefix to get just the base64 string
+      const base64Data = imageData.includes(',') 
+        ? imageData.split(',')[1] 
+        : imageData;
+
       const { data, error } = await supabase.functions.invoke("scan-item", {
-        body: { image: imageData },
+        body: { imageBase64: base64Data },
       });
 
       if (error) throw error;
 
-      if (data.text) {
-        // Extract text was found, now search for the comic
-        setQuery(data.text);
+      // Check if the response indicates failure
+      if (data?.ok === false) {
+        toast({
+          title: "Scan failed",
+          description: data.error || "Unable to process image. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.ocrPreview) {
+        // OCR text was found, now search for the comic
+        const searchText = data.ocrPreview.replace('...', '');
+        setQuery(searchText);
         toast({
           title: "Text detected",
-          description: `Found: ${data.text}. Searching...`,
+          description: `Found: ${searchText}. Searching...`,
         });
-        await handleTextSearch(data.text);
+        await handleTextSearch(searchText);
       } else {
         toast({
           title: "No text detected",
@@ -140,7 +156,7 @@ export default function Scanner() {
       console.error("Image processing error:", error);
       toast({
         title: "Scan failed",
-        description: "Try entering the title manually or take another photo",
+        description: error.message || "Try entering the title manually or take another photo",
         variant: "destructive",
       });
     } finally {
