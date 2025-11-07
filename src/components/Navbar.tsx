@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Percent, Tag, BarChart3, Heart, Maximize2, Bell, User, LogOut, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Mail, UserCircle, BookOpen } from "lucide-react";
+import { Percent, Tag, BarChart3, Heart, Scan, Bell, User, LogOut, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Mail, UserCircle, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,7 +93,7 @@ export default function Navbar() {
               <Heart className="h-5 w-5" />
             </IconButton>
             <IconButton href="/scanner" label="Scanner">
-              <Maximize2 className="h-5 w-5" />
+              <Scan className="h-5 w-5" />
             </IconButton>
             <IconButton href="/notifications" label="Notifications" count={notificationsCount}>
               <Bell className="h-5 w-5" />
