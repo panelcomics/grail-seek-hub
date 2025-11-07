@@ -25,7 +25,7 @@ interface SaveToInventoryModalProps {
 }
 
 export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineResults }: SaveToInventoryModalProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
@@ -82,6 +82,11 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
   };
 
   const handleSave = async () => {
+    // Wait for auth to finish loading before checking user
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       toast.error("Please sign in to save to inventory");
       navigate("/auth");
@@ -238,11 +243,11 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading || authLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={handleSave} disabled={loading || authLoading}>
+            {(loading || authLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {existingItem ? "Update" : "Save to Inventory"}
           </Button>
         </DialogFooter>
