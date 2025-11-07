@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Percent, Tag, BarChart3, Heart, Scan, Bell, User, LogOut, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Mail, UserCircle, BookOpen } from "lucide-react";
+import { Tag, Heart, Scan, Bell, User, LogOut, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Mail, UserCircle, BookOpen, Search, BarChart3 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,23 +80,17 @@ export default function Navbar() {
 
           {/* Right: Icon row */}
           <nav className="flex items-center gap-2 sm:gap-3">
-            <IconButton href="/deals" label="Deals" count={newDealsCount}>
-              <Percent className="h-5 w-5" />
-            </IconButton>
-            <IconButton href="/marketplace" label="Tags">
+            <IconButton href="/deals" label="Deals & Alerts" count={newDealsCount}>
               <Tag className="h-5 w-5" />
             </IconButton>
-            <IconButton href="/portfolio" label="Stats">
-              <BarChart3 className="h-5 w-5" />
+            <IconButton href="/notifications" label="Notifications" count={notificationsCount}>
+              <Bell className="h-5 w-5" />
             </IconButton>
             <IconButton href="/watchlist" label="Favorites">
               <Heart className="h-5 w-5" />
             </IconButton>
-            <IconButton href="/scanner" label="Scanner">
+            <IconButton href="/search" label="Search">
               <Scan className="h-5 w-5" />
-            </IconButton>
-            <IconButton href="/notifications" label="Notifications" count={notificationsCount}>
-              <Bell className="h-5 w-5" />
             </IconButton>
             
             {user ? (

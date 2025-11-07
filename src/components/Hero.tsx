@@ -1,9 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Zap, Palette, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { MapPin, Clock, Palette, ArrowRight, Search, ScanLine } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import heroImage from "@/assets/hero-marketplace.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+
   const scrollToLocal = () => {
     const localSection = document.getElementById("local-discovery");
     localSection?.scrollIntoView({ behavior: "smooth" });
@@ -12,6 +17,13 @@ const Hero = () => {
   const scrollToListings = () => {
     const listingsSection = document.getElementById("trending-listings");
     listingsSection?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   return (
@@ -43,12 +55,31 @@ const Hero = () => {
           <div className="space-y-8">
             <div className="space-y-4">
               <h1 className="text-center lg:text-left">
-                Your Grail Is Waiting
+                Hunt Your Grail
               </h1>
               <p className="text-lg text-muted-foreground sm:text-xl max-w-2xl">
-                The ultimate marketplace for comics, collectibles, and cards. Buy, sell, or trade — local or nationwide.
+                Buy, sell, and trade comics, collectibles, and cards from trusted collectors.
               </p>
             </div>
+
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="max-w-2xl">
+              <div className="relative flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search by title, series, issue number, or keyword..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-12 text-base"
+                  />
+                </div>
+                <Button type="submit" size="lg" className="h-12 px-6">
+                  Search
+                </Button>
+              </div>
+            </form>
 
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
               <Button 
@@ -67,6 +98,16 @@ const Hero = () => {
                 <MapPin className="h-5 w-5" />
                 Browse Local
               </Button>
+              <Link to="/scanner">
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-accent text-accent hover:bg-accent/5 transition-all hover:shadow-md hover:-translate-y-0.5"
+                >
+                  <ScanLine className="h-5 w-5 mr-2" />
+                  Scan Your Comic
+                </Button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-3 gap-6 pt-8 border-t">
