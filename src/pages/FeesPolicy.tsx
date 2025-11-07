@@ -109,6 +109,24 @@ export default function FeesPolicy() {
                   </span>
                 </li>
               </ul>
+
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-3">
+                <p className="font-semibold text-foreground">Real-World Examples:</p>
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <strong>$45 book swap:</strong><br />
+                    Platform Fee: $2 total → $1 each<br />
+                    Shipping: $5/label<br />
+                    <span className="text-primary font-semibold">Each pays: $6</span>
+                  </p>
+                  <p>
+                    <strong>$6,800 book swap:</strong><br />
+                    Platform Fee: $200 total → $100 each<br />
+                    Shipping: $12/label<br />
+                    <span className="text-primary font-semibold">Each pays: $112</span>
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
