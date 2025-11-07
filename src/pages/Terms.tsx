@@ -241,18 +241,17 @@ export default function Terms() {
               <h2 className="text-xl font-semibold mb-3">6. Cancellations and Refunds</h2>
               <div className="space-y-3 text-muted-foreground leading-relaxed">
                 <p>
-                  When a buyer cancels an order or a refund is issued, the original payment-processing fee 
-                  charged by our payment partner (currently 2.9% + $0.30 per transaction) is non-refundable. 
-                  GrailSeeker will deduct that processing amount from any refund issued to the buyer. This 
-                  ensures that sellers and the platform are not charged additional fees for canceled transactions.
+                  <strong>Payment processing fees</strong> charged by our payment partner are <strong>non-refundable</strong> once a transaction is authorized. GrailSeeker marketplace and trade fees are <strong>non-refundable</strong> after a sale or trade is completed.
+                </p>
+                <p>
+                  If a transaction is <strong>canceled before completion</strong>, applicable platform fees will not be charged.
                 </p>
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
                   <p className="font-medium text-foreground">
                     Important: Processing fees are non-refundable once a transaction is authorized.
                   </p>
                   <p className="mt-2">
-                    The processing fee covers the cost of handling the transaction through our payment provider. 
-                    This fee is charged by the payment processor regardless of whether the order is completed or canceled.
+                    The processing fee covers the cost of handling the transaction through our payment provider. This fee is charged by the payment processor regardless of whether the order is completed or canceled. When a refund is issued, GrailSeeker will deduct the payment processing amount to ensure sellers and the platform are not charged additional fees for canceled transactions.
                   </p>
                 </div>
               </div>

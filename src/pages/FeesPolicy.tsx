@@ -142,13 +142,13 @@ export default function FeesPolicy() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    Standard sales through Grail Seeker include a <strong>flat 6.5% selling fee (including payment processing)</strong> on the total (item price + shipping + tax). No extra percentage fees. Our cut comes out of that, not on top of it.
+                    GrailSeeker charges a <strong>flat 6.5% selling fee on standard marketplace sales</strong>. This rate is calculated on the total order amount (item price plus shipping) and is designed to include standard payment processing costs. No additional percentage-based marketplace fees are added on top of this.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Example:</strong> A $100 item with $10 shipping = $110 total × 6.5% = $7.15 fee. Stripe takes their standard fee, GrailSeeker gets the rest from that 6.5%.
+                    <strong>Example:</strong> A $100 item with $10 shipping = $110 total. You pay a $7.15 fee (6.5% of $110). This covers both platform and payment processing costs — no extra fees stacked on top.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -158,6 +158,12 @@ export default function FeesPolicy() {
                   </span>
                 </li>
               </ul>
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm font-semibold text-foreground mb-2">Important Note:</p>
+                <p className="text-sm text-muted-foreground">
+                  Trade transactions are subject to a separate flat fee based on the total agreed trade value, as shown in our Trade Fee Schedule above. These fees are not covered by the 6.5% marketplace rate and apply to all trades, including those under $50.
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -173,13 +179,19 @@ export default function FeesPolicy() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    Grail Seeker fees are <strong>non-refundable</strong> once a trade or sale completes.
+                    <strong>Payment processing fees</strong> charged by our payment partner are <strong>non-refundable</strong> once a transaction is authorized.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    If a trade is canceled before completion, <strong>no fees are charged</strong>.
+                    GrailSeeker marketplace and trade fees are <strong>non-refundable</strong> after a sale or trade is completed.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    If a transaction is <strong>canceled before completion</strong>, applicable platform fees will not be charged.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">

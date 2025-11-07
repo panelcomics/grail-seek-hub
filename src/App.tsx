@@ -54,6 +54,7 @@ import Orders from "./pages/Orders";
 import Search from "./pages/Search";
 import EbaySearch from "./pages/EbaySearch";
 import { ModalProvider } from "./contexts/ModalContext";
+import { BetaBanner } from "./components/BetaBanner";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const AppContent = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <BetaBanner />
       <div className="flex-1">
         <Routes>
             <Route path="/" element={<Index />} />
