@@ -1,31 +1,21 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, LogOut, Scan, BarChart3, Bell, Tag, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Heart, Mail, UserCircle, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Percent, Tag, BarChart3, Heart, Maximize2, Bell, User, LogOut, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Mail, UserCircle, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { NotificationDropdown } from "@/components/NotificationDropdown";
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [newDealsCount, setNewDealsCount] = useState(0);
+  const [notificationsCount, setNotificationsCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isArtist, setIsArtist] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchNewDealsCount();
+      fetchNotificationsCount();
       checkRoles();
     }
   }, [user]);
@@ -61,202 +51,224 @@ export default function Navbar() {
     }
   };
 
+  const fetchNotificationsCount = async () => {
+    try {
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id)
+        .eq('read', false);
+
+      setNotificationsCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching notifications count:', error);
+    }
+  };
+
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow">
-              <span className="text-xl font-bold text-primary-foreground">GS</span>
+    <header className="sticky top-0 z-40 w-full backdrop-blur supports-[backdrop-filter]:bg-background/70 bg-background/95 border-b">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 h-14">
+        <div className="h-full flex items-center justify-between">
+          {/* Left: Logo */}
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold">
+              GS
             </div>
-            <span className="text-xl font-bold">Grail Seeker</span>
-          </Link>
-          
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">
-              Browse
-            </Link>
-            <Link to="/events" className="text-sm font-medium hover:text-primary transition-colors">
-              Events
-            </Link>
-            <Link to="/trade-board" className="text-sm font-medium hover:text-primary transition-colors">
-              Trade Board
-            </Link>
-          </div>
-        </div>
-
-        <div className="flex flex-1 max-w-md mx-8 hidden md:flex">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search comics, cards, or sellers..."
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {user && (
-            <>
-              <Link to="/deals">
-                <Button variant="outline" className="gap-2 relative">
-                  <Tag className="h-4 w-4" />
-                  <span className="hidden sm:inline">Deals</span>
-                  {newDealsCount > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                      {newDealsCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
-              
-              <Link to="/portfolio">
-                <Button variant="outline" className="gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Portfolio</span>
-                </Button>
-              </Link>
-
-              <Link to="/watchlist">
-                <Button variant="outline" className="gap-2">
-                  <Heart className="h-4 w-4" />
-                  <span className="hidden sm:inline">Watchlist</span>
-                </Button>
-              </Link>
-            </>
-          )}
-          
-          <Link to="/scanner">
-            <Button variant="outline" className="gap-2">
-              <Scan className="h-4 w-4" />
-              <span className="hidden sm:inline">AI Scanner</span>
-            </Button>
+            <span className="font-semibold text-[15px] tracking-tight hidden xs:inline">Grail</span>
+            <span className="font-semibold text-[15px] tracking-tight hidden xs:inline">Seeker</span>
           </Link>
 
-          {user && <NotificationDropdown />}
-
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Search className="h-5 w-5" />
-          </Button>
-          
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">{user.email?.split('@')[0]}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/my-collection" className="cursor-pointer">
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    My Collection
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/my-account" className="cursor-pointer">
-                    <UserCircle className="mr-2 h-4 w-4" />
-                    My Account
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    My Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/my-orders" className="cursor-pointer">
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    My Orders
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/messages" className="cursor-pointer">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Messages
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard" className="cursor-pointer">
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/seller/dashboard" className="cursor-pointer">
-                    <Package className="mr-2 h-4 w-4" />
-                    Winners & Orders
-                  </Link>
-                </DropdownMenuItem>
-                {isArtist && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/artist/my-art" className="cursor-pointer">
-                        <Package className="mr-2 h-4 w-4" />
-                        My Original Art
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                {isAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/original-art/manage" className="cursor-pointer">
-                        <Package className="mr-2 h-4 w-4" />
-                        Original Art (Admin)
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/invite-artist" className="cursor-pointer">
-                        <Mail className="mr-2 h-4 w-4" />
-                        Invite Artist
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuItem onClick={() => navigate('/scanner')}>
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  AI Scanner Tutorial
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Link to="/auth">
-              <Button variant="outline" className="gap-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign In</span>
-              </Button>
-            </Link>
-          )}
-          
-          <Link to="/sell/claim-sale">
-            <Button variant="default" className="hidden sm:flex">
-              🔥 Sell Now
-            </Button>
-          </Link>
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Menu className="h-5 w-5" />
-          </Button>
+          {/* Right: Icon row */}
+          <nav className="flex items-center gap-2 sm:gap-3">
+            <IconButton href="/deals" label="Deals" count={newDealsCount}>
+              <Percent className="h-5 w-5" />
+            </IconButton>
+            <IconButton href="/marketplace" label="Tags">
+              <Tag className="h-5 w-5" />
+            </IconButton>
+            <IconButton href="/portfolio" label="Stats">
+              <BarChart3 className="h-5 w-5" />
+            </IconButton>
+            <IconButton href="/watchlist" label="Favorites">
+              <Heart className="h-5 w-5" />
+            </IconButton>
+            <IconButton href="/scanner" label="Scanner">
+              <Maximize2 className="h-5 w-5" />
+            </IconButton>
+            <IconButton href="/notifications" label="Notifications" count={notificationsCount}>
+              <Bell className="h-5 w-5" />
+            </IconButton>
+            
+            {user ? (
+              <IconButtonDropdown user={user} signOut={signOut} navigate={navigate} isAdmin={isAdmin} isArtist={isArtist} />
+            ) : (
+              <IconButton href="/auth" label="Sign In">
+                <User className="h-5 w-5" />
+              </IconButton>
+            )}
+          </nav>
         </div>
       </div>
-    </nav>
+    </header>
+  );
+}
+
+function IconButton({
+  href,
+  label,
+  count,
+  children,
+}: {
+  href: string;
+  label: string;
+  count?: number;
+  children: React.ReactNode;
+}) {
+  const showCount = typeof count === "number" && count > 0;
+  return (
+    <Link
+      to={href}
+      aria-label={label}
+      className="relative grid place-items-center h-9 w-9 rounded-lg border bg-card hover:bg-accent transition-colors"
+    >
+      {children}
+      {showCount && (
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center">
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function IconButtonDropdown({ 
+  user, 
+  signOut, 
+  navigate,
+  isAdmin,
+  isArtist
+}: { 
+  user: any; 
+  signOut: () => void; 
+  navigate: any;
+  isAdmin: boolean;
+  isArtist: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Account"
+        className="relative grid place-items-center h-9 w-9 rounded-lg border bg-card hover:bg-accent transition-colors"
+      >
+        <User className="h-5 w-5" />
+      </button>
+      
+      {isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute right-0 mt-2 w-56 rounded-lg border bg-card shadow-lg z-50">
+            <div className="p-3 border-b">
+              <p className="text-sm font-medium">{user.email}</p>
+            </div>
+            <div className="py-1">
+              <DropdownLink href="/my-collection" onClick={() => setIsOpen(false)}>
+                <BookOpen className="mr-2 h-4 w-4" />
+                My Collection
+              </DropdownLink>
+              <DropdownLink href="/my-account" onClick={() => setIsOpen(false)}>
+                <UserCircle className="mr-2 h-4 w-4" />
+                My Account
+              </DropdownLink>
+              <div className="my-1 border-t" />
+              <DropdownLink href="/profile" onClick={() => setIsOpen(false)}>
+                <User className="mr-2 h-4 w-4" />
+                My Profile
+              </DropdownLink>
+              <DropdownLink href="/my-orders" onClick={() => setIsOpen(false)}>
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                My Orders
+              </DropdownLink>
+              <DropdownLink href="/messages" onClick={() => setIsOpen(false)}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Messages
+              </DropdownLink>
+              <DropdownLink href="/dashboard" onClick={() => setIsOpen(false)}>
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Dashboard
+              </DropdownLink>
+              <DropdownLink href="/settings" onClick={() => setIsOpen(false)}>
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownLink>
+              <DropdownLink href="/seller/dashboard" onClick={() => setIsOpen(false)}>
+                <Package className="mr-2 h-4 w-4" />
+                Winners & Orders
+              </DropdownLink>
+              {isArtist && (
+                <>
+                  <div className="my-1 border-t" />
+                  <DropdownLink href="/artist/my-art" onClick={() => setIsOpen(false)}>
+                    <Package className="mr-2 h-4 w-4" />
+                    My Original Art
+                  </DropdownLink>
+                </>
+              )}
+              {isAdmin && (
+                <>
+                  <div className="my-1 border-t" />
+                  <DropdownLink href="/admin/original-art/manage" onClick={() => setIsOpen(false)}>
+                    <Package className="mr-2 h-4 w-4" />
+                    Original Art (Admin)
+                  </DropdownLink>
+                  <DropdownLink href="/admin/invite-artist" onClick={() => setIsOpen(false)}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Invite Artist
+                  </DropdownLink>
+                </>
+              )}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/scanner');
+                }}
+                className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent transition-colors"
+              >
+                <HelpCircle className="mr-2 h-4 w-4" />
+                AI Scanner Tutorial
+              </button>
+              <div className="my-1 border-t" />
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  signOut();
+                }}
+                className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent transition-colors"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DropdownLink({ href, onClick, children }: { href: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Link
+      to={href}
+      onClick={onClick}
+      className="flex items-center px-3 py-2 text-sm hover:bg-accent transition-colors"
+    >
+      {children}
+    </Link>
   );
 }

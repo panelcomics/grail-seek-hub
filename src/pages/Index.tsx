@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Navbar from "@/components/Navbar";
 
 /** 
  * Data contracts you can swap to Supabase/Lovable queries:
@@ -21,9 +22,11 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* TEST MODE banner */}
-      <TestModeBanner show />
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+        {/* TEST MODE banner */}
+        <TestModeBanner show />
 
       {/* HERO */}
       <Hero />
@@ -43,7 +46,8 @@ export default function HomePage() {
         title="Top Dealers This Month"
         showRevenue={false}   // <- keep false; set true for admin-only view
       />
-    </main>
+      </main>
+    </>
   );
 }
 
