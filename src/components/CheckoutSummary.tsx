@@ -88,7 +88,7 @@ export const CheckoutSummary = ({
                 ${total.toFixed(2)}
               </span>
               <p className="text-xs text-muted-foreground mt-1">
-                Flat 6.5% Intro Rate (includes payment processing)
+                Flat 6.5% selling fee (including payment processing). No extra fees.
               </p>
             </div>
           </div>

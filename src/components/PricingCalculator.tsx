@@ -12,7 +12,7 @@ export const calculateSellerFee = (itemPrice: number, shippingMethod: 'local_pic
     return 0;
   }
   
-  // Flat 6.5% Intro Rate for sales (includes payment processing)
+  // Flat 6.5% selling fee (including payment processing)
   return itemPrice * 0.065;
 };
 
@@ -92,10 +92,10 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
               <Label htmlFor="ship" className="flex-1 cursor-pointer">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Ship Nationwide</span>
-                  <Badge variant="outline">Flat 6.5% Intro Rate</Badge>
+                  <Badge variant="outline">6.5% Total</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Includes payment processing • Trades not affected
+                  Includes payment processing • No extra fees
                 </p>
               </Label>
             </div>
@@ -139,7 +139,7 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
             <div className="flex gap-2">
               <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-700 dark:text-blue-300">
-                Flat 6.5% total fee — includes payment processing. Trades and swaps not affected.
+                Flat 6.5% selling fee (including payment processing). No extra percentage fees. Our cut comes out of that, not on top of it.
               </p>
             </div>
           </div>

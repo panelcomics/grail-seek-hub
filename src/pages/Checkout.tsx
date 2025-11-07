@@ -165,7 +165,7 @@ const Checkout = () => {
                 
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
                   <p className="text-sm text-blue-700 dark:text-blue-400">
-                    <strong>Flat 6.5% total fee — includes payment processing.</strong> Trades and swaps not affected.
+                    <strong>Flat 6.5% selling fee (including payment processing). No extra percentage fees.</strong> Our cut comes out of that, not on top of it. Trades use separate fee tiers.
                   </p>
                 </div>
               </>

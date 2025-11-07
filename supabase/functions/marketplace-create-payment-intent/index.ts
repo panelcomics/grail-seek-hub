@@ -62,7 +62,11 @@ serve(async (req) => {
     });
 
     const amount_cents = listing.price_cents;
-    const fee_cents = listing.fee_cents;
+    
+    // Calculate platform fee (6.5% cap minus Stripe fees)
+    const max_total_fee_cents = Math.round(amount_cents * 0.065);
+    const estimated_stripe_fee_cents = Math.round(amount_cents * 0.029) + 30;
+    const platform_fee_cents = Math.max(0, max_total_fee_cents - estimated_stripe_fee_cents);
 
     // Create order record
     const { data: order, error: orderError } = await supabaseClient
@@ -86,7 +90,7 @@ serve(async (req) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount_cents,
       currency: "usd",
-      application_fee_amount: fee_cents,
+      application_fee_amount: platform_fee_cents,
       transfer_data: {
         destination: sellerProfile.stripe_account_id,
       },
@@ -95,6 +99,8 @@ serve(async (req) => {
         listing_id: listingId,
         buyer_id: user.id,
         seller_id: listing.user_id,
+        max_total_fee_cents: max_total_fee_cents.toString(),
+        platform_fee_cents: platform_fee_cents.toString(),
       },
     });
 

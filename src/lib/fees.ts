@@ -1,9 +1,11 @@
 // Marketplace fee calculation - Grail Seeker v2.0
-// Sales: Flat 6.5% Intro Rate on total (item + shipping + tax) - includes payment processing
+// Sales: Flat 6.5% MAX total fee (includes Stripe processing)
+// GrailSeeker absorbs Stripe fees out of that 6.5%, leaving ~3-3.5% net
 // Trades: Tiered based on total trade value (unchanged)
 
 export const MARKETPLACE_FEE_RATE = 0.065;
-export const MARKETPLACE_FEE_FIXED_CENTS = 0;
+export const STRIPE_RATE = 0.029;
+export const STRIPE_FIXED_CENTS = 30;
 
 // Trade fee tiers based on total trade value (item_a + item_b)
 export const TRADE_FEE_TIERS = [
@@ -22,6 +24,7 @@ export const TRADE_FEE_TIERS = [
 export interface FeeCalculation {
   fee_cents: number;
   payout_cents: number;
+  platform_fee_cents?: number;
 }
 
 export interface TradeFeeCalculation {
@@ -55,13 +58,28 @@ export function calculateTradeFee(totalTradeValue: number): TradeFeeCalculation 
 }
 
 export function calculateMarketplaceFee(priceCents: number): FeeCalculation {
-  const fee_cents = Math.round(priceCents * MARKETPLACE_FEE_RATE);
+  // Calculate max total fee (6.5% cap)
+  const max_total_fee_cents = Math.round(priceCents * MARKETPLACE_FEE_RATE);
+  
+  // Estimate Stripe fees (2.9% + $0.30)
+  const estimated_stripe_fee_cents = Math.round(priceCents * STRIPE_RATE) + STRIPE_FIXED_CENTS;
+  
+  // Platform fee is what's left after Stripe takes their cut
+  const platform_fee_cents = Math.max(0, max_total_fee_cents - estimated_stripe_fee_cents);
+  
+  // Total fee charged to seller (for display purposes)
+  const fee_cents = max_total_fee_cents;
   const payout_cents = priceCents - fee_cents;
   
   return {
     fee_cents,
-    payout_cents
+    payout_cents,
+    platform_fee_cents
   };
+}
+
+export interface FeeCalculationWithPlatform extends FeeCalculation {
+  platform_fee_cents?: number;
 }
 
 export function formatCents(cents: number): string {
