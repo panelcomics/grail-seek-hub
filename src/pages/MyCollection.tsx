@@ -237,18 +237,15 @@ const MyCollection = () => {
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{comic.title}</h3>
-                        {comic.issue_number && (
-                          <p className="text-sm text-muted-foreground">Issue #{comic.issue_number}</p>
-                        )}
-                        {comic.volume_name && (
-                          <p className="text-xs text-muted-foreground mt-1">{comic.volume_name}</p>
-                        )}
-                        {comic.cover_date && (
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(comic.cover_date).toLocaleDateString()}
-                          </p>
-                        )}
+                        <CardTitle className="text-base mb-2">
+                          <strong>{comic.volume_name || comic.title}</strong>
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {comic.issue_number && <>Issue #{comic.issue_number}<br /></>}
+                          {comic.cover_date && (
+                            <>{new Date(comic.cover_date).toLocaleDateString()}</>
+                          )}
+                        </p>
                         {comic.condition_notes && (
                           <p className="text-xs text-muted-foreground mt-2 italic">
                             {comic.condition_notes}
