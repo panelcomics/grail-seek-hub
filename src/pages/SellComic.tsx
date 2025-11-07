@@ -48,7 +48,7 @@ export default function SellComic() {
       return;
     }
     fetchComic();
-  }, [comicId, user, authLoading]);
+  }, [comicId, authLoading]);
 
   async function fetchComic() {
     if (!comicId) return;

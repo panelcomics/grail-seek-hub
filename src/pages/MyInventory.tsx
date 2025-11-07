@@ -39,7 +39,7 @@ interface InventoryItem {
 
 export default function MyInventory() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
@@ -64,13 +64,16 @@ export default function MyInventory() {
   const uniqueGrades = Array.from(new Set(items.map(i => i.grade).filter(Boolean))) as string[];
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking user
+    if (authLoading) return;
+    
     if (!user) {
       navigate("/auth");
       return;
     }
     fetchInventory();
     fetchContainers();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     let filtered = items;
@@ -208,7 +211,7 @@ export default function MyInventory() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
