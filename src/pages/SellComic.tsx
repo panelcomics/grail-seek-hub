@@ -215,6 +215,12 @@ export default function SellComic() {
                       )}
                     </div>
 
+                    {comic.details && (
+                      <p className="text-sm pt-2">
+                        <span className="font-medium">Details:</span> {comic.details}
+                      </p>
+                    )}
+
                     {comic.condition_notes && (
                       <p className="text-sm pt-2">
                         <span className="font-medium">Condition:</span> {comic.condition_notes}

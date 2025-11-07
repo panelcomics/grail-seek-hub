@@ -38,6 +38,7 @@ interface Comic {
   cover_date: string | null;
   image_url: string | null;
   condition_notes: string | null;
+  details: string | null;
   added_at: string;
   ocr_text: string | null;
   source: string | null;
@@ -59,6 +60,7 @@ const MyCollection = () => {
     volume_name: "",
     cover_date: "",
     condition_notes: "",
+    details: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -153,6 +155,7 @@ const MyCollection = () => {
       volume_name: comic.volume_name || "",
       cover_date: comic.cover_date || "",
       condition_notes: comic.condition_notes || "",
+      details: comic.details || "",
     });
   };
 
@@ -169,6 +172,7 @@ const MyCollection = () => {
           volume_name: editForm.volume_name || null,
           cover_date: editForm.cover_date || null,
           condition_notes: editForm.condition_notes || null,
+          details: editForm.details || null,
         })
         .eq("id", editingComic.id);
 
@@ -270,6 +274,11 @@ const MyCollection = () => {
                         <p className="text-sm text-muted-foreground" style={{ marginTop: "4px" }}>
                           {comic.cover_date && new Date(comic.cover_date).toLocaleDateString()}
                         </p>
+                        {comic.details && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {comic.details.length > 60 ? `${comic.details.substring(0, 60)}...` : comic.details}
+                          </p>
+                        )}
                         {comic.condition_notes && (
                           <p className="text-xs text-muted-foreground mt-2 italic">
                             {comic.condition_notes}
@@ -365,6 +374,16 @@ const MyCollection = () => {
                 type="date"
                 value={editForm.cover_date}
                 onChange={(e) => setEditForm({ ...editForm, cover_date: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="details">Details / Significance</Label>
+              <Textarea
+                id="details"
+                value={editForm.details}
+                onChange={(e) => setEditForm({ ...editForm, details: e.target.value })}
+                placeholder="e.g., 1st appearance of the black suit, key issue, variant, signed, etc."
+                rows={2}
               />
             </div>
             <div className="space-y-2">

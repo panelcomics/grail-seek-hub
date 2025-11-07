@@ -33,6 +33,7 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
   const [grade, setGrade] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [details, setDetails] = useState("");
   const [comicvineId, setComicvineId] = useState("");
   const [existingItem, setExistingItem] = useState<any>(null);
 
@@ -108,6 +109,7 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
         grade: grade || null,
         private_location: location || null,
         private_notes: notes || null,
+        details: details || null,
         comicvine_issue_id: comicvineId || null,
       };
 
@@ -119,6 +121,7 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
             grade: grade || existingItem.grade,
             private_location: location || existingItem.private_location,
             private_notes: notes || existingItem.private_notes,
+            details: details || existingItem.details,
           })
           .eq('id', existingItem.id);
 
@@ -160,6 +163,7 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
     setGrade("");
     setLocation("");
     setNotes("");
+    setDetails("");
     setComicvineId("");
     setExistingItem(null);
   };
@@ -209,6 +213,17 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
               placeholder="9.8, NM, etc."
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="details">Details / Significance</Label>
+            <Textarea
+              id="details"
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="e.g., 1st appearance of the black suit, key issue, variant, signed, etc."
+              rows={2}
             />
           </div>
 

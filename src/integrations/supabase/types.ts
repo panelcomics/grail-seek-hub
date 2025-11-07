@@ -497,6 +497,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           creators: string[] | null
+          details: string | null
           id: string
           issue: string | null
           notes: string | null
@@ -510,6 +511,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           creators?: string[] | null
+          details?: string | null
           id?: string
           issue?: string | null
           notes?: string | null
@@ -523,6 +525,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           creators?: string[] | null
+          details?: string | null
           id?: string
           issue?: string | null
           notes?: string | null
@@ -972,6 +975,7 @@ export type Database = {
           condition: string | null
           cover_date: string | null
           created_at: string
+          details: string | null
           grade: string | null
           id: string
           images: Json | null
@@ -995,6 +999,7 @@ export type Database = {
           condition?: string | null
           cover_date?: string | null
           created_at?: string
+          details?: string | null
           grade?: string | null
           id?: string
           images?: Json | null
@@ -1018,6 +1023,7 @@ export type Database = {
           condition?: string | null
           cover_date?: string | null
           created_at?: string
+          details?: string | null
           grade?: string | null
           id?: string
           images?: Json | null
@@ -2105,6 +2111,7 @@ export type Database = {
           comicvine_id: number
           condition_notes: string | null
           cover_date: string | null
+          details: string | null
           id: string
           image_url: string | null
           issue_number: string | null
@@ -2120,6 +2127,7 @@ export type Database = {
           comicvine_id: number
           condition_notes?: string | null
           cover_date?: string | null
+          details?: string | null
           id?: string
           image_url?: string | null
           issue_number?: string | null
@@ -2135,6 +2143,7 @@ export type Database = {
           comicvine_id?: number
           condition_notes?: string | null
           cover_date?: string | null
+          details?: string | null
           id?: string
           image_url?: string | null
           issue_number?: string | null
