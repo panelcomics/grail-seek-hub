@@ -130,18 +130,38 @@ serve(async (req) => {
     } else if (event.type === "charge.refunded") {
       const charge = event.data.object;
       
+      // Calculate Stripe processing fee: 2.9% + $0.30
+      const originalAmount = charge.amount; // in cents
+      const stripeFee = Math.round(originalAmount * 0.029 + 30);
+      const refundAmount = charge.amount_refunded; // Amount actually refunded (in cents)
+      
+      console.log("Refund details:", {
+        originalAmount,
+        stripeFee,
+        refundAmount,
+        chargeId: charge.id
+      });
+      
       // Find order by charge_id
       const { data: order } = await supabaseClient
         .from("orders")
-        .select("id")
+        .select("id, total")
         .eq("charge_id", charge.id)
         .single();
 
       if (order) {
         await supabaseClient
           .from("orders")
-          .update({ status: "refunded" })
+          .update({ 
+            status: "refunded",
+            refund_amount: refundAmount / 100 // Store in dollars
+          })
           .eq("id", order.id);
+        
+        console.log("Order refunded:", {
+          orderId: order.id,
+          refundAmountDollars: refundAmount / 100
+        });
       }
     }
 

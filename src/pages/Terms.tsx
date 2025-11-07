@@ -236,9 +236,33 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 6. User Responsibilities */}
+            {/* 6. Cancellations and Refunds */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">6. User Responsibilities</h2>
+              <h2 className="text-xl font-semibold mb-3">6. Cancellations and Refunds</h2>
+              <div className="space-y-3 text-muted-foreground leading-relaxed">
+                <p>
+                  When a buyer cancels an order or a refund is issued, the original payment-processing fee 
+                  charged by our payment partner (currently 2.9% + $0.30 per transaction) is non-refundable. 
+                  GrailSeeker will deduct that processing amount from any refund issued to the buyer. This 
+                  ensures that sellers and the platform are not charged additional fees for canceled transactions.
+                </p>
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+                  <p className="font-medium text-foreground">
+                    Important: Processing fees are non-refundable once a transaction is authorized.
+                  </p>
+                  <p className="mt-2">
+                    The processing fee covers the cost of handling the transaction through our payment provider. 
+                    This fee is charged by the payment processor regardless of whether the order is completed or canceled.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <Separator />
+
+            {/* 7. User Responsibilities */}
+            <section>
+              <h2 className="text-xl font-semibold mb-3">7. User Responsibilities</h2>
               <div className="space-y-2 text-muted-foreground leading-relaxed">
                 <p>As a user of Grail Seeker, you agree to:</p>
                 <ul className="list-disc pl-6 space-y-2">
@@ -254,9 +278,9 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 7. Termination */}
+            {/* 8. Termination */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">7. Termination</h2>
+              <h2 className="text-xl font-semibold mb-3">8. Termination</h2>
               <p className="text-muted-foreground leading-relaxed">
                 Grail Seeker reserves the right to suspend or terminate your account at any time, with or without 
                 notice, for any reason, including violation of these Terms. Upon termination, your right to use 
@@ -266,9 +290,9 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 8. Changes to Terms */}
+            {/* 9. Changes to Terms */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">8. Changes to Terms</h2>
+              <h2 className="text-xl font-semibold mb-3">9. Changes to Terms</h2>
               <p className="text-muted-foreground leading-relaxed">
                 We reserve the right to modify these Terms at any time. Changes will be effective immediately upon 
                 posting to the Service. Your continued use of the Service after changes are posted constitutes your 
@@ -278,9 +302,9 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 9. Contact */}
+            {/* 10. Contact */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">9. Contact Information</h2>
+              <h2 className="text-xl font-semibold mb-3">10. Contact Information</h2>
               <p className="text-muted-foreground leading-relaxed">
                 If you have questions about these Terms, please contact us at: legal@grailseeker.com
               </p>

@@ -230,6 +230,15 @@ const OrderDetail = () => {
                   )}
                 </div>
               )}
+              
+              {(order.payment_status === "paid" || order.payment_status === "pending") && (
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Cancellation Policy:</strong> Processing fees (2.9% + $0.30) are non-refundable once a transaction is authorized. 
+                    Any refunds will deduct this processing fee from the refund amount.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

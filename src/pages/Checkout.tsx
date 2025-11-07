@@ -149,18 +149,26 @@ const Checkout = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {orderDetails && (
-              <div className="bg-muted p-4 rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Item:</span>
-                  <span className="font-medium">{orderDetails.claim_sales?.title}</span>
+              <>
+                <div className="bg-muted p-4 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Item:</span>
+                    <span className="font-medium">{orderDetails.claim_sales?.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Amount:</span>
+                    <span className="font-bold text-lg">
+                      ${orderDetails.total?.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Amount:</span>
-                  <span className="font-bold text-lg">
-                    ${orderDetails.total?.toFixed(2)}
-                  </span>
+                
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    <strong>Note:</strong> Processing fees are non-refundable once a transaction is authorized.
+                  </p>
                 </div>
-              </div>
+              </>
             )}
 
             {clientSecret && (

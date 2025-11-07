@@ -1320,6 +1320,7 @@ export type Database = {
           payout_status: string | null
           platform_fee_amount: number | null
           platform_fee_rate: number | null
+          refund_amount: number | null
           seller_id: string
           shipped_at: string | null
           shipping_address: Json | null
@@ -1356,6 +1357,7 @@ export type Database = {
           payout_status?: string | null
           platform_fee_amount?: number | null
           platform_fee_rate?: number | null
+          refund_amount?: number | null
           seller_id: string
           shipped_at?: string | null
           shipping_address?: Json | null
@@ -1392,6 +1394,7 @@ export type Database = {
           payout_status?: string | null
           platform_fee_amount?: number | null
           platform_fee_rate?: number | null
+          refund_amount?: number | null
           seller_id?: string
           shipped_at?: string | null
           shipping_address?: Json | null
