@@ -15,7 +15,22 @@ import { z } from "zod";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
 
-const FEE_THRESHOLD = 150;
+// Trade fee tiers
+const TRADE_FEE_TIERS = [
+  { min: 0, max: 199.99, total: 0, each: 0, label: "$0-199.99: Free" },
+  { min: 200, max: 400, total: 4, each: 2, label: "$200-400: $4 total ($2 each)" },
+  { min: 401, max: 999, total: 8, each: 4, label: "$401-999: $8 total ($4 each)" },
+  { min: 1000, max: 1999, total: 20, each: 10, label: "$1000-1999: $20 total ($10 each)" },
+  { min: 2000, max: 3999, total: 25, each: 12.5, label: "$2000-3999: $25 total ($12.50 each)" },
+  { min: 4000, max: Infinity, total: 35, each: 17.5, label: "$4000+: $35 total ($17.50 each)" },
+];
+
+function calculateTradeFee(totalTradeValue: number) {
+  const tier = TRADE_FEE_TIERS.find(
+    t => totalTradeValue >= t.min && totalTradeValue <= t.max
+  );
+  return tier || TRADE_FEE_TIERS[TRADE_FEE_TIERS.length - 1];
+}
 
 const tradeConfirmationSchema = z.object({
   agreedValue: z.number().positive().min(0.01, "Trade value must be at least $0.01"),
@@ -123,7 +138,8 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
   const [agreedToFee, setAgreedToFee] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const isBelowThreshold = agreedValue < FEE_THRESHOLD;
+  const tradeFee = calculateTradeFee(agreedValue);
+  const isFree = tradeFee.total === 0;
 
   useEffect(() => {
     // Validate agreed value
@@ -145,25 +161,9 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
   }, [tradeId, agreedValue]);
 
   const loadFeeSettings = async () => {
-    const { data } = await supabase
-      .from("trade_fee_settings")
-      .select("*")
-      .single();
-
-    if (data) {
-      setFeeSettings(data);
-      
-      // Calculate fees with threshold logic
-      if (isBelowThreshold || !data.fees_enabled) {
-        setTotalFee(0);
-        setFeeAmount(0);
-      } else {
-        const calculatedTotalFee = (agreedValue * data.percentage_fee) + data.flat_fee;
-        const calculatedEachFee = calculatedTotalFee / 2;
-        setTotalFee(Number(calculatedTotalFee.toFixed(2)));
-        setFeeAmount(Number(calculatedEachFee.toFixed(2)));
-      }
-    }
+    // Calculate fees based on tiered structure
+    setTotalFee(tradeFee.total);
+    setFeeAmount(tradeFee.each);
   };
 
   const checkPaymentStatus = async () => {
@@ -241,8 +241,8 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
       }
     }
 
-    // If below threshold or no fees, complete without payment
-    if (isBelowThreshold || noFeesRequired) {
+    // If free tier or no fees, complete without payment
+    if (isFree || noFeesRequired) {
       handlePaymentSuccess();
     }
   };
@@ -293,7 +293,7 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
     );
   }
 
-  if (noFeesRequired && !isBelowThreshold) {
+  if (noFeesRequired && !isFree) {
     return (
       <Card>
         <CardHeader>
@@ -329,7 +329,7 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p className="text-sm">
-                      Grail Seeker trade fee is 2% + $2, split evenly between both traders. No fee under ${FEE_THRESHOLD}.
+                      {tradeFee.label}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -344,14 +344,14 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
               </div>
               
               <div className="flex justify-between text-sm sm:text-base">
-                <span className="text-muted-foreground">Grail Seeker Fee (2% + $2):</span>
+                <span className="text-muted-foreground">Grail Seeker Fee:</span>
                 <div className="text-right">
                   <span className="font-semibold">
-                    {isBelowThreshold ? "$0.00" : `$${totalFee.toFixed(2)}`}
+                    {isFree ? "$0.00" : `$${totalFee.toFixed(2)}`}
                   </span>
-                  {isBelowThreshold && (
+                  {isFree && (
                     <p className="text-xs text-green-600 mt-0.5">
-                      No platform fee under ${FEE_THRESHOLD}
+                      Free trade (under $200)
                     </p>
                   )}
                 </div>
@@ -396,9 +396,9 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
 
         <Alert>
           <AlertDescription className="text-xs sm:text-sm">
-            {isBelowThreshold ? (
+            {isFree ? (
               <span className="text-green-600 font-medium">
-                ✓ This trade qualifies for fee-free processing (under ${FEE_THRESHOLD})
+                ✓ This trade qualifies for free processing (under $200)
               </span>
             ) : (
               "Both traders must pay their share before the trade is finalized."
@@ -407,7 +407,7 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
         </Alert>
 
         {/* Payment or Confirmation */}
-        {!isBelowThreshold && clientSecret && feeSettings?.fees_enabled ? (
+        {!isFree && clientSecret ? (
           <Elements stripe={stripePromise} options={{ clientSecret }}>
             <PaymentForm tradeId={tradeId} onSuccess={handlePaymentSuccess} disabled={!agreedToFee} />
           </Elements>

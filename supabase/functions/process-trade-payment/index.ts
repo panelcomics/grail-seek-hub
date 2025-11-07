@@ -6,7 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FEE_THRESHOLD = 150;
+// Trade fee tiers based on total trade value (item_a + item_b)
+const TRADE_FEE_TIERS = [
+  { min: 0, max: 199.99, total: 0, each: 0 },
+  { min: 200, max: 400, total: 4, each: 2 },
+  { min: 401, max: 999, total: 8, each: 4 },
+  { min: 1000, max: 1999, total: 20, each: 10 },
+  { min: 2000, max: 3999, total: 25, each: 12.5 },
+  { min: 4000, max: Infinity, total: 35, each: 17.5 },
+];
+
+function calculateTradeFee(totalTradeValue: number) {
+  const tier = TRADE_FEE_TIERS.find(
+    t => totalTradeValue >= t.min && totalTradeValue <= t.max
+  );
+  
+  return tier || TRADE_FEE_TIERS[TRADE_FEE_TIERS.length - 1];
+}
 
 interface ProcessTradePaymentRequest {
   tradeId: string;
@@ -87,17 +103,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get fee settings
-    const { data: feeSettings } = await supabase
-      .from("trade_fee_settings")
-      .select("*")
-      .single();
+    // Calculate fees based on tiered structure
+    const feeCalc = calculateTradeFee(trade.agreed_value);
+    const totalFee = feeCalc.total;
+    const eachUserFee = feeCalc.each;
 
-    // Check if fees should be applied
-    const shouldChargeFee = feeSettings?.fees_enabled && trade.agreed_value >= FEE_THRESHOLD;
-
-    if (!shouldChargeFee) {
-      // No fees required - mark as paid
+    // Check if fees should be charged (tier 0 = free)
+    if (totalFee === 0) {
+      // Update trade to mark as paid with no fees
       const updateData = isUserA 
         ? { 
             user_a_paid_at: new Date().toISOString(),
@@ -119,17 +132,11 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           noFeesRequired: true,
-          reason: trade.agreed_value < FEE_THRESHOLD 
-            ? `Trade value under $${FEE_THRESHOLD} threshold` 
-            : "Fees disabled"
+          message: `Trade value of $${trade.agreed_value} qualifies for free trading (under $200). No fees charged.`
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Calculate fees (rounded to 2 decimals)
-    const totalFee = Number(((trade.agreed_value * feeSettings.percentage_fee) + feeSettings.flat_fee).toFixed(2));
-    const eachUserFee = Number((totalFee / 2).toFixed(2));
 
     // Update trade with fee amounts if not set
     if (!trade.total_fee) {
@@ -163,7 +170,7 @@ Deno.serve(async (req) => {
         user_id: user.id,
         is_user_a: isUserA.toString(),
       },
-      description: `Grail Seeker Trade Fee – Split 50/50 (${feeSettings.percentage_fee * 100}% + $${feeSettings.flat_fee})`,
+      description: `Grail Seeker Trade Fee – $${totalFee} total ($${eachUserFee} each)`,
       receipt_email: email,
     });
 

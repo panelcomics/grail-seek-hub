@@ -28,33 +28,54 @@ export default function FeesPolicy() {
           <Card className="border-2">
             <CardHeader>
               <CardTitle className="text-2xl sm:text-3xl text-primary">
-                Trade Fees
+                Trade Fees (Tiered Structure)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm sm:text-base leading-relaxed">
+              <p className="text-muted-foreground mb-4">
+                Trade fees are based on the total trade value (item A + item B):
+              </p>
               <ul className="space-y-3 list-none">
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    Trades over <strong>$150</strong> have a small fee of <strong>2% + $2 total</strong>, split evenly between both traders.
+                    <strong>$0-$199.99:</strong> Free (no fee)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Example:</strong> a $200 trade = $6 total ($3 each).
+                    <strong>$200-$400:</strong> $4 total ($2 each)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    Trades <strong>under $150 have no fee.</strong>
+                    <strong>$401-$999:</strong> $8 total ($4 each)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    All fees are shown on the confirmation screen before finalizing.
+                    <strong>$1,000-$1,999:</strong> $20 total ($10 each)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>$2,000-$3,999:</strong> $25 total ($12.50 each)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>$4,000+:</strong> $35 total ($17.50 each)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2 mt-4">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    All fees are shown before you confirm and split evenly between both traders.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -79,19 +100,19 @@ export default function FeesPolicy() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    Standard sales through Grail Seeker use Stripe and include a <strong>3% service fee</strong>.
+                    Standard sales through Grail Seeker include a <strong>3.5% service fee</strong> on the total (item price + shipping + tax).
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Pro Sellers</strong> and <strong>Top Sellers</strong> may qualify for reduced fees.
+                    <strong>Example:</strong> A $100 item with $10 shipping = $110 total × 3.5% = $3.85 fee.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    Subscription plans are billed through Stripe.
+                    All payments are securely processed through Stripe.
                   </span>
                 </li>
               </ul>
