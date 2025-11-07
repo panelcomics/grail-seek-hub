@@ -98,7 +98,12 @@ export default function TrendingAuctions() {
       });
 
       if (error) {
-        console.error('Error fetching comic covers:', error);
+        // If function not found (404), just use placeholders
+        if (error.message?.includes('404') || error.message?.includes('NOT_FOUND')) {
+          console.log('Comic covers function not deployed yet, using placeholders');
+        } else {
+          console.error('Error fetching comic covers:', error);
+        }
         setLoading(false);
         return;
       }
@@ -111,7 +116,7 @@ export default function TrendingAuctions() {
         setTrendingItems(itemsWithCovers);
       }
     } catch (error) {
-      console.error('Failed to fetch comic covers:', error);
+      console.log('Comic covers service unavailable, using placeholders:', error);
     } finally {
       setLoading(false);
     }
