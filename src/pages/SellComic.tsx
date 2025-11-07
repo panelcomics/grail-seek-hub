@@ -199,31 +199,29 @@ export default function SellComic() {
                       return (
                         <>
                           <h3 className="text-xl font-bold">{withYear}</h3>
-                          
                           {storyTitle && (
                             <p className="italic text-sm text-muted-foreground">
                               Story: {storyTitle}
                             </p>
                           )}
-
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            {publisher && <div>Publisher: {publisher}</div>}
-                            {comic.cover_date && (
-                              <div>Cover Date: {new Date(comic.cover_date).toLocaleDateString()}</div>
-                            )}
-                            {comic.volume_name && (
-                              <div>Volume: {comic.volume_name}</div>
-                            )}
-                          </div>
-
-                          {comic.condition_notes && (
-                            <p className="text-sm pt-2">
-                              <span className="font-medium">Condition:</span> {comic.condition_notes}
-                            </p>
-                          )}
                         </>
                       );
                     })()}
+
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      {comic.cover_date && (
+                        <div>Cover Date: {new Date(comic.cover_date).toLocaleDateString()}</div>
+                      )}
+                      {comic.volume_name && (
+                        <div>Volume: {comic.volume_name}</div>
+                      )}
+                    </div>
+
+                    {comic.condition_notes && (
+                      <p className="text-sm pt-2">
+                        <span className="font-medium">Condition:</span> {comic.condition_notes}
+                      </p>
+                    )}
                   </div>
 
                   {/* Price Guide */}
