@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import { formatComicDisplay } from "@/lib/comics/format";
 import Footer from "@/components/Footer";
 
 export default function SellComic() {
@@ -187,23 +188,42 @@ export default function SellComic() {
                   )}
                   
                   <div className="space-y-2">
-                    <h3 className="text-xl font-bold">{comic.title}</h3>
-                    {comic.issue_number && (
-                      <p className="text-muted-foreground">Issue #{comic.issue_number}</p>
-                    )}
-                    {comic.volume_name && (
-                      <p className="text-sm text-muted-foreground">Volume: {comic.volume_name}</p>
-                    )}
-                    {comic.cover_date && (
-                      <p className="text-sm text-muted-foreground">
-                        Cover Date: {new Date(comic.cover_date).toLocaleDateString()}
-                      </p>
-                    )}
-                    {comic.condition_notes && (
-                      <p className="text-sm">
-                        <span className="font-medium">Condition:</span> {comic.condition_notes}
-                      </p>
-                    )}
+                    {(() => {
+                      const { withYear, storyTitle, publisher } = formatComicDisplay({
+                        volume: { name: comic.volume_name },
+                        title: comic.title,
+                        issue_number: comic.issue_number,
+                        cover_date: comic.cover_date,
+                      });
+                      
+                      return (
+                        <>
+                          <h3 className="text-xl font-bold">{withYear}</h3>
+                          
+                          {storyTitle && (
+                            <p className="italic text-sm text-muted-foreground">
+                              Story: {storyTitle}
+                            </p>
+                          )}
+
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            {publisher && <div>Publisher: {publisher}</div>}
+                            {comic.cover_date && (
+                              <div>Cover Date: {new Date(comic.cover_date).toLocaleDateString()}</div>
+                            )}
+                            {comic.volume_name && (
+                              <div>Volume: {comic.volume_name}</div>
+                            )}
+                          </div>
+
+                          {comic.condition_notes && (
+                            <p className="text-sm pt-2">
+                              <span className="font-medium">Condition:</span> {comic.condition_notes}
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Price Guide */}
