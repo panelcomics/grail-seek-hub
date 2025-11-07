@@ -157,9 +157,11 @@ Deno.serve(async (req) => {
 
       // Send emails if configured
       const resendKey = Deno.env.get("RESEND_API_KEY");
-      if (resendKey && userAData.data.user?.email && userBData.data.user?.email) {
+      const authHeader = req.headers.get("Authorization");
+      if (resendKey && authHeader && userAData.data.user?.email && userBData.data.user?.email) {
         await Promise.all([
           supabase.functions.invoke('send-notification-email', {
+            headers: { Authorization: authHeader },
             body: {
               userId: updatedTrade.user_a,
               message,
@@ -168,6 +170,7 @@ Deno.serve(async (req) => {
             }
           }),
           supabase.functions.invoke('send-notification-email', {
+            headers: { Authorization: authHeader },
             body: {
               userId: updatedTrade.user_b,
               message,

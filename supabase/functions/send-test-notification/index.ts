@@ -72,9 +72,10 @@ const handler = async (req: Request): Promise<Response> => {
     if (notifError) throw notifError;
 
     // Send email if RESEND_API_KEY is available
-    if (Deno.env.get("RESEND_API_KEY")) {
+    if (Deno.env.get("RESEND_API_KEY") && authHeader) {
       try {
         await supabase.functions.invoke("send-notification-email", {
+          headers: { Authorization: authHeader },
           body: {
             userId,
             message: "🧪 This is a test notification from admin",

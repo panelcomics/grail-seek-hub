@@ -20,15 +20,39 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the caller (verify_jwt = true handles this, but we double-check)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify the caller's identity
+    const supabaseClient = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { userId, message, link, type, data }: EmailRequest = await req.json();
 
     // Handle admin notifications for artist applications
     if (type === "artist_application") {
-      console.log("Processing artist application notification");
+      console.log("Processing artist application notification from user:", user.id);
       
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       if (!resendApiKey) {
@@ -127,6 +151,24 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Authorization check: Only allow sending to self or if admin
+    const { data: adminCheck } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    const isAdmin = !!adminCheck;
+    
+    if (userId !== user.id && !isAdmin) {
+      console.error("Authorization failed: User", user.id, "attempted to send notification to", userId);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Can only send notifications to yourself" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch user email and preferences
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
@@ -142,10 +184,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Get user email from auth
-    const { data: authData, error: authError } = await supabase.auth.admin.getUserById(userId);
+    const { data: authData, error: userAuthError } = await supabase.auth.admin.getUserById(userId);
     
-    if (authError || !authData?.user?.email) {
-      console.error("Error fetching user email:", authError);
+    if (userAuthError || !authData?.user?.email) {
+      console.error("Error fetching user email:", userAuthError);
       return new Response(JSON.stringify({ error: "User email not found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -28,11 +28,25 @@ serve(async (req) => {
   let event;
   try {
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(body, signature!, webhookSecret);
-    } else {
-      event = JSON.parse(body);
+    
+    // CRITICAL: Always require webhook signature verification
+    if (!webhookSecret) {
+      console.error("CRITICAL: STRIPE_WEBHOOK_SECRET not configured!");
+      return new Response(
+        JSON.stringify({ error: "Webhook configuration error" }),
+        { status: 500, headers: corsHeaders }
+      );
     }
+
+    if (!signature) {
+      console.error("Missing stripe-signature header");
+      return new Response(
+        JSON.stringify({ error: "Missing signature" }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (error) {
     console.error("Webhook signature verification failed:", error);
     return new Response(
