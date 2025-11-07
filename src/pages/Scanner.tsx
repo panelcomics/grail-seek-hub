@@ -63,16 +63,16 @@ export default function Scanner() {
       
       // Get auth token if user is logged in
       const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
+      
+      // Don't manually set Content-Type - supabase client handles it
+      const headers: Record<string, string> = {};
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
       const { data, error: invokeError } = await supabase.functions.invoke('scan-item', {
         body: { imageBase64: compressed.base64 },
-        headers,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
       });
 
       if (invokeError) throw invokeError;
