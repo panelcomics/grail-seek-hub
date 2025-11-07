@@ -20,14 +20,15 @@ import {
 
 interface Comic {
   id: string;
-  series: string;
-  issue: string | null;
-  year: string | null;
-  publisher: string | null;
-  creators: string[] | null;
-  cover_url: string | null;
-  notes: string | null;
-  created_at: string;
+  title: string;
+  issue_number: string | null;
+  volume_name: string | null;
+  cover_date: string | null;
+  image_url: string | null;
+  condition_notes: string | null;
+  added_at: string;
+  ocr_text: string | null;
+  source: string | null;
 }
 
 const MyCollection = () => {
@@ -47,9 +48,9 @@ const MyCollection = () => {
     if (search) {
       const filtered = comics.filter(
         (comic) =>
-          comic.series.toLowerCase().includes(search.toLowerCase()) ||
-          comic.issue?.toLowerCase().includes(search.toLowerCase()) ||
-          comic.publisher?.toLowerCase().includes(search.toLowerCase())
+          comic.title.toLowerCase().includes(search.toLowerCase()) ||
+          comic.issue_number?.toLowerCase().includes(search.toLowerCase()) ||
+          comic.volume_name?.toLowerCase().includes(search.toLowerCase())
       );
       setFilteredComics(filtered);
     } else {
@@ -60,9 +61,9 @@ const MyCollection = () => {
   const fetchComics = async () => {
     try {
       const { data, error } = await supabase
-        .from("comics")
+        .from("user_comics")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("added_at", { ascending: false });
 
       if (error) throw error;
 
@@ -84,7 +85,7 @@ const MyCollection = () => {
     if (!deleteId) return;
 
     try {
-      const { error } = await supabase.from("comics").delete().eq("id", deleteId);
+      const { error } = await supabase.from("user_comics").delete().eq("id", deleteId);
 
       if (error) throw error;
 
@@ -150,32 +151,29 @@ const MyCollection = () => {
                 <Card key={comic.id}>
                   <CardContent className="pt-6">
                     <div className="flex gap-4">
-                      {comic.cover_url && (
+                      {comic.image_url && (
                         <img
-                          src={comic.cover_url}
-                          alt={`${comic.series} ${comic.issue || ""}`}
+                          src={comic.image_url}
+                          alt={`${comic.title} ${comic.issue_number || ""}`}
                           className="w-20 h-28 object-cover rounded"
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{comic.series}</h3>
-                        {comic.issue && (
-                          <p className="text-sm text-muted-foreground">Issue #{comic.issue}</p>
+                        <h3 className="font-semibold truncate">{comic.title}</h3>
+                        {comic.issue_number && (
+                          <p className="text-sm text-muted-foreground">Issue #{comic.issue_number}</p>
                         )}
-                        {comic.year && (
-                          <p className="text-sm text-muted-foreground">Year: {comic.year}</p>
+                        {comic.volume_name && (
+                          <p className="text-xs text-muted-foreground mt-1">{comic.volume_name}</p>
                         )}
-                        {comic.publisher && (
-                          <p className="text-xs text-muted-foreground mt-1">{comic.publisher}</p>
-                        )}
-                        {comic.creators && comic.creators.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {comic.creators.join(", ")}
+                        {comic.cover_date && (
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(comic.cover_date).toLocaleDateString()}
                           </p>
                         )}
-                        {comic.notes && (
+                        {comic.condition_notes && (
                           <p className="text-xs text-muted-foreground mt-2 italic">
-                            {comic.notes}
+                            {comic.condition_notes}
                           </p>
                         )}
                         <Button
