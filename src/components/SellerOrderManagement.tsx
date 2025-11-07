@@ -43,6 +43,11 @@ interface Order {
   payout_status: string;
   payout_hold_until: string;
   tracking_number: string | null;
+  label_url: string | null;
+  shippo_rate_id: string | null;
+  label_cost_cents: number | null;
+  shipping_charged_cents: number | null;
+  shipping_margin_cents: number | null;
   created_at: string;
   claim_sale_id: string;
   claim_sales?: {
@@ -61,6 +66,7 @@ export const SellerOrderManagement = () => {
   const [updating, setUpdating] = useState(false);
   const [showShipModal, setShowShipModal] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [generatingLabel, setGeneratingLabel] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -195,6 +201,13 @@ export const SellerOrderManagement = () => {
     }
   };
 
+  const handleDownloadLabel = (order: Order) => {
+    if (order.label_url) {
+      window.open(order.label_url, "_blank");
+      toast.success("Opening shipping label...");
+    }
+  };
+
   const getShippingStatusBadge = (status: string) => {
     switch (status) {
       case "delivered":
@@ -285,7 +298,21 @@ export const SellerOrderManagement = () => {
                       {getPayoutStatusBadge(order.payout_status, order.payout_hold_until)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {order.shipping_status === "pending" && (
+                      <div className="flex gap-2 justify-end">
+                        {/* Download Label if available */}
+                        {order.label_url && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadLabel(order)}
+                          >
+                            <Package className="h-4 w-4 mr-1" />
+                            Download Label
+                          </Button>
+                        )}
+
+                        {/* Shipping actions */}
+                        {order.shipping_status === "pending" && (
                         <Dialog open={showShipModal && selectedOrder?.id === order.id} onOpenChange={(open) => {
                           setShowShipModal(open);
                           if (!open) {
@@ -373,9 +400,10 @@ export const SellerOrderManagement = () => {
                               </Button>
                             </div>
                           </DialogContent>
-                        </Dialog>
-                      )}
-                      {order.shipping_status === "shipped" && (
+                          </Dialog>
+                        )}
+                        
+                        {order.shipping_status === "shipped" && (
                         <Dialog open={showDeliveryModal && selectedOrder?.id === order.id} onOpenChange={(open) => {
                           setShowDeliveryModal(open);
                           if (!open) {
@@ -420,8 +448,9 @@ export const SellerOrderManagement = () => {
                               </Button>
                             </div>
                           </DialogContent>
-                        </Dialog>
-                      )}
+                          </Dialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

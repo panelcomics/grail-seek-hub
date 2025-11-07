@@ -1373,6 +1373,8 @@ export type Database = {
           delivery_confirmed_at: string | null
           dispute_status: string | null
           id: string
+          label_cost_cents: number | null
+          label_url: string | null
           listing_id: string | null
           paid_at: string | null
           payment_intent_id: string | null
@@ -1388,8 +1390,12 @@ export type Database = {
           shipped_at: string | null
           shipping_address: Json | null
           shipping_amount: number
+          shipping_charged_cents: number | null
+          shipping_margin_cents: number | null
           shipping_name: string | null
           shipping_status: string | null
+          shippo_rate_id: string | null
+          shippo_transaction_id: string | null
           status: string | null
           stripe_session_id: string | null
           total: number | null
@@ -1410,6 +1416,8 @@ export type Database = {
           delivery_confirmed_at?: string | null
           dispute_status?: string | null
           id?: string
+          label_cost_cents?: number | null
+          label_url?: string | null
           listing_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
@@ -1425,8 +1433,12 @@ export type Database = {
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_amount?: number
+          shipping_charged_cents?: number | null
+          shipping_margin_cents?: number | null
           shipping_name?: string | null
           shipping_status?: string | null
+          shippo_rate_id?: string | null
+          shippo_transaction_id?: string | null
           status?: string | null
           stripe_session_id?: string | null
           total?: number | null
@@ -1447,6 +1459,8 @@ export type Database = {
           delivery_confirmed_at?: string | null
           dispute_status?: string | null
           id?: string
+          label_cost_cents?: number | null
+          label_url?: string | null
           listing_id?: string | null
           paid_at?: string | null
           payment_intent_id?: string | null
@@ -1462,8 +1476,12 @@ export type Database = {
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_amount?: number
+          shipping_charged_cents?: number | null
+          shipping_margin_cents?: number | null
           shipping_name?: string | null
           shipping_status?: string | null
+          shippo_rate_id?: string | null
+          shippo_transaction_id?: string | null
           status?: string | null
           stripe_session_id?: string | null
           total?: number | null

@@ -292,10 +292,11 @@ const OrderDetail = () => {
                   </div>
                 )}
 
+              <div className="flex gap-2">
                 {order.carrier !== "Other" && (
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="flex-1"
                     onClick={() => {
                       const trackingUrl = 
                         order.carrier === "USPS" 
@@ -310,6 +311,7 @@ const OrderDetail = () => {
                     Track Package
                   </Button>
                 )}
+              </div>
 
                 <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
                   <p className="text-xs text-center font-semibold">
