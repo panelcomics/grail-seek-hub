@@ -82,10 +82,6 @@ const Auth = () => {
       }
 
       await logAuthEvent('login_success', { email: signInEmail });
-      toast({
-        title: "Welcome back!",
-        description: "Successfully signed in.",
-      });
       window.location.href = "/dashboard";
     } catch (error: any) {
       toast({
@@ -152,15 +148,16 @@ const Auth = () => {
       }
 
       await logAuthEvent('signup_email', { email: signUpEmail });
-
-      toast({
-        title: "Account created!",
-        description: "Check your email to verify your account.",
-      });
       
       // If user is automatically signed in (auto-confirm enabled), redirect
       if (data.session) {
         window.location.href = "/dashboard";
+      } else {
+        // Only show toast if email verification is required
+        toast({
+          title: "Account created!",
+          description: "Check your email to verify your account.",
+        });
       }
     } catch (error: any) {
       await logAuthEvent('signup_failed', { email: signUpEmail, error: error.message });
