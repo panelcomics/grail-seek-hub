@@ -13,7 +13,7 @@ const onboardingSteps = [
   {
     icon: Scan,
     title: "Add Your First Grail!",
-    description: "Scan or upload a comic/book → get instant value → list for swaps. Free under $50.",
+    description: "Scan or upload a comic/book → get instant value → list for swaps. Low flat trade fees — no surprises.",
     highlight: "Start building your collection",
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",

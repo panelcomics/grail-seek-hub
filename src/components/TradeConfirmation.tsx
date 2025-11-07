@@ -351,7 +351,7 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
                   </span>
                   {isFree && (
                     <p className="text-xs text-green-600 mt-0.5">
-                      Free trade (under $200)
+                      Low Flat Trade Fees — No Surprises
                     </p>
                   )}
                 </div>
@@ -398,7 +398,7 @@ export function TradeConfirmation({ tradeId, agreedValue, onComplete }: TradeCon
           <AlertDescription className="text-xs sm:text-sm">
             {isFree ? (
               <span className="text-green-600 font-medium">
-                ✓ This trade qualifies for free processing (under $200)
+                ✓ Low Flat Trade Fees — No Surprises
               </span>
             ) : (
               "Both traders must pay their share before the trade is finalized."

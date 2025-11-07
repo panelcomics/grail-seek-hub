@@ -20,7 +20,7 @@ export const SocialShareModal = ({
 }: SocialShareModalProps) => {
   const getFeeMessage = () => {
     if (!itemValue) return "";
-    if (itemValue <= 50) return "Free to trade (under $50)!";
+    if (itemValue <= 50) return "Low Flat Trade Fees — No Surprises!";
     if (itemValue <= 100) return "This fits $2.50 each fee tier";
     if (itemValue <= 250) return "This fits $6 each fee tier";
     if (itemValue <= 500) return "This fits $11 each fee tier";
