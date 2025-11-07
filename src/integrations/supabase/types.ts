@@ -2061,6 +2061,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_comic_images: {
+        Row: {
+          comic_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_cover: boolean
+          sort_order: number
+          storage_path: string
+        }
+        Insert: {
+          comic_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_cover?: boolean
+          sort_order?: number
+          storage_path: string
+        }
+        Update: {
+          comic_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_cover?: boolean
+          sort_order?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_comic_images_comic_id_fkey"
+            columns: ["comic_id"]
+            isOneToOne: false
+            referencedRelation: "user_comics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_comics: {
         Row: {
           added_at: string | null
