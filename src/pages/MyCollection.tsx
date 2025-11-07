@@ -148,7 +148,11 @@ const MyCollection = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredComics.map((comic) => (
-                <Card key={comic.id}>
+                <Card 
+                  key={comic.id} 
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => navigate(`/sell/${comic.id}`)}
+                >
                   <CardContent className="pt-6">
                     <div className="flex gap-4">
                       {comic.image_url && (
@@ -180,7 +184,10 @@ const MyCollection = () => {
                           variant="ghost"
                           size="sm"
                           className="mt-2 p-0 h-auto"
-                          onClick={() => setDeleteId(comic.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(comic.id);
+                          }}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
