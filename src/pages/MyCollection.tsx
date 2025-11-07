@@ -4,9 +4,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Trash2, Loader2 } from "lucide-react";
+import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +49,15 @@ const MyCollection = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingComic, setEditingComic] = useState<Comic | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    issue_number: "",
+    volume_name: "",
+    cover_date: "",
+    condition_notes: "",
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchComics();
@@ -103,6 +122,61 @@ const MyCollection = () => {
         description: "Failed to remove comic",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleEditClick = (comic: Comic, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingComic(comic);
+    setEditForm({
+      title: comic.title,
+      issue_number: comic.issue_number || "",
+      volume_name: comic.volume_name || "",
+      cover_date: comic.cover_date || "",
+      condition_notes: comic.condition_notes || "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingComic) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("user_comics")
+        .update({
+          title: editForm.title,
+          issue_number: editForm.issue_number || null,
+          volume_name: editForm.volume_name || null,
+          cover_date: editForm.cover_date || null,
+          condition_notes: editForm.condition_notes || null,
+        })
+        .eq("id", editingComic.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Comic updated successfully",
+      });
+
+      // Update local state
+      setComics(comics.map((c) => 
+        c.id === editingComic.id 
+          ? { ...c, ...editForm }
+          : c
+      ));
+      setEditingComic(null);
+      fetchComics(); // Refresh to get latest data
+    } catch (error) {
+      console.error("Error updating comic:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update comic",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -180,17 +254,27 @@ const MyCollection = () => {
                             {comic.condition_notes}
                           </p>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 p-0 h-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteId(comic.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-auto"
+                            onClick={(e) => handleEditClick(comic, e)}
+                          >
+                            <Edit2 className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 h-auto"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteId(comic.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -215,6 +299,74 @@ const MyCollection = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!editingComic} onOpenChange={() => setEditingComic(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Comic Details</DialogTitle>
+            <DialogDescription>
+              Update the information for this comic in your collection.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                placeholder="Comic title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="issue">Issue Number</Label>
+              <Input
+                id="issue"
+                value={editForm.issue_number}
+                onChange={(e) => setEditForm({ ...editForm, issue_number: e.target.value })}
+                placeholder="#1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="volume">Volume Name</Label>
+              <Input
+                id="volume"
+                value={editForm.volume_name}
+                onChange={(e) => setEditForm({ ...editForm, volume_name: e.target.value })}
+                placeholder="Volume 1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date">Cover Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={editForm.cover_date}
+                onChange={(e) => setEditForm({ ...editForm, cover_date: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Condition Notes</Label>
+              <Textarea
+                id="notes"
+                value={editForm.condition_notes}
+                onChange={(e) => setEditForm({ ...editForm, condition_notes: e.target.value })}
+                placeholder="e.g. Minor spine ticks, CGC 9.8"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingComic(null)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={saving || !editForm.title}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </ProtectedRoute>
   );
