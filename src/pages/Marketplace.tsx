@@ -61,7 +61,8 @@ export default function Marketplace() {
     let filtered = search
       ? listings.filter((listing) =>
           listing.title?.toLowerCase().includes(search.toLowerCase()) ||
-          listing.inventory_items?.title?.toLowerCase().includes(search.toLowerCase())
+          listing.inventory_items?.title?.toLowerCase().includes(search.toLowerCase()) ||
+          listing.details?.toLowerCase().includes(search.toLowerCase())
         )
       : listings;
 
@@ -186,6 +187,11 @@ export default function Marketplace() {
                     {listing.issue_number && (
                       <p className="text-xs md:text-sm text-muted-foreground mb-2">
                         Issue #{listing.issue_number}
+                      </p>
+                    )}
+                    {listing.details && (
+                      <p className="text-xs text-muted-foreground mb-1 line-clamp-1">
+                        {listing.details}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mb-2">

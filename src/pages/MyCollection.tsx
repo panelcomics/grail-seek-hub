@@ -74,7 +74,8 @@ const MyCollection = () => {
         (comic) =>
           comic.title.toLowerCase().includes(search.toLowerCase()) ||
           comic.issue_number?.toLowerCase().includes(search.toLowerCase()) ||
-          comic.volume_name?.toLowerCase().includes(search.toLowerCase())
+          comic.volume_name?.toLowerCase().includes(search.toLowerCase()) ||
+          comic.details?.toLowerCase().includes(search.toLowerCase())
       );
       setFilteredComics(filtered);
     } else {

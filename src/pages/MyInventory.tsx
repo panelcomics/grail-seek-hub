@@ -26,6 +26,7 @@ interface InventoryItem {
   grade: string | null;
   private_location: string | null;
   private_notes: string | null;
+  details: string | null;
   created_at: string;
   updated_at: string;
   listing_status: string;
@@ -78,7 +79,9 @@ export default function MyInventory() {
         (item) =>
           item.title?.toLowerCase().includes(search.toLowerCase()) ||
           item.issue_number?.toLowerCase().includes(search.toLowerCase()) ||
-          item.series?.toLowerCase().includes(search.toLowerCase())
+          item.series?.toLowerCase().includes(search.toLowerCase()) ||
+          item.details?.toLowerCase().includes(search.toLowerCase()) ||
+          item.private_notes?.toLowerCase().includes(search.toLowerCase())
       );
     }
 
@@ -368,6 +371,11 @@ export default function MyInventory() {
                                 <h3 className="font-semibold">{item.title}</h3>
                                 {item.issue_number && (
                                   <p className="text-sm text-muted-foreground">Issue #{item.issue_number}</p>
+                                )}
+                                {item.details && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {item.details.length > 60 ? `${item.details.substring(0, 60)}...` : item.details}
+                                  </p>
                                 )}
                                 {item.grade && (
                                   <p className="text-sm text-muted-foreground">Grade: {item.grade}</p>
