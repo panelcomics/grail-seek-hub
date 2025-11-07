@@ -33,21 +33,8 @@ const Auth = () => {
     }
   };
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        window.location.href = "/dashboard";
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        window.location.href = "/dashboard";
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  // Removed session check on mount to prevent redirect loops
+  // Redirects now only happen after explicit login actions
 
   const validatePassword = (password: string) => {
     if (password.length < 8) return { valid: false, message: "Password must be at least 8 characters" };
