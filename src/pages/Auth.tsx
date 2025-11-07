@@ -24,7 +24,6 @@ const Auth = () => {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const hasRedirected = useRef(false);
 
   const logAuthEvent = async (event: string, metadata?: any) => {
     try {
@@ -36,15 +35,13 @@ const Auth = () => {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session && !hasRedirected.current) {
-        hasRedirected.current = true;
+      if (session) {
         window.location.href = "/dashboard";
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && !hasRedirected.current) {
-        hasRedirected.current = true;
+      if (session) {
         window.location.href = "/dashboard";
       }
     });
