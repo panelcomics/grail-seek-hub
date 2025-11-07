@@ -259,9 +259,27 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 7. User Responsibilities */}
+            {/* 7. Trading Policy */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">7. User Responsibilities</h2>
+              <h2 className="text-xl font-semibold mb-3">7. Trading Policy</h2>
+              <div className="space-y-3 text-muted-foreground leading-relaxed">
+                <p>
+                  Users may exchange collectibles directly through the platform's trade features. All trades are voluntary and negotiated directly between users.
+                </p>
+                <p>
+                  <strong>GrailSeeker does not participate in or guarantee any trade</strong>, nor do we determine item value. Trades are not considered games of chance or sweepstakes and involve no random outcomes.
+                </p>
+                <p className="text-sm">
+                  Users are solely responsible for evaluating trade fairness, verifying item authenticity, and managing all aspects of the exchange.
+                </p>
+              </div>
+            </section>
+
+            <Separator />
+
+            {/* 8. User Responsibilities */}
+            <section>
+              <h2 className="text-xl font-semibold mb-3">8. User Responsibilities</h2>
               <div className="space-y-2 text-muted-foreground leading-relaxed">
                 <p>As a user of Grail Seeker, you agree to:</p>
                 <ul className="list-disc pl-6 space-y-2">
@@ -277,9 +295,9 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 8. Termination */}
+            {/* 9. Termination */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">8. Termination</h2>
+              <h2 className="text-xl font-semibold mb-3">9. Termination</h2>
               <p className="text-muted-foreground leading-relaxed">
                 Grail Seeker reserves the right to suspend or terminate your account at any time, with or without 
                 notice, for any reason, including violation of these Terms. Upon termination, your right to use 
@@ -289,9 +307,9 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 9. Changes to Terms */}
+            {/* 10. Changes to Terms */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">9. Changes to Terms</h2>
+              <h2 className="text-xl font-semibold mb-3">10. Changes to Terms</h2>
               <p className="text-muted-foreground leading-relaxed">
                 We reserve the right to modify these Terms at any time. Changes will be effective immediately upon 
                 posting to the Service. Your continued use of the Service after changes are posted constitutes your 
@@ -301,9 +319,9 @@ export default function Terms() {
 
             <Separator />
 
-            {/* 10. Contact */}
+            {/* 11. Contact */}
             <section>
-              <h2 className="text-xl font-semibold mb-3">10. Contact Information</h2>
+              <h2 className="text-xl font-semibold mb-3">11. Contact Information</h2>
               <p className="text-muted-foreground leading-relaxed">
                 If you have questions about these Terms, please contact us at: legal@grailseeker.com
               </p>
