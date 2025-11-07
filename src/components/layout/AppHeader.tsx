@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, Heart, Search, User2 } from "lucide-react";
+import { Bell, Heart, Search, User2, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +20,7 @@ export function AppHeader() {
 
   // --- Actions ---
   const goSearch = () => navigate("/search"); // or open a Command dialog
+  const goScanner = () => navigate("/scanner");
   const goFavorites = () =>
     user ? navigate("/favorites") : navigate("/auth?redirect=/favorites");
   const goNotifications = () =>
@@ -40,6 +41,11 @@ export function AppHeader() {
 
         {/* Right: single row of actions — no duplicates */}
         <div className="flex items-center gap-2">
+          {/* Scanner */}
+          <Button variant="outline" size="icon" aria-label="Scanner" onClick={goScanner}>
+            <ScanLine className="h-5 w-5" />
+          </Button>
+
           {/* Search: always available */}
           <Button variant="outline" size="icon" aria-label="Search" onClick={goSearch}>
             <Search className="h-5 w-5" />

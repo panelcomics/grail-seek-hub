@@ -1,7 +1,10 @@
 project_id = "fiwmlzrhwvrsrxmcstzk"
 
 [functions.ebay-search]
-verify_jwt = true
+verify_jwt = false
+
+[functions.comic-scanner]
+verify_jwt = false
 
 [functions.validate-password]
 verify_jwt = false

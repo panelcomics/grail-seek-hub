@@ -1242,6 +1242,69 @@ export type Database = {
           },
         ]
       }
+      my_grails: {
+        Row: {
+          characters: string[] | null
+          comicvine_id: number | null
+          cover_image: string | null
+          cover_thumb: string | null
+          created_at: string | null
+          description: string | null
+          ebay_avg_price: number | null
+          fee_tier: string | null
+          full_title: string | null
+          id: string
+          issue_number: string | null
+          publisher: string | null
+          title: string
+          trade_fee_each: number | null
+          trade_fee_total: number | null
+          updated_at: string | null
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          characters?: string[] | null
+          comicvine_id?: number | null
+          cover_image?: string | null
+          cover_thumb?: string | null
+          created_at?: string | null
+          description?: string | null
+          ebay_avg_price?: number | null
+          fee_tier?: string | null
+          full_title?: string | null
+          id?: string
+          issue_number?: string | null
+          publisher?: string | null
+          title: string
+          trade_fee_each?: number | null
+          trade_fee_total?: number | null
+          updated_at?: string | null
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          characters?: string[] | null
+          comicvine_id?: number | null
+          cover_image?: string | null
+          cover_thumb?: string | null
+          created_at?: string | null
+          description?: string | null
+          ebay_avg_price?: number | null
+          fee_tier?: string | null
+          full_title?: string | null
+          id?: string
+          issue_number?: string | null
+          publisher?: string | null
+          title?: string
+          trade_fee_each?: number | null
+          trade_fee_total?: number | null
+          updated_at?: string | null
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
       notification_sent: {
         Row: {
           created_at: string
