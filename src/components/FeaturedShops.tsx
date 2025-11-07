@@ -30,7 +30,10 @@ const placeholderShops = [
     profiles: {
       username: "Kiss Komixx",
       avatar_url: null,
-    }
+    },
+    city: "Brooklyn, NY",
+    rating: "4.9",
+    sales: "243"
   },
   {
     id: "placeholder-2",
@@ -39,16 +42,34 @@ const placeholderShops = [
     profiles: {
       username: "Panel Comics",
       avatar_url: null,
-    }
+    },
+    city: "Los Angeles, CA",
+    rating: "4.8",
+    sales: "187"
   },
   {
     id: "placeholder-3",
     seller_id: "placeholder-3",
     rank: 3,
     profiles: {
-      username: "John's Comics",
+      username: "Emerald City Comics",
       avatar_url: null,
-    }
+    },
+    city: "Seattle, WA",
+    rating: "4.9",
+    sales: "156"
+  },
+  {
+    id: "placeholder-4",
+    seller_id: "placeholder-4",
+    rank: 4,
+    profiles: {
+      username: "Golden Age Collectibles",
+      avatar_url: null,
+    },
+    city: "Chicago, IL",
+    rating: "5.0",
+    sales: "312"
   },
 ];
 
@@ -149,14 +170,39 @@ export default function FeaturedShops() {
   );
 }
 
-function ShopTile({ shop }: { shop: FeaturedShop }) {
+function ShopTile({ shop }: { shop: FeaturedShop | typeof placeholderShops[0] }) {
   const slug = shop.profiles.username?.toLowerCase().replace(/\s+/g, "-").replace(/'/g, "") || "seller";
+  
+  // Generate initials for avatar
+  const initials = shop.profiles.username
+    ?.split(" ")
+    .map(word => word[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "S";
+  
+  // Generate consistent color based on shop name
+  const getShopColor = (name: string) => {
+    const colors = [
+      "from-red-500/20 to-orange-500/20 border-red-500/30",
+      "from-blue-500/20 to-cyan-500/20 border-blue-500/30",
+      "from-purple-500/20 to-pink-500/20 border-purple-500/30",
+      "from-green-500/20 to-emerald-500/20 border-green-500/30",
+      "from-amber-500/20 to-yellow-500/20 border-amber-500/30",
+    ];
+    const index = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
+  };
+
+  const city = "city" in shop ? shop.city : "New York, NY";
+  const rating = "rating" in shop ? shop.rating : "4.9";
+  const sales = "sales" in shop ? shop.sales : "156";
   
   return (
     <div className="comic-texture rounded-lg overflow-hidden border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 group">
       <div className="p-6 flex flex-col items-center text-center space-y-4">
         {/* Avatar */}
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden border-2 border-primary/30 group-hover:border-primary/60 transition-colors">
+        <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${getShopColor(shop.profiles.username || "")} flex items-center justify-center overflow-hidden border-2 group-hover:scale-105 transition-transform`}>
           {shop.profiles.avatar_url ? (
             <img 
               src={shop.profiles.avatar_url} 
@@ -165,7 +211,7 @@ function ShopTile({ shop }: { shop: FeaturedShop }) {
             />
           ) : (
             <span className="text-2xl font-bold text-primary">
-              {shop.profiles.username?.[0]?.toUpperCase() || "S"}
+              {initials}
             </span>
           )}
         </div>
@@ -175,13 +221,13 @@ function ShopTile({ shop }: { shop: FeaturedShop }) {
           <h3 className="text-lg font-bold text-foreground mb-1">
             {shop.profiles.username || "Unknown Shop"}
           </h3>
-          <p className="text-sm text-muted-foreground">New York, NY</p>
+          <p className="text-sm text-muted-foreground">{city}</p>
         </div>
 
         {/* Stats */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-          <span>4.9 • 156 sales</span>
+          <span>{rating} • {sales} sales</span>
         </div>
 
         {/* CTA */}

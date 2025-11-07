@@ -1,5 +1,8 @@
 project_id = "fiwmlzrhwvrsrxmcstzk"
 
+[functions.fetch-comic-covers]
+verify_jwt = false
+
 [functions.ebay-search]
 verify_jwt = false
 
