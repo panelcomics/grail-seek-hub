@@ -17,7 +17,7 @@ import Footer from "@/components/Footer";
 export default function SellComic() {
   const { comicId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
@@ -32,12 +32,15 @@ export default function SellComic() {
   const [estimatedValue, setEstimatedValue] = useState("$150-200");
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking user
+    if (authLoading) return;
+    
     if (!user) {
       navigate("/auth");
       return;
     }
     fetchComic();
-  }, [comicId, user]);
+  }, [comicId, user, authLoading]);
 
   async function fetchComic() {
     if (!comicId) return;
@@ -120,7 +123,7 @@ export default function SellComic() {
     }
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
