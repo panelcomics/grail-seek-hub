@@ -1,15 +1,16 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Search, Camera, Zap } from "lucide-react";
+import { Loader2, Search, Camera, Zap, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ComicResultCard } from "@/components/ComicResultCard";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import Footer from "@/components/Footer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ComicData {
   comicvine_id: number;
@@ -32,12 +33,125 @@ export default function Scanner() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [comic, setComic] = useState<ComicData | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  const handleScan = async () => {
-    if (!query.trim()) {
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment" } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setShowCamera(true);
+      }
+    } catch (error) {
+      console.error("Camera error:", error);
+      toast({
+        title: "Camera access denied",
+        description: "Please allow camera access to scan comics",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL("image/jpeg");
+        setCapturedImage(imageData);
+        stopCamera();
+        toast({
+          title: "Photo captured!",
+          description: "Now processing the image...",
+        });
+        processImage(imageData);
+      }
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        setCapturedImage(imageData);
+        toast({
+          title: "Image uploaded!",
+          description: "Now processing...",
+        });
+        processImage(imageData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const processImage = async (imageData: string) => {
+    setLoading(true);
+    setComic(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("scan-item", {
+        body: { image: imageData },
+      });
+
+      if (error) throw error;
+
+      if (data.text) {
+        // Extract text was found, now search for the comic
+        setQuery(data.text);
+        toast({
+          title: "Text detected",
+          description: `Found: ${data.text}. Searching...`,
+        });
+        await handleTextSearch(data.text);
+      } else {
+        toast({
+          title: "No text detected",
+          description: "Try entering the title manually",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Image processing error:", error);
+      toast({
+        title: "Scan failed",
+        description: "Try entering the title manually or take another photo",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTextSearch = async (searchQuery?: string) => {
+    const searchTerm = searchQuery || query.trim();
+    
+    if (!searchTerm) {
       toast({
         title: "Enter a search term",
         description: "Try 'Amazing Fantasy 15' or 'X-Men 1'",
@@ -51,7 +165,7 @@ export default function Scanner() {
 
     try {
       const { data, error } = await supabase.functions.invoke("comic-scanner", {
-        body: { query: query.trim() },
+        body: { query: searchTerm },
       });
 
       if (error) throw error;
@@ -150,37 +264,122 @@ export default function Scanner() {
             </h1>
             
             <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Enter a title, issue number, or ISBN. We'll fetch Comic Vine data, calculate eBay pricing, and show your exact swap fees.
+              Take a photo, upload an image, or enter a title manually. We'll fetch Comic Vine data, calculate eBay pricing, and show your exact swap fees.
             </p>
 
-            {/* Search Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
-              <Input
-                placeholder="e.g., 'Amazing Fantasy 15' or 'X-Men 1'"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleScan()}
-                className="flex-1 h-14 text-lg border-2 border-primary/30 focus:border-primary"
-              />
-              <Button 
-                onClick={handleScan} 
-                disabled={loading} 
-                size="lg" 
-                className="h-14 px-8 font-bold"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Scanning...
-                  </>
+            <Tabs defaultValue="camera" className="max-w-2xl mx-auto">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="camera">
+                  <Camera className="mr-2 h-4 w-4" />
+                  Camera
+                </TabsTrigger>
+                <TabsTrigger value="search">
+                  <Search className="mr-2 h-4 w-4" />
+                  Search
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="camera" className="space-y-4 mt-4">
+                {showCamera ? (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="relative">
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          className="w-full rounded-lg"
+                        />
+                        <div className="flex gap-2 mt-4">
+                          <Button onClick={capturePhoto} className="flex-1" size="lg">
+                            <Camera className="mr-2 h-5 w-5" />
+                            Take Photo
+                          </Button>
+                          <Button onClick={stopCamera} variant="outline" size="lg">
+                            <X className="h-5 w-5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : capturedImage ? (
+                  <Card>
+                    <CardContent className="p-4">
+                      <img src={capturedImage} alt="Captured" className="w-full rounded-lg mb-4" />
+                      <div className="flex gap-2">
+                        <Button onClick={() => setCapturedImage(null)} variant="outline" className="flex-1">
+                          Retake Photo
+                        </Button>
+                        <Button onClick={() => processImage(capturedImage)} disabled={loading} className="flex-1">
+                          {loading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            "Process Image"
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ) : (
-                  <>
-                    <Search className="mr-2 h-5 w-5" />
-                    Scan
-                  </>
+                  <div className="flex flex-col gap-3">
+                    <Button onClick={startCamera} size="lg" className="h-14">
+                      <Camera className="mr-2 h-5 w-5" />
+                      Open Camera
+                    </Button>
+                    <Button 
+                      onClick={() => fileInputRef.current?.click()} 
+                      variant="outline" 
+                      size="lg" 
+                      className="h-14"
+                    >
+                      <Upload className="mr-2 h-5 w-5" />
+                      Upload Photo
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </div>
                 )}
-              </Button>
-            </div>
+                <canvas ref={canvasRef} className="hidden" />
+              </TabsContent>
+
+              <TabsContent value="search" className="space-y-4 mt-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Input
+                    placeholder="e.g., 'Amazing Fantasy 15' or 'X-Men 1'"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
+                    className="flex-1 h-14 text-lg border-2 border-primary/30 focus:border-primary"
+                  />
+                  <Button 
+                    onClick={() => handleTextSearch()} 
+                    disabled={loading} 
+                    size="lg" 
+                    className="h-14 px-8 font-bold"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Scanning...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-5 w-5" />
+                        Search
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             <div className="flex flex-wrap gap-2 justify-center">
               <Button 
