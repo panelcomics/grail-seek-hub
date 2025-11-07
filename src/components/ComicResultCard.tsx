@@ -129,7 +129,7 @@ export function ComicResultCard({ comic, onListForSwap }: ComicResultCardProps) 
             className="w-full h-12 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
             size="lg"
           >
-            List for Swap
+            Save to Collection
           </Button>
 
           <p className="text-xs text-center text-muted-foreground">

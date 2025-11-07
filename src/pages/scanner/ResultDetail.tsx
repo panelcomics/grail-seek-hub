@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Check, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Plus, Check, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ComicDetailState {
   id: number;
@@ -27,32 +30,35 @@ interface ComicDetailState {
 export default function ResultDetail() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [adding, setAdding] = useState(false);
   const [isInCollection, setIsInCollection] = useState(false);
-  const [savedComicId, setSavedComicId] = useState<string | null>(null);
+  const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const [conditionNotes, setConditionNotes] = useState("");
+  const [forTrade, setForTrade] = useState(false);
+  const [inSearchOf, setInSearchOf] = useState("");
+  const [tradeNotes, setTradeNotes] = useState("");
 
   const comic = location.state as ComicDetailState;
 
   useEffect(() => {
-    if (!comic) return;
+    if (!comic || authLoading) return;
     checkIfInCollection();
-  }, [comic, user]);
+  }, [comic, user, authLoading]);
 
   async function checkIfInCollection() {
     if (!user || !comic?.id) return;
     
     const { data } = await supabase
-      .from("user_comics")
+      .from("inventory_items")
       .select("id")
       .eq("user_id", user.id)
-      .eq("comicvine_id", comic.id)
-      .single();
+      .eq("comicvine_issue_id", comic.id.toString())
+      .maybeSingle();
 
     if (data) {
       setIsInCollection(true);
-      setSavedComicId(data.id);
+      setSavedItemId(data.id);
     }
   }
 
@@ -88,13 +94,18 @@ export default function ResultDetail() {
 
   async function handleAddToCollection() {
     if (!user) {
-      toast.error("Please sign in to add to your collection");
-      navigate("/auth");
+      toast.error("Please sign in to save scanned books to your collection");
       return;
     }
 
     if (!comic) {
       toast.error("Comic data not found");
+      return;
+    }
+
+    // Validate trade settings
+    if (forTrade && !inSearchOf.trim()) {
+      toast.error("Please specify what you're looking for in trade");
       return;
     }
 
@@ -105,54 +116,85 @@ export default function ResultDetail() {
       let imageUrl = null;
       if (comic.userPhotoBase64) {
         imageUrl = await uploadPhotoToStorage(comic.userPhotoBase64);
-        if (!imageUrl) {
-          toast.error("Failed to upload photo");
-          setAdding(false);
-          return;
-        }
       }
 
-      const { error } = await supabase.from("user_comics").insert({
-        user_id: user.id,
-        comicvine_id: comic.id,
-        title: comic.name,
-        issue_number: comic.issue_number,
-        volume_name: comic.volume,
-        cover_date: comic.cover_date || null,
-        image_url: imageUrl,
-        ocr_text: comic.ocrText,
-        condition_notes: conditionNotes.trim() || null,
-        source: "comicvine_with_photo",
-      });
+      // Prepare images object
+      const images = imageUrl ? { front: imageUrl } : null;
+
+      const { data: newItem, error } = await supabase
+        .from("inventory_items")
+        .insert({
+          user_id: user.id,
+          comicvine_issue_id: comic.id.toString(),
+          title: comic.name,
+          series: comic.volume || comic.name,
+          issue_number: comic.issue_number || null,
+          cover_date: comic.cover_date || null,
+          images: images,
+          condition: conditionNotes.trim() || "Good",
+          details: comic.ocrText || null,
+          is_for_trade: forTrade,
+          in_search_of: forTrade ? inSearchOf.trim() : null,
+          trade_notes: forTrade ? tradeNotes.trim() : null,
+        })
+        .select()
+        .single();
 
       if (error) {
+        console.error("Save error:", error);
         if (error.code === "23505") {
           toast.error("This comic is already in your collection");
         } else {
-          throw error;
+          toast.error("We couldn't save this item. Please check that you're signed in and try again.");
         }
-      } else {
-        // Fetch the newly created comic ID
-        const { data: savedComic } = await supabase
-          .from("user_comics")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("comicvine_id", comic.id)
-          .single();
-        
-        if (savedComic) {
-          setSavedComicId(savedComic.id);
-        }
-        
-        toast.success("Added to collection!");
+        return;
+      }
+
+      if (newItem) {
+        setSavedItemId(newItem.id);
         setIsInCollection(true);
+        
+        if (forTrade) {
+          toast.success("Added to collection and listed for trade!");
+          navigate("/my-inventory");
+        } else {
+          toast.success("Added to collection!");
+          navigate("/my-collection");
+        }
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to add to collection");
+      console.error("Unexpected error:", err);
+      toast.error("We couldn't save this item. Please check that you're signed in and try again.");
     } finally {
       setAdding(false);
     }
+  }
+
+  // Show auth prompt if not logged in
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 container py-8">
+          <div className="max-w-2xl mx-auto text-center space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please sign in to save scanned books to your collection.
+              </AlertDescription>
+            </Alert>
+            <Button onClick={() => navigate("/auth", { state: { returnTo: location.pathname } })}>
+              Sign In to Save
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/scanner")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Scanner
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   if (!comic) {
@@ -230,18 +272,63 @@ export default function ResultDetail() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="condition-notes">
-                  Condition Notes (optional)
-                </Label>
-                <Textarea
-                  id="condition-notes"
-                  placeholder="e.g. Minor spine ticks, CGC 9.8 candidate"
-                  value={conditionNotes}
-                  onChange={(e) => setConditionNotes(e.target.value)}
-                  rows={3}
-                  disabled={isInCollection}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="condition-notes">
+                    Condition Notes (optional)
+                  </Label>
+                  <Textarea
+                    id="condition-notes"
+                    placeholder="e.g. Minor spine ticks, CGC 9.8 candidate"
+                    value={conditionNotes}
+                    onChange={(e) => setConditionNotes(e.target.value)}
+                    rows={3}
+                    disabled={isInCollection}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-1">
+                    <Label htmlFor="for-trade">List for Trade</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Make this available in the Trading Post
+                    </p>
+                  </div>
+                  <Switch
+                    id="for-trade"
+                    checked={forTrade}
+                    onCheckedChange={setForTrade}
+                    disabled={isInCollection}
+                  />
+                </div>
+
+                {forTrade && !isInCollection && (
+                  <div className="space-y-3 pl-4 border-l-2 border-primary">
+                    <div className="space-y-2">
+                      <Label htmlFor="in-search-of" className="text-sm">
+                        In Search Of <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="in-search-of"
+                        placeholder="e.g., Amazing Spider-Man #300, Batman keys"
+                        value={inSearchOf}
+                        onChange={(e) => setInSearchOf(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="trade-notes" className="text-sm">
+                        Trade Notes (optional)
+                      </Label>
+                      <Textarea
+                        id="trade-notes"
+                        placeholder="Any specific trade preferences or requirements"
+                        value={tradeNotes}
+                        onChange={(e) => setTradeNotes(e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 space-y-3">
@@ -250,7 +337,7 @@ export default function ResultDetail() {
                   disabled={adding || isInCollection}
                   className="w-full"
                   size="lg"
-                  variant={isInCollection ? "outline" : "destructive"}
+                  variant={isInCollection ? "outline" : "default"}
                 >
                   {isInCollection ? (
                     <>
@@ -270,14 +357,14 @@ export default function ResultDetail() {
                   )}
                 </Button>
 
-                {isInCollection && savedComicId && (
+                {isInCollection && savedItemId && (
                   <Button
-                    onClick={() => navigate(`/sell/${savedComicId}`)}
+                    onClick={() => navigate("/my-inventory")}
                     className="w-full"
                     size="lg"
-                    variant="premium"
+                    variant="outline"
                   >
-                    Sell This Comic
+                    View in My Inventory
                   </Button>
                 )}
               </div>

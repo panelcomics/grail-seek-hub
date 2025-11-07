@@ -212,55 +212,21 @@ export default function Scanner() {
     }
   };
 
-  const handleListForSwap = async () => {
-    if (!session) {
-      toast({
-        title: "Login required",
-        description: "Please login to save comics to your grails",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-
+  const handleViewDetails = () => {
     if (!comic) return;
 
-    try {
-      const { error } = await supabase.from("my_grails").insert({
-        user_id: session.user.id,
-        comicvine_id: comic.comicvine_id,
-        title: comic.title,
+    // Navigate to result detail page with comic data
+    navigate("/scanner/result", {
+      state: {
+        id: comic.comicvine_id,
+        name: comic.full_title,
         issue_number: comic.issue_number,
-        full_title: comic.full_title,
-        publisher: comic.publisher,
-        year: comic.year,
-        cover_image: comic.cover_image,
-        cover_thumb: comic.cover_thumb,
+        volume: comic.title,
+        cover_date: null,
+        image: comic.cover_image,
         description: comic.description,
-        characters: comic.characters,
-        ebay_avg_price: comic.ebay_avg_price,
-        trade_fee_total: comic.trade_fee_total,
-        trade_fee_each: comic.trade_fee_each,
-        fee_tier: comic.fee_tier,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Added to My Grails!",
-        description: "Comic saved successfully",
-      });
-
-      // Navigate to trade matching or inventory
-      navigate("/my-inventory");
-    } catch (error: any) {
-      console.error("Save comic error:", error);
-      toast({
-        title: "Save failed",
-        description: error.message || "Unable to save comic",
-        variant: "destructive",
-      });
-    }
+      }
+    });
   };
 
   return (
@@ -427,7 +393,7 @@ export default function Scanner() {
       {/* Result Section */}
       {comic && (
         <section className="container mx-auto px-4 py-12">
-          <ComicResultCard comic={comic} onListForSwap={handleListForSwap} />
+          <ComicResultCard comic={comic} onListForSwap={handleViewDetails} />
         </section>
       )}
 
