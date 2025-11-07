@@ -178,8 +178,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (!COMICVINE_API_KEY || !EBAY_APP_ID || !EBAY_CERT_ID) {
-      throw new Error('Missing required API credentials');
+    if (!COMICVINE_API_KEY) {
+      throw new Error('Missing Comic Vine API credentials');
     }
 
     const { query } = await req.json();
@@ -201,15 +201,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get eBay access token
-    const ebayToken = await getEbayAccessToken();
-
-    // Search eBay for sold prices
-    const avgPrice = await getEbaySoldPrices(
-      ebayToken,
-      comicData.volume.name,
-      comicData.issue_number
-    );
+    // Try to get eBay pricing (optional - won't fail if eBay auth fails)
+    let avgPrice = 0;
+    try {
+      if (EBAY_APP_ID && EBAY_CERT_ID) {
+        const ebayToken = await getEbayAccessToken();
+        const price = await getEbaySoldPrices(
+          ebayToken,
+          comicData.volume.name,
+          comicData.issue_number
+        );
+        avgPrice = price || 0;
+      }
+    } catch (ebayError) {
+      console.error('eBay pricing unavailable:', ebayError instanceof Error ? ebayError.message : 'Unknown error');
+      // Continue without eBay pricing
+    }
 
     // Calculate trade fee based on double the price (two-way trade)
     const estimatedValue = avgPrice || 0;
