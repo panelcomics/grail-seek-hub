@@ -12,25 +12,25 @@ interface OnboardingProps {
 const onboardingSteps = [
   {
     icon: Scan,
-    title: "Scan any comic",
-    description: "Use your phone camera to instantly identify comics and get real-time market values",
-    highlight: "AI-powered recognition",
+    title: "Add Your First Grail!",
+    description: "Scan or upload a comic/book → get instant value → list for swaps. Free under $50.",
+    highlight: "Start building your collection",
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
   },
   {
     icon: Zap,
-    title: "Claim in 5 sec",
-    description: "Lightning-fast claims on hot deals. No bidding wars, no waiting - just tap and it's yours",
-    highlight: "$2 bins & claim sales",
+    title: "Instant Value & Smart Fees",
+    description: "See real-time market values. Trade fees based on total value: $2-$100 per trade pair for items under $250",
+    highlight: "Transparent pricing",
     color: "text-orange-500",
     bgColor: "bg-orange-500/10",
   },
   {
     icon: Truck,
-    title: "Meet locally or ship",
-    description: "Choose local pickup for 0% fees or ship nationwide with full protection for 5% ($5 min)",
-    highlight: "Your choice, your way",
+    title: "Invite Friends, Get Bonus Matches",
+    description: "Share your grails and invite friends to unlock more swap opportunities. The more you add, the more you match!",
+    highlight: "Grow your network",
     color: "text-green-500",
     bgColor: "bg-green-500/10",
   },
@@ -118,9 +118,14 @@ export default function Onboarding({ open, onComplete }: OnboardingProps) {
                   <ChevronRight className="h-4 w-4" />
                 </>
               ) : (
-                "Get Started"
+                "Scan Now"
               )}
             </Button>
+            {currentStep === onboardingSteps.length - 1 && (
+              <Button onClick={handleSkip} variant="outline" className="gap-2">
+                Browse Grails
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

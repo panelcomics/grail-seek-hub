@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StorageManagement } from "@/components/StorageManagement";
 import { BulkActionsBar } from "@/components/BulkActionsBar";
 import { formatDistanceToNow } from "date-fns";
+import { CollectionSidebar } from "@/components/CollectionSidebar";
 
 interface InventoryItem {
   id: string;
@@ -220,7 +221,10 @@ export default function MyInventory() {
       <Navbar />
       
       <main className="flex-1 container py-8">
-        <Tabs defaultValue="inventory" className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+          {/* Main Content */}
+          <div className="order-2 lg:order-1">
+            <Tabs defaultValue="inventory" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="inventory">Inventory</TabsTrigger>
             <TabsTrigger value="storage">Boxes & Shelves</TabsTrigger>
@@ -464,6 +468,13 @@ export default function MyInventory() {
             </Card>
           </TabsContent>
         </Tabs>
+      </div>
+
+      {/* Sidebar */}
+      <aside className="order-1 lg:order-2">
+        <CollectionSidebar />
+      </aside>
+    </div>
       </main>
 
       <BulkActionsBar 

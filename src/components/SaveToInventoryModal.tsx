@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useModal } from "@/contexts/ModalContext";
 
 interface ComicResult {
   id: number | null;
@@ -27,6 +28,7 @@ interface SaveToInventoryModalProps {
 export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineResults }: SaveToInventoryModalProps) {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { openModal } = useModal();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [issueNumber, setIssueNumber] = useState("");
@@ -145,6 +147,15 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
             onClick: () => navigate("/my-inventory"),
           },
         });
+        
+        // Trigger social share modal for new items
+        setTimeout(() => {
+          openModal("socialShare", {
+            itemTitle: title,
+            itemValue: 0, // Can be enhanced with real value later
+            onClose: () => {},
+          });
+        }, 500);
       }
 
       onOpenChange(false);

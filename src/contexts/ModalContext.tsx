@@ -3,8 +3,9 @@ import Onboarding from "@/components/Onboarding";
 import SafetyGuide from "@/components/SafetyGuide";
 import AiScannerTour from "@/components/AiScannerTour";
 import { TermsPopup } from "@/components/TermsPopup";
+import { SocialShareModal } from "@/components/SocialShareModal";
 
-type ModalType = "onboarding" | "safetyGuide" | "terms" | "aiScannerTour" | null;
+type ModalType = "onboarding" | "safetyGuide" | "terms" | "aiScannerTour" | "socialShare" | null;
 
 interface ModalContextType {
   currentModal: ModalType;
@@ -88,6 +89,19 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
             modalProps.onComplete?.(dontShowAgain);
             closeModal();
           }}
+        />
+      )}
+
+      {currentModal === "socialShare" && (
+        <SocialShareModal
+          open={true}
+          onClose={() => {
+            modalProps.onClose?.();
+            closeModal();
+          }}
+          itemTitle={modalProps.itemTitle || "your grail"}
+          itemValue={modalProps.itemValue}
+          feeTier={modalProps.feeTier}
         />
       )}
     </ModalContext.Provider>
