@@ -102,11 +102,6 @@ export default function SellComic() {
       return;
     }
 
-    if (forTrade && !inSearchOf.trim()) {
-      toast.error("Please specify what you're looking for (In Search Of)");
-      return;
-    }
-
     if (forSale && !price) {
       toast.error("Please enter a sale price");
       return;
@@ -423,15 +418,17 @@ export default function SellComic() {
                     <div className="space-y-3 pl-4 border-l-2 border-primary">
                       <div className="space-y-2">
                         <Label htmlFor="in-search-of">
-                          In Search Of <span className="text-destructive">*</span>
+                          In Search Of
                         </Label>
                         <Input
                           id="in-search-of"
                           value={inSearchOf}
                           onChange={(e) => setInSearchOf(e.target.value)}
-                          placeholder="What are you looking for? (e.g. ASM #129 mid-grade, Hulk #181, similar keys)"
-                          required={forTrade}
+                          placeholder="(Optional) Tell others what you're looking for — e.g. ASM #300, Hulk #181, or Silver Age keys."
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Adding what you're looking for helps attract better trade offers.
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="trade-notes">Trade Notes (optional)</Label>
