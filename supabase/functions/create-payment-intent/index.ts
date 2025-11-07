@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
     // Calculate fees
     const protectionFee = order.buyer_protection_fee || 1.99;
-    const platformFeeRate = 0.035; // 3.5%
+    const platformFeeRate = 0.065; // Flat 6.5% Intro Rate (includes payment processing)
     const platformFeeAmount = Math.round((order.amount + order.shipping_amount) * platformFeeRate * 100) / 100;
     const total = order.amount + order.shipping_amount + protectionFee;
     

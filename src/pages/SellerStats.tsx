@@ -84,7 +84,7 @@ export default function SellerStats() {
     );
   }
 
-  const netPayout = stats ? stats.gross_sales * 0.95 : 0; // Assuming 5% platform fee
+  const netPayout = stats ? stats.gross_sales * 0.935 : 0; // 6.5% platform fee
 
   return (
     <div className="min-h-screen flex flex-col">

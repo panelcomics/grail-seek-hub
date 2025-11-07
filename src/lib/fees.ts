@@ -1,8 +1,8 @@
-// Marketplace fee calculation - Grail Seeker v1.1
-// Sales: 3.5% on total (item + shipping + tax)
-// Trades: Tiered based on total trade value
+// Marketplace fee calculation - Grail Seeker v2.0
+// Sales: Flat 6.5% Intro Rate on total (item + shipping + tax) - includes payment processing
+// Trades: Tiered based on total trade value (unchanged)
 
-export const MARKETPLACE_FEE_RATE = 0.035;
+export const MARKETPLACE_FEE_RATE = 0.065;
 export const MARKETPLACE_FEE_FIXED_CENTS = 0;
 
 // Trade fee tiers based on total trade value (item_a + item_b)

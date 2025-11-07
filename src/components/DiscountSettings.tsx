@@ -68,7 +68,7 @@ export const DiscountSettings = () => {
                     {discount.discountRate}%
                   </span>
                   <span className="text-xs text-muted-foreground line-through ml-1">
-                    5%
+                    6.5%
                   </span>
                 </div>
               </div>
@@ -86,14 +86,14 @@ export const DiscountSettings = () => {
                 <div className="flex items-start gap-2 text-xs text-amber-600">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <span>
-                    You're approaching your monthly discount cap. Standard 5% fees will apply once the cap is reached.
+                    You're approaching your monthly discount cap. Standard 6.5% fees will apply once the cap is reached.
                   </span>
                 </div>
               )}
             </div>
 
             <div className="pt-4 border-t text-xs text-muted-foreground">
-              Your discount code reduces seller fees from 5% to {discount.discountRate}% on nationwide shipping, with a maximum of ${discount.monthlyCap} in monthly savings.
+              Your discount code reduces seller fees from 6.5% to {discount.discountRate}% on nationwide shipping, with a maximum of ${discount.monthlyCap} in monthly savings.
             </div>
           </>
         ) : (

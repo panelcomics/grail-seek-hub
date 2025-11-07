@@ -101,7 +101,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
                 <span className="font-medium">{formatCents(priceCents)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Marketplace Fee (8% + $0.30):</span>
+                <span>Flat 6.5% Intro Rate (includes payment processing):</span>
                 <span>-{formatCents(fee_cents)}</span>
               </div>
               <div className="flex justify-between font-semibold border-t pt-2">

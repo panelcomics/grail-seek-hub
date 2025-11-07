@@ -14,7 +14,7 @@ interface CheckoutSummaryProps {
 export const CheckoutSummary = ({
   itemPrice,
   shippingCost,
-  platformFeeRate = 0.035,
+  platformFeeRate = 0.065,
   protectionFee = 1.99,
   itemTitle = "Item",
 }: CheckoutSummaryProps) => {
@@ -88,7 +88,7 @@ export const CheckoutSummary = ({
                 ${total.toFixed(2)}
               </span>
               <p className="text-xs text-muted-foreground mt-1">
-                Platform fee: ${platformFee.toFixed(2)}
+                Flat 6.5% Intro Rate (includes payment processing)
               </p>
             </div>
           </div>

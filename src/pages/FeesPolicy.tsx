@@ -142,13 +142,13 @@ export default function FeesPolicy() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    Standard sales through Grail Seeker include a <strong>3.5% service fee</strong> on the total (item price + shipping + tax).
+                    Standard sales through Grail Seeker include a <strong>flat 6.5% Intro Rate</strong> on the total (item price + shipping + tax). This includes payment processing.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>Example:</strong> A $100 item with $10 shipping = $110 total × 3.5% = $3.85 fee.
+                    <strong>Example:</strong> A $100 item with $10 shipping = $110 total × 6.5% = $7.15 fee.
                   </span>
                 </li>
                 <li className="flex items-start gap-2">

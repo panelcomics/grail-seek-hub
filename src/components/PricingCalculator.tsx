@@ -12,9 +12,8 @@ export const calculateSellerFee = (itemPrice: number, shippingMethod: 'local_pic
     return 0;
   }
   
-  // 5% fee with $5 minimum for shipped items
-  const feeAmount = itemPrice * 0.05;
-  return Math.max(feeAmount, 5);
+  // Flat 6.5% Intro Rate for sales (includes payment processing)
+  return itemPrice * 0.065;
 };
 
 interface PricingCalculatorProps {
@@ -53,7 +52,7 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
           <CardTitle>Seller Fee Calculator</CardTitle>
         </div>
         <CardDescription>
-          Calculate your earnings after platform fees
+          Calculate your earnings after platform fees (sales only)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -93,10 +92,10 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
               <Label htmlFor="ship" className="flex-1 cursor-pointer">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Ship Nationwide</span>
-                  <Badge variant="outline">5% Fee ($5 min)</Badge>
+                  <Badge variant="outline">Flat 6.5% Intro Rate</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Platform handles shipping protection
+                  Includes payment processing • Trades not affected
                 </p>
               </Label>
             </div>
@@ -114,9 +113,6 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground flex items-center gap-1">
               Seller Fee
-              {shippingMethod === 'ship_nationwide' && sellerFee === 5 && (
-                <Info className="h-3 w-3" />
-              )}
             </span>
             <span className={`font-medium ${sellerFee > 0 ? 'text-orange-500' : 'text-green-500'}`}>
               -${sellerFee.toFixed(2)}
@@ -138,12 +134,12 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
           </div>
         </div>
 
-        {shippingMethod === 'ship_nationwide' && sellerFee === 5 && price > 0 && price < 100 && (
-          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+        {shippingMethod === 'ship_nationwide' && (
+          <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
             <div className="flex gap-2">
-              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Items under $100 shipped have a minimum $5 fee to cover transaction costs.
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Flat 6.5% total fee — includes payment processing. Trades and swaps not affected.
               </p>
             </div>
           </div>

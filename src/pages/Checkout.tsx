@@ -163,9 +163,9 @@ const Checkout = () => {
                   </div>
                 </div>
                 
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
-                    <strong>Note:</strong> Processing fees are non-refundable once a transaction is authorized.
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    <strong>Flat 6.5% total fee — includes payment processing.</strong> Trades and swaps not affected.
                   </p>
                 </div>
               </>
