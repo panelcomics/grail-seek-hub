@@ -7,6 +7,15 @@ const COMICVINE_API_KEY = Deno.env.get('COMICVINE_API_KEY');
 const EBAY_APP_ID = Deno.env.get('EBAY_APP_ID');
 const EBAY_CERT_ID = Deno.env.get('EBAY_CERT_ID');
 
+// Detect if using sandbox credentials
+const IS_EBAY_SANDBOX = EBAY_APP_ID?.includes('SBX') || EBAY_CERT_ID?.includes('SBX');
+const EBAY_AUTH_URL = IS_EBAY_SANDBOX 
+  ? 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
+  : 'https://api.ebay.com/identity/v1/oauth2/token';
+const EBAY_API_URL = IS_EBAY_SANDBOX
+  ? 'https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search'
+  : 'https://api.ebay.com/buy/browse/v1/item_summary/search';
+
 interface ComicVineIssue {
   id: number;
   name: string;
@@ -64,11 +73,11 @@ function calculateTradeFee(totalTradeValue: number) {
 }
 
 async function getEbayAccessToken(): Promise<string> {
-  console.log('Getting eBay OAuth token...');
+  console.log(`Getting eBay OAuth token... (${IS_EBAY_SANDBOX ? 'SANDBOX' : 'PRODUCTION'})`);
   
   const credentials = btoa(`${EBAY_APP_ID}:${EBAY_CERT_ID}`);
   
-  const response = await fetch('https://api.ebay.com/identity/v1/oauth2/token', {
+  const response = await fetch(EBAY_AUTH_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -134,7 +143,7 @@ async function getEbaySoldPrices(accessToken: string, title: string, issueNumber
   });
 
   const response = await fetch(
-    `https://api.ebay.com/buy/browse/v1/item_summary/search?${params}`,
+    `${EBAY_API_URL}?${params}`,
     {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
