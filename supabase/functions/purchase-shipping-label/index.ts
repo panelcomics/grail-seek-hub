@@ -31,7 +31,7 @@ serve(async (req) => {
 
     console.log("Purchasing shipping label for order:", orderId);
 
-    // Verify order belongs to seller
+    // Verify order exists and has been paid
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .select("*, listing:listing_id(user_id)")
@@ -42,9 +42,9 @@ serve(async (req) => {
       throw new Error("Order not found");
     }
 
-    // @ts-ignore
-    if (order.listing?.user_id !== user.id) {
-      throw new Error("Unauthorized: Not the seller of this order");
+    // Only allow label purchase for paid orders
+    if (order.payment_status !== "paid") {
+      throw new Error("Order must be paid before purchasing label");
     }
 
     const shippoApiKey = Deno.env.get("SHIPPO_API_KEY");

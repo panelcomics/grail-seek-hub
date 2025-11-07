@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    const { listingId, shipping } = await req.json();
+    const { listingId, shipping, shippoRate } = await req.json();
 
     // Get listing details
     const { data: listing, error: listingError } = await supabaseClient
@@ -68,17 +68,28 @@ serve(async (req) => {
     const estimated_stripe_fee_cents = Math.round(amount_cents * 0.029) + 30;
     const platform_fee_cents = Math.max(0, max_total_fee_cents - estimated_stripe_fee_cents);
 
+    // Prepare order data
+    const orderData: any = {
+      listing_id: listingId,
+      buyer_id: user.id,
+      amount_cents,
+      status: "requires_payment",
+      shipping_name: shipping.name,
+      shipping_address: shipping,
+    };
+
+    // Add Shippo data if provided
+    if (shippoRate) {
+      orderData.shippo_rate_id = shippoRate.rate_id;
+      orderData.label_cost_cents = shippoRate.label_cost_cents;
+      orderData.shipping_charged_cents = shippoRate.shipping_charged_cents;
+      orderData.shipping_margin_cents = shippoRate.shipping_margin_cents;
+    }
+
     // Create order record
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
-      .insert({
-        listing_id: listingId,
-        buyer_id: user.id,
-        amount_cents,
-        status: "requires_payment",
-        shipping_name: shipping.name,
-        shipping_address: shipping,
-      })
+      .insert(orderData)
       .select()
       .single();
 

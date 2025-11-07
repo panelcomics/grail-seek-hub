@@ -301,14 +301,19 @@ export const SellerOrderManagement = () => {
                       <div className="flex gap-2 justify-end">
                         {/* Download Label if available */}
                         {order.label_url && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDownloadLabel(order)}
-                          >
-                            <Package className="h-4 w-4 mr-1" />
-                            Download Label
-                          </Button>
+                          <div className="flex gap-2 items-center">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownloadLabel(order)}
+                            >
+                              <Package className="h-4 w-4 mr-1" />
+                              Download Label
+                            </Button>
+                            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-xs">
+                              Test Mode
+                            </Badge>
+                          </div>
                         )}
 
                         {/* Shipping actions */}

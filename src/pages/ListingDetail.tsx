@@ -9,12 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Shield, User } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Shield, User, Package } from "lucide-react";
 import { formatCents } from "@/lib/fees";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { ReportListingButton } from "@/components/ReportListingButton";
+import { ShippingRateSelector } from "@/components/ShippingRateSelector";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -72,6 +75,8 @@ export default function ListingDetail() {
   const [clientSecret, setClientSecret] = useState("");
   const [orderId, setOrderId] = useState("");
   const [shippingName, setShippingName] = useState("");
+  const [shippingMethod, setShippingMethod] = useState<"local_pickup" | "ship_nationwide">("ship_nationwide");
+  const [selectedRate, setSelectedRate] = useState<any>(null);
   const [shippingAddress, setShippingAddress] = useState({
     line1: "",
     city: "",
@@ -134,18 +139,35 @@ export default function ListingDetail() {
       return;
     }
 
+    if (shippingMethod === "ship_nationwide" && !selectedRate) {
+      toast.error("Please select a shipping method");
+      return;
+    }
+
     setLoading(true);
     try {
+      const requestBody: any = {
+        listingId: id,
+        shipping: {
+          name: shippingName,
+          ...shippingAddress,
+        },
+      };
+
+      // Add Shippo data if shipping nationwide
+      if (shippingMethod === "ship_nationwide" && selectedRate) {
+        requestBody.shippoRate = {
+          rate_id: selectedRate.rate_id,
+          label_cost_cents: selectedRate.label_cost_cents,
+          shipping_charged_cents: selectedRate.shipping_charged_cents,
+          shipping_margin_cents: selectedRate.shipping_margin_cents,
+        };
+      }
+
       const { data, error } = await supabase.functions.invoke(
         "marketplace-create-payment-intent",
         {
-          body: {
-            listingId: id,
-            shipping: {
-              name: shippingName,
-              ...shippingAddress,
-            },
-          },
+          body: requestBody,
         }
       );
 
@@ -311,7 +333,32 @@ export default function ListingDetail() {
               {!checkoutMode ? (
                 <Card>
                   <CardContent className="p-4 md:p-6 space-y-4">
-                    <h3 className="font-semibold">Shipping Information</h3>
+                    <h3 className="font-semibold">Shipping Method</h3>
+                    <RadioGroup value={shippingMethod} onValueChange={(value: any) => setShippingMethod(value)}>
+                      <div className="flex items-center space-x-2 border rounded-lg p-3">
+                        <RadioGroupItem value="local_pickup" id="local_pickup" />
+                        <Label htmlFor="local_pickup" className="flex-1 cursor-pointer">
+                          <div>
+                            <span className="font-medium">Local Pickup</span>
+                            <p className="text-xs text-muted-foreground">No shipping fee</p>
+                          </div>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 border rounded-lg p-3">
+                        <RadioGroupItem value="ship_nationwide" id="ship_nationwide" />
+                        <Label htmlFor="ship_nationwide" className="flex-1 cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">Ship Nationwide</span>
+                            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-xs">
+                              Test Mode
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Rates powered by Shippo</p>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+
+                    <h3 className="font-semibold pt-2">Shipping Information</h3>
                     <div>
                       <Label htmlFor="name">Full Name</Label>
                       <Input
@@ -367,6 +414,41 @@ export default function ListingDetail() {
                         }
                       />
                     </div>
+
+                    {/* Show ShippingRateSelector only when ship_nationwide is selected and address is filled */}
+                    {shippingMethod === "ship_nationwide" && 
+                     shippingAddress.line1 && 
+                     shippingAddress.city && 
+                     shippingAddress.state && 
+                     shippingAddress.zip && (
+                      <ShippingRateSelector
+                        fromAddress={{
+                          name: sellerName,
+                          street1: "123 Seller St", // Placeholder - would come from seller profile
+                          city: "San Francisco",
+                          state: "CA",
+                          zip: "94117",
+                          country: "US",
+                        }}
+                        toAddress={{
+                          name: shippingName || "Buyer",
+                          street1: shippingAddress.line1,
+                          city: shippingAddress.city,
+                          state: shippingAddress.state,
+                          zip: shippingAddress.zip,
+                          country: shippingAddress.country,
+                        }}
+                        parcel={{
+                          length: "12",
+                          width: "9",
+                          height: "3",
+                          distance_unit: "in",
+                          weight: "2",
+                          mass_unit: "lb",
+                        }}
+                        onRateSelected={setSelectedRate}
+                      />
+                    )}
 
                     <Button onClick={handleBuyNow} disabled={loading} className="w-full">
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

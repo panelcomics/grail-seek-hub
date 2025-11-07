@@ -24,16 +24,47 @@ const PaymentSuccess = () => {
 
       try {
         // Update order status to paid
-        const { error } = await supabase
+        const { data: order, error: orderUpdateError } = await supabase
           .from("orders")
           .update({
             payment_status: "paid",
             paid_at: new Date().toISOString(),
           })
           .eq("id", orderId)
-          .eq("payment_intent_id", paymentIntent);
+          .eq("payment_intent_id", paymentIntent)
+          .select("*, listing:listing_id(user_id)")
+          .single();
 
-        if (error) throw error;
+        if (orderUpdateError) throw orderUpdateError;
+
+        // If order has Shippo rate, generate label automatically
+        if (order.shippo_rate_id && order.label_cost_cents) {
+          console.log("Generating shipping label...");
+          try {
+            const { error: labelError } = await supabase.functions.invoke(
+              "purchase-shipping-label",
+              {
+                body: {
+                  orderId: order.id,
+                  rateId: order.shippo_rate_id,
+                  labelCostCents: order.label_cost_cents,
+                  shippingChargedCents: order.shipping_charged_cents,
+                  shippingMarginCents: order.shipping_margin_cents,
+                },
+              }
+            );
+
+            if (labelError) {
+              console.error("Failed to generate label:", labelError);
+              // Don't fail the whole payment, just log it
+            } else {
+              console.log("Label generated successfully!");
+            }
+          } catch (labelError) {
+            console.error("Label generation error:", labelError);
+            // Don't fail the payment
+          }
+        }
 
         toast.success("Payment successful!");
       } catch (error: any) {
