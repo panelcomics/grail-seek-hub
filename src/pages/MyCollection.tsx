@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
+import { formatComicDisplay } from "@/lib/comics/format";
 import {
   Dialog,
   DialogContent,
@@ -221,7 +222,15 @@ const MyCollection = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredComics.map((comic) => (
+              {filteredComics.map((comic) => {
+                const { mainTitle } = formatComicDisplay({
+                  volume: { name: comic.volume_name },
+                  title: comic.title,
+                  issue_number: comic.issue_number,
+                  cover_date: comic.cover_date,
+                });
+
+                return (
                 <Card 
                   key={comic.id} 
                   className="cursor-pointer hover:shadow-lg transition-shadow"
@@ -232,18 +241,13 @@ const MyCollection = () => {
                       {comic.image_url && (
                         <img
                           src={comic.image_url}
-                          alt={`${comic.title} ${comic.issue_number || ""}`}
+                          alt={mainTitle}
                           className="w-20 h-28 object-cover rounded"
                         />
                       )}
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base mb-2">
-                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline" }}>
-                            <strong style={{ marginRight: "4px" }}>
-                              {comic.volume_name || comic.title}
-                            </strong>
-                            <span style={{ fontWeight: "bold" }}>#{comic.issue_number}</span>
-                          </div>
+                          <strong>{mainTitle}</strong>
                         </CardTitle>
                         <p className="text-sm text-muted-foreground" style={{ marginTop: "4px" }}>
                           {comic.cover_date && new Date(comic.cover_date).toLocaleDateString()}
@@ -278,7 +282,8 @@ const MyCollection = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
