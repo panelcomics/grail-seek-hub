@@ -53,6 +53,9 @@ import ListingDetail from "./pages/ListingDetail";
 import Orders from "./pages/Orders";
 import Search from "./pages/Search";
 import EbaySearch from "./pages/EbaySearch";
+import TradingPost from "./pages/TradingPost";
+import TradeDetail from "./pages/TradeDetail";
+import TradeOffers from "./pages/TradeOffers";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -120,6 +123,9 @@ const AppContent = () => {
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
             <Route path="/ebay-search" element={<EbaySearch />} />
+            <Route path="/trades" element={<TradingPost />} />
+            <Route path="/trade/:id" element={<TradeDetail />} />
+            <Route path="/trade-offers" element={<TradeOffers />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

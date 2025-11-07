@@ -979,6 +979,8 @@ export type Database = {
           grade: string | null
           id: string
           images: Json | null
+          in_search_of: string | null
+          is_for_trade: boolean | null
           issue_number: string | null
           listed_price: number | null
           listing_status: string | null
@@ -990,6 +992,7 @@ export type Database = {
           sold_at: string | null
           storage_container_id: string | null
           title: string | null
+          trade_notes: string | null
           updated_at: string
           user_id: string
         }
@@ -1003,6 +1006,8 @@ export type Database = {
           grade?: string | null
           id?: string
           images?: Json | null
+          in_search_of?: string | null
+          is_for_trade?: boolean | null
           issue_number?: string | null
           listed_price?: number | null
           listing_status?: string | null
@@ -1014,6 +1019,7 @@ export type Database = {
           sold_at?: string | null
           storage_container_id?: string | null
           title?: string | null
+          trade_notes?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1027,6 +1033,8 @@ export type Database = {
           grade?: string | null
           id?: string
           images?: Json | null
+          in_search_of?: string | null
+          is_for_trade?: boolean | null
           issue_number?: string | null
           listed_price?: number | null
           listing_status?: string | null
@@ -1038,6 +1046,7 @@ export type Database = {
           sold_at?: string | null
           storage_container_id?: string | null
           title?: string | null
+          trade_notes?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2014,6 +2023,60 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_offers: {
+        Row: {
+          cash_offer: number | null
+          created_at: string
+          from_user_id: string
+          id: string
+          item_id: string
+          items_offered: string | null
+          message: string
+          status: string
+          to_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          cash_offer?: number | null
+          created_at?: string
+          from_user_id: string
+          id?: string
+          item_id: string
+          items_offered?: string | null
+          message: string
+          status?: string
+          to_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          cash_offer?: number | null
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          item_id?: string
+          items_offered?: string | null
+          message?: string
+          status?: string
+          to_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_offers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_offers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_posts: {
         Row: {
           created_at: string
@@ -2151,6 +2214,27 @@ export type Database = {
           earned_at?: string
           id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_blocks: {
+        Row: {
+          blocked_user_id: string
+          blocker_user_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_user_id: string
+          blocker_user_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_user_id?: string
+          blocker_user_id?: string
+          created_at?: string
+          id?: string
         }
         Relationships: []
       }

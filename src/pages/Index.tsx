@@ -7,6 +7,7 @@ import FeaturedShops from "@/components/FeaturedShops";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import SellerSpotlight from "@/components/SellerSpotlight";
+import { TradingPostSection } from "@/components/TradingPostSection";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Index() {
@@ -51,6 +52,12 @@ export default function Index() {
         </section>
 
         <section className="py-12 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <TradingPostSection />
+          </div>
+        </section>
+
+        <section className="py-12 bg-background">
           <div className="container mx-auto px-4">
             <SellerSpotlight />
           </div>
