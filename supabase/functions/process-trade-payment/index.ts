@@ -8,12 +8,16 @@ const corsHeaders = {
 
 // Trade fee tiers based on total trade value (item_a + item_b)
 const TRADE_FEE_TIERS = [
-  { min: 0, max: 199.99, total: 0, each: 0 },
-  { min: 200, max: 400, total: 4, each: 2 },
-  { min: 401, max: 999, total: 8, each: 4 },
-  { min: 1000, max: 1999, total: 20, each: 10 },
-  { min: 2000, max: 3999, total: 25, each: 12.5 },
-  { min: 4000, max: Infinity, total: 35, each: 17.5 },
+  { min: 0, max: 50, total: 2, each: 1 },
+  { min: 51, max: 100, total: 5, each: 2.5 },
+  { min: 101, max: 250, total: 12, each: 6 },
+  { min: 251, max: 500, total: 22, each: 11 },
+  { min: 501, max: 1000, total: 35, each: 17.5 },
+  { min: 1001, max: 2000, total: 45, each: 22.5 },
+  { min: 2001, max: 4000, total: 55, each: 27.5 },
+  { min: 4001, max: 5000, total: 60, each: 30 },
+  { min: 5001, max: 10000, total: 200, each: 100 },
+  { min: 10001, max: Infinity, total: 200, each: 100 },
 ];
 
 function calculateTradeFee(totalTradeValue: number) {
@@ -110,31 +114,9 @@ Deno.serve(async (req) => {
 
     // Check if fees should be charged (tier 0 = free)
     if (totalFee === 0) {
-      // Update trade to mark as paid with no fees
-      const updateData = isUserA 
-        ? { 
-            user_a_paid_at: new Date().toISOString(),
-            total_fee: 0,
-            each_user_fee: 0
-          }
-        : { 
-            user_b_paid_at: new Date().toISOString(),
-            total_fee: 0,
-            each_user_fee: 0
-          };
-
-      await supabase
-        .from("trades")
-        .update(updateData)
-        .eq("id", tradeId);
-
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          noFeesRequired: true,
-          message: `Trade value of $${trade.agreed_value} qualifies for free trading (under $200). No fees charged.`
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "All trades now require a minimum fee. Please contact support if you believe this is an error." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

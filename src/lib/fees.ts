@@ -7,12 +7,16 @@ export const MARKETPLACE_FEE_FIXED_CENTS = 0;
 
 // Trade fee tiers based on total trade value (item_a + item_b)
 export const TRADE_FEE_TIERS = [
-  { min: 0, max: 199.99, total: 0, each: 0 },
-  { min: 200, max: 400, total: 4, each: 2 },
-  { min: 401, max: 999, total: 8, each: 4 },
-  { min: 1000, max: 1999, total: 20, each: 10 },
-  { min: 2000, max: 3999, total: 25, each: 12.5 },
-  { min: 4000, max: null, total: 35, each: 17.5 },
+  { min: 0, max: 50, total: 2, each: 1 },
+  { min: 51, max: 100, total: 5, each: 2.5 },
+  { min: 101, max: 250, total: 12, each: 6 },
+  { min: 251, max: 500, total: 22, each: 11 },
+  { min: 501, max: 1000, total: 35, each: 17.5 },
+  { min: 1001, max: 2000, total: 45, each: 22.5 },
+  { min: 2001, max: 4000, total: 55, each: 27.5 },
+  { min: 4001, max: 5000, total: 60, each: 30 },
+  { min: 5001, max: 10000, total: 200, each: 100 },
+  { min: 10001, max: null, total: 200, each: 100 },
 ];
 
 export interface FeeCalculation {

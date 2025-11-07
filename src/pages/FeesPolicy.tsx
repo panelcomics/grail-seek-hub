@@ -39,37 +39,61 @@ export default function FeesPolicy() {
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>$0-$199.99:</strong> Free (no fee)
+                    <strong>$0-$50:</strong> $2 total ($1 each)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>$200-$400:</strong> $4 total ($2 each)
+                    <strong>$51-$100:</strong> $5 total ($2.50 each)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>$401-$999:</strong> $8 total ($4 each)
+                    <strong>$101-$250:</strong> $12 total ($6 each)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>$1,000-$1,999:</strong> $20 total ($10 each)
+                    <strong>$251-$500:</strong> $22 total ($11 each)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>$2,000-$3,999:</strong> $25 total ($12.50 each)
+                    <strong>$501-$1,000:</strong> $35 total ($17.50 each)
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <span>
-                    <strong>$4,000+:</strong> $35 total ($17.50 each)
+                    <strong>$1,001-$2,000:</strong> $45 total ($22.50 each)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>$2,001-$4,000:</strong> $55 total ($27.50 each)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>$4,001-$5,000:</strong> $60 total ($30 each)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>$5,001-$10,000:</strong> $200 total ($100 each)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <ArrowRight className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>$10,001+:</strong> $200 total ($100 each) — capped
                   </span>
                 </li>
                 <li className="flex items-start gap-2 mt-4">
