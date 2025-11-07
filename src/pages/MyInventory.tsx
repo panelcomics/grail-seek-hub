@@ -391,17 +391,28 @@ export default function MyInventory() {
                                   Updated {formatDistanceToNow(new Date(item.updated_at))} ago
                                 </p>
                               </div>
-                              {editingId !== item.id && (
+                              <div className="flex gap-2">
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
-                                  onClick={() => startEdit(item)}
+                                  onClick={() => navigate(`/sell/${item.id}`)}
                                   className="gap-2"
                                 >
-                                  <Edit2 className="h-4 w-4" />
-                                  Edit
+                                  <DollarSign className="h-4 w-4" />
+                                  List
                                 </Button>
-                              )}
+                                {editingId !== item.id && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => startEdit(item)}
+                                    className="gap-2"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                    Edit
+                                  </Button>
+                                )}
+                              </div>
                             </div>
 
                             {editingId === item.id ? (
