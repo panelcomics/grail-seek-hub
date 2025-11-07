@@ -5,9 +5,9 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t bg-background mt-auto">
+    <footer className="border-t bg-muted/30 mt-auto">
       <div className="container py-8 md:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-3">
             <Link to="/" className="flex items-center gap-2">
@@ -17,68 +17,51 @@ export default function Footer() {
               <span className="text-lg font-bold">Grail Seeker</span>
             </Link>
             <p className="text-sm text-muted-foreground">
-              Scan, claim, and trade collectibles in seconds
+              The marketplace for collectors, by collectors.
             </p>
           </div>
 
-          {/* Product */}
+          {/* Explore */}
           <div className="space-y-3">
-            <h3 className="font-semibold">Product</h3>
+            <h3 className="font-semibold">Explore</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/scanner" className="text-muted-foreground hover:text-foreground transition-colors">
-                  AI Scanner
+                <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Home
                 </Link>
               </li>
               <li>
-                <Link to="/events" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Events
+                <Link to="/marketplace" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Browse Comics
                 </Link>
               </li>
               <li>
                 <Link to="/tradeboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Trade Board
+                  Sell &amp; Trade
                 </Link>
               </li>
               <li>
-                <Link to="/deals" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Deal Alerts
+                <Link to="/sellers" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Top Dealers
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Company */}
+          {/* Support & Legal */}
           <div className="space-y-3">
-            <h3 className="font-semibold">Company</h3>
+            <h3 className="font-semibold">Support &amp; Legal</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors">
-                  About Us
-                </a>
+                <Link to="/help" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Contact Us
+                </Link>
               </li>
               <li>
-                <a href="#blog" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Blog
-                </a>
+                <Link to="/help" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Help / FAQ
+                </Link>
               </li>
-              <li>
-                <a href="#careers" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Careers
-                </a>
-              </li>
-              <li>
-                <a href="#contact" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div className="space-y-3">
-            <h3 className="font-semibold">Legal</h3>
-            <ul className="space-y-2 text-sm">
               <li>
                 <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
                   Terms of Service
@@ -89,35 +72,14 @@ export default function Footer() {
                   Privacy Policy
                 </Link>
               </li>
-              <li>
-                <a href="#cookies" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Cookie Policy
-                </a>
-              </li>
-              <li>
-                <a href="#dmca" className="text-muted-foreground hover:text-foreground transition-colors">
-                  DMCA
-                </a>
-              </li>
             </ul>
           </div>
         </div>
 
         <Separator className="my-6" />
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>© {currentYear} Grail Seeker. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <a href="#twitter" className="hover:text-foreground transition-colors">
-              Twitter
-            </a>
-            <a href="#discord" className="hover:text-foreground transition-colors">
-              Discord
-            </a>
-            <a href="#instagram" className="hover:text-foreground transition-colors">
-              Instagram
-            </a>
-          </div>
+        <div className="text-center text-sm text-muted-foreground">
+          <p>© {currentYear} GrailSeeker. All rights reserved.</p>
         </div>
       </div>
     </footer>

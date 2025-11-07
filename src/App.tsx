@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import Footer from "./components/Footer";
 import Index from "./pages/Index";
 import ItemDetail from "./pages/ItemDetail";
 import Auth from "./pages/Auth";
@@ -55,14 +56,14 @@ import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ModalProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
+const AppContent = () => {
+  const location = useLocation();
+  const hideFooter = location.pathname === "/auth";
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <div className="flex-1">
+        <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/auth" element={<Auth />} />
@@ -118,6 +119,20 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </div>
+        {!hideFooter && <Footer />}
+      </div>
+    );
+  };
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <ModalProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppContent />
         </BrowserRouter>
       </ModalProvider>
     </TooltipProvider>
