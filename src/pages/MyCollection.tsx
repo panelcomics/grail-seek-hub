@@ -8,6 +8,7 @@ import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
 import { formatComicDisplay } from "@/lib/comics/format";
+import { getComicCoverImage, getComicImageUrl } from "@/lib/comicImages";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ interface Comic {
   added_at: string;
   ocr_text: string | null;
   source: string | null;
+  coverImageUrl?: string; // From user_comic_images table
 }
 
 const MyCollection = () => {
@@ -87,8 +89,24 @@ const MyCollection = () => {
 
       if (error) throw error;
 
-      setComics(data || []);
-      setFilteredComics(data || []);
+      // Fetch cover images for all comics
+      const comicsWithCovers = await Promise.all(
+        (data || []).map(async (comic) => {
+          try {
+            const coverImage = await getComicCoverImage(comic.id);
+            return {
+              ...comic,
+              coverImageUrl: coverImage ? getComicImageUrl(coverImage.storage_path) : null,
+            };
+          } catch (err) {
+            console.error(`Failed to load cover for comic ${comic.id}:`, err);
+            return comic;
+          }
+        })
+      );
+
+      setComics(comicsWithCovers);
+      setFilteredComics(comicsWithCovers);
     } catch (error) {
       console.error("Error fetching comics:", error);
       toast({
@@ -238,9 +256,9 @@ const MyCollection = () => {
                 >
                   <CardContent className="pt-6">
                     <div className="flex gap-4">
-                      {comic.image_url && (
+                      {(comic.coverImageUrl || comic.image_url) && (
                         <img
-                          src={comic.image_url}
+                          src={comic.coverImageUrl || comic.image_url}
                           alt={mainTitle}
                           className="w-20 h-28 object-cover rounded"
                         />

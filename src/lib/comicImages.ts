@@ -154,16 +154,35 @@ export async function deleteComicImage(imageId: string, storagePath: string) {
 }
 
 /**
- * Get the cover image for a comic
+ * Get the cover image for a comic (or first image if no cover set)
  */
 export async function getComicCoverImage(comicId: string) {
   const { data, error } = await supabase
     .from("user_comic_images")
     .select("*")
     .eq("comic_id", comicId)
-    .eq("is_cover", true)
-    .single();
+    .order("is_cover", { ascending: false })
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
-  if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows
+  if (error) throw error;
   return data as ComicImage | null;
+}
+
+/**
+ * Get all images for a comic ordered for display (cover first)
+ */
+export async function getComicImagesOrdered(comicId: string) {
+  const { data, error } = await supabase
+    .from("user_comic_images")
+    .select("*")
+    .eq("comic_id", comicId)
+    .order("is_cover", { ascending: false })
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return data as ComicImage[];
 }
