@@ -5,6 +5,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Validate file content by checking magic bytes
+async function validateImageContent(file: File): Promise<{ valid: boolean; detectedType: string | null }> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  
+  // Check JPEG magic bytes (FF D8 FF)
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+    return { valid: true, detectedType: 'image/jpeg' };
+  }
+  
+  // Check PNG magic bytes (89 50 4E 47 0D 0A 1A 0A)
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47 &&
+      bytes[4] === 0x0D && bytes[5] === 0x0A && bytes[6] === 0x1A && bytes[7] === 0x0A) {
+    return { valid: true, detectedType: 'image/png' };
+  }
+  
+  return { valid: false, detectedType: null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -87,6 +106,18 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Validate actual file content matches declared type
+    const { valid: isValidImage, detectedType } = await validateImageContent(image);
+    if (!isValidImage) {
+      console.warn('Invalid file content detected. Claimed type:', image.type);
+      return new Response(JSON.stringify({ error: 'File content does not match image format. Only valid JPG and PNG images are allowed.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('File validation passed. Detected type:', detectedType);
 
     if (forSale && !price) {
       return new Response(JSON.stringify({ error: 'Price is required when item is for sale' }), {
