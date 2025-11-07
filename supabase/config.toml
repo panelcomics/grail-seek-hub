@@ -1,5 +1,8 @@
 project_id = "fiwmlzrhwvrsrxmcstzk"
 
+[functions.ebay-search]
+verify_jwt = true
+
 [functions.validate-password]
 verify_jwt = false
 

@@ -52,6 +52,7 @@ import Marketplace from "./pages/Marketplace";
 import ListingDetail from "./pages/ListingDetail";
 import Orders from "./pages/Orders";
 import Search from "./pages/Search";
+import EbaySearch from "./pages/EbaySearch";
 import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
@@ -116,6 +117,7 @@ const AppContent = () => {
             <Route path="/listing/:id" element={<ListingDetail />} /> {/* redirect old route */}
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
+            <Route path="/ebay-search" element={<EbaySearch />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
