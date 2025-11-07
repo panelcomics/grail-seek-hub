@@ -34,15 +34,17 @@ interface Comic {
   id: string;
   title: string;
   issue_number: string | null;
-  volume_name: string | null;
+  series: string | null;
   cover_date: string | null;
   image_url: string | null;
   condition_notes: string | null;
   details: string | null;
   added_at: string;
-  ocr_text: string | null;
-  source: string | null;
-  coverImageUrl?: string; // From user_comic_images table
+  created_at: string;
+  images?: { front?: string };
+  condition?: string | null;
+  publisher?: string | null;
+  grade?: string | null;
 }
 
 const MyCollection = () => {
@@ -74,7 +76,7 @@ const MyCollection = () => {
         (comic) =>
           comic.title.toLowerCase().includes(search.toLowerCase()) ||
           comic.issue_number?.toLowerCase().includes(search.toLowerCase()) ||
-          comic.volume_name?.toLowerCase().includes(search.toLowerCase()) ||
+          comic.series?.toLowerCase().includes(search.toLowerCase()) ||
           comic.details?.toLowerCase().includes(search.toLowerCase())
       );
       setFilteredComics(filtered);
@@ -86,30 +88,24 @@ const MyCollection = () => {
   const fetchComics = async () => {
     try {
       const { data, error } = await supabase
-        .from("user_comics")
+        .from("inventory_items")
         .select("*")
-        .order("added_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Fetch cover images for all comics
-      const comicsWithCovers = await Promise.all(
-        (data || []).map(async (comic) => {
-          try {
-            const coverImage = await getComicCoverImage(comic.id);
-            return {
-              ...comic,
-              coverImageUrl: coverImage ? getComicImageUrl(coverImage.storage_path) : null,
-            };
-          } catch (err) {
-            console.error(`Failed to load cover for comic ${comic.id}:`, err);
-            return comic;
-          }
-        })
-      );
+      // Map inventory_items to have image from images.front
+      const comicsWithImages = (data || []).map((item) => ({
+        ...item,
+        image_url: (item.images as any)?.front || null,
+        // Map fields for compatibility
+        added_at: item.created_at,
+        condition_notes: item.condition,
+        series: item.series,
+      }));
 
-      setComics(comicsWithCovers);
-      setFilteredComics(comicsWithCovers);
+      setComics(comicsWithImages as Comic[]);
+      setFilteredComics(comicsWithImages as Comic[]);
     } catch (error) {
       console.error("Error fetching comics:", error);
       toast({
@@ -126,7 +122,7 @@ const MyCollection = () => {
     if (!deleteId) return;
 
     try {
-      const { error } = await supabase.from("user_comics").delete().eq("id", deleteId);
+      const { error } = await supabase.from("inventory_items").delete().eq("id", deleteId);
 
       if (error) throw error;
 
@@ -153,7 +149,7 @@ const MyCollection = () => {
     setEditForm({
       title: comic.title,
       issue_number: comic.issue_number || "",
-      volume_name: comic.volume_name || "",
+      volume_name: comic.series || "",
       cover_date: comic.cover_date || "",
       condition_notes: comic.condition_notes || "",
       details: comic.details || "",
@@ -166,13 +162,13 @@ const MyCollection = () => {
     setSaving(true);
     try {
       const { error } = await supabase
-        .from("user_comics")
+        .from("inventory_items")
         .update({
           title: editForm.title,
           issue_number: editForm.issue_number || null,
-          volume_name: editForm.volume_name || null,
+          series: editForm.volume_name || null,
           cover_date: editForm.cover_date || null,
-          condition_notes: editForm.condition_notes || null,
+          condition: editForm.condition_notes || null,
           details: editForm.details || null,
         })
         .eq("id", editingComic.id);
@@ -247,7 +243,7 @@ const MyCollection = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredComics.map((comic) => {
                 const { mainTitle } = formatComicDisplay({
-                  volume: { name: comic.volume_name },
+                  volume: { name: comic.series },
                   title: comic.title,
                   issue_number: comic.issue_number,
                   cover_date: comic.cover_date,
@@ -261,9 +257,9 @@ const MyCollection = () => {
                 >
                   <CardContent className="pt-6">
                     <div className="flex gap-4">
-                      {(comic.coverImageUrl || comic.image_url) && (
+                      {comic.image_url && (
                         <img
-                          src={comic.coverImageUrl || comic.image_url}
+                          src={comic.image_url}
                           alt={mainTitle}
                           className="w-20 h-28 object-cover rounded"
                         />
@@ -360,12 +356,12 @@ const MyCollection = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="volume">Volume Name</Label>
+              <Label htmlFor="volume">Series Name</Label>
               <Input
                 id="volume"
                 value={editForm.volume_name}
                 onChange={(e) => setEditForm({ ...editForm, volume_name: e.target.value })}
-                placeholder="Volume 1"
+                placeholder="Amazing Spider-Man"
               />
             </div>
             <div className="space-y-2">
