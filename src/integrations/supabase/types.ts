@@ -1057,6 +1057,7 @@ export type Database = {
           condition_notes: string | null
           cover_date: string | null
           created_at: string | null
+          details: string | null
           duration_days: number | null
           ends_at: string | null
           fee_cents: number | null
@@ -1084,6 +1085,7 @@ export type Database = {
           condition_notes?: string | null
           cover_date?: string | null
           created_at?: string | null
+          details?: string | null
           duration_days?: number | null
           ends_at?: string | null
           fee_cents?: number | null
@@ -1111,6 +1113,7 @@ export type Database = {
           condition_notes?: string | null
           cover_date?: string | null
           created_at?: string | null
+          details?: string | null
           duration_days?: number | null
           ends_at?: string | null
           fee_cents?: number | null

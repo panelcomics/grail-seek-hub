@@ -294,6 +294,13 @@ export default function ListingDetail() {
                 {formatCents(listing.price_cents)}
               </div>
 
+              {listing.details && (
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-2">Details</h3>
+                  <p className="text-sm text-muted-foreground">{listing.details}</p>
+                </div>
+              )}
+
               {listing.condition_notes && (
                 <div className="mb-6">
                   <h3 className="font-semibold mb-2">Condition Notes</h3>

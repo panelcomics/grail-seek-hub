@@ -92,6 +92,7 @@ export default function SellComic() {
         volume_name: comic.volume_name,
         cover_date: comic.cover_date,
         condition_notes: comic.condition_notes,
+        details: comic.details,
         shipping_price: parseFloat(shippingPrice),
         private_notes: privateNotes.trim() || null,
         status: "active",
