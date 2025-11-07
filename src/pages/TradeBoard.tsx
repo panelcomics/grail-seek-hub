@@ -232,21 +232,22 @@ export default function TradeBoard() {
               </p>
             </div>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        className="gap-2" 
-                        disabled={!canTrade}
-                      >
-                        {!canTrade && <Lock className="h-4 w-4" />}
-                        <Plus className="h-4 w-4" />
-                        Create Post
-                      </Button>
-                    </DialogTrigger>
+            <div className="flex flex-col items-end gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            className="gap-2" 
+                            disabled={!canTrade}
+                          >
+                            {!canTrade && <Lock className="h-4 w-4" />}
+                            <Plus className="h-4 w-4" />
+                            Create Post
+                          </Button>
+                        </DialogTrigger>
                     <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Create Trade Post</DialogTitle>
@@ -369,9 +370,13 @@ export default function TradeBoard() {
                     See progress →
                   </Button>
                 </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+              <p className="text-xs text-muted-foreground">
+                Trade fees as low as $2 — based on value tiers.
+              </p>
+            </div>
           </div>
 
           {/* Filters */}
