@@ -50,6 +50,7 @@ import SellComic from "./pages/SellComic";
 import Marketplace from "./pages/Marketplace";
 import ListingDetail from "./pages/ListingDetail";
 import Orders from "./pages/Orders";
+import Search from "./pages/Search";
 import { ModalProvider } from "./contexts/ModalContext";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/search" element={<Search />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/scanner/result" element={<ResultDetail />} />
             <Route path="/sell/:comicId" element={<SellComic />} />
