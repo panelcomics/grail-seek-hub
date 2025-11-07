@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { GrailSeekerHeader } from "@/components/layout/GrailSeekerHeader";
 import Hero from "@/components/Hero";
+import TrendingAuctions from "@/components/TrendingAuctions";
 import FeaturedShops from "@/components/FeaturedShops";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
@@ -29,15 +31,18 @@ export default function Index() {
   return (
     <>
       <Helmet>
-        <title>GrailSeeker - Rare Book & Comic Marketplace</title>
+        <title>GrailSeeker - Comics, Collectibles & Cards Marketplace</title>
         <meta 
           name="description" 
-          content="Discover, trade, and collect rare books and comics. Connect with collectors and dealers nationwide." 
+          content="Buy, sell, and trade comics, collectibles, and cards from trusted collectors. Hunt your grail today!" 
         />
       </Helmet>
 
       <div className="min-h-screen">
+        <GrailSeekerHeader />
         <Hero />
+        
+        <TrendingAuctions />
         
         <section id="trending-listings" className="py-12 bg-background">
           <div className="container mx-auto px-4">
