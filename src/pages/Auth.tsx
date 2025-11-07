@@ -69,7 +69,7 @@ const Auth = () => {
       }
 
       await logAuthEvent('login_success', { email: signInEmail });
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -112,7 +112,7 @@ const Auth = () => {
         email: signUpEmail,
         password: signUpPassword,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/`,
         },
       });
 
@@ -138,7 +138,7 @@ const Auth = () => {
       
       // If user is automatically signed in (auto-confirm enabled), redirect
       if (data.session) {
-        window.location.href = "/dashboard";
+        window.location.href = "/";
       } else {
         // Only show toast if email verification is required
         toast({
@@ -166,7 +166,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email: magicLinkEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/`,
         },
       });
 
@@ -203,7 +203,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email: signInEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/`,
         },
       });
 
@@ -230,7 +230,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/`,
         },
       });
 
