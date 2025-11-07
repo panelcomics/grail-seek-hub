@@ -51,7 +51,7 @@ interface RevenueStats {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { showTermsPopup, requireTerms, handleAcceptTerms, handleDeclineTerms } = useTerms();
   const [sales, setSales] = useState<ClaimSale[]>([]);
   const [stats, setStats] = useState<RevenueStats>({
@@ -64,6 +64,9 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking user
+    if (authLoading) return;
+    
     if (!user) {
       navigate("/auth");
       return;
@@ -90,7 +93,7 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
 
   const fetchDashboardData = async () => {
     try {
