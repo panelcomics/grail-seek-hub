@@ -238,10 +238,12 @@ const MyCollection = () => {
                       )}
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base mb-2">
-                          <strong>
-                            {comic.volume_name || comic.title}
-                          </strong>{" "}
-                          <span style={{ fontWeight: "bold" }}>#{comic.issue_number}</span>
+                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline" }}>
+                            <strong style={{ marginRight: "4px" }}>
+                              {comic.volume_name || comic.title}
+                            </strong>
+                            <span style={{ fontWeight: "bold" }}>#{comic.issue_number}</span>
+                          </div>
                         </CardTitle>
                         <p className="text-sm text-muted-foreground" style={{ marginTop: "4px" }}>
                           {comic.cover_date && new Date(comic.cover_date).toLocaleDateString()}
