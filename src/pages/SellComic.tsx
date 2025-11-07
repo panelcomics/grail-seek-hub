@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { formatComicDisplay } from "@/lib/comics/format";
 import Footer from "@/components/Footer";
+import { ComicImageCarousel } from "@/components/ComicImageCarousel";
 
 export default function SellComic() {
   const { comicId } = useParams();
@@ -177,15 +178,12 @@ export default function SellComic() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Comic Preview */}
                 <div className="space-y-4">
-                  {comic.image_url && (
-                    <div className="w-full flex justify-center">
-                      <img
-                        src={comic.image_url}
-                        alt={comic.title}
-                        className="max-w-full w-auto max-h-[400px] rounded-lg shadow-lg"
-                      />
-                    </div>
-                  )}
+                  <div className="w-full max-w-md mx-auto">
+                    <ComicImageCarousel 
+                      comicId={comic.id}
+                      fallbackUrl={comic.image_url}
+                    />
+                  </div>
                   
                   <div className="space-y-2">
                     {(() => {
