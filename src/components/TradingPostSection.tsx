@@ -97,10 +97,6 @@ export const TradingPostSection = () => {
     );
   }
 
-  if (items.length === 0) {
-    return null;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -116,7 +112,23 @@ export const TradingPostSection = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {items.length === 0 ? (
+        <Card className="p-8">
+          <CardContent className="text-center space-y-4">
+            <Repeat2 className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div>
+              <h3 className="text-lg font-semibold mb-2">No trades posted yet</h3>
+              <p className="text-muted-foreground">
+                Be the first to list a book for trade from your collection.
+              </p>
+            </div>
+            <Button asChild>
+              <Link to="/my-inventory">List from Collection</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {items.map((item) => (
           <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             <Link to={`/trade/${item.id}`}>
@@ -156,7 +168,8 @@ export const TradingPostSection = () => {
             </CardFooter>
           </Card>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
