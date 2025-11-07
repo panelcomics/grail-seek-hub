@@ -41,19 +41,19 @@ export function AppHeader() {
         {/* Right: single row of actions — no duplicates */}
         <div className="flex items-center gap-2">
           {/* Search: always available */}
-          <Button variant="ghost" size="icon" aria-label="Search" onClick={goSearch}>
+          <Button variant="outline" size="icon" aria-label="Search" onClick={goSearch}>
             <Search className="h-5 w-5" />
           </Button>
 
           {/* Favorites/Watchlist (heart) */}
-          <Button variant="ghost" size="icon" aria-label="Favorites" onClick={goFavorites}>
+          <Button variant="outline" size="icon" aria-label="Favorites" onClick={goFavorites}>
             <Heart className="h-5 w-5" />
           </Button>
 
           {/* Notifications — render ONCE and only when logged in */}
           {user && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               aria-label="Notifications"
               onClick={goNotifications}
@@ -63,7 +63,7 @@ export function AppHeader() {
           )}
 
           {/* Account */}
-          <Button variant="ghost" size="icon" aria-label="Account" onClick={goAccount}>
+          <Button variant="outline" size="icon" aria-label="Account" onClick={goAccount}>
             <User2 className="h-5 w-5" />
           </Button>
         </div>
