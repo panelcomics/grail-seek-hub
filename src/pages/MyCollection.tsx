@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Trash2, Loader2 } from "lucide-react";
-import { Session } from "@supabase/supabase-js";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +33,6 @@ interface Comic {
 const MyCollection = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [session, setSession] = useState<Session | null>(null);
   const [comics, setComics] = useState<Comic[]>([]);
   const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,29 +40,8 @@ const MyCollection = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkSession = async () => {
-      // First, try to get existing session
-      const { data: { session: existingSession } } = await supabase.auth.getSession();
-      
-      if (!existingSession) {
-        // If no session, try to refresh
-        const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
-        
-        if (refreshedSession) {
-          setSession(refreshedSession);
-          fetchComics();
-        } else {
-          // No session and refresh failed - redirect to auth
-          navigate("/auth");
-        }
-      } else {
-        setSession(existingSession);
-        fetchComics();
-      }
-    };
-
-    checkSession();
-  }, [navigate]);
+    fetchComics();
+  }, []);
 
   useEffect(() => {
     if (search) {
@@ -127,7 +105,7 @@ const MyCollection = () => {
     }
   };
 
-  if (!session || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -136,7 +114,8 @@ const MyCollection = () => {
   }
 
   return (
-    <div className="container py-8">
+    <ProtectedRoute>
+      <div className="container py-8">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -231,7 +210,8 @@ const MyCollection = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 };
 
