@@ -5,8 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const EBAY_APP_ID = Deno.env.get('EBAY_APP_ID');
-const EBAY_CERT_ID = Deno.env.get('EBAY_CERT_ID');
+const EBAY_ENV = Deno.env.get('EBAY_ENV') || 'sandbox';
+const EBAY_APP_ID = EBAY_ENV === 'production' 
+  ? Deno.env.get('EBAY_CLIENT_ID_PROD')
+  : Deno.env.get('EBAY_APP_ID');
+const EBAY_CERT_ID = EBAY_ENV === 'production'
+  ? Deno.env.get('EBAY_CLIENT_SECRET_PROD')
+  : Deno.env.get('EBAY_CERT_ID');
+
+if (EBAY_ENV === 'production') {
+  console.log('eBay LIVE – Production mode active');
+}
 
 interface EbayItemSummary {
   itemId: string;

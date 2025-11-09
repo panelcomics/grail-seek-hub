@@ -4,8 +4,17 @@ const corsHeaders = {
 };
 
 const COMICVINE_API_KEY = Deno.env.get('COMICVINE_API_KEY');
-const EBAY_APP_ID = Deno.env.get('EBAY_APP_ID');
-const EBAY_CERT_ID = Deno.env.get('EBAY_CERT_ID');
+const EBAY_ENV = Deno.env.get('EBAY_ENV') || 'sandbox';
+const EBAY_APP_ID = EBAY_ENV === 'production'
+  ? Deno.env.get('EBAY_CLIENT_ID_PROD')
+  : Deno.env.get('EBAY_APP_ID');
+const EBAY_CERT_ID = EBAY_ENV === 'production'
+  ? Deno.env.get('EBAY_CLIENT_SECRET_PROD')
+  : Deno.env.get('EBAY_CERT_ID');
+
+if (EBAY_ENV === 'production') {
+  console.log('eBay LIVE – Production mode active');
+}
 
 // Detect if using sandbox credentials
 const IS_EBAY_SANDBOX = EBAY_APP_ID?.includes('SBX') || EBAY_CERT_ID?.includes('SBX');
