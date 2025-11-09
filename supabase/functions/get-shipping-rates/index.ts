@@ -32,9 +32,9 @@ serve(async (req) => {
 
     console.log("Getting shipping rates from Shippo");
 
-    const shippoApiKey = Deno.env.get("SHIPPO_API_KEY");
+    const shippoApiKey = Deno.env.get("SHIPPO_LIVE_TOKEN");
     if (!shippoApiKey) {
-      throw new Error("SHIPPO_API_KEY not configured");
+      throw new Error("SHIPPO_LIVE_TOKEN not configured");
     }
 
     // Create shipment in Shippo to get rates

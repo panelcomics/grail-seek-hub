@@ -47,9 +47,9 @@ serve(async (req) => {
       throw new Error("Order must be paid before purchasing label");
     }
 
-    const shippoApiKey = Deno.env.get("SHIPPO_API_KEY");
+    const shippoApiKey = Deno.env.get("SHIPPO_LIVE_TOKEN");
     if (!shippoApiKey) {
-      throw new Error("SHIPPO_API_KEY not configured");
+      throw new Error("SHIPPO_LIVE_TOKEN not configured");
     }
 
     // Purchase the label via Shippo
