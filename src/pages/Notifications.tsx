@@ -3,8 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationQueue } from "@/hooks/useNotificationQueue";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, Clock, Trophy, Package, TrendingUp, CheckCheck, Inbox, Heart } from "lucide-react";
@@ -50,7 +48,6 @@ export default function Notifications() {
         <meta name="description" content="View your auction alerts, winner notifications, and updates" />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <Navbar />
 
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="mb-8">
@@ -151,8 +148,6 @@ export default function Notifications() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }

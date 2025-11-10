@@ -1,5 +1,4 @@
 import { useParams } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -12,8 +11,6 @@ const ItemDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
       <div className="container py-8">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Image Section */}

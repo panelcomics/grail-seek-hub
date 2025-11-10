@@ -16,7 +16,6 @@ import {
   Loader2,
   Package
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Message {
@@ -285,7 +284,6 @@ const Messages = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto py-12 px-4 mt-20">
           <p className="text-center text-muted-foreground">Loading messages...</p>
         </div>
@@ -295,8 +293,6 @@ const Messages = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <div className="container mx-auto mt-20 p-0">
         <div className="flex h-[calc(100vh-5rem)] border rounded-lg overflow-hidden bg-card">
           {/* Conversations List */}

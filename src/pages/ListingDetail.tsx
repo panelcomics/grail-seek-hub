@@ -3,8 +3,6 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -250,8 +248,6 @@ export default function ListingDetail() {
         </script>
       </Helmet>
 
-      <Navbar />
-
       <main className="flex-1 container py-4 md:py-8">
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
@@ -478,8 +474,6 @@ export default function ListingDetail() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

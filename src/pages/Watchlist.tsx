@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ItemCard from "@/components/ItemCard";
 import { Button } from "@/components/ui/button";
 import { Heart, Trash2 } from "lucide-react";
@@ -153,18 +151,15 @@ export default function Watchlist() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <p className="text-muted-foreground">Loading your watchlist...</p>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold flex items-center gap-3">
@@ -233,7 +228,6 @@ export default function Watchlist() {
           </div>
         )}
       </main>
-      <Footer />
     </div>
   );
 }

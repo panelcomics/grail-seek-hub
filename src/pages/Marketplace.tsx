@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -108,8 +106,6 @@ export default function Marketplace() {
         <link rel="canonical" href={`${window.location.origin}/market`} />
       </Helmet>
 
-      <Navbar />
-
       <main className="flex-1 container py-4 md:py-8">
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Marketplace</h1>
@@ -212,8 +208,6 @@ export default function Marketplace() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }

@@ -19,7 +19,6 @@ import {
   Plus,
   ExternalLink
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import {
   Table,
   TableBody,
@@ -186,7 +185,6 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto py-12 px-4 mt-20">
           <p className="text-center text-muted-foreground">Loading dashboard...</p>
         </div>
@@ -196,8 +194,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <div className="container mx-auto py-8 px-4 mt-20">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

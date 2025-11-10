@@ -3,8 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ItemCard from "@/components/ItemCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -155,11 +153,9 @@ export default function SellerProfile() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <p className="text-muted-foreground">Loading seller profile...</p>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -167,12 +163,10 @@ export default function SellerProfile() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold mb-4">Seller Not Found</h1>
           <p className="text-muted-foreground">The seller you're looking for doesn't exist.</p>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -228,7 +222,6 @@ export default function SellerProfile() {
           {JSON.stringify(structuredData)}
         </script>
       </Helmet>
-      <Navbar />
 
       {/* Banner */}
       <div className="h-48 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 relative">
@@ -494,8 +487,6 @@ export default function SellerProfile() {
           </div>
         </Tabs>
       </div>
-
-      <Footer />
     </div>
   );
 }
