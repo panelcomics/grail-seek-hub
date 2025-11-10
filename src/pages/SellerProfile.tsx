@@ -298,8 +298,17 @@ export default function SellerProfile() {
                     variant={isFollowing ? "outline" : "default"}
                     disabled={followLoading}
                   >
-                    <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
-                    {isFollowing ? `Following (${followerCount})` : `Follow (${followerCount})`}
+                    {followLoading ? (
+                      <>
+                        <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        {isFollowing ? 'Unfollowing...' : 'Following...'}
+                      </>
+                    ) : (
+                      <>
+                        <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+                        {isFollowing ? `Following (${followerCount})` : `Follow (${followerCount})`}
+                      </>
+                    )}
                   </Button>
                   <Button 
                     variant="outline"

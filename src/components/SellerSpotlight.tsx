@@ -159,7 +159,10 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
           <Button 
             size="sm" 
             variant={isFollowing ? "default" : "outline"}
-            onClick={toggleFollow}
+            onClick={(e) => {
+              e.preventDefault();
+              toggleFollow();
+            }}
             disabled={loading}
             className={`w-full transition-all hover:shadow-sm hover:-translate-y-0.5 ${
               isFollowing 
@@ -167,8 +170,17 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
                 : "border-primary text-primary hover:bg-primary/5"
             }`}
           >
-            <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
-            {isFollowing ? 'Following' : 'Follow'}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                {isFollowing ? 'Unfollowing...' : 'Following...'}
+              </>
+            ) : (
+              <>
+                <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+                {isFollowing ? 'Following' : 'Follow'}
+              </>
+            )}
           </Button>
         </div>
       </div>

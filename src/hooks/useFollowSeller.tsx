@@ -65,6 +65,7 @@ export function useFollowSeller(sellerId?: string) {
     }
 
     setLoading(true);
+    
     try {
       if (isFollowing) {
         // Unfollow
@@ -74,13 +75,9 @@ export function useFollowSeller(sellerId?: string) {
           .eq("user_id", user.id)
           .eq("seller_id", sellerId);
 
-        if (error) {
-          console.error("Error unfollowing seller:", error);
-          throw new Error("Couldn't unfollow seller. Please try again.");
-        }
+        if (error) throw error;
         
         setIsFollowing(false);
-        setFollowerCount(prev => Math.max(0, prev - 1));
         toast.success("Unfollowed seller");
       } else {
         // Follow
@@ -91,17 +88,18 @@ export function useFollowSeller(sellerId?: string) {
             seller_id: sellerId,
           });
 
-        if (error) {
-          console.error("Error following seller:", error);
-          throw new Error("Couldn't follow seller. Please try again.");
-        }
+        if (error) throw error;
         
         setIsFollowing(true);
-        setFollowerCount(prev => prev + 1);
         toast.success("Following seller! You'll be notified of new listings.");
       }
+
+      // Refetch count after successful operation
+      await fetchFollowerCount();
+      
     } catch (error: any) {
-      toast.error(error.message || "Failed to update follow status. Please try again.");
+      console.error("Error toggling follow:", error);
+      toast.error("Failed to update follow status. Please try again.");
     } finally {
       setLoading(false);
     }
