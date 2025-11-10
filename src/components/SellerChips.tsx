@@ -8,6 +8,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 interface Seller {
   user_id: string;
   username: string;
+  display_name: string | null;
   avatar_url: string | null;
   completed_sales_count: number;
 }
@@ -25,7 +26,7 @@ export default function SellerChips() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, username, avatar_url, completed_sales_count")
+        .select("user_id, username, display_name, avatar_url, completed_sales_count")
         .not("username", "is", null)
         .order("completed_sales_count", { ascending: false })
         .limit(12);
@@ -80,34 +81,37 @@ export default function SellerChips() {
             </button>
 
             {/* Top sellers chips */}
-            {sellers.map((seller) => (
-              <button
-                key={seller.user_id}
-                onClick={() => handleSellerClick(seller.user_id, seller.username || "")}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
-                  selectedSeller === seller.user_id
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background border-border hover:border-primary/50"
-                }`}
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
-                  {seller.avatar_url ? (
-                    <img
-                      src={seller.avatar_url}
-                      alt={seller.username || "Seller"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xs font-bold text-primary">
-                      {seller.username?.[0]?.toUpperCase() || "S"}
-                    </span>
-                  )}
-                </div>
-                <span className="text-sm font-medium whitespace-nowrap">
-                  {seller.username || "Unknown Seller"}
-                </span>
-              </button>
-            ))}
+            {sellers.map((seller) => {
+              const displayName = seller.display_name || seller.username?.split('@')[0] || "Unknown Seller";
+              return (
+                <button
+                  key={seller.user_id}
+                  onClick={() => handleSellerClick(seller.user_id, seller.username || "")}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
+                    selectedSeller === seller.user_id
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
+                    {seller.avatar_url ? (
+                      <img
+                        src={seller.avatar_url}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-bold text-primary">
+                        {displayName[0]?.toUpperCase() || "S"}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {displayName}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>

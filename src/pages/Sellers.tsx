@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 interface Seller {
   user_id: string;
   username: string;
+  display_name: string | null;
   avatar_url: string | null;
   completed_sales_count: number;
   seller_tier: string | null;
@@ -48,7 +49,7 @@ export default function Sellers() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, username, avatar_url, completed_sales_count, seller_tier")
+        .select("user_id, username, display_name, avatar_url, completed_sales_count, seller_tier")
         .not("username", "is", null);
 
       if (error) throw error;
@@ -65,9 +66,10 @@ export default function Sellers() {
 
     // Search filter
     if (searchQuery.trim()) {
-      filtered = filtered.filter((seller) =>
-        seller.username?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.filter((seller) => {
+        const displayName = seller.display_name || seller.username?.split('@')[0] || "";
+        return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+      });
     }
 
     // Tier filter
@@ -92,7 +94,11 @@ export default function Sellers() {
         // TODO: Add created_at sort when needed
         break;
       case "a-z":
-        filtered.sort((a, b) => (a.username || "").localeCompare(b.username || ""));
+        filtered.sort((a, b) => {
+          const nameA = a.display_name || a.username?.split('@')[0] || "";
+          const nameB = b.display_name || b.username?.split('@')[0] || "";
+          return nameA.localeCompare(nameB);
+        });
         break;
     }
 
@@ -230,6 +236,7 @@ function SellerCard({ seller }: { seller: Seller }) {
   const slug = seller.username?.toLowerCase().replace(/\s+/g, "-").replace(/'/g, "") || "seller";
   const tierIcon = seller.seller_tier === "pro" ? <Award className="w-4 h-4" /> : <Shield className="w-4 h-4" />;
   const tierLabel = seller.seller_tier === "pro" ? "Pro" : seller.seller_tier === "verified" ? "Verified" : null;
+  const displayName = seller.display_name || seller.username?.split('@')[0] || "Unknown Seller";
 
   return (
     <Link to={`/seller/${slug}`}>
@@ -241,12 +248,12 @@ function SellerCard({ seller }: { seller: Seller }) {
               {seller.avatar_url ? (
                 <img
                   src={seller.avatar_url}
-                  alt={seller.username || "Seller"}
+                  alt={displayName}
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <span className="text-2xl font-bold text-primary">
-                  {seller.username?.[0]?.toUpperCase() || "S"}
+                  {displayName[0]?.toUpperCase() || "S"}
                 </span>
               )}
             </div>
@@ -264,7 +271,7 @@ function SellerCard({ seller }: { seller: Seller }) {
           {/* Info */}
           <div>
             <h3 className="text-lg font-bold text-foreground mb-1">
-              {seller.username || "Unknown Seller"}
+              {displayName}
             </h3>
             <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <MapPin className="w-3 h-3" />

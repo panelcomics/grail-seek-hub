@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, Trash2 } from "lucide-react";
+import { Loader2, Mail, Lock, Trash2, User } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,12 +28,69 @@ const MyAccount = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       navigate("/auth");
+    } else {
+      fetchProfile();
     }
   }, [user, navigate]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name, bio")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      
+      setDisplayName(data.display_name || "");
+      setBio(data.bio || "");
+    } catch (error: any) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: displayName || null,
+          bio: bio || null,
+        })
+        .eq("user_id", user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleResendVerification = async () => {
     setLoading(true);
@@ -130,13 +188,62 @@ const MyAccount = () => {
     <div className="container max-w-2xl py-8 space-y-6">
       <Card>
         <CardHeader>
+          <CardTitle>Seller Profile</CardTitle>
+          <CardDescription>Update your public seller profile information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="display-name">Display Name</Label>
+              <Input
+                id="display-name"
+                type="text"
+                placeholder="Your shop name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                disabled={profileLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                This is how your name appears to buyers. If left blank, a shortened version of your email will be used.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                placeholder="Tell buyers about yourself and your collection..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                disabled={profileLoading}
+                rows={4}
+              />
+            </div>
+            <Button type="submit" disabled={loading || profileLoading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <User className="mr-2 h-4 w-4" />
+                  Save Profile
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Account Information</CardTitle>
-          <CardDescription>Manage your account settings</CardDescription>
+          <CardDescription>Your account details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Email</Label>
-            <p className="text-sm">{user.email}</p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
 
           <div className="space-y-2">

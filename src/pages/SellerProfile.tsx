@@ -29,6 +29,7 @@ import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 interface SellerProfile {
   user_id: string;
   username: string;
+  display_name: string | null;
   avatar_url: string | null;
   completed_sales_count: number;
   seller_tier: string | null;
@@ -88,7 +89,7 @@ export default function SellerProfile() {
       
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, username, avatar_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, bio, joined_at")
+        .select("user_id, username, display_name, avatar_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, bio, joined_at")
         .ilike("username", username)
         .maybeSingle();
 
@@ -193,7 +194,7 @@ export default function SellerProfile() {
   };
 
   const canonicalUrl = `${window.location.origin}/seller/${slug}`;
-  const sellerName = profile.username || "Seller";
+  const sellerName = profile.display_name || profile.username?.split('@')[0] || "Seller";
   const description = `${sellerName}'s shop - ${profile.completed_sales_count} sales completed. Browse their collection of comics and collectibles.`;
 
   // JSON-LD structured data for Person/Seller
@@ -242,12 +243,12 @@ export default function SellerProfile() {
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
-                    alt={profile.username || "Seller"}
+                    alt={sellerName}
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <span className="text-4xl font-bold text-primary">
-                    {profile.username?.[0]?.toUpperCase() || "S"}
+                    {sellerName[0]?.toUpperCase() || "S"}
                   </span>
                 )}
               </div>
@@ -256,7 +257,7 @@ export default function SellerProfile() {
               <div className="flex-1">
                 <div className="flex flex-col gap-2 mb-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-3xl font-bold">{profile.username}</h1>
+                    <h1 className="text-3xl font-bold">{sellerName}</h1>
                     {profile.is_verified_seller && <VerifiedSellerBadge size="md" />}
                     {profile.verified_artist && (
                       <TooltipProvider>
@@ -414,7 +415,7 @@ export default function SellerProfile() {
                       condition="VF"
                       image={listing.image_url || "/placeholder.svg"}
                       category="comic"
-                      sellerName={profile.username || undefined}
+                      sellerName={sellerName}
                       sellerCity={profile.joined_at ? new Date(profile.joined_at).toLocaleDateString() : undefined}
                       sellerBadge={profile.seller_tier}
                       isVerifiedSeller={profile.is_verified_seller}
