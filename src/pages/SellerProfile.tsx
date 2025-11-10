@@ -31,6 +31,7 @@ interface SellerProfile {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  profile_image_url: string | null;
   completed_sales_count: number;
   seller_tier: string | null;
   favorites_total: number;
@@ -89,7 +90,7 @@ export default function SellerProfile() {
       
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, bio, joined_at")
+        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, bio, joined_at")
         .ilike("username", username)
         .maybeSingle();
 
@@ -195,6 +196,7 @@ export default function SellerProfile() {
 
   const canonicalUrl = `${window.location.origin}/seller/${slug}`;
   const sellerName = profile.display_name || profile.username?.split('@')[0] || "Seller";
+  const sellerImageUrl = profile.profile_image_url || profile.avatar_url;
   const description = `${sellerName}'s shop - ${profile.completed_sales_count} sales completed. Browse their collection of comics and collectibles.`;
 
   // JSON-LD structured data for Person/Seller
@@ -217,7 +219,7 @@ export default function SellerProfile() {
         <meta name="description" content={description} />
         <meta property="og:title" content={`${sellerName}'s Shop`} />
         <meta property="og:description" content={description} />
-        {profile.avatar_url && <meta property="og:image" content={profile.avatar_url} />}
+        {sellerImageUrl && <meta property="og:image" content={sellerImageUrl} />}
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="profile" />
         <meta name="twitter:card" content="summary" />
@@ -240,9 +242,9 @@ export default function SellerProfile() {
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
               {/* Avatar */}
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden border-4 border-background shadow-lg">
-                {profile.avatar_url ? (
+                {sellerImageUrl ? (
                   <img
-                    src={profile.avatar_url}
+                    src={sellerImageUrl}
                     alt={sellerName}
                     className="w-full h-full object-cover"
                   />

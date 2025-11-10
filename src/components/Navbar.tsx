@@ -11,13 +11,36 @@ export default function Navbar() {
   const [newDealsCount, setNewDealsCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isArtist, setIsArtist] = useState(false);
+  const [displayName, setDisplayName] = useState<string>("");
 
   useEffect(() => {
     if (user) {
       fetchNewDealsCount();
       checkRoles();
+      fetchDisplayName();
     }
   }, [user]);
+
+  const fetchDisplayName = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data?.display_name) {
+        setDisplayName(data.display_name);
+      } else {
+        setDisplayName(user.email?.split('@')[0] || "User");
+      }
+    } catch (error) {
+      console.error('Error fetching display name:', error);
+      setDisplayName(user.email?.split('@')[0] || "User");
+    }
+  };
 
   const checkRoles = async () => {
     if (!user) return;
@@ -77,7 +100,7 @@ export default function Navbar() {
             </IconButton>
             
             {user ? (
-              <IconButtonDropdown user={user} signOut={signOut} navigate={navigate} isAdmin={isAdmin} isArtist={isArtist} />
+              <IconButtonDropdown user={user} displayName={displayName} signOut={signOut} navigate={navigate} isAdmin={isAdmin} isArtist={isArtist} />
             ) : (
               <IconButton href="/auth" label="Sign In">
                 <User className="h-5 w-5" />
@@ -119,13 +142,15 @@ function IconButton({
 }
 
 function IconButtonDropdown({ 
-  user, 
+  user,
+  displayName,
   signOut, 
   navigate,
   isAdmin,
   isArtist
 }: { 
-  user: any; 
+  user: any;
+  displayName: string;
   signOut: () => void; 
   navigate: any;
   isAdmin: boolean;
@@ -151,7 +176,7 @@ function IconButtonDropdown({
           />
           <div className="absolute right-0 mt-2 w-56 rounded-lg border bg-card shadow-lg z-50">
             <div className="p-3 border-b">
-              <p className="text-sm font-medium">{user.email}</p>
+              <p className="text-sm font-medium truncate">{displayName}</p>
             </div>
             <div className="py-1">
               <DropdownLink href="/my-collection" onClick={() => setIsOpen(false)}>

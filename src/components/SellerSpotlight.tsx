@@ -20,6 +20,7 @@ interface Seller {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  profile_image_url: string | null;
   completed_sales_count: number;
   seller_tier?: string;
   favorites_total?: number;
@@ -37,7 +38,7 @@ export default function SellerSpotlight() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, completed_sales_count, seller_tier, favorites_total")
+        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, favorites_total")
         .not("username", "is", null)
         .order("completed_sales_count", { ascending: false })
         .limit(4);
@@ -117,6 +118,7 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
   const rating = "5.0"; // Default rating since we don't have seller_rating field yet
   const location = "United States"; // Default location since we don't have location fields yet
   const displayName = seller.display_name || seller.username?.split('@')[0] || "Unknown Seller";
+  const imageUrl = seller.profile_image_url || seller.avatar_url;
   
   const { isFollowing, followerCount, loading, toggleFollow } = useFollowSeller(seller.user_id);
 
@@ -127,7 +129,7 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
         <div className="relative mb-4 transition-all duration-300 group-hover:scale-105">
           <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <Avatar className="w-20 h-20 ring-4 ring-primary/20 group-hover:ring-primary/40 transition-all relative z-10">
-            <AvatarImage src={seller.avatar_url || undefined} alt={displayName} />
+            <AvatarImage src={imageUrl || undefined} alt={displayName} />
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-lg font-bold">
               {displayName[0]?.toUpperCase() || "S"}
             </AvatarFallback>

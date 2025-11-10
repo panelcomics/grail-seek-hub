@@ -31,6 +31,8 @@ const MyAccount = () => {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [profileLoading, setProfileLoading] = useState(true);
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -47,7 +49,7 @@ const MyAccount = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("display_name, bio")
+        .select("display_name, bio, profile_image_url")
         .eq("user_id", user.id)
         .single();
 
@@ -55,10 +57,86 @@ const MyAccount = () => {
       
       setDisplayName(data.display_name || "");
       setBio(data.bio || "");
+      setProfileImageUrl(data.profile_image_url || "");
     } catch (error: any) {
       console.error("Error fetching profile:", error);
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "Image must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      // Delete old image if exists
+      if (profileImageUrl) {
+        const oldPath = profileImageUrl.split('/').slice(-2).join('/');
+        await supabase.storage.from('profile-images').remove([oldPath]);
+      }
+
+      // Upload new image
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName);
+
+      // Update profile with new image URL
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ profile_image_url: publicUrl })
+        .eq("user_id", user.id);
+
+      if (updateError) throw updateError;
+
+      setProfileImageUrl(publicUrl);
+      toast({
+        title: "Success",
+        description: "Profile image updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -192,9 +270,48 @@ const MyAccount = () => {
           <CardDescription>Update your public seller profile information</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <form onSubmit={handleUpdateProfile} className="space-y-6">
+            {/* Profile Image Upload */}
+            <div className="space-y-4">
+              <Label>Profile Image</Label>
+              <div className="flex items-center gap-6">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden border-4 border-background shadow-lg">
+                  {profileImageUrl ? (
+                    <img
+                      src={profileImageUrl}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl font-bold text-primary">
+                      {displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <Input
+                    id="profile-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploadingImage || profileLoading}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Upload a profile picture (max 5MB). JPG, PNG, or WEBP.
+                  </p>
+                  {uploadingImage && (
+                    <p className="text-xs text-primary mt-1 flex items-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Uploading...
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="display-name">Display Name</Label>
+              <Label htmlFor="display-name">Seller Name / Display Name</Label>
               <Input
                 id="display-name"
                 type="text"

@@ -10,6 +10,7 @@ export function AppHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isArtist, setIsArtist] = useState(false);
+  const [displayName, setDisplayName] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -18,16 +19,39 @@ export function AppHeader() {
       setUser(data.user ?? null);
       if (data.user) {
         checkRoles(data.user.id);
+        fetchDisplayName(data.user);
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         checkRoles(session.user.id);
+        fetchDisplayName(session.user);
       }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  const fetchDisplayName = async (user: any) => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data?.display_name) {
+        setDisplayName(data.display_name);
+      } else {
+        setDisplayName(user.email?.split('@')[0] || "User");
+      }
+    } catch (error) {
+      console.error('Error fetching display name:', error);
+      setDisplayName(user.email?.split('@')[0] || "User");
+    }
+  };
 
   const checkRoles = async (userId: string) => {
     try {
@@ -124,7 +148,7 @@ export function AppHeader() {
                   />
                   <div className="absolute right-0 mt-2 w-56 rounded-lg border bg-card shadow-lg z-50">
                     <div className="p-3 border-b">
-                      <p className="text-sm font-medium truncate">{user.email}</p>
+                      <p className="text-sm font-medium truncate">{displayName}</p>
                     </div>
                     <div className="py-1">
                       <DropdownLink href="/my-collection" onClick={() => setIsOpen(false)}>

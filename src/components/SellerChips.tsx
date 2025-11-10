@@ -10,6 +10,7 @@ interface Seller {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  profile_image_url: string | null;
   completed_sales_count: number;
 }
 
@@ -26,7 +27,7 @@ export default function SellerChips() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, completed_sales_count")
+        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count")
         .not("username", "is", null)
         .order("completed_sales_count", { ascending: false })
         .limit(12);
@@ -83,6 +84,7 @@ export default function SellerChips() {
             {/* Top sellers chips */}
             {sellers.map((seller) => {
               const displayName = seller.display_name || seller.username?.split('@')[0] || "Unknown Seller";
+              const imageUrl = seller.profile_image_url || seller.avatar_url;
               return (
                 <button
                   key={seller.user_id}
@@ -94,9 +96,9 @@ export default function SellerChips() {
                   }`}
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
-                    {seller.avatar_url ? (
+                    {imageUrl ? (
                       <img
-                        src={seller.avatar_url}
+                        src={imageUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
                       />

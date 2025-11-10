@@ -21,6 +21,7 @@ interface Seller {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  profile_image_url: string | null;
   completed_sales_count: number;
   seller_tier: string | null;
 }
@@ -49,7 +50,7 @@ export default function Sellers() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, completed_sales_count, seller_tier")
+        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier")
         .not("username", "is", null);
 
       if (error) throw error;
@@ -237,6 +238,7 @@ function SellerCard({ seller }: { seller: Seller }) {
   const tierIcon = seller.seller_tier === "pro" ? <Award className="w-4 h-4" /> : <Shield className="w-4 h-4" />;
   const tierLabel = seller.seller_tier === "pro" ? "Pro" : seller.seller_tier === "verified" ? "Verified" : null;
   const displayName = seller.display_name || seller.username?.split('@')[0] || "Unknown Seller";
+  const imageUrl = seller.profile_image_url || seller.avatar_url;
 
   return (
     <Link to={`/seller/${slug}`}>
@@ -245,9 +247,9 @@ function SellerCard({ seller }: { seller: Seller }) {
           {/* Avatar */}
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden border-2 border-primary/30 group-hover:border-primary/60 transition-colors">
-              {seller.avatar_url ? (
+              {imageUrl ? (
                 <img
-                  src={seller.avatar_url}
+                  src={imageUrl}
                   alt={displayName}
                   className="w-full h-full object-cover"
                 />
