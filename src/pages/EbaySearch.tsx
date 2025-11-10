@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +68,6 @@ export default function EbaySearch() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <AppHeader />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">eBay Book Search</h1>

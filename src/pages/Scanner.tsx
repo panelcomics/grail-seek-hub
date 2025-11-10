@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { AppHeader } from "@/components/layout/AppHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -231,8 +230,6 @@ export default function Scanner() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <AppHeader />
-      
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
         <div className="container mx-auto px-4 py-12 md:py-16">

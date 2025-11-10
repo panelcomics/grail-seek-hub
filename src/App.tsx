@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AppLayout } from "./components/layout/AppLayout";
 import Footer from "./components/Footer";
 import Index from "./pages/Index";
 import ItemDetail from "./pages/ItemDetail";
@@ -68,8 +69,9 @@ const AppContent = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <BetaBanner />
-      <div className="flex-1">
-        <Routes>
+      <AppLayout>
+        <div className="flex-1">
+          <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/auth" element={<Auth />} />
@@ -132,7 +134,8 @@ const AppContent = () => {
           </Routes>
         </div>
         {!hideFooter && <Footer />}
-      </div>
+      </AppLayout>
+    </div>
     );
   };
 

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { AppHeader } from "@/components/layout/AppHeader";
 
 export default function SearchPage() {
   const [q, setQ] = useState("");
@@ -8,7 +7,6 @@ export default function SearchPage() {
   
   return (
     <div className="min-h-screen flex flex-col">
-      <AppHeader />
       <main className="flex-1">
         <div className="mx-auto max-w-screen-md p-4">
           <h1 className="text-2xl font-bold mb-3">Search</h1>

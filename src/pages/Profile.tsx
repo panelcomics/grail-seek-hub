@@ -23,7 +23,6 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
 import { ShippingPresets } from "@/components/ShippingPresets";
 
 interface UserBadge {
@@ -283,8 +282,7 @@ export default function Profile() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8 mt-20">
+        <main className="container mx-auto px-4 py-8">
           <div className="text-center">Loading...</div>
         </main>
       </div>
@@ -297,9 +295,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      
-      <main className="container mx-auto px-4 py-8 mt-20">
+      <main className="container mx-auto px-4 py-8">
         {/* Profile Header */}
         <Card className="mb-8">
           <CardContent className="pt-6">

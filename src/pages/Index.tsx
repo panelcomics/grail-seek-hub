@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { GrailSeekerHeader } from "@/components/layout/GrailSeekerHeader";
 import Hero from "@/components/Hero";
 import TrendingAuctions from "@/components/TrendingAuctions";
 import FeaturedShops from "@/components/FeaturedShops";
@@ -40,7 +39,6 @@ export default function Index() {
       </Helmet>
 
       <div className="min-h-screen">
-        <GrailSeekerHeader />
         <Hero />
         
         <TrendingAuctions />
