@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Package, Heart, Clock, Shield, Palette } from "lucide-react";
+import { MapPin, Package, Heart, Clock, Shield, Palette, Eye } from "lucide-react";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { SellerBadge } from "@/components/SellerBadge";
+import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useWatchAuction } from "@/hooks/useWatchAuction";
 
 interface ItemCardProps {
   id: string;
@@ -21,6 +23,7 @@ interface ItemCardProps {
   sellerName?: string;
   sellerCity?: string;
   sellerBadge?: string | null;
+  isVerifiedSeller?: boolean;
   category: "comic" | "card" | "art";
   isAuction?: boolean;
   timeRemaining?: number; // in seconds
@@ -48,6 +51,7 @@ const ItemCard = ({
   sellerName,
   sellerCity,
   sellerBadge,
+  isVerifiedSeller = false,
   category,
   isAuction = false,
   timeRemaining = 0,
@@ -66,6 +70,7 @@ const ItemCard = ({
   const [countdown, setCountdown] = useState(timeRemaining);
   const [localPickup, setLocalPickup] = useState(true);
   const [shipNationwide, setShipNationwide] = useState(false);
+  const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
   
   const isUrgent = countdown > 0 && countdown <= 180; // Last 3 minutes
 
@@ -97,6 +102,20 @@ const ItemCard = ({
           />
           <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
             <FavoriteButton listingId={id} showCount />
+            {isAuction && (
+              <Button
+                size="icon"
+                variant={isWatching ? "default" : "secondary"}
+                className="h-8 w-8 rounded-full shadow-md"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleWatch();
+                }}
+              >
+                <Eye className={`h-4 w-4 ${isWatching ? 'fill-current' : ''}`} />
+              </Button>
+            )}
           </div>
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             {category === "art" && (
@@ -178,21 +197,22 @@ const ItemCard = ({
             )}
             
             {/* Seller Info */}
-            {sellerName && sellerCity && (
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-                  <span className="font-medium truncate">{sellerName}</span>
-                  <span>•</span>
-                  <span className="truncate">{sellerCity}</span>
-                  {sellerBadge && (
-                    <>
-                      <span>•</span>
-                      <SellerBadge tier={sellerBadge} className="shrink-0" />
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+             {sellerName && sellerCity && (
+               <div className="flex items-center justify-between gap-2 mb-3">
+                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                   {isVerifiedSeller && <Shield className="h-3 w-3 text-primary shrink-0" />}
+                   <span className="font-medium truncate">{sellerName}</span>
+                   <span>•</span>
+                   <span className="truncate">{sellerCity}</span>
+                   {sellerBadge && (
+                     <>
+                       <span>•</span>
+                       <SellerBadge tier={sellerBadge} className="shrink-0" />
+                     </>
+                   )}
+                 </div>
+               </div>
+             )}
           </div>
           
           <div className="flex items-center justify-between pt-2 border-t">

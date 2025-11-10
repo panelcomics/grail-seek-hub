@@ -20,9 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { MapPin, Star, Award, Shield, UserPlus, Package, Palette } from "lucide-react";
+import { MapPin, Star, Award, Shield, UserPlus, Package, Palette, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useFollowSeller } from "@/hooks/useFollowSeller";
+import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 
 interface SellerProfile {
   user_id: string;
@@ -32,6 +34,9 @@ interface SellerProfile {
   seller_tier: string | null;
   favorites_total: number;
   verified_artist: boolean;
+  is_verified_seller: boolean;
+  bio: string | null;
+  joined_at: string;
 }
 
 interface SellerSettings {
@@ -50,7 +55,9 @@ export default function SellerProfile() {
   const [gradeFilter, setGradeFilter] = useState("all");
   const [publisherFilter, setPublisherFilter] = useState("all");
   const [eraFilter, setEraFilter] = useState("all");
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  
+  const { isFollowing, followerCount, loading: followLoading, toggleFollow } = useFollowSeller(profileUserId || undefined);
 
   useEffect(() => {
     if (slug) {
@@ -68,7 +75,7 @@ export default function SellerProfile() {
       
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, username, avatar_url, completed_sales_count, seller_tier, favorites_total, verified_artist")
+        .select("user_id, username, avatar_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, bio, joined_at")
         .ilike("username", username)
         .maybeSingle();
 
@@ -81,6 +88,7 @@ export default function SellerProfile() {
       }
 
       setProfile(profileData);
+      setProfileUserId(profileData.user_id);
 
       // Fetch seller settings
       const { data: settingsData } = await supabase
@@ -100,15 +108,6 @@ export default function SellerProfile() {
     }
   };
 
-  const handleFollow = async () => {
-    if (!user) {
-      toast.error("Please sign in to follow sellers");
-      return;
-    }
-    // TODO: Implement follow/unfollow logic
-    setIsFollowing(!isFollowing);
-    toast.success(isFollowing ? "Unfollowed seller" : "Following seller");
-  };
 
   if (loading) {
     return (
@@ -219,8 +218,9 @@ export default function SellerProfile() {
               {/* Info */}
               <div className="flex-1">
                 <div className="flex flex-col gap-2 mb-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-3xl font-bold">{profile.username}</h1>
+                    {profile.is_verified_seller && <VerifiedSellerBadge size="md" />}
                     {profile.verified_artist && (
                       <TooltipProvider>
                         <Tooltip>
@@ -246,15 +246,20 @@ export default function SellerProfile() {
                     />
                     <SellerBadge tier={profile.seller_tier} />
                   </div>
+                  
+                  {profile.bio && (
+                    <p className="text-muted-foreground mt-2">{profile.bio}</p>
+                  )}
                 </div>
 
                 <div className="flex gap-3">
                   <Button
-                    onClick={handleFollow}
+                    onClick={toggleFollow}
                     variant={isFollowing ? "outline" : "default"}
+                    disabled={followLoading}
                   >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    {isFollowing ? "Following" : "Follow"}
+                    <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+                    {isFollowing ? `Following (${followerCount})` : `Follow (${followerCount})`}
                   </Button>
                   <Button variant="outline">Message</Button>
                 </div>

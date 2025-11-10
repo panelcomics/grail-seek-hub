@@ -23,6 +23,7 @@ interface ClaimSale {
   claimed_items: number;
   start_time: string;
   end_time: string;
+  claim_cutoff_at: string | null;
   status: string;
   city: string;
   state: string;
@@ -230,6 +231,13 @@ const ClaimSaleDetail = () => {
 
     const now = new Date();
     const endTime = new Date(sale.end_time);
+    const claimCutoff = sale.claim_cutoff_at ? new Date(sale.claim_cutoff_at) : null;
+
+    // Check claim cutoff first
+    if (claimCutoff && now >= claimCutoff) {
+      toast.error("Claiming period has ended");
+      return;
+    }
 
     if (now >= endTime || sale.status === "closed") {
       toast.error("This sale has ended");
