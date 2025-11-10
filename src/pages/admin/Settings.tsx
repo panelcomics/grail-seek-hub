@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import Navbar from "@/components/Navbar";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Users, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -109,12 +109,49 @@ export default function AdminSettings() {
 
       <main className="flex-1 container py-8 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Feature Toggles</h1>
+          <h1 className="text-3xl font-bold mb-2">Admin Settings</h1>
           <p className="text-muted-foreground">
-            Control platform features instantly without redeployment
+            Configure platform features and manage sellers
           </p>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2 mb-6">
+          <Link to="/admin/verified-sellers">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Verified Sellers
+                </CardTitle>
+                <CardDescription>Manage seller verification & custom fees</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Toggle verified status and set custom fee rates for VIP sellers
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/admin/featured-shops">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Featured Shops
+                </CardTitle>
+                <CardDescription>Curate featured sellers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Highlight top sellers and manage featured shop showcases
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        <h2 className="text-2xl font-bold mb-4">Feature Toggles</h2>
         <Card>
           <CardHeader>
             <CardTitle>Platform Configuration</CardTitle>

@@ -120,6 +120,39 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            <h2 className="text-xl font-semibold mt-8 mb-4">Quick Actions</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/admin/settings")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    App Settings
+                  </CardTitle>
+                  <CardDescription>Configure platform-wide settings</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/admin/verified-sellers")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Verified Sellers
+                  </CardTitle>
+                  <CardDescription>Manage seller verification and custom fees</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/admin/featured-shops")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Featured Shops
+                  </CardTitle>
+                  <CardDescription>Curate featured seller showcases</CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="users">
