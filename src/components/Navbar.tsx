@@ -3,19 +3,18 @@ import { Tag, Heart, Scan, Bell, User, LogOut, HelpCircle, Settings, Package, Sh
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationQueueDropdown } from "./NotificationQueueDropdown";
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [newDealsCount, setNewDealsCount] = useState(0);
-  const [notificationsCount, setNotificationsCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isArtist, setIsArtist] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchNewDealsCount();
-      fetchNotificationsCount();
       checkRoles();
     }
   }, [user]);
@@ -51,20 +50,6 @@ export default function Navbar() {
     }
   };
 
-  const fetchNotificationsCount = async () => {
-    try {
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user?.id)
-        .eq('read', false);
-
-      setNotificationsCount(count || 0);
-    } catch (error) {
-      console.error('Error fetching notifications count:', error);
-    }
-  };
-
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur supports-[backdrop-filter]:bg-background/70 bg-background/95 border-b">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 h-14">
@@ -83,9 +68,7 @@ export default function Navbar() {
             <IconButton href="/deals" label="Deals & Alerts" count={newDealsCount}>
               <Tag className="h-5 w-5" />
             </IconButton>
-            <IconButton href="/notifications" label="Notifications" count={notificationsCount}>
-              <Bell className="h-5 w-5" />
-            </IconButton>
+            <NotificationQueueDropdown />
             <IconButton href="/watchlist" label="Favorites">
               <Heart className="h-5 w-5" />
             </IconButton>

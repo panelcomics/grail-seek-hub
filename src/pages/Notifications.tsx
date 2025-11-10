@@ -1,192 +1,157 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { useAuth } from "@/hooks/useAuth";
+import { useNotificationQueue } from "@/hooks/useNotificationQueue";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Bell, Clock, Trophy, Package, TrendingUp, CheckCheck, Inbox, Heart } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { CheckCheck } from "lucide-react";
-import { toast } from "sonner";
 
-interface Notification {
-  id: string;
-  type: string;
-  message: string;
-  link: string | null;
-  read: boolean;
-  created_at: string;
-}
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case "auction_ending":
+      return <Clock className="h-5 w-5 text-orange-500" />;
+    case "auction_won":
+      return <Trophy className="h-5 w-5 text-yellow-500" />;
+    case "auction_ended":
+      return <Package className="h-5 w-5 text-blue-500" />;
+    case "new_listing":
+      return <TrendingUp className="h-5 w-5 text-green-500" />;
+    case "price_drop":
+      return <Heart className="h-5 w-5 text-pink-500" />;
+    default:
+      return <Bell className="h-5 w-5 text-muted-foreground" />;
+  }
+};
 
 export default function Notifications() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const pageSize = 20;
+  const navigate = useNavigate();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotificationQueue();
 
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
+    if (!user) {
+      navigate("/auth");
     }
-  }, [user, filter, page]);
+  }, [user, navigate]);
 
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      let query = supabase
-        .from("notifications")
-        .select("*", { count: "exact" })
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .range((page - 1) * pageSize, page * pageSize - 1);
-
-      if (filter === "unread") {
-        query = query.eq("read", false);
-      } else if (filter === "read") {
-        query = query.eq("read", true);
-      }
-
-      const { data, error, count } = await query;
-
-      if (error) throw error;
-
-      setNotifications(data || []);
-      setHasMore((count || 0) > page * pageSize);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-      toast.error("Failed to load notifications");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("id", notificationId);
-
-      if (error) throw error;
-
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-      );
-    } catch (error) {
-      console.error("Error marking as read:", error);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", user.id)
-        .eq("read", false);
-
-      if (error) throw error;
-
-      toast.success("All notifications marked as read");
-      fetchNotifications();
-    } catch (error) {
-      console.error("Error marking all as read:", error);
-      toast.error("Failed to mark all as read");
-    }
-  };
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Notifications | Grail Seeker</title>
+        <meta name="description" content="View your auction alerts, winner notifications, and updates" />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Notifications</h1>
-            <p className="text-muted-foreground mt-2">
-              Stay updated with your activity
-            </p>
+
+      <main className="container mx-auto px-4 py-12 max-w-4xl">
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Notifications</h1>
+              <p className="text-muted-foreground">
+                Stay updated on your auctions, sales, and followed sellers
+              </p>
+            </div>
+            {unreadCount > 0 && (
+              <Button onClick={markAllAsRead} variant="outline" size="sm">
+                <CheckCheck className="h-4 w-4 mr-2" />
+                Mark all read ({unreadCount})
+              </Button>
+            )}
           </div>
-          <Button onClick={markAllAsRead} variant="outline" className="gap-2">
-            <CheckCheck className="h-4 w-4" />
-            Mark all as read
-          </Button>
         </div>
 
-        <Tabs value={filter} onValueChange={(v) => { setFilter(v as any); setPage(1); }} className="mb-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="unread">Unread</TabsTrigger>
-            <TabsTrigger value="read">Read</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading...
-            </div>
-          ) : notifications.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                No notifications to display
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {notifications.map((notification) => (
-                <Card
-                  key={notification.id}
-                  className={`transition-colors ${!notification.read ? "border-primary/50" : ""}`}
-                >
-                  <CardContent className="p-4">
-                    <Link
-                      to={notification.link || "/"}
-                      onClick={() => !notification.read && markAsRead(notification.id)}
-                      className="block"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <p className={`text-sm ${!notification.read ? "font-semibold" : "font-normal"}`}>
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                          </p>
+        {loading ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-muted-foreground">Loading notifications...</p>
+            </CardContent>
+          </Card>
+        ) : notifications.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Inbox className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">No notifications yet</h2>
+              <p className="text-muted-foreground mb-6">
+                You'll see auction alerts, winner notifications, and updates here
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button asChild>
+                  <Link to="/market">Browse Auctions</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/sellers">Follow Sellers</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((notification) => (
+              <Card
+                key={notification.id}
+                className={`transition-all hover:shadow-md ${
+                  !notification.sent ? "border-primary/50 bg-accent/20" : ""
+                }`}
+              >
+                <CardContent className="p-6">
+                  <Link
+                    to={notification.link || "#"}
+                    onClick={() => !notification.sent && markAsRead(notification.id)}
+                    className="block"
+                  >
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 mt-1">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="font-semibold text-lg flex items-center gap-2">
+                              {notification.title}
+                              {!notification.sent && (
+                                <Badge variant="default" className="text-xs">New</Badge>
+                              )}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(notification.created_at), {
+                                addSuffix: true,
+                              })}
+                            </p>
+                          </div>
                         </div>
-                        {!notification.read && (
-                          <Badge variant="destructive" className="h-2 w-2 p-0 rounded-full" />
+                        <p className="text-sm">{notification.message}</p>
+                        {notification.data?.checkout_url && (
+                          <Button 
+                            size="sm" 
+                            className="mt-2"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.open(notification.data.checkout_url, '_blank');
+                            }}
+                          >
+                            Complete Purchase
+                          </Button>
                         )}
                       </div>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {hasMore && (
-                <div className="text-center pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={loading}
-                  >
-                    Load More
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                    </div>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </main>
+
       <Footer />
     </div>
   );
