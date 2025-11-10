@@ -42,7 +42,6 @@ import MyOriginalArt from "./pages/artist/MyOriginalArt";
 import MyCollection from "./pages/MyCollection";
 import MyInventory from "./pages/MyInventory";
 import SellerStats from "./pages/SellerStats";
-import MyAccount from "./pages/MyAccount";
 import Sellers from "./pages/Sellers";
 import SellerProfile from "./pages/SellerProfile";
 import FeesPolicy from "./pages/FeesPolicy";
@@ -110,7 +109,7 @@ const AppContent = () => {
             <Route path="/my-inventory" element={<MyInventory />} />
             <Route path="/inventory" element={<MyInventory />} />
             <Route path="/sell/stats" element={<SellerStats />} />
-            <Route path="/my-account" element={<MyAccount />} />
+            
             <Route path="/sellers" element={<Sellers />} />
             <Route path="/seller/:slug" element={<SellerProfile />} />
             <Route path="/notifications" element={<Notifications />} />

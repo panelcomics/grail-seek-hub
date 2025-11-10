@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tag, Heart, Scan, Bell, User, LogOut, HelpCircle, Settings, Package, ShoppingBag, MessageSquare, Mail, UserCircle, BookOpen, Search, BarChart3 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationQueueDropdown } from "./NotificationQueueDropdown";
 
@@ -183,14 +183,9 @@ function IconButtonDropdown({
                 <BookOpen className="mr-2 h-4 w-4" />
                 My Collection
               </DropdownLink>
-              <DropdownLink href="/my-account" onClick={() => setIsOpen(false)}>
-                <UserCircle className="mr-2 h-4 w-4" />
-                My Account
-              </DropdownLink>
-              <div className="my-1 border-t" />
               <DropdownLink href="/profile" onClick={() => setIsOpen(false)}>
-                <User className="mr-2 h-4 w-4" />
-                My Profile
+                <UserCircle className="mr-2 h-4 w-4" />
+                My Profile & Settings
               </DropdownLink>
               <DropdownLink href="/my-orders" onClick={() => setIsOpen(false)}>
                 <ShoppingBag className="mr-2 h-4 w-4" />

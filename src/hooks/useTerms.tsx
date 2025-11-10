@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { CURRENT_TERMS_VERSION, hasAcceptedLatestTerms } from "@/lib/termsUtils";
 import { toastSuccess } from "@/lib/toastUtils";
 

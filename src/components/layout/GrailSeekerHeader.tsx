@@ -185,14 +185,9 @@ export function GrailSeekerHeader() {
                         <BookOpen className="mr-2 h-4 w-4" />
                         My Collection
                       </DropdownLink>
-                      <DropdownLink href="/my-account" onClick={() => setIsOpen(false)}>
-                        <UserCircle className="mr-2 h-4 w-4" />
-                        My Account
-                      </DropdownLink>
-                      <div className="my-1 border-t" />
                       <DropdownLink href="/profile" onClick={() => setIsOpen(false)}>
-                        <User className="mr-2 h-4 w-4" />
-                        My Profile
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        My Profile & Settings
                       </DropdownLink>
                       <DropdownLink href="/my-orders" onClick={() => setIsOpen(false)}>
                         <ShoppingBag className="mr-2 h-4 w-4" />

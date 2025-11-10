@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MakeOfferModal } from "@/components/MakeOfferModal";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { MessageCircle, Repeat2, AlertCircle, Star } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
