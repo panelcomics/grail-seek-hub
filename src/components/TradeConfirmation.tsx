@@ -13,7 +13,13 @@ import { Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+if (!STRIPE_PUBLISHABLE_KEY) {
+  console.error('CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY not configured!');
+}
+
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
 
 // Trade fee tiers
 const TRADE_FEE_TIERS = [

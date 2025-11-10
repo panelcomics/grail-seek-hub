@@ -13,6 +13,11 @@ const EBAY_CERT_ID = EBAY_ENV === 'production'
   ? Deno.env.get('EBAY_CLIENT_SECRET_PROD')
   : Deno.env.get('EBAY_CERT_ID');
 
+// Startup validation
+if (!EBAY_APP_ID || !EBAY_CERT_ID) {
+  console.error('CRITICAL: eBay credentials not configured!', { env: EBAY_ENV, hasAppId: !!EBAY_APP_ID, hasCertId: !!EBAY_CERT_ID });
+}
+
 if (EBAY_ENV === 'production') {
   console.log('eBay LIVE – Production mode active');
 }

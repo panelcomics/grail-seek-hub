@@ -10,7 +10,13 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { Loader2 } from "lucide-react";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+if (!STRIPE_PUBLISHABLE_KEY) {
+  console.error('CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY not configured!');
+}
+
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
 
 const CheckoutForm = ({ orderId }: { orderId: string }) => {
   const stripe = useStripe();

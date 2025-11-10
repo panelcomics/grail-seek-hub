@@ -19,7 +19,13 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+if (!STRIPE_PUBLISHABLE_KEY) {
+  console.error('CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY not configured!');
+}
+
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
 
 function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () => void }) {
   const stripe = useStripe();

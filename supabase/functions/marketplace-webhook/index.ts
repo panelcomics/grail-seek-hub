@@ -12,7 +12,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+  const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!stripeSecretKey) {
+    console.error("CRITICAL: STRIPE_SECRET_KEY not configured!");
+    return new Response(
+      JSON.stringify({ error: "Payment system configuration error" }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
+
+  const stripe = new Stripe(stripeSecretKey, {
     apiVersion: "2025-08-27.basil",
   });
 
