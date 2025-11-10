@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { MapPin, Star, Award, Shield, UserPlus, Package, Palette, Heart } from "lucide-react";
+import { MapPin, Star, Award, Shield, UserPlus, Package, Palette, Heart, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFollowSeller } from "@/hooks/useFollowSeller";
@@ -44,11 +44,24 @@ interface SellerSettings {
   min_offer_percentage: number;
 }
 
+interface Listing {
+  id: string;
+  title: string;
+  price_cents: number;
+  image_url: string;
+  type: string;
+  status: string;
+  ends_at: string | null;
+}
+
 export default function SellerProfile() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<SellerProfile | null>(null);
   const [sellerSettings, setSellerSettings] = useState<SellerSettings | null>(null);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [claimSales, setClaimSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 1000]);
@@ -100,6 +113,34 @@ export default function SellerProfile() {
       if (settingsData) {
         setSellerSettings(settingsData);
       }
+
+      // Fetch active listings
+      const { data: listingsData, error: listingsError } = await supabase
+        .from("listings")
+        .select("id, title, price_cents, image_url, type, status, ends_at")
+        .eq("user_id", profileData.user_id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+
+      if (listingsError) {
+        console.error("Error fetching listings:", listingsError);
+      } else {
+        setListings(listingsData || []);
+      }
+
+      // Fetch active claim sales
+      const { data: claimSalesData, error: claimSalesError } = await supabase
+        .from("claim_sales")
+        .select("id, title, price, status, total_items, claimed_items, start_time, end_time, city, state")
+        .eq("seller_id", profileData.user_id)
+        .in("status", ["upcoming", "active"])
+        .order("start_time", { ascending: false });
+
+      if (claimSalesError) {
+        console.error("Error fetching claim sales:", claimSalesError);
+      } else {
+        setClaimSales(claimSalesData || []);
+      }
     } catch (error) {
       console.error("Error fetching seller profile:", error);
       toast.error("Failed to load seller profile");
@@ -135,25 +176,21 @@ export default function SellerProfile() {
   }
 
 
-  // Mock data for items (replace with real data)
-  const mockItems = [
-    {
-      id: "1",
-      title: "Amazing Spider-Man #361",
-      price: 45,
-      condition: "VF",
-      image: "/placeholder.svg",
-      category: "comic" as const,
-    },
-    {
-      id: "2",
-      title: "X-Men #1 (1991)",
-      price: 120,
-      condition: "NM",
-      image: "/placeholder.svg",
-      category: "comic" as const,
-    },
-  ];
+  // Filter listings based on tab
+  const filteredListings = listings.filter((listing) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "auctions") return listing.type === "auction";
+    if (activeTab === "buy-now") return listing.type === "buy_now";
+    return true;
+  });
+
+  // Calculate time remaining for auctions
+  const getTimeRemaining = (endsAt: string | null) => {
+    if (!endsAt) return 0;
+    const now = new Date().getTime();
+    const end = new Date(endsAt).getTime();
+    return Math.max(0, Math.floor((end - now) / 1000));
+  };
 
   const canonicalUrl = `${window.location.origin}/seller/${slug}`;
   const sellerName = profile.username || "Seller";
@@ -261,7 +298,19 @@ export default function SellerProfile() {
                     <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
                     {isFollowing ? `Following (${followerCount})` : `Follow (${followerCount})`}
                   </Button>
-                  <Button variant="outline">Message</Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      if (!user) {
+                        toast.error("Please sign in to message sellers");
+                        return;
+                      }
+                      navigate("/messages");
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Message
+                  </Button>
                 </div>
               </div>
             </div>
@@ -347,31 +396,85 @@ export default function SellerProfile() {
             {/* Items Grid */}
             <div className="flex-1">
               <TabsList className="mb-6">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="comics">Comics</TabsTrigger>
-                <TabsTrigger value="cards">Cards</TabsTrigger>
-                <TabsTrigger value="auctions">Auctions</TabsTrigger>
-                <TabsTrigger value="claim-sales">Claim Sales</TabsTrigger>
+                <TabsTrigger value="all">All ({listings.length + claimSales.length})</TabsTrigger>
+                <TabsTrigger value="buy-now">Buy Now ({listings.filter(l => l.type === 'buy_now').length})</TabsTrigger>
+                <TabsTrigger value="auctions">Auctions ({listings.filter(l => l.type === 'auction').length})</TabsTrigger>
+                <TabsTrigger value="claim-sales">Claim Sales ({claimSales.length})</TabsTrigger>
               </TabsList>
 
               <TabsContent value={activeTab} className="mt-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {mockItems.map((item) => (
+                  {/* Regular Listings */}
+                  {activeTab !== "claim-sales" && filteredListings.map((listing) => (
                     <ItemCard
-                      key={item.id}
-                      {...item}
+                      key={listing.id}
+                      id={listing.id}
+                      title={listing.title}
+                      price={listing.price_cents / 100}
+                      condition="VF"
+                      image={listing.image_url || "/placeholder.svg"}
+                      category="comic"
                       sellerName={profile.username || undefined}
-                      sellerCity="New York"
+                      sellerCity={profile.joined_at ? new Date(profile.joined_at).toLocaleDateString() : undefined}
                       sellerBadge={profile.seller_tier}
+                      isVerifiedSeller={profile.is_verified_seller}
+                      isAuction={listing.type === "auction"}
+                      timeRemaining={listing.type === "auction" ? getTimeRemaining(listing.ends_at) : 0}
                       showMakeOffer={sellerSettings?.accept_offers}
                       minOfferPercentage={sellerSettings?.min_offer_percentage}
                     />
                   ))}
+
+                  {/* Claim Sales */}
+                  {(activeTab === "all" || activeTab === "claim-sales") && claimSales.map((sale) => (
+                    <Card 
+                      key={sale.id} 
+                      className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer"
+                      onClick={() => navigate(`/claim-sale/${sale.id}`)}
+                    >
+                      <div className="p-6 space-y-4">
+                        <div>
+                          <Badge variant="secondary" className="mb-2">Claim Sale</Badge>
+                          <h3 className="font-semibold text-lg line-clamp-2">{sale.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {sale.city}, {sale.state}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-2xl font-bold text-primary">${sale.price}</div>
+                            <p className="text-xs text-muted-foreground">per item</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{sale.total_items - sale.claimed_items} left</div>
+                            <p className="text-xs text-muted-foreground">of {sale.total_items}</p>
+                          </div>
+                        </div>
+                        <Button size="sm" className="w-full">View Claim Sale</Button>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
 
-                {mockItems.length === 0 && (
+                {filteredListings.length === 0 && (activeTab !== "claim-sales" && activeTab !== "all") && (
                   <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">No items found in this category.</p>
+                  </div>
+                )}
+
+                {claimSales.length === 0 && activeTab === "claim-sales" && (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No claim sales available.</p>
+                  </div>
+                )}
+
+                {listings.length === 0 && claimSales.length === 0 && activeTab === "all" && (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="font-semibold mb-2">No Active Listings</h3>
+                    <p className="text-muted-foreground">This seller doesn't have any active listings yet.</p>
                   </div>
                 )}
               </TabsContent>
