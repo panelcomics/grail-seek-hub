@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Star, MapPin } from "lucide-react";
+import { Star, MapPin, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SellerBadge } from "@/components/SellerBadge";
 import { SellerStats } from "@/components/SellerStats";
+import { useFollowSeller } from "@/hooks/useFollowSeller";
 import {
   Carousel,
   CarouselContent,
@@ -116,6 +117,8 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
   const rating = "5.0"; // Default rating since we don't have seller_rating field yet
   const location = "United States"; // Default location since we don't have location fields yet
   const displayName = seller.display_name || seller.username?.split('@')[0] || "Unknown Seller";
+  
+  const { isFollowing, followerCount, loading, toggleFollow } = useFollowSeller(seller.user_id);
 
   return (
     <div className="bg-card rounded-lg border p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl group">
@@ -138,7 +141,7 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
           <SellerStats
             rating={parseFloat(rating)}
             salesCount={seller.completed_sales_count}
-            favoritesTotal={seller.favorites_total}
+            favoritesTotal={followerCount}
             className="justify-center"
           />
           <SellerBadge tier={seller.seller_tier || null} />
@@ -151,8 +154,19 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
               View Shop
             </Button>
           </Link>
-          <Button size="sm" variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 transition-all hover:shadow-sm hover:-translate-y-0.5">
-            Follow
+          <Button 
+            size="sm" 
+            variant={isFollowing ? "default" : "outline"}
+            onClick={toggleFollow}
+            disabled={loading}
+            className={`w-full transition-all hover:shadow-sm hover:-translate-y-0.5 ${
+              isFollowing 
+                ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                : "border-primary text-primary hover:bg-primary/5"
+            }`}
+          >
+            <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+            {isFollowing ? 'Following' : 'Follow'}
           </Button>
         </div>
       </div>

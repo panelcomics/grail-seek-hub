@@ -2,17 +2,21 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export function useFollowSeller(sellerId?: string) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (sellerId) {
+      fetchFollowerCount();
+    }
     if (user && sellerId) {
       checkFollowStatus();
-      fetchFollowerCount();
     }
   }, [user, sellerId]);
 
@@ -51,10 +55,14 @@ export function useFollowSeller(sellerId?: string) {
   const toggleFollow = async () => {
     if (!user) {
       toast.error("Please sign in to follow sellers");
+      navigate("/auth");
       return;
     }
 
-    if (!sellerId) return;
+    if (!sellerId) {
+      toast.error("Invalid seller");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -66,7 +74,10 @@ export function useFollowSeller(sellerId?: string) {
           .eq("user_id", user.id)
           .eq("seller_id", sellerId);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error unfollowing seller:", error);
+          throw new Error("Couldn't unfollow seller. Please try again.");
+        }
         
         setIsFollowing(false);
         setFollowerCount(prev => Math.max(0, prev - 1));
@@ -80,15 +91,17 @@ export function useFollowSeller(sellerId?: string) {
             seller_id: sellerId,
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error following seller:", error);
+          throw new Error("Couldn't follow seller. Please try again.");
+        }
         
         setIsFollowing(true);
         setFollowerCount(prev => prev + 1);
         toast.success("Following seller! You'll be notified of new listings.");
       }
-    } catch (error) {
-      console.error("Error toggling follow:", error);
-      toast.error("Failed to update follow status");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update follow status. Please try again.");
     } finally {
       setLoading(false);
     }
