@@ -1,5 +1,11 @@
 project_id = "fiwmlzrhwvrsrxmcstzk"
 
+[functions.close-ended-auctions]
+verify_jwt = true
+
+[functions.send-auction-notifications]
+verify_jwt = true
+
 [functions.fetch-comic-covers]
 verify_jwt = false
 
