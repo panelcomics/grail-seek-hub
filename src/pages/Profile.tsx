@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star, Award, TrendingUp, MessageSquare, Palette } from "lucide-react";
+import { Star, Award, TrendingUp, MessageSquare, Palette, User, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -37,6 +41,11 @@ export default function Profile() {
   const [averageRating, setAverageRating] = useState<number>(0);
   const [totalRatings, setTotalRatings] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -56,12 +65,15 @@ export default function Profile() {
       // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('verified_artist')
+        .select('verified_artist, display_name, bio, profile_image_url')
         .eq('user_id', currentUser.id)
         .single();
 
       if (profileError) throw profileError;
       setProfile(profileData);
+      setDisplayName(profileData.display_name || "");
+      setBio(profileData.bio || "");
+      setProfileImageUrl(profileData.profile_image_url || "");
 
       // Fetch badges
       const { data: badgesData, error: badgesError } = await supabase
@@ -95,6 +107,85 @@ export default function Profile() {
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      if (profileImageUrl) {
+        const oldPath = profileImageUrl.split('/').slice(-2).join('/');
+        await supabase.storage.from('profile-images').remove([oldPath]);
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ profile_image_url: publicUrl })
+        .eq("user_id", user.id);
+
+      if (updateError) throw updateError;
+
+      setProfileImageUrl(publicUrl);
+      toast.success("Profile image updated successfully");
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: displayName || null,
+          bio: bio || null,
+        })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      toast.success("Profile updated successfully");
+      await loadProfile();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -141,15 +232,19 @@ export default function Profile() {
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               <Avatar className="h-24 w-24">
-                <AvatarFallback className="text-2xl">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
+                {profileImageUrl ? (
+                  <AvatarImage src={profileImageUrl} alt="Profile" />
+                ) : (
+                  <AvatarFallback className="text-2xl">
+                    {displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                )}
               </Avatar>
               
               <div className="flex-1 text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                   <h1 className="text-3xl font-bold">
-                    {user?.email?.split('@')[0] || 'User'}
+                    {displayName || user?.email?.split('@')[0] || 'User'}
                   </h1>
                   {profile?.verified_artist && (
                     <TooltipProvider>
@@ -190,12 +285,102 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="achievements" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="edit-profile" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="edit-profile">Edit Profile</TabsTrigger>
             <TabsTrigger value="achievements">Achievements</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="shipping">Shipping Presets</TabsTrigger>
+            <TabsTrigger value="shipping">Shipping</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="edit-profile">
+            <Card>
+              <CardHeader>
+                <CardTitle>Edit Profile</CardTitle>
+                <CardDescription>Update your public seller profile information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleUpdateProfile} className="space-y-6">
+                  <div className="space-y-4">
+                    <Label>Profile Image</Label>
+                    <div className="flex items-center gap-6">
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden border-4 border-background shadow-lg">
+                        {profileImageUrl ? (
+                          <img
+                            src={profileImageUrl}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-3xl font-bold text-primary">
+                            {displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          id="profile-image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploadingImage}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Upload a profile picture (max 5MB). JPG, PNG, or WEBP.
+                        </p>
+                        {uploadingImage && (
+                          <p className="text-xs text-primary mt-1 flex items-center gap-2">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Uploading...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="display-name">Seller Name / Display Name</Label>
+                    <Input
+                      id="display-name"
+                      type="text"
+                      placeholder="Your shop name"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This is how your name appears to buyers. If left blank, a shortened version of your email will be used.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      placeholder="Tell buyers about yourself and your collection..."
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+
+                  <Button type="submit" disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <User className="mr-2 h-4 w-4" />
+                        Save Profile
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="achievements">
             <Card>
