@@ -11,7 +11,6 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
-import jsQR from "jsqr";
 
 interface PrefillData {
   title?: string;
@@ -225,52 +224,16 @@ export default function Scanner() {
       console.log('Photo uploaded:', publicUrl);
       setImageUrl(publicUrl); // Preserve photo URL
 
-      // Step 2: Try barcode scanning (client-side)
-      toast({
-        title: "📸 Scanning barcode...",
-        description: "Detecting CGC cert number",
-      });
-
-      let barcodeData: string | null = null;
-      try {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = imageData;
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-        });
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageDataObj.data, imageDataObj.width, imageDataObj.height);
-          
-          if (code) {
-            barcodeData = code.data;
-            console.log('Barcode detected:', barcodeData);
-          }
-        }
-      } catch (barcodeErr) {
-        console.error('Barcode scan (non-fatal):', barcodeErr);
-      }
-
-      // Step 3: Server-side OCR + ComicVine
+      // Step 2: Server-side barcode + OCR + ComicVine
       toast({
         title: "🔍 AI Recognition...",
-        description: retryCount > 0 ? "Retry attempt..." : "Reading comic details",
+        description: retryCount > 0 ? "Retry attempt..." : "Scanning barcode & reading text",
       });
 
       const ocrStartTime = Date.now();
       const scanPromise = supabase.functions.invoke("scan-item", {
         body: { 
           imageBase64: base64Data,
-          barcodeData: barcodeData || undefined,
         },
       });
 

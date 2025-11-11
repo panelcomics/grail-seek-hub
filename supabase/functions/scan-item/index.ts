@@ -141,12 +141,12 @@ serve(async (req) => {
       );
     }
 
-    console.log('Body received:', { hasImage: !!body.imageBase64, hasQuery: !!body.textQuery, hasBarcode: !!body.barcodeData });
-    const { imageBase64, textQuery, barcodeData } = body;
+    console.log('Body received:', { hasImage: !!body.imageBase64, hasQuery: !!body.textQuery });
+    const { imageBase64, textQuery } = body;
     
-    // Accept imageBase64, textQuery, or barcodeData
-    if (!imageBase64 && !textQuery && !barcodeData) {
-      console.log('No image, text query, or barcode provided');
+    // Accept imageBase64 or textQuery
+    if (!imageBase64 && !textQuery) {
+      console.log('No image or text query provided');
       return new Response(
         JSON.stringify({ ok: false, error: "No scan data received. Please try again." }), 
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -196,24 +196,12 @@ serve(async (req) => {
     const COMICVINE_API_KEY = Deno.env.get("COMICVINE_API_KEY");
     
     let ocrText = "";
-    let barcodeQuery = "";
     
-    // Priority 1: If barcode detected, use it for cert# search
-    if (barcodeData) {
-      console.log('Using barcode data:', barcodeData);
-      // Extract potential cert number (CGC format: 12345678-001)
-      const certMatch = barcodeData.match(/\d{8}-\d{3}/) || barcodeData.match(/\d{10,}/);
-      if (certMatch) {
-        barcodeQuery = certMatch[0];
-        console.log('Extracted cert number:', barcodeQuery);
-      }
-    }
-    
-    // Priority 2: If textQuery provided (from client-side OCR), use it
+    // If textQuery provided (client override), use it directly
     if (textQuery) {
       console.log('Using client-provided text query:', textQuery);
       ocrText = textQuery;
-    } else if (!barcodeQuery && imageBase64) {
+    } else if (imageBase64) {
       // Priority 3: Otherwise, perform server-side OCR with Google Vision
       const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
       console.log('Keys check:', { vision: !!GOOGLE_VISION_API_KEY, comicvine: !!COMICVINE_API_KEY });
@@ -282,21 +270,13 @@ serve(async (req) => {
       .replace(/\s+/g, ' ')
       .trim();
     
-    // Build clean query for ComicVine (prioritize barcode if available)
-    let cleanQuery = "";
-    if (barcodeQuery) {
-      // Search by cert number or barcode first
-      cleanQuery = barcodeQuery;
-      console.log('Using barcode query:', cleanQuery);
-    } else {
-      const queryParts = [];
-      if (series_title) queryParts.push(series_title);
-      if (issue_number) queryParts.push(`#${issue_number}`);
-      cleanQuery = queryParts.join(' ');
-      console.log('Using text-based query:', cleanQuery);
-    }
+    // Build clean query for ComicVine
+    const queryParts = [];
+    if (series_title) queryParts.push(series_title);
+    if (issue_number) queryParts.push(`#${issue_number}`);
+    const cleanQuery = queryParts.join(' ');
     
-    console.log('Extracted structured data:', { series_title, issue_number, year, cleanQuery, barcodeQuery });
+    console.log('Extracted structured data:', { series_title, issue_number, year, cleanQuery });
     const cvRes = await fetch(
       `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleanQuery)}&resources=issue&field_list=name,issue_number,volume,cover_date,image,deck&limit=10`,
       {
