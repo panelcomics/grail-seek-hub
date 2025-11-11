@@ -202,22 +202,25 @@ serve(async (req) => {
     console.log('OCR raw text:', ocrText);
     
     // Extract structured data from OCR
-    // Remove UI artifacts first
-    let cleaned = ocrText
-      .replace(/\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?/gi, '') // timestamps
-      .replace(/\b(GS|Scan|Scanner|Camera|Upload|Photo|Capture|Take|Retake|Process)\b/gi, '') // UI text
+    // Simpler cleaning - keep more useful data
+    let cleanText = ocrText
+      .replace(/\d{1,2}:\d{2}/g, "") // remove timestamps
+      .replace(/[^a-zA-Z0-9#:\-\s]/g, "") // keep title words, numbers, and #
       .trim();
     
+    // If sanitization empties the text, fall back to original OCR
+    if (cleanText.length < 5) cleanText = ocrText.trim();
+    
     // Extract issue number (look for patterns like "#123", "No. 123", "123")
-    const issueMatch = cleaned.match(/#?\s*(\d+)/) || cleaned.match(/No\.?\s*(\d+)/i);
+    const issueMatch = cleanText.match(/#?\s*(\d+)/) || cleanText.match(/No\.?\s*(\d+)/i);
     const issue_number = issueMatch ? issueMatch[1] : "";
     
     // Extract year (4 digits)
-    const yearMatch = cleaned.match(/\b(19\d{2}|20\d{2})\b/);
+    const yearMatch = cleanText.match(/\b(19\d{2}|20\d{2})\b/);
     const year = yearMatch ? parseInt(yearMatch[1]) : null;
     
     // Extract series title (remaining text, cleaned)
-    let series_title = cleaned
+    let series_title = cleanText
       .replace(/#?\s*\d+/g, '') // remove issue numbers
       .replace(/\b(19\d{2}|20\d{2})\b/g, '') // remove years
       .replace(/[^\w\s]/g, ' ') // special chars to spaces
