@@ -375,13 +375,14 @@ export default function Scanner() {
             // Add prominent pricing to description
             const avgPrice = pricingData.avgPrice.toFixed(0);
             const comp = pricingData.items?.[0];
-            const pricingText = `\n\n💰 eBay Sold Avg: $${avgPrice} (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 50)}... - $${comp.price}` : ''}`;
+            const compLink = comp?.url ? `[View listing](${comp.url})` : '';
+            const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ''}`;
             prefill.description = (prefill.description || '') + pricingText;
             setPrefillData(prefill);
             
             toast({
               title: "💰 Market data found",
-              description: `Avg sold: $${avgPrice}`,
+              description: `Avg sold: $${avgPrice} | ${pricingData.items?.length || 0} comps`,
             });
           } else {
             console.log('No eBay pricing data available');

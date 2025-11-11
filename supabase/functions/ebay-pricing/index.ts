@@ -84,7 +84,7 @@ serve(async (req) => {
       q: searchQuery,
       filter: 'buyingOptions:{FIXED_PRICE|AUCTION},soldItemsOnly:{true}',
       fieldgroups: 'EXTENDED',
-      limit: '5',
+      limit: '3',
       sort: 'price', // Sort by price for better avg calculation
     });
 
