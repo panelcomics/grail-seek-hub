@@ -121,23 +121,53 @@ export default function Scanner() {
     }
   };
 
-  const calculateConfidence = (candidate: ComicCandidate, ocrText: string): number => {
+  // Calculate confidence based on structured extracted data
+  const calculateConfidence = (
+    candidate: ComicCandidate, 
+    extracted: { series_title?: string; issue_number?: string; year?: number | null }
+  ): number => {
     let score = 0;
-    const lowerOcr = ocrText.toLowerCase();
-    const lowerName = candidate.name.toLowerCase();
+    
     const lowerVolume = candidate.volume.toLowerCase();
+    const lowerName = candidate.name.toLowerCase();
+    const extractedTitle = (extracted.series_title || "").toLowerCase().trim();
+    const extractedIssue = (extracted.issue_number || "").trim();
+    const extractedYear = extracted.year;
     
-    // Title match (0-50 points)
-    if (lowerOcr.includes(lowerName)) score += 50;
-    else if (lowerName.includes(lowerOcr.split(' ')[0])) score += 25;
+    // Title similarity (0-50 points) - compare against volume name primarily
+    if (extractedTitle) {
+      const titleWords = extractedTitle.split(/\s+/).filter(w => w.length > 2);
+      const volumeWords = lowerVolume.split(/\s+/).filter(w => w.length > 2);
+      
+      // Check how many key words match
+      const matchingWords = titleWords.filter(word => 
+        volumeWords.some(vw => vw.includes(word) || word.includes(vw))
+      ).length;
+      
+      if (matchingWords > 0) {
+        score += Math.min(50, matchingWords * 15);
+      }
+    }
     
-    // Volume/series match (0-30 points)
-    if (lowerOcr.includes(lowerVolume)) score += 30;
-    else if (lowerVolume.includes(lowerOcr.split(' ')[0])) score += 15;
+    // Issue number match (0-30 points) - exact match is critical
+    if (extractedIssue && candidate.issue_number) {
+      if (extractedIssue === candidate.issue_number) {
+        score += 30;
+      } else if (extractedIssue.replace(/^0+/, '') === candidate.issue_number.replace(/^0+/, '')) {
+        score += 25; // Handle leading zeros
+      }
+    }
     
-    // Issue number match (0-20 points)
-    if (candidate.issue_number && lowerOcr.includes(candidate.issue_number)) {
-      score += 20;
+    // Year proximity (0-20 points)
+    if (extractedYear && candidate.cover_date) {
+      const coverYear = parseInt(candidate.cover_date.substring(0, 4));
+      if (!isNaN(coverYear)) {
+        const yearDiff = Math.abs(extractedYear - coverYear);
+        if (yearDiff === 0) score += 20;
+        else if (yearDiff === 1) score += 15;
+        else if (yearDiff <= 3) score += 10;
+        else if (yearDiff <= 5) score += 5;
+      }
     }
     
     return Math.min(score, 100);
@@ -169,12 +199,12 @@ export default function Scanner() {
       }
 
       if (data?.comicvineResults && data.comicvineResults.length > 0) {
-        const ocrText = data.ocrPreview || "";
+        const extracted = data.extracted || {};
         
-        // Calculate confidence for each candidate
+        // Calculate confidence for each candidate using structured extracted data
         const scoredCandidates = data.comicvineResults.map((result: any) => ({
           ...result,
-          confidence: calculateConfidence(result, ocrText)
+          confidence: calculateConfidence(result, extracted)
         }));
         
         // Sort by confidence descending
@@ -182,33 +212,29 @@ export default function Scanner() {
           (b.confidence || 0) - (a.confidence || 0)
         );
         
-        setCandidates(scoredCandidates);
+        // Take top 5 for display
+        setCandidates(scoredCandidates.slice(0, 5));
         
         const topResult = scoredCandidates[0];
         const minConfidence = 65;
         
         if (topResult.confidence && topResult.confidence >= minConfidence) {
-          // Build clean query from structured data only (no raw OCR)
+          // Good match - build clean query
           const cleanQuery = `${topResult.volume} ${topResult.issue_number}`.trim();
           setQuery(cleanQuery);
           
           toast({
-            title: "Comic identified!",
-            description: `${topResult.name} #${topResult.issue_number} (${topResult.confidence}% confidence)`,
+            title: "Match found",
+            description: `${topResult.volume} #${topResult.issue_number}`,
           });
           // Fetch full details with pricing
           await handleTextSearch(cleanQuery);
         } else {
-          // Show best match without auto-searching
-          const cleanQuery = `${topResult.volume} ${topResult.issue_number}`.trim();
-          setQuery(cleanQuery);
-          
+          // Uncertain - show candidates list, don't auto-search
           toast({
-            title: "Low confidence match",
-            description: `Best match: ${topResult.name} #${topResult.issue_number} (${topResult.confidence}% confidence). Refine or search manually.`,
-            variant: "destructive",
+            title: "Pick the right book",
+            description: "We're not sure. Select from the list below or try another photo.",
           });
-          setShowDebug(true);
         }
       } else {
         toast({
@@ -453,69 +479,148 @@ export default function Scanner() {
         </div>
       </section>
 
-      {/* Debug Panel */}
-      {candidates.length > 0 && (
+      {/* Match Results or Candidate Selection */}
+      {candidates.length > 0 && !comic && (
         <section className="container mx-auto px-4 py-6">
-          <Card className="border-2 border-orange-500/30">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-orange-600">🔍 Scanner Debug</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowDebug(!showDebug)}
-                >
-                  {showDebug ? "Hide" : "Show"} Candidates
-                </Button>
-              </div>
-              
-              {showDebug && (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+          {candidates[0].confidence && candidates[0].confidence >= 65 ? (
+            // Good match - show green banner with single candidate
+            <Card className="border-2 border-green-500/50 bg-green-50 dark:bg-green-950/20">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  {candidates[0].image && (
+                    <img 
+                      src={candidates[0].image} 
+                      alt={candidates[0].name}
+                      className="w-24 h-36 object-cover rounded border-2 border-green-500"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                        ✓ Match found
+                      </span>
+                      <span className="text-xs bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
+                        {candidates[0].confidence}% confidence
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-1">
+                      {candidates[0].volume} #{candidates[0].issue_number}
+                    </h3>
+                    {candidates[0].cover_date && (
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {new Date(candidates[0].cover_date).getFullYear()}
+                      </p>
+                    )}
+                    <Button 
+                      onClick={() => {
+                        const cleanQuery = `${candidates[0].volume} ${candidates[0].issue_number}`.trim();
+                        setQuery(cleanQuery);
+                        handleTextSearch(cleanQuery);
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Use This Result
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            // Uncertain - show neutral message with candidate list
+            <Card className="border-2">
+              <CardContent className="pt-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">
+                    We're not sure. Pick the right book below or try another photo.
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Top {candidates.length} potential matches based on your scan:
+                  </p>
+                </div>
+                
+                <div className="space-y-3 max-h-[500px] overflow-y-auto">
                   {candidates.map((candidate, idx) => (
                     <div 
                       key={candidate.id}
-                      className={`p-3 rounded border ${
-                        idx === 0 ? 'border-primary bg-primary/5' : 'border-muted'
-                      }`}
+                      className="p-3 rounded border hover:border-primary transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         {candidate.image && (
                           <img 
                             src={candidate.image} 
                             alt={candidate.name}
-                            className="w-16 h-24 object-cover rounded"
+                            className="w-16 h-24 object-cover rounded flex-shrink-0"
                           />
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
-                              #{idx + 1}
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="text-sm font-semibold">
+                              {candidate.volume} #{candidate.issue_number}
                             </span>
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                              (candidate.confidence || 0) >= 65 
-                                ? 'bg-green-500/20 text-green-700' 
-                                : 'bg-red-500/20 text-red-700'
-                            }`}>
-                              {candidate.confidence || 0}% confidence
-                            </span>
+                            {candidate.cover_date && (
+                              <span className="text-xs text-muted-foreground">
+                                ({new Date(candidate.cover_date).getFullYear()})
+                              </span>
+                            )}
                           </div>
-                          <p className="font-semibold text-sm truncate">{candidate.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {candidate.volume} #{candidate.issue_number}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            ID: {candidate.id}
-                          </p>
-                          <Button
-                            variant="outline"
+                          <Button 
                             size="sm"
-                            className="mt-2"
-                            onClick={() => handleTextSearch(`${candidate.volume} ${candidate.issue_number}`)}
+                            variant="outline"
+                            onClick={() => {
+                              const cleanQuery = `${candidate.volume} ${candidate.issue_number}`.trim();
+                              setQuery(cleanQuery);
+                              handleTextSearch(cleanQuery);
+                            }}
                           >
                             Use This Result
                           </Button>
                         </div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Debug Panel - collapsed by default */}
+          <Card className="mt-4 border-orange-500/30">
+            <CardContent className="pt-4">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowDebug(!showDebug)}
+                className="w-full justify-between"
+              >
+                <span className="text-sm text-orange-600">🔍 Scanner Debug</span>
+                <span className="text-xs text-muted-foreground">
+                  {showDebug ? "Hide" : "Show"}
+                </span>
+              </Button>
+              
+              {showDebug && (
+                <div className="mt-4 space-y-2 text-xs font-mono">
+                  {candidates.map((candidate, idx) => (
+                    <div 
+                      key={candidate.id}
+                      className="p-2 rounded bg-muted/50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-orange-600">#{idx + 1}</span>
+                        <span className={`font-bold ${
+                          (candidate.confidence || 0) >= 65
+                                ? 'text-green-600' : 'text-orange-600'
+                            }`}>
+                              {candidate.confidence}%
+                            </span>
+                        <span className="text-muted-foreground">|</span>
+                        <span className="truncate flex-1">
+                          {candidate.volume} #{candidate.issue_number}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground pl-6">
+                        ID: {candidate.id} | {candidate.cover_date || "no date"}
+                      </p>
                     </div>
                   ))}
                 </div>

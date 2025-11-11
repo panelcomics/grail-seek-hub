@@ -143,10 +143,17 @@ serve(async (req) => {
 
     if (cachedResult) {
       console.log('Cache hit - returning cached result');
+      // Extract structured data from cached OCR for consistency
+      const cachedOcr = cachedResult.ocr || "";
+      const issueMatch = cachedOcr.match(/#?\s*(\d+)/) || cachedOcr.match(/No\.?\s*(\d+)/i);
+      const issue_number = issueMatch ? issueMatch[1] : "";
+      const yearMatch = cachedOcr.match(/\b(19\d{2}|20\d{2})\b/);
+      const year = yearMatch ? parseInt(yearMatch[1]) : null;
+      
       return new Response(
         JSON.stringify({
           ok: true,
-          ocrPreview: cachedResult.ocr?.slice(0, 120) + (cachedResult.ocr?.length > 120 ? "..." : ""),
+          extracted: { series_title: "", issue_number, year },
           comicvineResults: cachedResult.comicvine_results || [],
           cached: true,
         }),
@@ -192,21 +199,40 @@ serve(async (req) => {
     }
 
     const ocrText = visionData.responses?.[0]?.fullTextAnnotation?.text ?? "";
-    console.log('OCR text preview:', ocrText.substring(0, 50));
+    console.log('OCR raw text:', ocrText);
     
-    // Clean OCR text aggressively: remove timestamps, special chars, extra whitespace
+    // Extract structured data from OCR
+    // Remove UI artifacts first
     let cleaned = ocrText
-      .replace(/\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?/gi, '') // Remove timestamps
-      .replace(/[^\w\s]/g, " ") // Replace special chars with spaces
-      .replace(/\s+/g, " ") // Collapse whitespace
+      .replace(/\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?/gi, '') // timestamps
+      .replace(/\b(GS|Scan|Scanner|Camera|Upload|Photo|Capture|Take|Retake|Process)\b/gi, '') // UI text
       .trim();
     
-    // Remove common UI artifacts
-    cleaned = cleaned.replace(/\b(GS|Scan|Camera|Upload|Photo|Capture)\b/gi, '').trim();
-
-    console.log('Cleaned query for ComicVine:', cleaned);
+    // Extract issue number (look for patterns like "#123", "No. 123", "123")
+    const issueMatch = cleaned.match(/#?\s*(\d+)/) || cleaned.match(/No\.?\s*(\d+)/i);
+    const issue_number = issueMatch ? issueMatch[1] : "";
+    
+    // Extract year (4 digits)
+    const yearMatch = cleaned.match(/\b(19\d{2}|20\d{2})\b/);
+    const year = yearMatch ? parseInt(yearMatch[1]) : null;
+    
+    // Extract series title (remaining text, cleaned)
+    let series_title = cleaned
+      .replace(/#?\s*\d+/g, '') // remove issue numbers
+      .replace(/\b(19\d{2}|20\d{2})\b/g, '') // remove years
+      .replace(/[^\w\s]/g, ' ') // special chars to spaces
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Build clean query for ComicVine
+    const queryParts = [];
+    if (series_title) queryParts.push(series_title);
+    if (issue_number) queryParts.push(`#${issue_number}`);
+    const cleanQuery = queryParts.join(' ');
+    
+    console.log('Extracted structured data:', { series_title, issue_number, year, cleanQuery });
     const cvRes = await fetch(
-      `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleaned)}&resources=issue&limit=10`,
+      `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleanQuery)}&resources=issue&limit=10`,
       {
         headers: {
           "User-Agent": "GrailSeeker/1.0 (panelcomics.com)",
@@ -224,14 +250,17 @@ serve(async (req) => {
       throw new Error(cvData.error ?? "ComicVine API failed");
     }
 
-    const results = (cvData.results ?? []).map((i: any) => ({
-      id: i.id ?? null,
-      name: i.name ?? "Unknown",
-      issue_number: i.issue_number ?? "",
-      volume: i.volume?.name ?? "Unknown",
-      cover_date: i.cover_date ?? "",
-      image: i.image?.small_url ?? i.image?.thumb_url ?? null,
-    }));
+    // Filter out results with missing critical data, map the rest
+    const results = (cvData.results ?? [])
+      .filter((i: any) => i.volume?.name && i.id) // Must have volume name and ID
+      .map((i: any) => ({
+        id: i.id,
+        name: i.name || i.volume.name, // Use volume name if issue name missing
+        issue_number: i.issue_number ?? "",
+        volume: i.volume.name,
+        cover_date: i.cover_date ?? "",
+        image: i.image?.small_url ?? i.image?.thumb_url ?? null,
+      }));
 
     console.log('Success – results count:', results.length);
 
@@ -247,7 +276,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        ocrPreview: ocrText.slice(0, 120) + (ocrText.length > 120 ? "..." : ""),
+        extracted: { series_title, issue_number, year }, // structured data
         comicvineResults: results,
         cached: false,
       }),
