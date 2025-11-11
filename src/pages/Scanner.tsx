@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 
 interface ComicData {
   comicvine_id: number;
@@ -35,6 +36,14 @@ export default function Scanner() {
   const [cameraActive, setCameraActive] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
+  const [debugData, setDebugData] = useState({
+    status: "idle" as "idle" | "processing" | "success" | "error",
+    method: null as "camera" | "upload" | null,
+    apiHit: null as "ComicVine" | "scan-item" | null,
+    confidenceScore: null as number | null,
+    responseTimeMs: null as number | null,
+    errorMessage: null as string | null,
+  });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -93,7 +102,7 @@ export default function Scanner() {
           title: "Photo captured!",
           description: "Processing your comic now...",
         });
-        identifyFromImage(capturedImageData);
+        identifyFromImage(capturedImageData, "camera");
       }
     }
   };
@@ -110,13 +119,13 @@ export default function Scanner() {
         title: "Image uploaded!",
         description: "Processing your comic now...",
       });
-      identifyFromImage(uploadedImageData);
+      identifyFromImage(uploadedImageData, "upload");
     };
     reader.readAsDataURL(file);
   };
 
   // Single pipeline for image identification
-  const identifyFromImage = async (imageData: string) => {
+  const identifyFromImage = async (imageData: string, method: "camera" | "upload") => {
     if (!imageData) {
       toast({
         title: "No image data",
@@ -126,8 +135,19 @@ export default function Scanner() {
       return;
     }
 
+    const startTime = Date.now();
     setLoading(true);
     setComic(null);
+    
+    // Update debug state: processing
+    setDebugData({
+      status: "processing",
+      method,
+      apiHit: null,
+      confidenceScore: null,
+      responseTimeMs: null,
+      errorMessage: null,
+    });
 
     try {
       // Extract base64 data (remove data:image/jpeg;base64, prefix if present)
@@ -145,18 +165,36 @@ export default function Scanner() {
         body: { imageBase64: base64Data },
       });
 
+      const responseTime = Date.now() - startTime;
       console.log("scan-item response:", { data, error });
 
       if (error) {
         console.error("Edge function error:", error);
+        setDebugData({
+          status: "error",
+          method,
+          apiHit: "scan-item",
+          confidenceScore: null,
+          responseTimeMs: responseTime,
+          errorMessage: error.message || "Edge function error",
+        });
         throw error;
       }
 
       // Handle scan-item response format: { ok, extracted, comicvineResults, cached }
       if (data?.ok === false) {
+        const errorMsg = data.error || "Unable to process image";
+        setDebugData({
+          status: "error",
+          method,
+          apiHit: "scan-item",
+          confidenceScore: null,
+          responseTimeMs: responseTime,
+          errorMessage: errorMsg,
+        });
         toast({
           title: "Scan failed",
-          description: data.error || "Unable to process image. Please try again.",
+          description: errorMsg,
           variant: "destructive",
         });
         return;
@@ -166,6 +204,14 @@ export default function Scanner() {
       const results = data?.comicvineResults || [];
       
       if (results.length === 0) {
+        setDebugData({
+          status: "error",
+          method,
+          apiHit: "ComicVine",
+          confidenceScore: 0,
+          responseTimeMs: responseTime,
+          errorMessage: "No match found",
+        });
         toast({
           title: "No match found",
           description: "Try a clearer photo with the full cover visible, or use manual search.",
@@ -176,6 +222,10 @@ export default function Scanner() {
 
       // Use the first (best) match
       const topResult = results[0];
+      
+      // Calculate confidence (placeholder - ComicVine doesn't return confidence scores)
+      // Could be based on number of results or other heuristics
+      const confidence = results.length > 0 ? Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5) : 0;
       
       // Map to our ComicData format
       const identifiedComic: ComicData = {
@@ -197,13 +247,39 @@ export default function Scanner() {
 
       setComic(identifiedComic);
       
+      // Update debug state: success
+      setDebugData({
+        status: "success",
+        method,
+        apiHit: "ComicVine",
+        confidenceScore: confidence,
+        responseTimeMs: responseTime,
+        errorMessage: null,
+      });
+
+      // Console log summary
+      console.info(`[Recognition Debug] ${method} → ComicVine (${confidence}% in ${responseTime}ms)`);
+      
       toast({
         title: "Comic identified!",
         description: identifiedComic.full_title,
       });
 
     } catch (err: any) {
+      const responseTime = Date.now() - startTime;
       console.error("Identification error:", err);
+      
+      setDebugData({
+        status: "error",
+        method,
+        apiHit: "scan-item",
+        confidenceScore: null,
+        responseTimeMs: responseTime,
+        errorMessage: err.message || "Unexpected error",
+      });
+
+      console.info(`[Recognition Debug] ${method} → Error (${err.message} in ${responseTime}ms)`);
+      
       toast({
         title: "Scan failed",
         description: err.message || "Unexpected error, please try again.",
@@ -376,7 +452,7 @@ export default function Scanner() {
                       Retake Photo
                     </Button>
                     <Button
-                      onClick={() => identifyFromImage(imageData)}
+                      onClick={() => identifyFromImage(imageData, activeTab as "camera" | "upload")}
                       disabled={loading}
                       className="flex-1"
                     >
@@ -488,6 +564,8 @@ export default function Scanner() {
       </section>
 
       <Footer />
+      
+      <RecognitionDebugOverlay debugData={debugData} />
     </div>
   );
 }
