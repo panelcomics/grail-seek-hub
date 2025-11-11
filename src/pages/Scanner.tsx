@@ -11,9 +11,7 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
-import Tesseract from "tesseract.js";
-import { preprocessSlabImage } from "@/lib/imagePreprocessing";
-import { parseSlabText, buildSlabQuery } from "@/lib/slabTextParser";
+import { parseSlabText } from "@/lib/slabTextParser";
 
 interface PrefillData {
   title?: string;
@@ -64,6 +62,7 @@ export default function Scanner() {
     rawOcrText: null as string | null,
     cvQuery: null as string | null,
     slabData: null as any,
+    ebayData: null as any,
   });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -162,7 +161,7 @@ export default function Scanner() {
     identifyFromImage(previewImage, "upload");
   };
 
-  // Recognition pipeline with client-side OCR + preprocessing
+  // Server-side OCR recognition pipeline with timeout and fallback
   const identifyFromImage = async (imageData: string, method: "camera" | "upload") => {
     if (!imageData) return;
 
@@ -182,51 +181,29 @@ export default function Scanner() {
       rawOcrText: null,
       cvQuery: null,
       slabData: null,
+      ebayData: null,
     });
 
+    // 5-second timeout wrapper
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Scan timeout after 5s')), 5000)
+    );
+
     try {
-      // Step 1: Preprocess image for slabbed comics
       toast({
-        title: "Preprocessing image...",
-        description: "Detecting slab edges and enhancing",
+        title: "📸 Processing image...",
+        description: "Using AI to read your comic",
       });
 
-      const preprocessedImage = await preprocessSlabImage(imageData);
-      console.log('Image preprocessed for OCR');
-
-      // Step 2: Client-side OCR with Tesseract.js
-      toast({
-        title: "Extracting text...",
-        description: "Analyzing slab labels and cover",
+      // Send image to server-side OCR (Google Vision via scan-item)
+      const scanPromise = supabase.functions.invoke("scan-item", {
+        body: { imageBase64: imageData.split(',')[1] }, // Remove data URL prefix
       });
 
-      const { data: { text } } = await Tesseract.recognize(preprocessedImage, 'eng', {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
-          }
-        },
-      });
-
-      console.log('Tesseract raw OCR text:', text);
-
-      // Step 3: Parse slab-specific data (CGC/CBCS labels)
-      const slabData = parseSlabText(text);
-      console.log('Parsed slab data:', slabData);
-
-      // Step 4: Build optimized ComicVine query
-      const ocrQuery = buildSlabQuery(slabData, text);
-      console.log('ComicVine query:', ocrQuery);
-
-      // Step 5: Send OCR query to scan-item edge function (secure API key)
-      toast({
-        title: "Searching database...",
-        description: "Looking for matches",
-      });
-
-      const { data, error } = await supabase.functions.invoke("scan-item", {
-        body: { textQuery: ocrQuery },
-      });
+      const { data, error } = await Promise.race([
+        scanPromise,
+        timeoutPromise
+      ]) as any;
 
       const responseTime = Date.now() - startTime;
 
@@ -234,9 +211,16 @@ export default function Scanner() {
       if (data?.ok === false) throw new Error(data.error || "Unable to process image");
 
       const results = data?.comicvineResults || [];
+      const rawOcrText = data?.ocrText || '';
+      const cvQuery = data?.cvQuery || '';
+      
+      console.log('Server OCR response:', { rawOcrText, cvQuery, results: results.length });
+
+      // Parse slab data from server OCR text
+      const slabData = parseSlabText(rawOcrText);
       
       if (results.length === 0) {
-        // No match - show manual form
+        // No match - fallback to manual search tab
         setDebugData({
           status: "error",
           method,
@@ -244,17 +228,21 @@ export default function Scanner() {
           confidenceScore: 0,
           responseTimeMs: responseTime,
           errorMessage: "No match found",
-          rawOcrText: text,
-          cvQuery: ocrQuery,
+          rawOcrText,
+          cvQuery,
           slabData,
+          ebayData: null,
         });
-        setStatus("manual");
-        setPrefillData({});
-        setConfidence(0);
+        
         toast({
-          title: "No confident match",
-          description: "You can still list this comic manually with your photo.",
+          title: "No match found",
+          description: "Opening manual search...",
+          variant: "destructive",
         });
+        
+        // Auto-switch to search tab after 1 second
+        setTimeout(() => setActiveTab("search"), 1000);
+        setLoading(false);
         return;
       }
 
@@ -279,10 +267,16 @@ export default function Scanner() {
       setPrefillData(prefill);
       setConfidence(calculatedConfidence);
       
-      // Step 6: Fetch eBay pricing if we have good match
-      if (calculatedConfidence >= 65 && title && issueNumber) {
+      // Fetch eBay pricing if we have good match and grade
+      let ebayData = null;
+      if (calculatedConfidence >= 65 && title && issueNumber && slabData.grade) {
         try {
-          const { data: pricingData } = await supabase.functions.invoke("ebay-pricing", {
+          toast({
+            title: "💰 Fetching market prices...",
+            description: "Checking eBay sold listings",
+          });
+
+          const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
             body: { 
               title, 
               issueNumber, 
@@ -290,12 +284,15 @@ export default function Scanner() {
             },
           });
           
-          if (pricingData?.ok && pricingData.avgPrice) {
-            console.log('eBay pricing:', pricingData);
-            // Store pricing in prefill for display in form
-            prefill.description = prefill.description 
-              ? `${prefill.description}\n\nRecent eBay sales avg: $${pricingData.avgPrice.toFixed(2)}`
-              : `Recent eBay sales avg: $${pricingData.avgPrice.toFixed(2)}`;
+          if (pricingError) {
+            console.error('eBay pricing error:', pricingError);
+          } else if (pricingData?.ok && pricingData.avgPrice) {
+            console.log('eBay pricing fetched:', pricingData);
+            ebayData = pricingData;
+            
+            // Add pricing to description with comps
+            const pricingText = `\n\n💰 eBay Market Data (CGC ${slabData.grade}):\nAvg: $${pricingData.avgPrice.toFixed(2)} | Range: $${pricingData.minPrice.toFixed(2)}-$${pricingData.maxPrice.toFixed(2)}\n${pricingData.items?.length || 0} recent sales`;
+            prefill.description = (prefill.description || '') + pricingText;
             setPrefillData(prefill);
           }
         } catch (err) {
@@ -303,7 +300,7 @@ export default function Scanner() {
         }
       }
       
-      // Check confidence threshold (65% as specified)
+      // Check confidence threshold
       if (calculatedConfidence >= 65 && title && issueNumber) {
         setStatus("prefilled");
         setDebugData({
@@ -313,13 +310,14 @@ export default function Scanner() {
           confidenceScore: calculatedConfidence,
           responseTimeMs: responseTime,
           errorMessage: null,
-          rawOcrText: text,
-          cvQuery: ocrQuery,
+          rawOcrText,
+          cvQuery,
           slabData,
+          ebayData,
         });
         toast({
-          title: "Match found!",
-          description: `Review the details below.`,
+          title: "✅ Match found!",
+          description: ebayData ? `${results.length} match(es) + eBay pricing` : `${results.length} match(es)`,
         });
       } else {
         setStatus("manual");
@@ -330,19 +328,22 @@ export default function Scanner() {
           confidenceScore: calculatedConfidence,
           responseTimeMs: responseTime,
           errorMessage: `Low confidence (${calculatedConfidence}%)`,
-          rawOcrText: text,
-          cvQuery: ocrQuery,
+          rawOcrText,
+          cvQuery,
           slabData,
+          ebayData,
         });
         toast({
           title: "Low confidence match",
-          description: "Review the suggested details or edit as needed.",
+          description: "Review and edit as needed.",
         });
       }
 
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
       console.error("Identification error:", err);
+      
+      const isTimeout = err.message?.includes('timeout');
       
       setDebugData({
         status: "error",
@@ -354,17 +355,18 @@ export default function Scanner() {
         rawOcrText: null,
         cvQuery: null,
         slabData: null,
+        ebayData: null,
       });
 
-      setStatus("manual");
-      setPrefillData({});
-      setConfidence(0);
-      
       toast({
-        title: "Recognition error",
-        description: "You can still list this comic manually with your photo.",
+        title: isTimeout ? "⏱️ Scan timeout" : "❌ Recognition error",
+        description: "Try manual search →",
         variant: "destructive",
       });
+      
+      // Auto-fallback to search tab
+      setTimeout(() => setActiveTab("search"), 1000);
+      
     } finally {
       setLoading(false);
     }

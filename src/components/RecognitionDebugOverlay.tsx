@@ -10,6 +10,7 @@ interface RecognitionDebugData {
   rawOcrText: string | null;
   cvQuery: string | null;
   slabData: any;
+  ebayData: any;
 }
 
 interface RecognitionDebugOverlayProps {
@@ -126,7 +127,23 @@ export function RecognitionDebugOverlay({ debugData }: RecognitionDebugOverlayPr
         {debugData.errorMessage && (
           <div className="mt-2 pt-2 border-t border-border/30">
             <div className="text-red-400 break-words">
-              {debugData.errorMessage}
+              ❌ {debugData.errorMessage}
+            </div>
+          </div>
+        )}
+
+        {debugData.ebayData && (
+          <div className="mt-2 pt-2 border-t border-border/30">
+            <div className="text-muted-foreground mb-1">eBay Comps:</div>
+            <div className="text-foreground text-[10px] space-y-0.5">
+              <div>💰 Avg: ${debugData.ebayData.avgPrice?.toFixed(2) || 'N/A'}</div>
+              <div>📊 Range: ${debugData.ebayData.minPrice?.toFixed(2)}-${debugData.ebayData.maxPrice?.toFixed(2)}</div>
+              <div>📈 Total: {debugData.ebayData.totalResults || 0} results</div>
+              {debugData.ebayData.items?.slice(0, 2).map((item: any, i: number) => (
+                <div key={i} className="text-green-400">
+                  • ${item.price}: {item.title.slice(0, 30)}...
+                </div>
+              ))}
             </div>
           </div>
         )}

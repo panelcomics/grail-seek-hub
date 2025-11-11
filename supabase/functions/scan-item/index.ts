@@ -157,6 +157,8 @@ serve(async (req) => {
             ok: true,
             extracted: { series_title: "", issue_number, year },
             comicvineResults: cachedResult.comicvine_results || [],
+            ocrText: cachedOcr, // Raw OCR for debug
+            cvQuery: '', // Not available from cache
             cached: true,
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -294,8 +296,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        extracted: { series_title, issue_number, year }, // structured data
+        extracted: { series_title, issue_number, year },
         comicvineResults: results,
+        ocrText: ocrText, // Raw OCR for debug
+        cvQuery: cleanQuery, // Query sent to ComicVine for debug
         cached: false,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
