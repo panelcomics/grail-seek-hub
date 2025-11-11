@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
+import { RecognitionFallback } from "@/components/RecognitionFallback";
 
 interface ComicData {
   comicvine_id: number;
@@ -36,6 +37,9 @@ export default function Scanner() {
   const [cameraActive, setCameraActive] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
+  const [showFallback, setShowFallback] = useState(false);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const [lastAttemptMethod, setLastAttemptMethod] = useState<"camera" | "upload" | null>(null);
   const [debugData, setDebugData] = useState({
     status: "idle" as "idle" | "processing" | "success" | "error",
     method: null as "camera" | "upload" | null,
@@ -66,6 +70,7 @@ export default function Scanner() {
         // Explicitly play the video
         await videoRef.current.play();
         setCameraActive(true);
+        setShowFallback(false); // Hide fallback when starting camera
       }
     } catch (error) {
       console.error("Camera error:", error);
@@ -138,6 +143,8 @@ export default function Scanner() {
     const startTime = Date.now();
     setLoading(true);
     setComic(null);
+    setShowFallback(false); // Hide fallback during processing
+    setLastAttemptMethod(method);
     
     // Update debug state: processing
     setDebugData({
@@ -212,11 +219,8 @@ export default function Scanner() {
           responseTimeMs: responseTime,
           errorMessage: "No match found",
         });
-        toast({
-          title: "No match found",
-          description: "Try a clearer photo with the full cover visible, or use manual search.",
-          variant: "destructive",
-        });
+        setFailedImage(imageData);
+        setShowFallback(true);
         return;
       }
 
@@ -226,6 +230,29 @@ export default function Scanner() {
       // Calculate confidence (placeholder - ComicVine doesn't return confidence scores)
       // Could be based on number of results or other heuristics
       const confidence = results.length > 0 ? Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5) : 0;
+      
+      // Check if confidence is too low or title/series is empty
+      const title = topResult.volume || topResult.volumeName || "";
+      const issueNumber = topResult.issue_number || "";
+      
+      if (confidence < 60 || (!title && !issueNumber)) {
+        setDebugData({
+          status: "error",
+          method,
+          apiHit: "ComicVine",
+          confidenceScore: confidence,
+          responseTimeMs: responseTime,
+          errorMessage: `Low confidence (${confidence}%) or missing data`,
+        });
+        setFailedImage(imageData);
+        setShowFallback(true);
+        toast({
+          title: "Low confidence match",
+          description: "The match wasn't strong enough. Try another photo or search manually.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       // Map to our ComicData format
       const identifiedComic: ComicData = {
@@ -280,11 +307,8 @@ export default function Scanner() {
 
       console.info(`[Recognition Debug] ${method} → Error (${err.message} in ${responseTime}ms)`);
       
-      toast({
-        title: "Scan failed",
-        description: err.message || "Unexpected error, please try again.",
-        variant: "destructive",
-      });
+      setFailedImage(imageData);
+      setShowFallback(true);
     } finally {
       setLoading(false);
     }
@@ -351,6 +375,31 @@ export default function Scanner() {
     });
   };
 
+  // Fallback handlers
+  const handleRetakePhoto = () => {
+    setShowFallback(false);
+    setImageData(null);
+    setActiveTab("camera");
+    startCamera();
+  };
+
+  const handleUploadInstead = () => {
+    setShowFallback(false);
+    setImageData(null);
+    setActiveTab("upload");
+    fileInputRef.current?.click();
+  };
+
+  const handleSearchByTitle = () => {
+    setShowFallback(false);
+    setActiveTab("search");
+    // Focus on search input after a brief delay to ensure tab switch completes
+    setTimeout(() => {
+      const searchInput = document.querySelector('input[placeholder*="X-Men"]') as HTMLInputElement;
+      if (searchInput) searchInput.focus();
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Global AppLayout header wraps this, so no local header */}
@@ -388,6 +437,20 @@ export default function Scanner() {
 
       {/* Scanner Tabs */}
       <section className="container mx-auto px-4 py-8 flex-1">
+        {/* Fallback UI */}
+        {showFallback && (
+          <div className="max-w-xl mx-auto mb-8">
+            <RecognitionFallback
+              failedImage={failedImage}
+              lastMethod={lastAttemptMethod}
+              onRetakePhoto={handleRetakePhoto}
+              onUploadInstead={handleUploadInstead}
+              onSearchByTitle={handleSearchByTitle}
+              onClose={() => setShowFallback(false)}
+            />
+          </div>
+        )}
+
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
             <TabsTrigger value="camera">Camera</TabsTrigger>
