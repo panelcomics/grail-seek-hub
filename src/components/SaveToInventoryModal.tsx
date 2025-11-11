@@ -23,9 +23,10 @@ interface SaveToInventoryModalProps {
   onOpenChange: (open: boolean) => void;
   ocrText: string;
   comicvineResults: ComicResult[];
+  userImage?: string | null; // User's captured/uploaded image
 }
 
-export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineResults }: SaveToInventoryModalProps) {
+export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineResults, userImage }: SaveToInventoryModalProps) {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { openModal } = useModal();
@@ -184,24 +185,42 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {existingItem ? "Update Inventory Item" : "Save to My Inventory"}
+            {existingItem ? "Update Inventory Item" : userImage ? "List Comic Manually" : "Save to My Inventory"}
           </DialogTitle>
           <DialogDescription>
             {existingItem
               ? "This item already exists. Update its location and notes."
-              : "Add this comic to your private inventory with location and notes."
+              : userImage 
+                ? "Fill in the details for your comic. All fields are editable."
+                : "Add this comic to your private inventory with location and notes."
             }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Show user's image if available */}
+          {userImage && (
+            <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border border-border">
+              <div className="w-24 h-36 rounded overflow-hidden border-2 border-primary/30 flex-shrink-0">
+                <img
+                  src={userImage}
+                  alt="Your photo"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <p className="font-semibold mb-1">Your Photo</p>
+                <p>This will be saved with your inventory item</p>
+              </div>
+            </div>
+          )}
           <div>
             <Label htmlFor="title">Title *</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Comic title"
+              placeholder="Enter comic title"
               disabled={!!existingItem}
             />
           </div>
@@ -212,7 +231,7 @@ export function SaveToInventoryModal({ open, onOpenChange, ocrText, comicvineRes
               id="issue"
               value={issueNumber}
               onChange={(e) => setIssueNumber(e.target.value)}
-              placeholder="#1"
+              placeholder="Enter issue number"
               disabled={!!existingItem}
             />
           </div>

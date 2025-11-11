@@ -8,6 +8,7 @@ interface RecognitionFallbackProps {
   onRetakePhoto: () => void;
   onUploadInstead: () => void;
   onSearchByTitle: () => void;
+  onListManually: () => void;
   onClose: () => void;
 }
 
@@ -17,6 +18,7 @@ export function RecognitionFallback({
   onRetakePhoto,
   onUploadInstead,
   onSearchByTitle,
+  onListManually,
   onClose,
 }: RecognitionFallbackProps) {
   return (
@@ -55,8 +57,16 @@ export function RecognitionFallback({
           {/* Action buttons */}
           <div className="flex flex-col gap-2 w-full mt-2">
             <Button
-              onClick={onRetakePhoto}
+              onClick={onListManually}
               variant="default"
+              className="w-full"
+            >
+              List Manually with This Photo
+            </Button>
+
+            <Button
+              onClick={onRetakePhoto}
+              variant="outline"
               className="w-full"
             >
               <Camera className="mr-2 h-4 w-4" />
@@ -69,7 +79,7 @@ export function RecognitionFallback({
               className="w-full"
             >
               <Upload className="mr-2 h-4 w-4" />
-              Upload Instead
+              Upload Different Image
             </Button>
 
             <Button

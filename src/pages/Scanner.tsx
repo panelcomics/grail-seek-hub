@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { RecognitionFallback } from "@/components/RecognitionFallback";
+import { SaveToInventoryModal } from "@/components/SaveToInventoryModal";
 
 interface ComicData {
   comicvine_id: number;
@@ -36,8 +37,10 @@ export default function Scanner() {
   const [loading, setLoading] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [imageData, setImageData] = useState<string | null>(null);
+  const [userImage, setUserImage] = useState<string | null>(null); // Preserve user's captured/uploaded image
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
   const [showFallback, setShowFallback] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const [lastAttemptMethod, setLastAttemptMethod] = useState<"camera" | "upload" | null>(null);
   const [debugData, setDebugData] = useState({
@@ -102,6 +105,7 @@ export default function Scanner() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const capturedImageData = canvas.toDataURL("image/jpeg");
         setImageData(capturedImageData);
+        setUserImage(capturedImageData); // Store user's image separately
         stopCamera();
         toast({
           title: "Photo captured!",
@@ -120,6 +124,7 @@ export default function Scanner() {
     reader.onload = (e) => {
       const uploadedImageData = e.target?.result as string;
       setImageData(uploadedImageData);
+      setUserImage(uploadedImageData); // Store user's image separately
       toast({
         title: "Image uploaded!",
         description: "Processing your comic now...",
@@ -221,6 +226,7 @@ export default function Scanner() {
         });
         setFailedImage(imageData);
         setShowFallback(true);
+        setShowManualForm(true); // Show manual form when no match
         return;
       }
 
@@ -246,10 +252,10 @@ export default function Scanner() {
         });
         setFailedImage(imageData);
         setShowFallback(true);
+        setShowManualForm(true); // Show manual form for low confidence
         toast({
           title: "Low confidence match",
-          description: "The match wasn't strong enough. Try another photo or search manually.",
-          variant: "destructive",
+          description: "You can still list this item manually with your photo.",
         });
         return;
       }
@@ -309,6 +315,7 @@ export default function Scanner() {
       
       setFailedImage(imageData);
       setShowFallback(true);
+      setShowManualForm(true); // Show manual form on error
     } finally {
       setLoading(false);
     }
@@ -392,12 +399,35 @@ export default function Scanner() {
 
   const handleSearchByTitle = () => {
     setShowFallback(false);
+    setShowManualForm(false);
     setActiveTab("search");
     // Focus on search input after a brief delay to ensure tab switch completes
     setTimeout(() => {
       const searchInput = document.querySelector('input[placeholder*="X-Men"]') as HTMLInputElement;
       if (searchInput) searchInput.focus();
     }, 100);
+  };
+
+  const handleListManually = () => {
+    setShowFallback(false);
+    setShowManualForm(true);
+    // Set empty comic data to trigger manual form with user's image
+    setComic({
+      comicvine_id: 0,
+      title: "",
+      issue_number: "",
+      full_title: "",
+      publisher: "",
+      year: null,
+      cover_image: "",
+      cover_thumb: "",
+      description: "",
+      characters: [],
+      ebay_avg_price: 0,
+      trade_fee_total: 0,
+      trade_fee_each: 0,
+      fee_tier: "",
+    });
   };
 
   return (
@@ -438,7 +468,7 @@ export default function Scanner() {
       {/* Scanner Tabs */}
       <section className="container mx-auto px-4 py-8 flex-1">
         {/* Fallback UI */}
-        {showFallback && (
+        {showFallback && !showManualForm && (
           <div className="max-w-xl mx-auto mb-8">
             <RecognitionFallback
               failedImage={failedImage}
@@ -446,7 +476,27 @@ export default function Scanner() {
               onRetakePhoto={handleRetakePhoto}
               onUploadInstead={handleUploadInstead}
               onSearchByTitle={handleSearchByTitle}
+              onListManually={handleListManually}
               onClose={() => setShowFallback(false)}
+            />
+          </div>
+        )}
+
+        {/* Manual listing form */}
+        {showManualForm && userImage && (
+          <div className="max-w-3xl mx-auto mb-8">
+            <SaveToInventoryModal
+              open={true}
+              onOpenChange={(open) => {
+                setShowManualForm(open);
+                if (!open) {
+                  setUserImage(null);
+                  setImageData(null);
+                }
+              }}
+              ocrText=""
+              comicvineResults={[]}
+              userImage={userImage}
             />
           </div>
         )}
@@ -600,7 +650,7 @@ export default function Scanner() {
         </Tabs>
 
         {/* Result */}
-        {comic && (
+        {comic && comic.comicvine_id > 0 && !showManualForm && (
           <section className="mt-10 space-y-4">
             <h2 className="text-2xl font-bold">Matched Comic</h2>
             <ComicResultCard
@@ -620,6 +670,7 @@ export default function Scanner() {
                 trade_fee_each: comic.trade_fee_each || 0,
                 fee_tier: comic.fee_tier || "",
               }}
+              userImage={userImage}
               onListForSwap={handleViewDetails}
             />
           </section>
@@ -628,7 +679,8 @@ export default function Scanner() {
 
       <Footer />
       
-      <RecognitionDebugOverlay debugData={debugData} />
+      {/* Only show debug overlay in development */}
+      {import.meta.env.DEV && <RecognitionDebugOverlay debugData={debugData} />}
     </div>
   );
 }

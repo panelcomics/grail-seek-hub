@@ -21,14 +21,19 @@ interface ComicResultCardProps {
     trade_fee_each: number;
     fee_tier: string;
   };
+  userImage?: string | null; // User's captured/uploaded image
   onListForSwap: () => void;
 }
 
-export function ComicResultCard({ comic, onListForSwap }: ComicResultCardProps) {
+export function ComicResultCard({ comic, userImage, onListForSwap }: ComicResultCardProps) {
   // Strip HTML from description
   const cleanDescription = comic.description
     ? comic.description.replace(/<[^>]*>/g, '').slice(0, 200) + '...'
     : '';
+
+  // Use user's image as primary, ComicVine as fallback
+  const primaryImage = userImage || comic.cover_image;
+  const hasReferenceCover = userImage && comic.cover_image;
 
   return (
     <Card className="overflow-hidden border-2 border-primary/20 shadow-lg">
@@ -45,18 +50,37 @@ export function ComicResultCard({ comic, onListForSwap }: ComicResultCardProps) 
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 p-6">
-        {/* Cover Image */}
-        <div className="relative">
-          <div className="aspect-[2/3] bg-muted rounded-lg overflow-hidden border-4 border-secondary/20 shadow-lg">
-            <img
-              src={comic.cover_image}
-              alt={comic.full_title}
-              className="h-full w-full object-cover"
-            />
+        {/* Primary Image (user's photo) */}
+        <div className="space-y-3">
+          <div className="relative">
+            <div className="aspect-[2/3] bg-muted rounded-lg overflow-hidden border-4 border-primary/30 shadow-lg">
+              <img
+                src={primaryImage}
+                alt={comic.full_title}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="absolute -bottom-3 -right-3 bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center border-4 border-background font-bold shadow-xl">
+              #{comic.issue_number}
+            </div>
           </div>
-          <div className="absolute -bottom-3 -right-3 bg-primary text-primary-foreground rounded-full w-16 h-16 flex items-center justify-center border-4 border-background font-bold shadow-xl">
-            #{comic.issue_number}
-          </div>
+
+          {/* Reference cover thumbnail */}
+          {hasReferenceCover && (
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+              <div className="w-16 h-24 rounded overflow-hidden border-2 border-border flex-shrink-0">
+                <img
+                  src={comic.cover_image}
+                  alt="Reference cover"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <p className="font-semibold mb-1">ComicVine Reference</p>
+                <p>Official cover for comparison</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Details */}
