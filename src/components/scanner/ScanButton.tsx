@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Camera, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface ScanButtonProps {
   onScanResult?: (searchText: string) => void;
@@ -18,7 +17,6 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const startCamera = async () => {
     try {
@@ -178,10 +176,6 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
       fileInputRef.current?.click();
     }
   };
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <>
