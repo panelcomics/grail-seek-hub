@@ -2,7 +2,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
-import { createWorker } from 'https://esm.sh/tesseract.js@5.0.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -208,6 +207,7 @@ serve(async (req) => {
     console.log('Cache miss - processing request');
 
     const COMICVINE_API_KEY = Deno.env.get("COMICVINE_API_KEY");
+    const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
     
     let ocrText = "";
     let visionTime = 0;
@@ -217,11 +217,11 @@ serve(async (req) => {
       console.log('Using client-provided text query:', textQuery);
       ocrText = textQuery;
     } else if (imageBase64) {
-      // Priority 3: Otherwise, perform server-side OCR with Tesseract.js
-      console.log('[SCAN-ITEM] Keys check:', { comicvine: !!COMICVINE_API_KEY });
+      // Perform server-side OCR with Google Vision API
+      console.log('[SCAN-ITEM] Keys check:', { comicvine: !!COMICVINE_API_KEY, vision: !!GOOGLE_VISION_API_KEY });
 
-      if (!COMICVINE_API_KEY) {
-        console.error('[SCAN-ITEM] Missing ComicVine API key');
+      if (!COMICVINE_API_KEY || !GOOGLE_VISION_API_KEY) {
+        console.error('[SCAN-ITEM] Missing API keys');
         return new Response(JSON.stringify({ ok: false, error: "Server configuration error. Please contact support." }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -232,26 +232,39 @@ serve(async (req) => {
       console.log('[SCAN-ITEM] Resizing image for OCR...');
       const resizedImage = await resizeImageForOCR(imageBase64);
 
-      console.log('[SCAN-ITEM] Initializing Tesseract OCR worker...');
-      const ocrStartTime = Date.now();
+      console.log('[SCAN-ITEM] Calling Google Vision API...');
+      const visionStartTime = Date.now();
       
-      try {
-        const worker = await createWorker('eng');
-        console.log('[SCAN-ITEM] Tesseract worker created, processing image...');
-        
-        // Convert base64 to buffer
-        const imageBytes = Uint8Array.from(atob(resizedImage), c => c.charCodeAt(0));
-        
-        const { data: { text } } = await worker.recognize(imageBytes);
-        await worker.terminate();
-        
-        ocrText = text;
-        visionTime = Date.now() - ocrStartTime;
-        console.log('[SCAN-ITEM] Tesseract OCR completed:', `(${visionTime}ms)`);
+      const visionRes = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requests: [{
+              image: { content: resizedImage },
+              features: [{ type: 'TEXT_DETECTION' }],
+            }],
+          }),
+        }
+      );
+
+      visionTime = Date.now() - visionStartTime;
+      console.log('[SCAN-ITEM] Google Vision response:', visionRes.status, `(${visionTime}ms)`);
+      
+      if (!visionRes.ok) {
+        throw new Error('Google Vision API request failed');
+      }
+
+      const visionData = await visionRes.json();
+      const annotations = visionData.responses?.[0]?.textAnnotations;
+      
+      if (!annotations || annotations.length === 0) {
+        console.log('[SCAN-ITEM] No text detected in image');
+        ocrText = "";
+      } else {
+        ocrText = annotations[0].description || "";
         console.log('[SCAN-ITEM] OCR extracted text:', ocrText.substring(0, 200));
-      } catch (err) {
-        console.error('[SCAN-ITEM] Tesseract OCR error:', err);
-        throw new Error("OCR processing failed: " + (err instanceof Error ? err.message : "Unknown error"));
       }
     }
     
