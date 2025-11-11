@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
 import { parseSlabText } from "@/lib/slabTextParser";
+import jsQR from "jsqr";
 
 interface PrefillData {
   title?: string;
@@ -192,12 +193,45 @@ export default function Scanner() {
     try {
       toast({
         title: "📸 Processing image...",
-        description: "Using AI to read your comic",
+        description: "Scanning for barcodes and text",
       });
 
-      // Send image to server-side OCR (Google Vision via scan-item)
+      // Step 1: Try barcode scanning first (CGC cert numbers)
+      let barcodeData: string | null = null;
+      try {
+        const img = new Image();
+        img.src = imageData;
+        await new Promise((resolve) => { img.onload = resolve; });
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const imageDataObj = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageDataObj.data, imageDataObj.width, imageDataObj.height);
+          
+          if (code) {
+            barcodeData = code.data;
+            console.log('Barcode detected:', barcodeData);
+            toast({
+              title: "🔍 Barcode detected!",
+              description: "Searching by cert number",
+            });
+          }
+        }
+      } catch (barcodeErr) {
+        console.error('Barcode scan failed (non-fatal):', barcodeErr);
+      }
+
+      // Step 2: Send to server-side OCR with optional barcode data
       const scanPromise = supabase.functions.invoke("scan-item", {
-        body: { imageBase64: imageData.split(',')[1] }, // Remove data URL prefix
+        body: { 
+          imageBase64: imageData.split(',')[1], // Remove data URL prefix
+          barcodeData: barcodeData || undefined, // Pass barcode if found
+        },
       });
 
       const { data, error } = await Promise.race([
