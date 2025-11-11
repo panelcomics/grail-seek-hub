@@ -6,11 +6,13 @@ interface RecognitionDebugData {
   apiHit: "ComicVine" | "scan-item" | null;
   confidenceScore: number | null;
   responseTimeMs: number | null;
+  ocrTimeMs: number | null;
   errorMessage: string | null;
   rawOcrText: string | null;
   cvQuery: string | null;
   slabData: any;
   ebayData: any;
+  retryAttempt: number;
 }
 
 interface RecognitionDebugOverlayProps {
@@ -88,8 +90,22 @@ export function RecognitionDebugOverlay({ debugData }: RecognitionDebugOverlayPr
 
         {debugData.responseTimeMs !== null && (
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Response Time:</span>
+            <span className="text-muted-foreground">Total Time:</span>
             <span className="text-foreground">{debugData.responseTimeMs} ms</span>
+          </div>
+        )}
+
+        {debugData.ocrTimeMs !== null && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">OCR Time:</span>
+            <span className="text-foreground">{debugData.ocrTimeMs} ms</span>
+          </div>
+        )}
+
+        {debugData.retryAttempt > 0 && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Retry:</span>
+            <span className="text-yellow-400">Attempt #{debugData.retryAttempt}</span>
           </div>
         )}
 

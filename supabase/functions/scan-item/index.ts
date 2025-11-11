@@ -1,12 +1,37 @@
 // supabase/functions/scan-item/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Helper to resize image to max 800px for faster OCR
+async function resizeImageForOCR(base64Image: string): Promise<string> {
+  try {
+    const imageBytes = Uint8Array.from(atob(base64Image), c => c.charCodeAt(0));
+    const image = await Image.decode(imageBytes);
+    
+    const maxDimension = 800;
+    if (image.width > maxDimension || image.height > maxDimension) {
+      const scale = maxDimension / Math.max(image.width, image.height);
+      const newWidth = Math.floor(image.width * scale);
+      const newHeight = Math.floor(image.height * scale);
+      
+      console.log(`Resizing image: ${image.width}x${image.height} -> ${newWidth}x${newHeight}`);
+      image.resize(newWidth, newHeight);
+    }
+    
+    const resizedBytes = await image.encodeJPEG(85);
+    return btoa(String.fromCharCode(...resizedBytes));
+  } catch (err) {
+    console.error('Image resize failed, using original:', err);
+    return base64Image;
+  }
+}
 
 // Helper to compute SHA-256 hash
 async function computeSHA256(data: string): Promise<string> {
@@ -188,8 +213,8 @@ serve(async (req) => {
     if (textQuery) {
       console.log('Using client-provided text query:', textQuery);
       ocrText = textQuery;
-    } else if (!barcodeQuery) {
-      // Otherwise, perform server-side OCR with Google Vision
+    } else if (!barcodeQuery && imageBase64) {
+      // Priority 3: Otherwise, perform server-side OCR with Google Vision
       const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
       console.log('Keys check:', { vision: !!GOOGLE_VISION_API_KEY, comicvine: !!COMICVINE_API_KEY });
 
@@ -201,6 +226,10 @@ serve(async (req) => {
         });
       }
 
+      // Resize image to 800px max for faster OCR
+      console.log('Resizing image for OCR...');
+      const resizedImage = await resizeImageForOCR(imageBase64);
+
       console.log('Calling Google Vision...');
       const visionRes = await fetch(
         `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
@@ -208,7 +237,7 @@ serve(async (req) => {
           method: "POST",
           body: JSON.stringify({
             requests: [{
-              image: { content: imageBase64 },
+              image: { content: resizedImage },
               features: [{ type: "TEXT_DETECTION" }],
             }],
           }),

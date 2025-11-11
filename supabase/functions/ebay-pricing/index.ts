@@ -82,10 +82,10 @@ serve(async (req) => {
 
     const searchParams = new URLSearchParams({
       q: searchQuery,
-      filter: 'buyingOptions:{FIXED_PRICE|AUCTION},conditionIds:{3000}', // New condition
+      filter: 'buyingOptions:{FIXED_PRICE|AUCTION},soldItemsOnly:{true}',
       fieldgroups: 'EXTENDED',
-      limit: '10',
-      sort: 'endTimeSoonest', // Recent sold items
+      limit: '5',
+      sort: 'price', // Sort by price for better avg calculation
     });
 
     const browseResponse = await fetch(`${browseUrl}?${searchParams}`, {
@@ -110,7 +110,7 @@ serve(async (req) => {
     const prices: number[] = [];
 
     if (browseData.itemSummaries && browseData.itemSummaries.length > 0) {
-      for (const item of browseData.itemSummaries.slice(0, 5)) {
+      for (const item of browseData.itemSummaries) {
         const price = parseFloat(item.price?.value || '0');
         if (price > 0) {
           prices.push(price);

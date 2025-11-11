@@ -11,7 +11,6 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
-import { parseSlabText } from "@/lib/slabTextParser";
 import jsQR from "jsqr";
 
 interface PrefillData {
@@ -59,11 +58,13 @@ export default function Scanner() {
     apiHit: null as "ComicVine" | "scan-item" | null,
     confidenceScore: null as number | null,
     responseTimeMs: null as number | null,
+    ocrTimeMs: null as number | null,
     errorMessage: null as string | null,
     rawOcrText: null as string | null,
     cvQuery: null as string | null,
     slabData: null as any,
     ebayData: null as any,
+    retryAttempt: 0,
   });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -162,8 +163,8 @@ export default function Scanner() {
     identifyFromImage(previewImage, "upload");
   };
 
-  // Server-side OCR recognition pipeline with timeout and fallback
-  const identifyFromImage = async (imageData: string, method: "camera" | "upload") => {
+  // Server-side OCR with storage, retry, and eBay pricing
+  const identifyFromImage = async (imageData: string, method: "camera" | "upload", retryCount = 0) => {
     if (!imageData) return;
 
     const startTime = Date.now();
@@ -178,30 +179,67 @@ export default function Scanner() {
       apiHit: null,
       confidenceScore: null,
       responseTimeMs: null,
+      ocrTimeMs: null,
       errorMessage: null,
       rawOcrText: null,
       cvQuery: null,
       slabData: null,
       ebayData: null,
+      retryAttempt: retryCount,
     });
 
-    // 5-second timeout wrapper
+    // 10-second timeout
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Scan timeout after 5s')), 5000)
+      setTimeout(() => reject(new Error('Scan timeout after 10s')), 10000)
     );
 
     try {
+      // Step 1: Upload image to Storage first (preserve photo)
       toast({
-        title: "📸 Processing image...",
-        description: "Scanning for barcodes and text",
+        title: "📤 Uploading photo...",
+        description: "Securing your image",
       });
 
-      // Step 1: Try barcode scanning first (CGC cert numbers)
+      const fileName = `scan-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const base64Data = imageData.split(',')[1];
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'image/jpeg' });
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('comic-photos')
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: false
+        });
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('comic-photos')
+        .getPublicUrl(fileName);
+
+      console.log('Photo uploaded:', publicUrl);
+      setImageUrl(publicUrl); // Preserve photo URL
+
+      // Step 2: Try barcode scanning (client-side)
+      toast({
+        title: "📸 Scanning barcode...",
+        description: "Detecting CGC cert number",
+      });
+
       let barcodeData: string | null = null;
       try {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.src = imageData;
-        await new Promise((resolve) => { img.onload = resolve; });
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
         
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
@@ -216,21 +254,23 @@ export default function Scanner() {
           if (code) {
             barcodeData = code.data;
             console.log('Barcode detected:', barcodeData);
-            toast({
-              title: "🔍 Barcode detected!",
-              description: "Searching by cert number",
-            });
           }
         }
       } catch (barcodeErr) {
-        console.error('Barcode scan failed (non-fatal):', barcodeErr);
+        console.error('Barcode scan (non-fatal):', barcodeErr);
       }
 
-      // Step 2: Send to server-side OCR with optional barcode data
+      // Step 3: Server-side OCR + ComicVine
+      toast({
+        title: "🔍 AI Recognition...",
+        description: retryCount > 0 ? "Retry attempt..." : "Reading comic details",
+      });
+
+      const ocrStartTime = Date.now();
       const scanPromise = supabase.functions.invoke("scan-item", {
         body: { 
-          imageBase64: imageData.split(',')[1], // Remove data URL prefix
-          barcodeData: barcodeData || undefined, // Pass barcode if found
+          imageBase64: base64Data,
+          barcodeData: barcodeData || undefined,
         },
       });
 
@@ -239,6 +279,7 @@ export default function Scanner() {
         timeoutPromise
       ]) as any;
 
+      const ocrTime = Date.now() - ocrStartTime;
       const responseTime = Date.now() - startTime;
 
       if (error) throw error;
@@ -248,24 +289,39 @@ export default function Scanner() {
       const rawOcrText = data?.ocrText || '';
       const cvQuery = data?.cvQuery || '';
       
-      console.log('Server OCR response:', { rawOcrText, cvQuery, results: results.length });
-
-      // Parse slab data from server OCR text
-      const slabData = parseSlabText(rawOcrText);
+      console.log('Server response:', { 
+        ocrTime: `${ocrTime}ms`, 
+        rawOcrText: rawOcrText.substring(0, 100), 
+        cvQuery, 
+        results: results.length 
+      });
       
       if (results.length === 0) {
-        // No match - fallback to manual search tab
+        // No match - retry once if first attempt
+        if (retryCount === 0) {
+          console.log('No results, retrying...');
+          toast({
+            title: "Retrying...",
+            description: "Attempting different recognition method",
+          });
+          setLoading(false);
+          return identifyFromImage(imageData, method, 1);
+        }
+        
+        // After retry, fallback to manual
         setDebugData({
           status: "error",
           method,
           apiHit: "ComicVine",
           confidenceScore: 0,
           responseTimeMs: responseTime,
-          errorMessage: "No match found",
+          ocrTimeMs: ocrTime,
+          errorMessage: "No match after retry",
           rawOcrText,
           cvQuery,
-          slabData,
+          slabData: null,
           ebayData: null,
+          retryAttempt: retryCount,
         });
         
         toast({
@@ -274,11 +330,20 @@ export default function Scanner() {
           variant: "destructive",
         });
         
-        // Auto-switch to search tab after 1 second
         setTimeout(() => setActiveTab("search"), 1000);
         setLoading(false);
         return;
       }
+
+      // Step 4: Parse slab data and build prefill
+      const slabData = {
+        title: results[0].volume || "",
+        issueNumber: results[0].issue_number || "",
+        grade: rawOcrText.match(/CGC\s+([\d.]+)/i)?.[1] || 
+               rawOcrText.match(/CBCS\s+([\d.]+)/i)?.[1] || "",
+        certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
+        gradingCompany: rawOcrText.match(/CGC|CBCS/i)?.[0] || "",
+      };
 
       const topResult = results[0];
       const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
@@ -286,7 +351,6 @@ export default function Scanner() {
       const title = topResult.volume || topResult.volumeName || "";
       const issueNumber = topResult.issue_number || "";
       
-      // Build prefill data
       const prefill: PrefillData = {
         title: title,
         series: title,
@@ -301,13 +365,13 @@ export default function Scanner() {
       setPrefillData(prefill);
       setConfidence(calculatedConfidence);
       
-      // Fetch eBay pricing if we have good match and grade
+      // Step 5: Fetch eBay pricing (ALWAYS if grade detected)
       let ebayData = null;
-      if (calculatedConfidence >= 65 && title && issueNumber && slabData.grade) {
+      if (title && issueNumber && slabData.grade) {
         try {
           toast({
-            title: "💰 Fetching market prices...",
-            description: "Checking eBay sold listings",
+            title: "💰 Checking market prices...",
+            description: "Fetching eBay sold listings",
           });
 
           const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
@@ -319,22 +383,35 @@ export default function Scanner() {
           });
           
           if (pricingError) {
-            console.error('eBay pricing error:', pricingError);
+            console.error('eBay API error:', pricingError);
           } else if (pricingData?.ok && pricingData.avgPrice) {
-            console.log('eBay pricing fetched:', pricingData);
             ebayData = pricingData;
+            console.log('eBay pricing:', {
+              avg: pricingData.avgPrice,
+              range: `${pricingData.minPrice}-${pricingData.maxPrice}`,
+              comps: pricingData.items?.length
+            });
             
-            // Add pricing to description with comps
-            const pricingText = `\n\n💰 eBay Market Data (CGC ${slabData.grade}):\nAvg: $${pricingData.avgPrice.toFixed(2)} | Range: $${pricingData.minPrice.toFixed(2)}-$${pricingData.maxPrice.toFixed(2)}\n${pricingData.items?.length || 0} recent sales`;
+            // Add prominent pricing to description
+            const avgPrice = pricingData.avgPrice.toFixed(0);
+            const comp = pricingData.items?.[0];
+            const pricingText = `\n\n💰 eBay Sold Avg: $${avgPrice} (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 50)}... - $${comp.price}` : ''}`;
             prefill.description = (prefill.description || '') + pricingText;
             setPrefillData(prefill);
+            
+            toast({
+              title: "💰 Market data found",
+              description: `Avg sold: $${avgPrice}`,
+            });
+          } else {
+            console.log('No eBay pricing data available');
           }
         } catch (err) {
-          console.error('eBay pricing failed (non-fatal):', err);
+          console.error('eBay fetch failed:', err);
         }
       }
       
-      // Check confidence threshold
+      // Step 6: Update UI based on confidence
       if (calculatedConfidence >= 65 && title && issueNumber) {
         setStatus("prefilled");
         setDebugData({
@@ -343,15 +420,19 @@ export default function Scanner() {
           apiHit: "ComicVine",
           confidenceScore: calculatedConfidence,
           responseTimeMs: responseTime,
+          ocrTimeMs: ocrTime,
           errorMessage: null,
           rawOcrText,
           cvQuery,
           slabData,
           ebayData,
+          retryAttempt: retryCount,
         });
+        
+        const ebayMsg = ebayData?.avgPrice ? ` | eBay avg: $${ebayData.avgPrice.toFixed(0)}` : '';
         toast({
-          title: "✅ Match found!",
-          description: ebayData ? `${results.length} match(es) + eBay pricing` : `${results.length} match(es)`,
+          title: "✅ Comic identified!",
+          description: `${title} #${issueNumber}${ebayMsg}`,
         });
       } else {
         setStatus("manual");
@@ -361,23 +442,36 @@ export default function Scanner() {
           apiHit: "ComicVine",
           confidenceScore: calculatedConfidence,
           responseTimeMs: responseTime,
+          ocrTimeMs: ocrTime,
           errorMessage: `Low confidence (${calculatedConfidence}%)`,
           rawOcrText,
           cvQuery,
           slabData,
           ebayData,
+          retryAttempt: retryCount,
         });
         toast({
-          title: "Low confidence match",
-          description: "Review and edit as needed.",
+          title: "Low confidence",
+          description: "Review and edit details.",
         });
       }
 
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
-      console.error("Identification error:", err);
+      console.error("Scan error:", err);
       
       const isTimeout = err.message?.includes('timeout');
+      
+      // Retry once on timeout if first attempt
+      if (isTimeout && retryCount === 0) {
+        console.log('Timeout, retrying...');
+        setLoading(false);
+        toast({
+          title: "⏱️ Timeout - retrying...",
+          description: "Attempting again",
+        });
+        return identifyFromImage(imageData, method, 1);
+      }
       
       setDebugData({
         status: "error",
@@ -385,20 +479,21 @@ export default function Scanner() {
         apiHit: "scan-item",
         confidenceScore: null,
         responseTimeMs: responseTime,
+        ocrTimeMs: null,
         errorMessage: err.message || "Unexpected error",
         rawOcrText: null,
         cvQuery: null,
         slabData: null,
         ebayData: null,
+        retryAttempt: retryCount,
       });
 
       toast({
-        title: isTimeout ? "⏱️ Scan timeout" : "❌ Recognition error",
-        description: "Try manual search →",
+        title: isTimeout ? "⏱️ Scan timeout" : "❌ Recognition failed",
+        description: "Photo saved - opening manual search",
         variant: "destructive",
       });
       
-      // Auto-fallback to search tab
       setTimeout(() => setActiveTab("search"), 1000);
       
     } finally {
