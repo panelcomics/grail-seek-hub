@@ -95,7 +95,7 @@ export default function Navbar() {
             <IconButton href="/watchlist" label="Favorites">
               <Heart className="h-5 w-5" />
             </IconButton>
-            <IconButton href="/search" label="Search">
+            <IconButton href="/scanner" label="Scanner">
               <Scan className="h-5 w-5" />
             </IconButton>
             
