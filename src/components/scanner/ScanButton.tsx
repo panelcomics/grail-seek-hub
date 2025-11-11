@@ -145,8 +145,10 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
         return;
       }
 
-      if (data?.ocrPreview) {
-        const searchText = data.ocrPreview.replace('...', '');
+      if (data?.comicvineResults && data.comicvineResults.length > 0) {
+        // Use structured data from best match, not raw OCR
+        const topResult = data.comicvineResults[0];
+        const searchText = `${topResult.volume} ${topResult.issue_number}`.trim();
         toast({
           title: "Text detected",
           description: `Found: ${searchText}. Searching...`,

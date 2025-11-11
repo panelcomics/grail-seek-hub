@@ -170,7 +170,6 @@ export default function Scanner() {
 
       if (data?.comicvineResults && data.comicvineResults.length > 0) {
         const ocrText = data.ocrPreview || "";
-        setQuery(ocrText);
         
         // Calculate confidence for each candidate
         const scoredCandidates = data.comicvineResults.map((result: any) => ({
@@ -189,16 +188,24 @@ export default function Scanner() {
         const minConfidence = 65;
         
         if (topResult.confidence && topResult.confidence >= minConfidence) {
+          // Build clean query from structured data only (no raw OCR)
+          const cleanQuery = `${topResult.volume} ${topResult.issue_number}`.trim();
+          setQuery(cleanQuery);
+          
           toast({
             title: "Comic identified!",
             description: `${topResult.name} #${topResult.issue_number} (${topResult.confidence}% confidence)`,
           });
-          // Now fetch full details with pricing
-          await handleTextSearch(`${topResult.volume} ${topResult.issue_number}`);
+          // Fetch full details with pricing
+          await handleTextSearch(cleanQuery);
         } else {
+          // Show best match without auto-searching
+          const cleanQuery = `${topResult.volume} ${topResult.issue_number}`.trim();
+          setQuery(cleanQuery);
+          
           toast({
             title: "Low confidence match",
-            description: `Best match: ${topResult.name} #${topResult.issue_number} (${topResult.confidence}% confidence). Try manual search.`,
+            description: `Best match: ${topResult.name} #${topResult.issue_number} (${topResult.confidence}% confidence). Refine or search manually.`,
             variant: "destructive",
           });
           setShowDebug(true);

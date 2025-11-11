@@ -193,10 +193,18 @@ serve(async (req) => {
 
     const ocrText = visionData.responses?.[0]?.fullTextAnnotation?.text ?? "";
     console.log('OCR text preview:', ocrText.substring(0, 50));
-    const cleaned = ocrText.replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+    
+    // Clean OCR text aggressively: remove timestamps, special chars, extra whitespace
+    let cleaned = ocrText
+      .replace(/\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?/gi, '') // Remove timestamps
+      .replace(/[^\w\s]/g, " ") // Replace special chars with spaces
+      .replace(/\s+/g, " ") // Collapse whitespace
+      .trim();
+    
+    // Remove common UI artifacts
+    cleaned = cleaned.replace(/\b(GS|Scan|Camera|Upload|Photo|Capture)\b/gi, '').trim();
 
-    // ---------- ComicVine Search ----------
-    console.log('Calling ComicVine with query:', cleaned);
+    console.log('Cleaned query for ComicVine:', cleaned);
     const cvRes = await fetch(
       `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleaned)}&resources=issue&limit=10`,
       {
