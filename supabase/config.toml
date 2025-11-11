@@ -23,6 +23,8 @@ verify_jwt = false
 
 [functions.scan-item]
 verify_jwt = false
+cpu_ms = 2048
+memory_mb = 256
 
 [functions.choose-candidate]
 verify_jwt = false

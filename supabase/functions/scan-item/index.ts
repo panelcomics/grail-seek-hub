@@ -1,37 +1,12 @@
 // supabase/functions/scan-item/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-// Helper to resize image to max 800px for faster OCR
-async function resizeImageForOCR(base64Image: string): Promise<string> {
-  try {
-    const imageBytes = Uint8Array.from(atob(base64Image), c => c.charCodeAt(0));
-    const image = await Image.decode(imageBytes);
-    
-    const maxDimension = 800;
-    if (image.width > maxDimension || image.height > maxDimension) {
-      const scale = maxDimension / Math.max(image.width, image.height);
-      const newWidth = Math.floor(image.width * scale);
-      const newHeight = Math.floor(image.height * scale);
-      
-      console.log(`Resizing image: ${image.width}x${image.height} -> ${newWidth}x${newHeight}`);
-      image.resize(newWidth, newHeight);
-    }
-    
-    const resizedBytes = await image.encodeJPEG(85);
-    return btoa(String.fromCharCode(...resizedBytes));
-  } catch (err) {
-    console.error('Image resize failed, using original:', err);
-    return base64Image;
-  }
-}
 
 // Helper to compute SHA-256 hash
 async function computeSHA256(data: string): Promise<string> {
@@ -92,6 +67,11 @@ serve(async (req) => {
   }
 
   try {
+    // Early timeout check
+    const timeoutMs = 4000; // 4 second timeout
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('COMPUTE_TIMEOUT')), timeoutMs)
+    );
     if (req.method !== "POST") {
       console.log('[SCAN-ITEM] Method not POST');
       return new Response(JSON.stringify({ ok: false, error: "Method not allowed" }), {
@@ -228,10 +208,7 @@ serve(async (req) => {
         });
       }
 
-      // Resize image to 800px max for faster OCR
-      console.log('[SCAN-ITEM] Resizing image for OCR...');
-      const resizedImage = await resizeImageForOCR(imageBase64);
-
+      // Skip resize - send original image to Google Vision (it handles optimization)
       console.log('[SCAN-ITEM] Calling Google Vision API...');
       const visionStartTime = Date.now();
       
@@ -242,7 +219,7 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             requests: [{
-              image: { content: resizedImage },
+              image: { content: imageBase64 },
               features: [{ type: 'TEXT_DETECTION' }],
             }],
           }),
@@ -437,6 +414,18 @@ serve(async (req) => {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     const totalTime = Date.now() - startTime;
     console.error('[SCAN-ITEM] Failed after', totalTime, 'ms');
+    
+    // Check if it's a compute timeout
+    if (errorMessage === 'COMPUTE_TIMEOUT' || errorMessage.includes('CPU') || errorMessage.includes('WORKER_LIMIT')) {
+      return new Response(
+        JSON.stringify({ 
+          ok: false, 
+          error: "Processing timeout - image too large. Please try a smaller photo.",
+          code: 'COMPUTE_LIMIT'
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     
     return new Response(
       JSON.stringify({ 
