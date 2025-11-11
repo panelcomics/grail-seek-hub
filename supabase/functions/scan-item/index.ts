@@ -116,90 +116,102 @@ serve(async (req) => {
       );
     }
 
-    console.log('Body received:', { hasImage: !!body.imageBase64, length: body.imageBase64?.length });
-    const { imageBase64 } = body;
+    console.log('Body received:', { hasImage: !!body.imageBase64, hasQuery: !!body.textQuery });
+    const { imageBase64, textQuery } = body;
     
-    if (!imageBase64 || typeof imageBase64 !== "string" || imageBase64.trim().length === 0) {
-      console.log('Invalid imageBase64:', { exists: !!imageBase64, type: typeof imageBase64, length: imageBase64?.length });
+    // Accept either imageBase64 OR textQuery
+    if (!imageBase64 && !textQuery) {
+      console.log('Neither image nor text query provided');
       return new Response(
-        JSON.stringify({ ok: false, error: "No scan image received. Please try again." }), 
+        JSON.stringify({ ok: false, error: "No scan image or text query received. Please try again." }), 
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Compute SHA-256 hash for caching
-    const imageSha256 = await computeSHA256(imageBase64);
-    console.log('Image SHA-256:', imageSha256);
+    // Compute SHA-256 hash for caching (only if image provided)
+    let imageSha256: string | null = null;
+    if (imageBase64) {
+      imageSha256 = await computeSHA256(imageBase64);
+      console.log('Image SHA-256:', imageSha256);
 
-    // Check cache (7 days TTL)
-    const cacheTTLDays = 7;
-    const cacheMinDate = new Date(Date.now() - cacheTTLDays * 24 * 60 * 60 * 1000).toISOString();
-    const { data: cachedResult } = await supabase
-      .from('scan_cache')
-      .select('*')
-      .eq('image_sha256', imageSha256)
-      .gte('created_at', cacheMinDate)
-      .single();
+      // Check cache (7 days TTL)
+      const cacheTTLDays = 7;
+      const cacheMinDate = new Date(Date.now() - cacheTTLDays * 24 * 60 * 60 * 1000).toISOString();
+      const { data: cachedResult } = await supabase
+        .from('scan_cache')
+        .select('*')
+        .eq('image_sha256', imageSha256)
+        .gte('created_at', cacheMinDate)
+        .single();
 
-    if (cachedResult) {
-      console.log('Cache hit - returning cached result');
-      // Extract structured data from cached OCR for consistency
-      const cachedOcr = cachedResult.ocr || "";
-      const issueMatch = cachedOcr.match(/#?\s*(\d+)/) || cachedOcr.match(/No\.?\s*(\d+)/i);
-      const issue_number = issueMatch ? issueMatch[1] : "";
-      const yearMatch = cachedOcr.match(/\b(19\d{2}|20\d{2})\b/);
-      const year = yearMatch ? parseInt(yearMatch[1]) : null;
-      
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          extracted: { series_title: "", issue_number, year },
-          comicvineResults: cachedResult.comicvine_results || [],
-          cached: true,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (cachedResult) {
+        console.log('Cache hit - returning cached result');
+        const cachedOcr = cachedResult.ocr || "";
+        const issueMatch = cachedOcr.match(/#?\s*(\d+)/) || cachedOcr.match(/No\.?\s*(\d+)/i);
+        const issue_number = issueMatch ? issueMatch[1] : "";
+        const yearMatch = cachedOcr.match(/\b(19\d{2}|20\d{2})\b/);
+        const year = yearMatch ? parseInt(yearMatch[1]) : null;
+        
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            extracted: { series_title: "", issue_number, year },
+            comicvineResults: cachedResult.comicvine_results || [],
+            cached: true,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    console.log('Cache miss - calling APIs');
+    console.log('Cache miss - processing request');
 
-    const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
     const COMICVINE_API_KEY = Deno.env.get("COMICVINE_API_KEY");
-    console.log('Keys check:', { vision: !!GOOGLE_VISION_API_KEY, comicvine: !!COMICVINE_API_KEY });
+    
+    let ocrText = "";
+    
+    // If textQuery provided (from client-side OCR), use it directly
+    if (textQuery) {
+      console.log('Using client-provided text query:', textQuery);
+      ocrText = textQuery;
+    } else {
+      // Otherwise, perform server-side OCR with Google Vision
+      const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
+      console.log('Keys check:', { vision: !!GOOGLE_VISION_API_KEY, comicvine: !!COMICVINE_API_KEY });
 
-    if (!GOOGLE_VISION_API_KEY || !COMICVINE_API_KEY) {
-      console.log('Missing secrets');
-      return new Response(JSON.stringify({ ok: false, error: "Missing API secrets – check Cloud → Secrets" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (!GOOGLE_VISION_API_KEY || !COMICVINE_API_KEY) {
+        console.log('Missing secrets');
+        return new Response(JSON.stringify({ ok: false, error: "Missing API secrets – check Cloud → Secrets" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log('Calling Google Vision...');
+      const visionRes = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            requests: [{
+              image: { content: imageBase64 },
+              features: [{ type: "TEXT_DETECTION" }],
+            }],
+          }),
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      console.log('Vision response status:', visionRes.status);
+      const visionData = await visionRes.json();
+      if (!visionRes.ok || visionData.error) {
+        console.error('Vision error:', visionData.error);
+        throw new Error(visionData.error?.message ?? "Vision API failed");
+      }
+
+      ocrText = visionData.responses?.[0]?.fullTextAnnotation?.text ?? "";
+      console.log('OCR raw text:', ocrText);
     }
-
-    // ---------- Google Vision OCR ----------
-    console.log('Calling Google Vision...');
-    const visionRes = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          requests: [{
-            image: { content: imageBase64 },
-            features: [{ type: "TEXT_DETECTION" }],
-          }],
-        }),
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-
-    console.log('Vision response status:', visionRes.status);
-    const visionData = await visionRes.json();
-    if (!visionRes.ok || visionData.error) {
-      console.error('Vision error:', visionData.error);
-      throw new Error(visionData.error?.message ?? "Vision API failed");
-    }
-
-    const ocrText = visionData.responses?.[0]?.fullTextAnnotation?.text ?? "";
-    console.log('OCR raw text:', ocrText);
     
     // Extract structured data from OCR
     // Simpler cleaning - keep more useful data
@@ -267,14 +279,16 @@ serve(async (req) => {
 
     console.log('Success – results count:', results.length);
 
-    // Store in cache
-    await supabase.from('scan_cache').upsert({
-      image_sha256: imageSha256,
-      user_id: userId,
-      ocr: ocrText,
-      comicvine_results: results,
-    }, { onConflict: 'image_sha256' });
-    console.log('Cached result for future requests');
+    // Store in cache (only if we have an image hash)
+    if (imageSha256) {
+      await supabase.from('scan_cache').upsert({
+        image_sha256: imageSha256,
+        user_id: userId,
+        ocr: ocrText,
+        comicvine_results: results,
+      }, { onConflict: 'image_sha256' });
+      console.log('Cached result for future requests');
+    }
 
     return new Response(
       JSON.stringify({

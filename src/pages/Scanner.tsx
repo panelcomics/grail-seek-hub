@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
+import Tesseract from "tesseract.js";
 
 interface PrefillData {
   title?: string;
@@ -156,7 +157,7 @@ export default function Scanner() {
     identifyFromImage(previewImage, "upload");
   };
 
-  // Recognition pipeline
+  // Recognition pipeline with client-side OCR
   const identifyFromImage = async (imageData: string, method: "camera" | "upload") => {
     if (!imageData) return;
 
@@ -176,10 +177,38 @@ export default function Scanner() {
     });
 
     try {
-      const base64Data = imageData.includes(",") ? imageData.split(",")[1] : imageData;
+      // Step 1: Client-side OCR with Tesseract.js
+      toast({
+        title: "Extracting text...",
+        description: "Analyzing your photo",
+      });
+
+      const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+          }
+        },
+      });
+
+      console.log('Tesseract extracted text:', text);
+
+      // Step 2: Clean extracted text for better query
+      const cleanText = text.replace(/\n/g, ' ').trim();
+      const issueMatch = cleanText.match(/#\s*(\d+)/i);
+      const titleGuess = cleanText.split('#')[0].trim().slice(0, 50);
+      const ocrQuery = `${titleGuess}${issueMatch ? ' ' + issueMatch[0] : ''}`.trim();
+
+      console.log('OCR Query:', ocrQuery);
+
+      // Step 3: Send OCR text to scan-item edge function (secure API key)
+      toast({
+        title: "Searching database...",
+        description: "Looking for matches",
+      });
 
       const { data, error } = await supabase.functions.invoke("scan-item", {
-        body: { imageBase64: base64Data },
+        body: { textQuery: ocrQuery },
       });
 
       const responseTime = Date.now() - startTime;
@@ -509,7 +538,7 @@ export default function Scanner() {
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     <h3 className="text-xl font-semibold">Identifying Comic...</h3>
                     <p className="text-sm text-muted-foreground">
-                      Analyzing cover and searching database
+                      Extracting text and searching database
                     </p>
                   </CardContent>
                 </Card>
@@ -573,7 +602,7 @@ export default function Scanner() {
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     <h3 className="text-xl font-semibold">Identifying Comic...</h3>
                     <p className="text-sm text-muted-foreground">
-                      Analyzing cover and searching database
+                      Extracting text and searching database
                     </p>
                   </CardContent>
                 </Card>
