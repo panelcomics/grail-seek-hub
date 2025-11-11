@@ -85,19 +85,56 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
     }
   };
 
+  const compressImage = (imageData: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1024;
+        const MAX_HEIGHT = 1024;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = imageData;
+    });
+  };
+
   const processImage = async (imageData: string) => {
     setLoading(true);
 
     try {
-      const base64Data = imageData.includes(',') 
-        ? imageData.split(',')[1] 
-        : imageData;
+      // Compress image before sending
+      const compressedImage = await compressImage(imageData);
+      const base64Data = compressedImage.includes(',') 
+        ? compressedImage.split(',')[1] 
+        : compressedImage;
 
       const { data, error } = await supabase.functions.invoke("scan-item", {
         body: { imageBase64: base64Data },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to connect to scanning service");
+      }
 
       if (data?.ok === false) {
         toast({
@@ -132,9 +169,13 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
       }
     } catch (error: any) {
       console.error("Image processing error:", error);
+      const errorMsg = error.message?.includes("Failed to send a request") 
+        ? "Scanning service temporarily unavailable. Please check your connection or try manual search."
+        : error.message || "Scan failed. Try manual search or take another photo.";
+      
       toast({
         title: "Scan failed",
-        description: error.message || "Try entering the title manually or take another photo",
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
