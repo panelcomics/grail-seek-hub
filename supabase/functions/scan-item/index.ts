@@ -325,6 +325,7 @@ serve(async (req) => {
       cleanQuery 
     });
     
+    console.log('[SCAN-ITEM] 🎯 Final Query:', cleanQuery);
     console.log('[SCAN-ITEM] Querying ComicVine API...');
     const cvStartTime = Date.now();
     const cvRes = await fetch(
