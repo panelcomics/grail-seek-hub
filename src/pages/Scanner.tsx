@@ -16,60 +16,51 @@ interface ComicData {
   title: string;
   issue_number: string;
   full_title: string;
-  publisher: string;
-  year: number | null;
-  cover_image: string;
-  cover_thumb: string;
-  description: string;
-  characters: string[];
-  ebay_avg_price: number;
-  trade_fee_total: number;
-  trade_fee_each: number;
-  fee_tier: string;
-}
-
-interface ComicCandidate {
-  id: number;
-  name: string;
-  issue_number: string;
-  volume: string;
-  cover_date: string;
-  image: string | null;
-  confidence?: number;
+  publisher?: string;
+  year?: number;
+  cover_image?: string;
+  cover_thumb?: string;
+  description?: string;
+  characters?: string[];
+  ebay_avg_price?: number;
+  trade_fee_total?: number;
+  trade_fee_each?: number;
+  fee_tier?: string;
 }
 
 export default function Scanner() {
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
   const [comic, setComic] = useState<ComicData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
-  const [candidates, setCandidates] = useState<ComicCandidate[]>([]);
-  const [showDebug, setShowDebug] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<"scan" | "upload" | "search">("scan");
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { user } = useAuth();
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
       });
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        setShowCamera(true);
+        setCameraActive(true);
       }
     } catch (error) {
       console.error("Camera error:", error);
       toast({
         title: "Camera access denied",
-        description: "Please allow camera access to scan comics",
+        description: "Please enable camera access in your browser settings.",
         variant: "destructive",
       });
     }
@@ -77,10 +68,10 @@ export default function Scanner() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-    setShowCamera(false);
+    setCameraActive(false);
   };
 
   const capturePhoto = () => {
@@ -89,15 +80,16 @@ export default function Scanner() {
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.drawImage(video, 0, 0);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL("image/jpeg");
         setCapturedImage(imageData);
         stopCamera();
         toast({
           title: "Photo captured!",
-          description: "Now processing the image...",
+          description: "Processing your comic now...",
         });
         processImage(imageData);
       }
@@ -106,83 +98,33 @@ export default function Scanner() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageData = e.target?.result as string;
-        setCapturedImage(imageData);
-        toast({
-          title: "Image uploaded!",
-          description: "Now processing...",
-        });
-        processImage(imageData);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    if (!file) return;
 
-  // Calculate confidence based on structured extracted data
-  const calculateConfidence = (
-    candidate: ComicCandidate, 
-    extracted: { series_title?: string; issue_number?: string; year?: number | null }
-  ): number => {
-    let score = 0;
-    
-    const lowerVolume = candidate.volume.toLowerCase();
-    const lowerName = candidate.name.toLowerCase();
-    const extractedTitle = (extracted.series_title || "").toLowerCase().trim();
-    const extractedIssue = (extracted.issue_number || "").trim();
-    const extractedYear = extracted.year;
-    
-    // Title similarity (0-50 points) - compare against volume name primarily
-    if (extractedTitle) {
-      const titleWords = extractedTitle.split(/\s+/).filter(w => w.length > 2);
-      const volumeWords = lowerVolume.split(/\s+/).filter(w => w.length > 2);
-      
-      // Check how many key words match
-      const matchingWords = titleWords.filter(word => 
-        volumeWords.some(vw => vw.includes(word) || word.includes(vw))
-      ).length;
-      
-      if (matchingWords > 0) {
-        score += Math.min(50, matchingWords * 15);
-      }
-    }
-    
-    // Issue number match (0-30 points) - exact match is critical
-    if (extractedIssue && candidate.issue_number) {
-      if (extractedIssue === candidate.issue_number) {
-        score += 30;
-      } else if (extractedIssue.replace(/^0+/, '') === candidate.issue_number.replace(/^0+/, '')) {
-        score += 25; // Handle leading zeros
-      }
-    }
-    
-    // Year proximity (0-20 points)
-    if (extractedYear && candidate.cover_date) {
-      const coverYear = parseInt(candidate.cover_date.substring(0, 4));
-      if (!isNaN(coverYear)) {
-        const yearDiff = Math.abs(extractedYear - coverYear);
-        if (yearDiff === 0) score += 20;
-        else if (yearDiff === 1) score += 15;
-        else if (yearDiff <= 3) score += 10;
-        else if (yearDiff <= 5) score += 5;
-      }
-    }
-    
-    return Math.min(score, 100);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      setCapturedImage(imageData);
+      toast({
+        title: "Image uploaded!",
+        description: "Processing your comic now...",
+      });
+      processImage(imageData);
+    };
+    reader.readAsDataURL(file);
   };
 
   const processImage = async (imageData: string) => {
+    if (!imageData) return;
+
     setLoading(true);
     setComic(null);
-    setCandidates([]);
 
     try {
-      const base64Data = imageData.includes(',') 
-        ? imageData.split(',')[1] 
+      const base64Data = imageData.includes(",")
+        ? imageData.split(",")[1]
         : imageData;
 
+      // Use scan-item to do OCR / detection
       const { data, error } = await supabase.functions.invoke("scan-item", {
         body: { imageBase64: base64Data },
       });
@@ -198,56 +140,36 @@ export default function Scanner() {
         return;
       }
 
-      if (data?.comicvineResults && data.comicvineResults.length > 0) {
-        const extracted = data.extracted || {};
-        
-        // Calculate confidence for each candidate using structured extracted data
-        const scoredCandidates = data.comicvineResults.map((result: any) => ({
-          ...result,
-          confidence: calculateConfidence(result, extracted)
-        }));
-        
-        // Sort by confidence descending
-        scoredCandidates.sort((a: ComicCandidate, b: ComicCandidate) => 
-          (b.confidence || 0) - (a.confidence || 0)
-        );
-        
-        // Take top 5 for display
-        setCandidates(scoredCandidates.slice(0, 5));
-        
-        const topResult = scoredCandidates[0];
-        const minConfidence = 65;
-        
-        if (topResult.confidence && topResult.confidence >= minConfidence) {
-          // Good match - build clean query
-          const cleanQuery = `${topResult.volume} ${topResult.issue_number}`.trim();
-          setQuery(cleanQuery);
-          
+      if (data?.ocrPreview) {
+        const searchText = data.ocrPreview.replace("...", "").trim();
+        if (!searchText) {
           toast({
-            title: "Match found",
-            description: `${topResult.volume} #${topResult.issue_number}`,
+            title: "No text detected",
+            description: "Try retaking the photo with the full cover visible.",
+            variant: "destructive",
           });
-          // Fetch full details with pricing
-          await handleTextSearch(cleanQuery);
-        } else {
-          // Uncertain - show candidates list, don't auto-search
-          toast({
-            title: "Pick the right book",
-            description: "We're not sure. Select from the list below or try another photo.",
-          });
+          return;
         }
+        setQuery(searchText);
+        await handleTextSearch(searchText);
+      } else if (data?.comic) {
+        setComic(data.comic);
+        toast({
+          title: "Comic identified!",
+          description: data.comic.full_title,
+        });
       } else {
         toast({
-          title: "No text detected",
-          description: "Try entering the title manually",
+          title: "No match found",
+          description: "Try a clearer photo or manual search.",
           variant: "destructive",
         });
       }
-    } catch (error: any) {
-      console.error("Image processing error:", error);
+    } catch (err: any) {
+      console.error("Scan error:", err);
       toast({
         title: "Scan failed",
-        description: error.message || "Try entering the title manually or take another photo",
+        description: err.message || "Unexpected error, please try again.",
         variant: "destructive",
       });
     } finally {
@@ -255,13 +177,12 @@ export default function Scanner() {
     }
   };
 
-  const handleTextSearch = async (searchQuery?: string) => {
-    const searchTerm = searchQuery || query.trim();
-    
+  const handleTextSearch = async (override?: string) => {
+    const searchTerm = (override ?? query).trim();
     if (!searchTerm) {
       toast({
         title: "Enter a search term",
-        description: "Try 'Amazing Fantasy 15' or 'X-Men 1'",
+        description: "Example: 'Uncanny X-Men 268'",
         variant: "destructive",
       });
       return;
@@ -276,11 +197,10 @@ export default function Scanner() {
       });
 
       if (error) throw error;
-
-      if (!data.found) {
+      if (!data?.found || !data?.comic) {
         toast({
           title: "No comic found",
-          description: "Try a different search term or check the spelling",
+          description: "Try a different search or clearer title.",
           variant: "destructive",
         });
         return;
@@ -291,11 +211,11 @@ export default function Scanner() {
         title: "Comic found!",
         description: data.comic.full_title,
       });
-    } catch (error: any) {
-      console.error("Comic scanner error:", error);
+    } catch (err: any) {
+      console.error("Search error:", err);
       toast({
-        title: "Scan failed",
-        description: error.message || "Unable to scan comic",
+        title: "Search failed",
+        description: err.message || "Unexpected error, please try again.",
         variant: "destructive",
       });
     } finally {
@@ -305,8 +225,6 @@ export default function Scanner() {
 
   const handleViewDetails = () => {
     if (!comic) return;
-
-    // Navigate to result detail page with comic data
     navigate("/scanner/result", {
       state: {
         id: comic.comicvine_id,
@@ -316,341 +234,221 @@ export default function Scanner() {
         cover_date: null,
         image: comic.cover_image,
         description: comic.description,
-      }
+      },
     });
   };
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero Section */}
+      {/* Global AppLayout header wraps this, so no local header */}
+
+      {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
-        <div className="container mx-auto px-4 py-12 md:py-16">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary text-primary-foreground mb-4">
-              <Zap className="h-10 w-10" />
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              Scan Your <span className="text-primary">Comic</span>
-            </h1>
-            
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Take a photo, upload an image, or enter a title manually. We'll fetch Comic Vine data, calculate eBay pricing, and show your exact swap fees.
-            </p>
-
-            <Tabs defaultValue="camera" className="max-w-2xl mx-auto">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="camera">
-                  <Camera className="mr-2 h-4 w-4" />
-                  Camera
-                </TabsTrigger>
-                <TabsTrigger value="search">
-                  <Search className="mr-2 h-4 w-4" />
-                  Search
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="camera" className="space-y-4 mt-4">
-                {showCamera ? (
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="relative">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          className="w-full rounded-lg"
-                        />
-                        <div className="flex gap-2 mt-4">
-                          <Button onClick={capturePhoto} className="flex-1" size="lg">
-                            <Camera className="mr-2 h-5 w-5" />
-                            Take Photo
-                          </Button>
-                          <Button onClick={stopCamera} variant="outline" size="lg">
-                            <X className="h-5 w-5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : capturedImage ? (
-                  <Card>
-                    <CardContent className="p-4">
-                      <img src={capturedImage} alt="Captured" className="w-full rounded-lg mb-4" />
-                      <div className="flex gap-2">
-                        <Button onClick={() => setCapturedImage(null)} variant="outline" className="flex-1">
-                          Retake Photo
-                        </Button>
-                        <Button onClick={() => processImage(capturedImage)} disabled={loading} className="flex-1">
-                          {loading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            "Process Image"
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    <Button onClick={startCamera} size="lg" className="h-14">
-                      <Camera className="mr-2 h-5 w-5" />
-                      Open Camera
-                    </Button>
-                    <Button 
-                      onClick={() => fileInputRef.current?.click()} 
-                      variant="outline" 
-                      size="lg" 
-                      className="h-14"
-                    >
-                      <Upload className="mr-2 h-5 w-5" />
-                      Upload Photo
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </div>
-                )}
-                <canvas ref={canvasRef} className="hidden" />
-              </TabsContent>
-
-              <TabsContent value="search" className="space-y-4 mt-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Input
-                    placeholder="e.g., 'Amazing Fantasy 15' or 'X-Men 1'"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
-                    className="flex-1 h-14 text-lg border-2 border-primary/30 focus:border-primary"
-                  />
-                  <Button 
-                    onClick={() => handleTextSearch()} 
-                    disabled={loading} 
-                    size="lg" 
-                    className="h-14 px-8 font-bold"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Scanning...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-5 w-5" />
-                        Search
-                      </>
-                    )}
-                  </Button>
+        <div className="container mx-auto py-10 px-4">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="flex-1 space-y-4">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+                GrailSeeker AI Scanner
+              </h1>
+              <p className="text-muted-foreground text-base md:text-lg">
+                Snap a photo or type a title. We'll identify the comic, pull ComicVine data,
+                and estimate value using live market data.
+              </p>
+              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <span>AI-powered identification</span>
                 </div>
-              </TabsContent>
-            </Tabs>
-
-            <div className="flex flex-wrap gap-2 justify-center">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setQuery("Amazing Spider-Man 300")}
-              >
-                Amazing Spider-Man #300
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setQuery("Batman 1")}
-              >
-                Batman #1
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setQuery("Incredible Hulk 181")}
-              >
-                Hulk #181
-              </Button>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <span>ComicVine integrated</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <span>Built for slabs & raws</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Match Results or Candidate Selection */}
-      {candidates.length > 0 && !comic && (
-        <section className="container mx-auto px-4 py-6">
-          {candidates[0].confidence && candidates[0].confidence >= 65 ? (
-            // Good match - show green banner with single candidate
-            <Card className="border-2 border-green-500/50 bg-green-50 dark:bg-green-950/20">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  {candidates[0].image && (
-                    <img 
-                      src={candidates[0].image} 
-                      alt={candidates[0].name}
-                      className="w-24 h-36 object-cover rounded border-2 border-green-500"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-semibold text-green-700 dark:text-green-400">
-                        ✓ Match found
-                      </span>
-                      <span className="text-xs bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
-                        {candidates[0].confidence}% confidence
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-bold mb-1">
-                      {candidates[0].volume} #{candidates[0].issue_number}
-                    </h3>
-                    {candidates[0].cover_date && (
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {new Date(candidates[0].cover_date).getFullYear()}
-                      </p>
-                    )}
-                    <Button 
-                      onClick={() => {
-                        const cleanQuery = `${candidates[0].volume} ${candidates[0].issue_number}`.trim();
-                        setQuery(cleanQuery);
-                        handleTextSearch(cleanQuery);
-                      }}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Use This Result
+      {/* Scanner Tabs */}
+      <section className="container mx-auto px-4 py-8 flex-1">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
+            <TabsTrigger value="scan">Scan</TabsTrigger>
+            <TabsTrigger value="upload">Upload</TabsTrigger>
+            <TabsTrigger value="search">Search</TabsTrigger>
+          </TabsList>
+
+          {/* Scan tab */}
+          <TabsContent value="scan" className="mt-6 space-y-4">
+            {!cameraActive && !capturedImage && (
+              <Card>
+                <CardContent className="flex flex-col items-center gap-4 py-6">
+                  <Camera className="h-10 w-10 text-primary" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    Use your camera to capture the full front cover of the comic.
+                  </p>
+                  <Button onClick={startCamera} size="lg">
+                    Enable Camera
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {cameraActive && (
+              <Card>
+                <CardContent className="p-4">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full rounded-lg"
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={capturePhoto} className="flex-1" size="lg">
+                      <Camera className="mr-2 h-5 w-5" />
+                      Take Photo
+                    </Button>
+                    <Button onClick={stopCamera} variant="outline" size="lg">
+                      <X className="h-5 w-5" />
+                      Cancel
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {capturedImage && !cameraActive && (
+              <Card>
+                <CardContent className="p-4">
+                  <img
+                    src={capturedImage}
+                    alt="Captured"
+                    className="w-full rounded-lg mb-4"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setCapturedImage(null)}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Retake Photo
+                    </Button>
+                    <Button
+                      onClick={() => processImage(capturedImage)}
+                      disabled={loading}
+                      className="flex-1"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="mr-2 h-4 w-4" />
+                          Rescan
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Upload tab */}
+          <TabsContent value="upload" className="mt-6 space-y-4">
+            <Card>
+              <CardContent className="flex flex-col items-center gap-4 py-6">
+                <Upload className="h-10 w-10 text-primary" />
+                <p className="text-sm text-muted-foreground text-center">
+                  Upload a clear photo or scan of the cover. We&apos;ll try to match it.
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  size="lg"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Choose Image
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Manual search tab */}
+          <TabsContent value="search" className="mt-6 space-y-4">
+            <Card>
+              <CardContent className="flex flex-col gap-4 py-6">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., 'Uncanny X-Men 268'"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && handleTextSearch()
+                    }
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={() => handleTextSearch()}
+                    disabled={loading}
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        Search
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          ) : (
-            // Uncertain - show neutral message with candidate list
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold mb-2">
-                    We're not sure. Pick the right book below or try another photo.
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Top {candidates.length} potential matches based on your scan:
-                  </p>
-                </div>
-                
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {candidates.map((candidate, idx) => (
-                    <div 
-                      key={candidate.id}
-                      className="p-3 rounded border hover:border-primary transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        {candidate.image && (
-                          <img 
-                            src={candidate.image} 
-                            alt={candidate.name}
-                            className="w-16 h-24 object-cover rounded flex-shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="text-sm font-semibold">
-                              {candidate.volume} #{candidate.issue_number}
-                            </span>
-                            {candidate.cover_date && (
-                              <span className="text-xs text-muted-foreground">
-                                ({new Date(candidate.cover_date).getFullYear()})
-                              </span>
-                            )}
-                          </div>
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              const cleanQuery = `${candidate.volume} ${candidate.issue_number}`.trim();
-                              setQuery(cleanQuery);
-                              handleTextSearch(cleanQuery);
-                            }}
-                          >
-                            Use This Result
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Debug Panel - collapsed by default */}
-          <Card className="mt-4 border-orange-500/30">
-            <CardContent className="pt-4">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setShowDebug(!showDebug)}
-                className="w-full justify-between"
-              >
-                <span className="text-sm text-orange-600">🔍 Scanner Debug</span>
-                <span className="text-xs text-muted-foreground">
-                  {showDebug ? "Hide" : "Show"}
-                </span>
-              </Button>
-              
-              {showDebug && (
-                <div className="mt-4 space-y-2 text-xs font-mono">
-                  {candidates.map((candidate, idx) => (
-                    <div 
-                      key={candidate.id}
-                      className="p-2 rounded bg-muted/50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-orange-600">#{idx + 1}</span>
-                        <span className={`font-bold ${
-                          (candidate.confidence || 0) >= 65
-                                ? 'text-green-600' : 'text-orange-600'
-                            }`}>
-                              {candidate.confidence}%
-                            </span>
-                        <span className="text-muted-foreground">|</span>
-                        <span className="truncate flex-1">
-                          {candidate.volume} #{candidate.issue_number}
-                        </span>
-                      </div>
-                      <p className="text-muted-foreground pl-6">
-                        ID: {candidate.id} | {candidate.cover_date || "no date"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-      )}
+          </TabsContent>
+        </Tabs>
 
-      {/* Result Section */}
-      {comic && (
-        <section className="container mx-auto px-4 py-12">
-          <ComicResultCard comic={comic} onListForSwap={handleViewDetails} />
-        </section>
-      )}
-
-      {/* Empty State */}
-      {!loading && !comic && (
-        <section className="container mx-auto px-4 py-20">
-          <Card className="max-w-md mx-auto border-2 border-dashed border-muted">
-            <CardContent className="pt-12 pb-12 text-center space-y-4">
-              <Camera className="h-16 w-16 mx-auto text-muted-foreground/50" />
-              <h3 className="text-xl font-bold">Ready to Scan</h3>
-              <p className="text-muted-foreground">
-                Enter a comic title or issue to get started. We'll fetch all the data and pricing instantly.
-              </p>
-            </CardContent>
-          </Card>
-        </section>
-      )}
+        {/* Result */}
+        {comic && (
+          <section className="mt-10 space-y-4">
+            <h2 className="text-2xl font-bold">Matched Comic</h2>
+            <ComicResultCard
+              comic={{
+                comicvine_id: comic.comicvine_id,
+                title: comic.title,
+                issue_number: comic.issue_number,
+                full_title: comic.full_title,
+                publisher: comic.publisher || "",
+                year: comic.year || null,
+                cover_image: comic.cover_image || "",
+                cover_thumb: comic.cover_thumb || "",
+                description: comic.description || "",
+                characters: comic.characters || [],
+                ebay_avg_price: comic.ebay_avg_price || 0,
+                trade_fee_total: comic.trade_fee_total || 0,
+                trade_fee_each: comic.trade_fee_each || 0,
+                fee_tier: comic.fee_tier || "",
+              }}
+              onListForSwap={handleViewDetails}
+            />
+          </section>
+        )}
+      </section>
 
       <Footer />
     </div>
