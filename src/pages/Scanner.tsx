@@ -28,12 +28,24 @@ interface ComicData {
   fee_tier: string;
 }
 
+interface ComicCandidate {
+  id: number;
+  name: string;
+  issue_number: string;
+  volume: string;
+  cover_date: string;
+  image: string | null;
+  confidence?: number;
+}
+
 export default function Scanner() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [comic, setComic] = useState<ComicData | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [candidates, setCandidates] = useState<ComicCandidate[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,12 +121,34 @@ export default function Scanner() {
     }
   };
 
+  const calculateConfidence = (candidate: ComicCandidate, ocrText: string): number => {
+    let score = 0;
+    const lowerOcr = ocrText.toLowerCase();
+    const lowerName = candidate.name.toLowerCase();
+    const lowerVolume = candidate.volume.toLowerCase();
+    
+    // Title match (0-50 points)
+    if (lowerOcr.includes(lowerName)) score += 50;
+    else if (lowerName.includes(lowerOcr.split(' ')[0])) score += 25;
+    
+    // Volume/series match (0-30 points)
+    if (lowerOcr.includes(lowerVolume)) score += 30;
+    else if (lowerVolume.includes(lowerOcr.split(' ')[0])) score += 15;
+    
+    // Issue number match (0-20 points)
+    if (candidate.issue_number && lowerOcr.includes(candidate.issue_number)) {
+      score += 20;
+    }
+    
+    return Math.min(score, 100);
+  };
+
   const processImage = async (imageData: string) => {
     setLoading(true);
     setComic(null);
+    setCandidates([]);
 
     try {
-      // Strip the data URL prefix to get just the base64 string
       const base64Data = imageData.includes(',') 
         ? imageData.split(',')[1] 
         : imageData;
@@ -125,7 +159,6 @@ export default function Scanner() {
 
       if (error) throw error;
 
-      // Check if the response indicates failure
       if (data?.ok === false) {
         toast({
           title: "Scan failed",
@@ -135,15 +168,41 @@ export default function Scanner() {
         return;
       }
 
-      if (data?.ocrPreview) {
-        // OCR text was found, now search for the comic
-        const searchText = data.ocrPreview.replace('...', '');
-        setQuery(searchText);
-        toast({
-          title: "Text detected",
-          description: `Found: ${searchText}. Searching...`,
-        });
-        await handleTextSearch(searchText);
+      if (data?.comicvineResults && data.comicvineResults.length > 0) {
+        const ocrText = data.ocrPreview || "";
+        setQuery(ocrText);
+        
+        // Calculate confidence for each candidate
+        const scoredCandidates = data.comicvineResults.map((result: any) => ({
+          ...result,
+          confidence: calculateConfidence(result, ocrText)
+        }));
+        
+        // Sort by confidence descending
+        scoredCandidates.sort((a: ComicCandidate, b: ComicCandidate) => 
+          (b.confidence || 0) - (a.confidence || 0)
+        );
+        
+        setCandidates(scoredCandidates);
+        
+        const topResult = scoredCandidates[0];
+        const minConfidence = 65;
+        
+        if (topResult.confidence && topResult.confidence >= minConfidence) {
+          toast({
+            title: "Comic identified!",
+            description: `${topResult.name} #${topResult.issue_number} (${topResult.confidence}% confidence)`,
+          });
+          // Now fetch full details with pricing
+          await handleTextSearch(`${topResult.volume} ${topResult.issue_number}`);
+        } else {
+          toast({
+            title: "Low confidence match",
+            description: `Best match: ${topResult.name} #${topResult.issue_number} (${topResult.confidence}% confidence). Try manual search.`,
+            variant: "destructive",
+          });
+          setShowDebug(true);
+        }
       } else {
         toast({
           title: "No text detected",
@@ -386,6 +445,78 @@ export default function Scanner() {
           </div>
         </div>
       </section>
+
+      {/* Debug Panel */}
+      {candidates.length > 0 && (
+        <section className="container mx-auto px-4 py-6">
+          <Card className="border-2 border-orange-500/30">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-orange-600">🔍 Scanner Debug</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowDebug(!showDebug)}
+                >
+                  {showDebug ? "Hide" : "Show"} Candidates
+                </Button>
+              </div>
+              
+              {showDebug && (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {candidates.map((candidate, idx) => (
+                    <div 
+                      key={candidate.id}
+                      className={`p-3 rounded border ${
+                        idx === 0 ? 'border-primary bg-primary/5' : 'border-muted'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {candidate.image && (
+                          <img 
+                            src={candidate.image} 
+                            alt={candidate.name}
+                            className="w-16 h-24 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
+                              #{idx + 1}
+                            </span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                              (candidate.confidence || 0) >= 65 
+                                ? 'bg-green-500/20 text-green-700' 
+                                : 'bg-red-500/20 text-red-700'
+                            }`}>
+                              {candidate.confidence || 0}% confidence
+                            </span>
+                          </div>
+                          <p className="font-semibold text-sm truncate">{candidate.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {candidate.volume} #{candidate.issue_number}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            ID: {candidate.id}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => handleTextSearch(`${candidate.volume} ${candidate.issue_number}`)}
+                          >
+                            Use This Result
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Result Section */}
       {comic && (
