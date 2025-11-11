@@ -5,44 +5,36 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Search, Camera, Zap, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ComicResultCard } from "@/components/ComicResultCard";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
-import { RecognitionFallback } from "@/components/RecognitionFallback";
-import { SaveToInventoryModal } from "@/components/SaveToInventoryModal";
+import { ScannerListingForm } from "@/components/ScannerListingForm";
 
-interface ComicData {
-  comicvine_id: number;
-  title: string;
-  issue_number: string;
-  full_title: string;
+interface PrefillData {
+  title?: string;
+  series?: string;
+  issueNumber?: string;
   publisher?: string;
-  year?: number;
-  cover_image?: string;
-  cover_thumb?: string;
+  year?: string | number;
+  comicvineId?: string | number;
+  comicvineCoverUrl?: string;
   description?: string;
-  characters?: string[];
-  ebay_avg_price?: number;
-  trade_fee_total?: number;
-  trade_fee_each?: number;
-  fee_tier?: string;
 }
+
+type ScannerStatus = "idle" | "recognizing" | "prefilled" | "manual";
 
 export default function Scanner() {
   const [query, setQuery] = useState("");
-  const [comic, setComic] = useState<ComicData | null>(null);
   const [loading, setLoading] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
-  const [imageData, setImageData] = useState<string | null>(null);
-  const [userImage, setUserImage] = useState<string | null>(null); // Preserve user's captured/uploaded image
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // User's captured/uploaded image
+  const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
+  const [status, setStatus] = useState<ScannerStatus>("idle");
+  const [confidence, setConfidence] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
-  const [showFallback, setShowFallback] = useState(false);
-  const [showManualForm, setShowManualForm] = useState(false);
-  const [failedImage, setFailedImage] = useState<string | null>(null);
-  const [lastAttemptMethod, setLastAttemptMethod] = useState<"camera" | "upload" | null>(null);
+  
   const [debugData, setDebugData] = useState({
     status: "idle" as "idle" | "processing" | "success" | "error",
     method: null as "camera" | "upload" | null,
@@ -70,10 +62,8 @@ export default function Scanner() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        // Explicitly play the video
         await videoRef.current.play();
         setCameraActive(true);
-        setShowFallback(false); // Hide fallback when starting camera
       }
     } catch (error) {
       console.error("Camera error:", error);
@@ -104,8 +94,7 @@ export default function Scanner() {
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const capturedImageData = canvas.toDataURL("image/jpeg");
-        setImageData(capturedImageData);
-        setUserImage(capturedImageData); // Store user's image separately
+        setImageUrl(capturedImageData);
         stopCamera();
         toast({
           title: "Photo captured!",
@@ -123,8 +112,7 @@ export default function Scanner() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const uploadedImageData = e.target?.result as string;
-      setImageData(uploadedImageData);
-      setUserImage(uploadedImageData); // Store user's image separately
+      setImageUrl(uploadedImageData);
       toast({
         title: "Image uploaded!",
         description: "Processing your comic now...",
@@ -134,24 +122,16 @@ export default function Scanner() {
     reader.readAsDataURL(file);
   };
 
-  // Single pipeline for image identification
+  // Recognition pipeline
   const identifyFromImage = async (imageData: string, method: "camera" | "upload") => {
-    if (!imageData) {
-      toast({
-        title: "No image data",
-        description: "Please capture or upload an image first.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!imageData) return;
 
     const startTime = Date.now();
     setLoading(true);
-    setComic(null);
-    setShowFallback(false); // Hide fallback during processing
-    setLastAttemptMethod(method);
+    setStatus("recognizing");
+    setPrefillData(null);
+    setConfidence(null);
     
-    // Update debug state: processing
     setDebugData({
       status: "processing",
       method,
@@ -162,60 +142,21 @@ export default function Scanner() {
     });
 
     try {
-      // Extract base64 data (remove data:image/jpeg;base64, prefix if present)
-      const base64Data = imageData.includes(",")
-        ? imageData.split(",")[1]
-        : imageData;
+      const base64Data = imageData.includes(",") ? imageData.split(",")[1] : imageData;
 
-      console.log("Calling scan-item with image data:", {
-        dataLength: base64Data.length,
-        preview: base64Data.substring(0, 50) + "..."
-      });
-
-      // Call scan-item edge function via Supabase client
       const { data, error } = await supabase.functions.invoke("scan-item", {
         body: { imageBase64: base64Data },
       });
 
       const responseTime = Date.now() - startTime;
-      console.log("scan-item response:", { data, error });
 
-      if (error) {
-        console.error("Edge function error:", error);
-        setDebugData({
-          status: "error",
-          method,
-          apiHit: "scan-item",
-          confidenceScore: null,
-          responseTimeMs: responseTime,
-          errorMessage: error.message || "Edge function error",
-        });
-        throw error;
-      }
+      if (error) throw error;
+      if (data?.ok === false) throw new Error(data.error || "Unable to process image");
 
-      // Handle scan-item response format: { ok, extracted, comicvineResults, cached }
-      if (data?.ok === false) {
-        const errorMsg = data.error || "Unable to process image";
-        setDebugData({
-          status: "error",
-          method,
-          apiHit: "scan-item",
-          confidenceScore: null,
-          responseTimeMs: responseTime,
-          errorMessage: errorMsg,
-        });
-        toast({
-          title: "Scan failed",
-          description: errorMsg,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if we got ComicVine results
       const results = data?.comicvineResults || [];
       
       if (results.length === 0) {
+        // No match - show manual form
         setDebugData({
           status: "error",
           method,
@@ -224,79 +165,67 @@ export default function Scanner() {
           responseTimeMs: responseTime,
           errorMessage: "No match found",
         });
-        setFailedImage(imageData);
-        setShowFallback(true);
-        setShowManualForm(true); // Show manual form when no match
+        setStatus("manual");
+        setPrefillData({});
+        setConfidence(0);
+        toast({
+          title: "No confident match",
+          description: "You can still list this comic manually with your photo.",
+        });
         return;
       }
 
-      // Use the first (best) match
       const topResult = results[0];
+      const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
       
-      // Calculate confidence (placeholder - ComicVine doesn't return confidence scores)
-      // Could be based on number of results or other heuristics
-      const confidence = results.length > 0 ? Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5) : 0;
-      
-      // Check if confidence is too low or title/series is empty
       const title = topResult.volume || topResult.volumeName || "";
       const issueNumber = topResult.issue_number || "";
       
-      if (confidence < 60 || (!title && !issueNumber)) {
+      // Build prefill data
+      const prefill: PrefillData = {
+        title: title,
+        series: title,
+        issueNumber: issueNumber,
+        publisher: topResult.publisher || "",
+        year: topResult.year || "",
+        comicvineId: topResult.id || "",
+        comicvineCoverUrl: topResult.image || topResult.cover_image || topResult.coverUrl || "",
+        description: topResult.description || "",
+      };
+
+      setPrefillData(prefill);
+      setConfidence(calculatedConfidence);
+      
+      // Check confidence threshold (65% as specified)
+      if (calculatedConfidence >= 65 && title && issueNumber) {
+        setStatus("prefilled");
+        setDebugData({
+          status: "success",
+          method,
+          apiHit: "ComicVine",
+          confidenceScore: calculatedConfidence,
+          responseTimeMs: responseTime,
+          errorMessage: null,
+        });
+        toast({
+          title: "Match found!",
+          description: `${title} #${issueNumber} (${calculatedConfidence}% confidence)`,
+        });
+      } else {
+        setStatus("manual");
         setDebugData({
           status: "error",
           method,
           apiHit: "ComicVine",
-          confidenceScore: confidence,
+          confidenceScore: calculatedConfidence,
           responseTimeMs: responseTime,
-          errorMessage: `Low confidence (${confidence}%) or missing data`,
+          errorMessage: `Low confidence (${calculatedConfidence}%)`,
         });
-        setFailedImage(imageData);
-        setShowFallback(true);
-        setShowManualForm(true); // Show manual form for low confidence
         toast({
           title: "Low confidence match",
-          description: "You can still list this item manually with your photo.",
+          description: "Review the suggested details or edit as needed.",
         });
-        return;
       }
-      
-      // Map to our ComicData format
-      const identifiedComic: ComicData = {
-        comicvine_id: topResult.id,
-        title: topResult.volume || topResult.volumeName || "",
-        issue_number: topResult.issue_number || "",
-        full_title: topResult.name || `${topResult.volume} #${topResult.issue_number}`,
-        publisher: topResult.publisher,
-        year: topResult.year,
-        cover_image: topResult.image || topResult.cover_image || topResult.coverUrl,
-        cover_thumb: topResult.cover_thumb,
-        description: topResult.description,
-        characters: topResult.characters,
-        ebay_avg_price: topResult.ebay_avg_price,
-        trade_fee_total: topResult.trade_fee_total,
-        trade_fee_each: topResult.trade_fee_each,
-        fee_tier: topResult.fee_tier,
-      };
-
-      setComic(identifiedComic);
-      
-      // Update debug state: success
-      setDebugData({
-        status: "success",
-        method,
-        apiHit: "ComicVine",
-        confidenceScore: confidence,
-        responseTimeMs: responseTime,
-        errorMessage: null,
-      });
-
-      // Console log summary
-      console.info(`[Recognition Debug] ${method} → ComicVine (${confidence}% in ${responseTime}ms)`);
-      
-      toast({
-        title: "Comic identified!",
-        description: identifiedComic.full_title,
-      });
 
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
@@ -311,18 +240,22 @@ export default function Scanner() {
         errorMessage: err.message || "Unexpected error",
       });
 
-      console.info(`[Recognition Debug] ${method} → Error (${err.message} in ${responseTime}ms)`);
+      setStatus("manual");
+      setPrefillData({});
+      setConfidence(0);
       
-      setFailedImage(imageData);
-      setShowFallback(true);
-      setShowManualForm(true); // Show manual form on error
+      toast({
+        title: "Recognition error",
+        description: "You can still list this comic manually with your photo.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTextSearch = async (override?: string) => {
-    const searchTerm = (override ?? query).trim();
+  const handleTextSearch = async () => {
+    const searchTerm = query.trim();
     if (!searchTerm) {
       toast({
         title: "Enter a search term",
@@ -333,7 +266,7 @@ export default function Scanner() {
     }
 
     setLoading(true);
-    setComic(null);
+    setPrefillData(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("comic-scanner", {
@@ -344,22 +277,35 @@ export default function Scanner() {
       if (!data?.found || !data?.comic) {
         toast({
           title: "No comic found",
-          description: "Try a different search or clearer title.",
+          description: "Try a different search term.",
           variant: "destructive",
         });
         return;
       }
 
-      setComic(data.comic);
+      const comic = data.comic;
+      setPrefillData({
+        title: comic.title || "",
+        series: comic.title || "",
+        issueNumber: comic.issue_number || "",
+        publisher: comic.publisher || "",
+        year: comic.year || "",
+        comicvineId: comic.comicvine_id || "",
+        comicvineCoverUrl: comic.cover_image || "",
+        description: comic.description || "",
+      });
+      setConfidence(85); // Text search has good confidence
+      setStatus("prefilled");
+      
       toast({
         title: "Comic found!",
-        description: data.comic.full_title,
+        description: comic.full_title || comic.title,
       });
     } catch (err: any) {
       console.error("Search error:", err);
       toast({
         title: "Search failed",
-        description: err.message || "Unexpected error, please try again.",
+        description: err.message || "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -367,73 +313,19 @@ export default function Scanner() {
     }
   };
 
-  const handleViewDetails = () => {
-    if (!comic) return;
-    navigate("/scanner/result", {
-      state: {
-        id: comic.comicvine_id,
-        name: comic.full_title,
-        issue_number: comic.issue_number,
-        volume: comic.title,
-        cover_date: null,
-        image: comic.cover_image,
-        description: comic.description,
-      },
-    });
+  const handleReset = () => {
+    setImageUrl(null);
+    setPrefillData(null);
+    setStatus("idle");
+    setConfidence(null);
+    setQuery("");
   };
 
-  // Fallback handlers
-  const handleRetakePhoto = () => {
-    setShowFallback(false);
-    setImageData(null);
-    setActiveTab("camera");
-    startCamera();
-  };
-
-  const handleUploadInstead = () => {
-    setShowFallback(false);
-    setImageData(null);
-    setActiveTab("upload");
-    fileInputRef.current?.click();
-  };
-
-  const handleSearchByTitle = () => {
-    setShowFallback(false);
-    setShowManualForm(false);
-    setActiveTab("search");
-    // Focus on search input after a brief delay to ensure tab switch completes
-    setTimeout(() => {
-      const searchInput = document.querySelector('input[placeholder*="X-Men"]') as HTMLInputElement;
-      if (searchInput) searchInput.focus();
-    }, 100);
-  };
-
-  const handleListManually = () => {
-    setShowFallback(false);
-    setShowManualForm(true);
-    // Set empty comic data to trigger manual form with user's image
-    setComic({
-      comicvine_id: 0,
-      title: "",
-      issue_number: "",
-      full_title: "",
-      publisher: "",
-      year: null,
-      cover_image: "",
-      cover_thumb: "",
-      description: "",
-      characters: [],
-      ebay_avg_price: 0,
-      trade_fee_total: 0,
-      trade_fee_each: 0,
-      fee_tier: "",
-    });
-  };
+  // Show listing form when we have an image and status is prefilled or manual
+  const showListingForm = imageUrl && (status === "prefilled" || status === "manual");
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Global AppLayout header wraps this, so no local header */}
-
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
         <div className="container mx-auto py-10 px-4">
@@ -443,8 +335,8 @@ export default function Scanner() {
                 GrailSeeker AI Scanner
               </h1>
               <p className="text-muted-foreground text-base md:text-lg">
-                Snap a photo or type a title. We'll identify the comic, pull ComicVine data,
-                and estimate value using live market data.
+                Snap a photo or upload an image. We'll try to identify your comic and prefill details.
+                All fields remain editable - you can always list manually.
               </p>
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
@@ -453,11 +345,11 @@ export default function Scanner() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-primary" />
-                  <span>ComicVine integrated</span>
+                  <span>Your photo = listing image</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-primary" />
-                  <span>Built for slabs & raws</span>
+                  <span>Manual listing always available</span>
                 </div>
               </div>
             </div>
@@ -465,221 +357,155 @@ export default function Scanner() {
         </div>
       </section>
 
-      {/* Scanner Tabs */}
+      {/* Main Content */}
       <section className="container mx-auto px-4 py-8 flex-1">
-        {/* Fallback UI */}
-        {showFallback && !showManualForm && (
-          <div className="max-w-xl mx-auto mb-8">
-            <RecognitionFallback
-              failedImage={failedImage}
-              lastMethod={lastAttemptMethod}
-              onRetakePhoto={handleRetakePhoto}
-              onUploadInstead={handleUploadInstead}
-              onSearchByTitle={handleSearchByTitle}
-              onListManually={handleListManually}
-              onClose={() => setShowFallback(false)}
+        {showListingForm ? (
+          // Show listing form with user's image
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              className="mb-4"
+            >
+              ← Scan Another Comic
+            </Button>
+            <ScannerListingForm
+              imageUrl={imageUrl}
+              initialData={prefillData || {}}
+              confidence={confidence}
             />
           </div>
-        )}
+        ) : (
+          // Show scanner interface
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
+              <TabsTrigger value="camera">Camera</TabsTrigger>
+              <TabsTrigger value="upload">Upload</TabsTrigger>
+              <TabsTrigger value="search">Search</TabsTrigger>
+            </TabsList>
 
-        {/* Manual listing form */}
-        {showManualForm && userImage && (
-          <div className="max-w-3xl mx-auto mb-8">
-            <SaveToInventoryModal
-              open={true}
-              onOpenChange={(open) => {
-                setShowManualForm(open);
-                if (!open) {
-                  setUserImage(null);
-                  setImageData(null);
-                }
-              }}
-              ocrText=""
-              comicvineResults={[]}
-              userImage={userImage}
-            />
-          </div>
-        )}
+            {/* Camera tab */}
+            <TabsContent value="camera" className="mt-6 space-y-4">
+              {!cameraActive && (
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-4 py-6">
+                    <Camera className="h-10 w-10 text-primary" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      Use your camera to capture the full front cover of the comic.
+                    </p>
+                    <Button onClick={startCamera} size="lg">
+                      Enable Camera
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
-            <TabsTrigger value="camera">Camera</TabsTrigger>
-            <TabsTrigger value="upload">Upload</TabsTrigger>
-            <TabsTrigger value="search">Search</TabsTrigger>
-          </TabsList>
+              {cameraActive && (
+                <Card>
+                  <CardContent className="p-4">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="w-full rounded-lg"
+                    />
+                    <canvas ref={canvasRef} className="hidden" />
+                    <div className="flex gap-2 mt-4">
+                      <Button onClick={capturePhoto} className="flex-1" size="lg" disabled={loading}>
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="mr-2 h-5 w-5" />
+                            Capture Photo
+                          </>
+                        )}
+                      </Button>
+                      <Button onClick={stopCamera} variant="outline" size="lg">
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-          {/* Camera tab */}
-          <TabsContent value="camera" className="mt-6 space-y-4">
-            {!cameraActive && !imageData && (
+            {/* Upload tab */}
+            <TabsContent value="upload" className="mt-6 space-y-4">
               <Card>
                 <CardContent className="flex flex-col items-center gap-4 py-6">
-                  <Camera className="h-10 w-10 text-primary" />
+                  <Upload className="h-10 w-10 text-primary" />
                   <p className="text-sm text-muted-foreground text-center">
-                    Use your camera to capture the full front cover of the comic.
+                    Upload a clear photo of the comic cover.
                   </p>
-                  <Button onClick={startCamera} size="lg">
-                    Enable Camera
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    size="lg"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Choose Image"
+                    )}
                   </Button>
                 </CardContent>
               </Card>
-            )}
+            </TabsContent>
 
-            {cameraActive && (
+            {/* Manual search tab */}
+            <TabsContent value="search" className="mt-6 space-y-4">
               <Card>
-                <CardContent className="p-4">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full rounded-lg"
-                  />
-                  <canvas ref={canvasRef} className="hidden" />
-                  <div className="flex gap-2 mt-4">
-                    <Button onClick={capturePhoto} className="flex-1" size="lg">
-                      <Camera className="mr-2 h-5 w-5" />
-                      Take Photo
-                    </Button>
-                    <Button onClick={stopCamera} variant="outline" size="lg">
-                      <X className="h-5 w-5" />
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {imageData && !cameraActive && (
-              <Card>
-                <CardContent className="p-4">
-                  <img
-                    src={imageData}
-                    alt="Captured"
-                    className="w-full rounded-lg mb-4"
-                  />
+                <CardContent className="flex flex-col gap-4 py-6">
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => setImageData(null)}
-                      variant="outline"
+                    <Input
+                      placeholder="e.g., 'Amazing Spider-Man 300'"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
                       className="flex-1"
-                    >
-                      Retake Photo
-                    </Button>
+                    />
                     <Button
-                      onClick={() => identifyFromImage(imageData, activeTab as "camera" | "upload")}
+                      onClick={handleTextSearch}
                       disabled={loading}
-                      className="flex-1"
+                      size="lg"
                     >
                       {loading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
+                          Searching...
                         </>
                       ) : (
                         <>
-                          <Zap className="mr-2 h-4 w-4" />
-                          Rescan
+                          <Search className="mr-2 h-4 w-4" />
+                          Search
                         </>
                       )}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
-
-          {/* Upload tab */}
-          <TabsContent value="upload" className="mt-6 space-y-4">
-            <Card>
-              <CardContent className="flex flex-col items-center gap-4 py-6">
-                <Upload className="h-10 w-10 text-primary" />
-                <p className="text-sm text-muted-foreground text-center">
-                  Upload a clear photo or scan of the cover. We&apos;ll try to match it.
-                </p>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                />
-                <Button
-                  size="lg"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Choose Image
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Manual search tab */}
-          <TabsContent value="search" className="mt-6 space-y-4">
-            <Card>
-              <CardContent className="flex flex-col gap-4 py-6">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., 'Uncanny X-Men 268'"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && handleTextSearch()
-                    }
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={() => handleTextSearch()}
-                    disabled={loading}
-                    size="lg"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Searching...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-4 w-4" />
-                        Search
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Result */}
-        {comic && comic.comicvine_id > 0 && !showManualForm && (
-          <section className="mt-10 space-y-4">
-            <h2 className="text-2xl font-bold">Matched Comic</h2>
-            <ComicResultCard
-              comic={{
-                comicvine_id: comic.comicvine_id,
-                title: comic.title,
-                issue_number: comic.issue_number,
-                full_title: comic.full_title,
-                publisher: comic.publisher || "",
-                year: comic.year || null,
-                cover_image: comic.cover_image || "",
-                cover_thumb: comic.cover_thumb || "",
-                description: comic.description || "",
-                characters: comic.characters || [],
-                ebay_avg_price: comic.ebay_avg_price || 0,
-                trade_fee_total: comic.trade_fee_total || 0,
-                trade_fee_each: comic.trade_fee_each || 0,
-                fee_tier: comic.fee_tier || "",
-              }}
-              userImage={userImage}
-              onListForSwap={handleViewDetails}
-            />
-          </section>
+            </TabsContent>
+          </Tabs>
         )}
       </section>
 
       <Footer />
       
-      {/* Only show debug overlay in development */}
+      {/* Debug overlay - only in development */}
       {import.meta.env.DEV && <RecognitionDebugOverlay debugData={debugData} />}
     </div>
   );
