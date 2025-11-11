@@ -91,7 +91,7 @@ export default function Scanner() {
           title: "Photo captured!",
           description: "Processing your comic now...",
         });
-        processImage(imageData);
+        identifyFromImage(imageData);
       }
     }
   };
@@ -108,29 +108,49 @@ export default function Scanner() {
         title: "Image uploaded!",
         description: "Processing your comic now...",
       });
-      processImage(imageData);
+      identifyFromImage(imageData);
     };
     reader.readAsDataURL(file);
   };
 
-  const processImage = async (imageData: string) => {
-    if (!imageData) return;
+  // Single pipeline for image identification
+  const identifyFromImage = async (imageData: string) => {
+    if (!imageData) {
+      toast({
+        title: "No image data",
+        description: "Please capture or upload an image first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     setComic(null);
 
     try {
+      // Extract base64 data (remove data:image/jpeg;base64, prefix if present)
       const base64Data = imageData.includes(",")
         ? imageData.split(",")[1]
         : imageData;
 
-      // Use scan-item to do OCR / detection
+      console.log("Calling scan-item with image data:", {
+        dataLength: base64Data.length,
+        preview: base64Data.substring(0, 50) + "..."
+      });
+
+      // Call scan-item edge function via Supabase client
       const { data, error } = await supabase.functions.invoke("scan-item", {
         body: { imageBase64: base64Data },
       });
 
-      if (error) throw error;
+      console.log("scan-item response:", { data, error });
 
+      if (error) {
+        console.error("Edge function error:", error);
+        throw error;
+      }
+
+      // Handle scan-item response format: { ok, extracted, comicvineResults, cached }
       if (data?.ok === false) {
         toast({
           title: "Scan failed",
@@ -140,33 +160,48 @@ export default function Scanner() {
         return;
       }
 
-      if (data?.ocrPreview) {
-        const searchText = data.ocrPreview.replace("...", "").trim();
-        if (!searchText) {
-          toast({
-            title: "No text detected",
-            description: "Try retaking the photo with the full cover visible.",
-            variant: "destructive",
-          });
-          return;
-        }
-        setQuery(searchText);
-        await handleTextSearch(searchText);
-      } else if (data?.comic) {
-        setComic(data.comic);
-        toast({
-          title: "Comic identified!",
-          description: data.comic.full_title,
-        });
-      } else {
+      // Check if we got ComicVine results
+      const results = data?.comicvineResults || [];
+      
+      if (results.length === 0) {
         toast({
           title: "No match found",
-          description: "Try a clearer photo or manual search.",
+          description: "Try a clearer photo with the full cover visible, or use manual search.",
           variant: "destructive",
         });
+        return;
       }
+
+      // Use the first (best) match
+      const topResult = results[0];
+      
+      // Map to our ComicData format
+      const identifiedComic: ComicData = {
+        comicvine_id: topResult.id,
+        title: topResult.volume || topResult.volumeName || "",
+        issue_number: topResult.issue_number || "",
+        full_title: topResult.name || `${topResult.volume} #${topResult.issue_number}`,
+        publisher: topResult.publisher,
+        year: topResult.year,
+        cover_image: topResult.image || topResult.cover_image || topResult.coverUrl,
+        cover_thumb: topResult.cover_thumb,
+        description: topResult.description,
+        characters: topResult.characters,
+        ebay_avg_price: topResult.ebay_avg_price,
+        trade_fee_total: topResult.trade_fee_total,
+        trade_fee_each: topResult.trade_fee_each,
+        fee_tier: topResult.fee_tier,
+      };
+
+      setComic(identifiedComic);
+      
+      toast({
+        title: "Comic identified!",
+        description: identifiedComic.full_title,
+      });
+
     } catch (err: any) {
-      console.error("Scan error:", err);
+      console.error("Identification error:", err);
       toast({
         title: "Scan failed",
         description: err.message || "Unexpected error, please try again.",
@@ -339,7 +374,7 @@ export default function Scanner() {
                       Retake Photo
                     </Button>
                     <Button
-                      onClick={() => processImage(capturedImage)}
+                      onClick={() => identifyFromImage(capturedImage)}
                       disabled={loading}
                       className="flex-1"
                     >
