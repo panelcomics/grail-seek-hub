@@ -42,26 +42,32 @@ export default function SearchPage() {
   };
   
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <main className="flex-1">
-        <div className="mx-auto max-w-screen-md p-4">
-          <h1 className="text-2xl font-bold mb-3">Search</h1>
+        <div className="max-w-xl mx-auto mt-8 p-4">
+          <h1 className="text-3xl font-semibold mb-4 text-foreground">Search</h1>
           
-          <div className="max-w-xl mx-auto flex items-center gap-2">
+          <div className="flex items-center gap-3 mb-2">
             <Input
               type="text"
               placeholder="Search your collection, marketplace, creators..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1"
+              className="flex-1 h-12 text-base"
             />
             <ScanButton onScanResult={handleScanResult} />
           </div>
+          
+          <p className="text-sm text-muted-foreground mb-6">
+            Use the scanner to automatically find books via ComicVine + eBay, or upload a photo to search.
+          </p>
 
           {/* results list here */}
           {searchQuery && (
-            <div className="mt-4 text-muted-foreground text-sm">
-              Search results for "{searchQuery}" will appear here
+            <div className="mt-6 p-4 rounded-lg border border-border bg-card">
+              <p className="text-muted-foreground text-sm">
+                Search results for "{searchQuery}" will appear here
+              </p>
             </div>
           )}
         </div>

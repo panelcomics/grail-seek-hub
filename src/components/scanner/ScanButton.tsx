@@ -1,16 +1,18 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Loader2, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Camera, Loader2, X, Upload, ScanLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface ScanButtonProps {
   onScanResult?: (searchText: string) => void;
+  className?: string;
 }
 
-export function ScanButton({ onScanResult }: ScanButtonProps) {
+export function ScanButton({ onScanResult, className }: ScanButtonProps) {
   const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -113,6 +115,8 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
           description: `Found: ${searchText}. Searching...`,
         });
         
+        setShowModal(false);
+        
         if (onScanResult) {
           onScanResult(searchText);
         } else {
@@ -121,8 +125,8 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
         }
       } else {
         toast({
-          title: "No text detected",
-          description: "Try entering the title manually",
+          title: "Couldn't detect anything",
+          description: "Try again or type manually",
           variant: "destructive",
         });
       }
@@ -169,31 +173,81 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
     }
   };
 
-  const handleClick = () => {
-    startCamera();
+  const handleOpenModal = () => {
+    setShowModal(true);
+  };
+
+  const handleStartCamera = async () => {
+    setShowModal(false);
+    await startCamera();
+  };
+
+  const handleUploadClick = () => {
+    setShowModal(false);
+    fileInputRef.current?.click();
   };
 
   return (
     <>
       <Button
-        onClick={handleClick}
-        variant="outline"
-        size="icon"
+        onClick={handleOpenModal}
         disabled={loading}
-        className="shrink-0"
-        aria-label="Scan comic"
+        className={`h-12 w-12 shrink-0 bg-orange-500 hover:bg-orange-600 text-white transition-all duration-200 hover:scale-105 active:scale-95 ${className || ""}`}
+        aria-label="Scan book"
       >
         {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-5 w-5 animate-spin" />
         ) : (
-          <Camera className="h-4 w-4" />
+          <Camera className="h-5 w-5" />
         )}
       </Button>
 
+      {/* Scan Options Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] p-4 animate-in zoom-in-95 duration-200">
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-semibold">Scan a Book</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowModal(false)}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 pb-6">
+                <Button
+                  onClick={handleStartCamera}
+                  className="w-full h-16 text-base bg-orange-500 hover:bg-orange-600 transition-all duration-200"
+                  size="lg"
+                >
+                  <ScanLine className="mr-3 h-6 w-6" />
+                  Scan Barcode
+                </Button>
+                <Button
+                  onClick={handleUploadClick}
+                  variant="outline"
+                  className="w-full h-16 text-base transition-all duration-200"
+                  size="lg"
+                >
+                  <Upload className="mr-3 h-6 w-6" />
+                  Upload Photo
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Camera Modal */}
       {showCamera && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-          <div className="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] p-4">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] p-4 animate-in zoom-in-95 duration-200">
             <Card>
               <CardContent className="p-4">
                 <div className="relative">
@@ -204,20 +258,9 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
                     className="w-full rounded-lg"
                   />
                   <div className="flex gap-2 mt-4">
-                    <Button onClick={capturePhoto} className="flex-1" size="lg">
+                    <Button onClick={capturePhoto} className="flex-1 bg-orange-500 hover:bg-orange-600" size="lg">
                       <Camera className="mr-2 h-5 w-5" />
                       Take Photo
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        stopCamera();
-                        fileInputRef.current?.click();
-                      }} 
-                      variant="outline" 
-                      className="flex-1"
-                      size="lg"
-                    >
-                      Upload
                     </Button>
                     <Button onClick={stopCamera} variant="outline" size="icon">
                       <X className="h-5 w-5" />
