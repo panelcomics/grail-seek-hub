@@ -269,52 +269,48 @@ serve(async (req) => {
     }
     
     // Extract structured data from OCR - optimized for CGC slab format
-    // CGC format: "GRADE PAGES CGC TYPE Title #123 Publisher, M/YY Creator info"
+    // CGC format: "GRADE OFF-WHITE... CGC UNIVERSAL GRADE Title #123 Publisher, M/YY Creator info"
     
-    // Extract grade (CGC X.X or CBCS X.X)
-    const gradeMatch = ocrText.match(/(CGC|CBCS)\s+[\w\s]*?\s+(10\.0|9\.[0-9]|[0-8]\.[0-9]|[0-9]\.5)/i);
-    const grade = gradeMatch ? gradeMatch[2] : "";
-    const gradingCompany = gradeMatch ? gradeMatch[1].toUpperCase() : "";
+    // Extract grade (appears BEFORE CGC/CBCS keyword)
+    const gradeMatch = ocrText.match(/(10\.0|9\.[0-9]|[0-8]\.[0-9]|[0-9]\.5)\s+[\w\s-]+?\s+(CGC|CBCS)/i);
+    const grade = gradeMatch ? gradeMatch[1] : "";
+    const gradingCompany = gradeMatch ? gradeMatch[2].toUpperCase() : "";
     
     // Extract title and issue number
-    // Pattern: "Title #123" or "Title No. 123" - title usually appears after CGC type
+    // Pattern: after "CGC/CBCS UNIVERSAL GRADE" comes "Title #123"
     let titleMatch = ocrText.match(/(?:CGC|CBCS)\s+(?:UNIVERSAL GRADE|SIGNATURE SERIES|RESTORED|QUALIFIED)\s+([A-Za-z\s&'-]+?)\s+#?(\d+)/i);
     if (!titleMatch) {
-      // Fallback: look for "Title #123" anywhere
-      titleMatch = ocrText.match(/([A-Za-z\s&'-]{3,}?)\s+#(\d+)/);
+      // Fallback: look for "Title #123" pattern anywhere
+      titleMatch = ocrText.match(/([A-Za-z\s&'-]{2,}?)\s+#(\d+)/);
     }
     
     const series_title = titleMatch ? titleMatch[1].trim() : "";
     const issue_number = titleMatch ? titleMatch[2] : "";
     
-    // Extract publisher (D.C., Marvel, Image, etc.)
+    // Extract publisher (D.C., DC, Marvel, etc.)
     let publisher = "";
-    const publisherMatch = ocrText.match(/\b(D\.C\.|DC|Marvel|Image|Dark Horse|IDW|Archie)\s+Comics/i);
+    const publisherMatch = ocrText.match(/\b(D\.C\.|DC|Marvel|Image|Dark Horse|IDW|Archie|Valiant|Boom)\s+Comics/i);
     if (publisherMatch) {
-      publisher = publisherMatch[1].replace("D.C.", "DC").toUpperCase();
+      publisher = publisherMatch[1].replace("D.C.", "DC").replace(/\./g, "").toUpperCase();
     }
     
-    // Extract year from date format "M/YY" or "MM/YYYY" or full year
+    // Extract year from date format "M/YY" or "MM/YYYY"
     let year: number | null = null;
     const dateMatch = ocrText.match(/\b(\d{1,2})\/(\d{2,4})\b/);
     if (dateMatch) {
       let yearStr = dateMatch[2];
-      // Convert 2-digit year to 4-digit
+      // Convert 2-digit year to 4-digit (71 -> 1971)
       if (yearStr.length === 2) {
         const twoDigit = parseInt(yearStr);
-        yearStr = twoDigit > 30 ? `19${yearStr}` : `20${yearStr}`;
+        yearStr = twoDigit >= 38 ? `19${yearStr}` : `20${yearStr}`;
       }
       year = parseInt(yearStr);
-    } else {
-      // Fallback: look for 4-digit year
-      const yearMatch = ocrText.match(/\b(19\d{2}|20\d{2})\b/);
-      if (yearMatch) year = parseInt(yearMatch[1]);
     }
     
-    // Build clean query for ComicVine: "Title Issue# Publisher Year"
+    // Build clean Comic Vine query: "Title #Issue Publisher Year"
     const queryParts = [];
     if (series_title) queryParts.push(series_title);
-    if (issue_number) queryParts.push(issue_number);
+    if (issue_number) queryParts.push(`#${issue_number}`);
     if (publisher) queryParts.push(publisher);
     if (year) queryParts.push(year.toString());
     const cleanQuery = queryParts.join(' ');
