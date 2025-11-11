@@ -268,39 +268,66 @@ serve(async (req) => {
       }
     }
     
-    // Extract structured data from OCR
-    // Simpler cleaning - keep more useful data
-    let cleanText = ocrText
-      .replace(/\d{1,2}:\d{2}/g, "") // remove timestamps
-      .replace(/[^a-zA-Z0-9#:\-\s]/g, "") // keep title words, numbers, and #
-      .trim();
+    // Extract structured data from OCR - optimized for CGC slab format
+    // CGC format: "GRADE PAGES CGC TYPE Title #123 Publisher, M/YY Creator info"
     
-    // If sanitization empties the text, fall back to original OCR
-    if (cleanText.length < 5) cleanText = ocrText.trim();
+    // Extract grade (CGC X.X or CBCS X.X)
+    const gradeMatch = ocrText.match(/(CGC|CBCS)\s+[\w\s]*?\s+(10\.0|9\.[0-9]|[0-8]\.[0-9]|[0-9]\.5)/i);
+    const grade = gradeMatch ? gradeMatch[2] : "";
+    const gradingCompany = gradeMatch ? gradeMatch[1].toUpperCase() : "";
     
-    // Extract issue number (look for patterns like "#123", "No. 123", "123")
-    const issueMatch = cleanText.match(/#?\s*(\d+)/) || cleanText.match(/No\.?\s*(\d+)/i);
-    const issue_number = issueMatch ? issueMatch[1] : "";
+    // Extract title and issue number
+    // Pattern: "Title #123" or "Title No. 123" - title usually appears after CGC type
+    let titleMatch = ocrText.match(/(?:CGC|CBCS)\s+(?:UNIVERSAL GRADE|SIGNATURE SERIES|RESTORED|QUALIFIED)\s+([A-Za-z\s&'-]+?)\s+#?(\d+)/i);
+    if (!titleMatch) {
+      // Fallback: look for "Title #123" anywhere
+      titleMatch = ocrText.match(/([A-Za-z\s&'-]{3,}?)\s+#(\d+)/);
+    }
     
-    // Extract year (4 digits)
-    const yearMatch = cleanText.match(/\b(19\d{2}|20\d{2})\b/);
-    const year = yearMatch ? parseInt(yearMatch[1]) : null;
+    const series_title = titleMatch ? titleMatch[1].trim() : "";
+    const issue_number = titleMatch ? titleMatch[2] : "";
     
-    // Extract series title (remaining text, cleaned)
-    let series_title = cleanText
-      .replace(/#?\s*\d+/g, '') // remove issue numbers
-      .replace(/\b(19\d{2}|20\d{2})\b/g, '') // remove years
-      .replace(/[^\w\s]/g, ' ') // special chars to spaces
-      .replace(/\s+/g, ' ')
-      .trim();
+    // Extract publisher (D.C., Marvel, Image, etc.)
+    let publisher = "";
+    const publisherMatch = ocrText.match(/\b(D\.C\.|DC|Marvel|Image|Dark Horse|IDW|Archie)\s+Comics/i);
+    if (publisherMatch) {
+      publisher = publisherMatch[1].replace("D.C.", "DC").toUpperCase();
+    }
     
-    // Build clean query for ComicVine
+    // Extract year from date format "M/YY" or "MM/YYYY" or full year
+    let year: number | null = null;
+    const dateMatch = ocrText.match(/\b(\d{1,2})\/(\d{2,4})\b/);
+    if (dateMatch) {
+      let yearStr = dateMatch[2];
+      // Convert 2-digit year to 4-digit
+      if (yearStr.length === 2) {
+        const twoDigit = parseInt(yearStr);
+        yearStr = twoDigit > 30 ? `19${yearStr}` : `20${yearStr}`;
+      }
+      year = parseInt(yearStr);
+    } else {
+      // Fallback: look for 4-digit year
+      const yearMatch = ocrText.match(/\b(19\d{2}|20\d{2})\b/);
+      if (yearMatch) year = parseInt(yearMatch[1]);
+    }
+    
+    // Build clean query for ComicVine: "Title Issue# Publisher Year"
     const queryParts = [];
     if (series_title) queryParts.push(series_title);
-    if (issue_number) queryParts.push(`#${issue_number}`);
+    if (issue_number) queryParts.push(issue_number);
+    if (publisher) queryParts.push(publisher);
+    if (year) queryParts.push(year.toString());
     const cleanQuery = queryParts.join(' ');
     
-    console.log('[SCAN-ITEM] Extracted data:', { series_title, issue_number, year, cleanQuery });
+    console.log('[SCAN-ITEM] Extracted data:', { 
+      series_title, 
+      issue_number, 
+      publisher, 
+      year, 
+      grade,
+      gradingCompany,
+      cleanQuery 
+    });
     
     console.log('[SCAN-ITEM] Querying ComicVine API...');
     const cvStartTime = Date.now();
@@ -354,7 +381,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        extracted: { series_title, issue_number, year },
+        extracted: { series_title, issue_number, year, publisher, grade, gradingCompany },
         comicvineResults: results,
         ocrText: ocrText, // Raw OCR for debug
         cvQuery: cleanQuery, // Query sent to ComicVine for debug

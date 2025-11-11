@@ -265,11 +265,13 @@ export default function Scanner() {
       const results = data?.comicvineResults || [];
       const rawOcrText = data?.ocrText || '';
       const cvQuery = data?.cvQuery || '';
+      const extracted = data?.extracted || {};
       
       console.log('Server response:', { 
         ocrTime: `${ocrTime}ms`, 
         rawOcrText: rawOcrText.substring(0, 100), 
         cvQuery, 
+        extracted,
         results: results.length 
       });
       
@@ -312,15 +314,15 @@ export default function Scanner() {
         return;
       }
 
-      // Step 4: Parse slab data and build prefill
+      // Step 4: Use extracted slab data from backend
       const slabData = {
-        title: results[0].volume || "",
-        issueNumber: results[0].issue_number || "",
-        grade: rawOcrText.match(/CGC\s+([\d.]+)/i)?.[1] || 
-               rawOcrText.match(/CBCS\s+([\d.]+)/i)?.[1] ||
-               rawOcrText.match(/\b(10\.0|9\.[0-9]|[0-8]\.[0-9])\b/)?.[1] || "", // Standalone grade numbers
+        title: extracted.series_title || results[0]?.volume || "",
+        issueNumber: extracted.issue_number || results[0]?.issue_number || "",
+        grade: extracted.grade || "",
         certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
-        gradingCompany: rawOcrText.match(/CGC|CBCS/i)?.[0] || "",
+        gradingCompany: extracted.gradingCompany || "",
+        publisher: extracted.publisher || "",
+        year: extracted.year || "",
       };
 
       const topResult = results[0];
@@ -333,8 +335,8 @@ export default function Scanner() {
         title: title,
         series: title,
         issueNumber: issueNumber,
-        publisher: topResult.publisher || "",
-        year: topResult.year || "",
+        publisher: slabData.publisher || topResult.publisher || "",
+        year: slabData.year || topResult.year || "",
         comicvineId: topResult.id || "",
         comicvineCoverUrl: topResult.image || topResult.cover_image || topResult.coverUrl || "",
         description: topResult.description || "",
