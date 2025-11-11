@@ -13,6 +13,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Search, Star, MapPin, Shield, Award } from "lucide-react";
 import { Link } from "react-router-dom";
+import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
+import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
 
 interface Seller {
   user_id: string;
@@ -22,6 +24,8 @@ interface Seller {
   profile_image_url: string | null;
   completed_sales_count: number;
   seller_tier: string | null;
+  is_verified_seller: boolean;
+  is_featured_seller: boolean;
 }
 
 const ITEMS_PER_PAGE = 24;
@@ -48,7 +52,7 @@ export default function Sellers() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier")
+        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, is_verified_seller, is_featured_seller")
         .not("username", "is", null);
 
       if (error) throw error;
@@ -266,9 +270,15 @@ function SellerCard({ seller }: { seller: Seller }) {
 
           {/* Info */}
           <div>
-            <h3 className="text-lg font-bold text-foreground mb-1">
-              {displayName}
-            </h3>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <h3 className="text-lg font-bold text-foreground">
+                {displayName}
+              </h3>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-1 mb-2">
+              {seller.is_featured_seller && <FeaturedSellerBadge showLabel={false} />}
+              {seller.is_verified_seller && <VerifiedSellerBadge showLabel={false} size="sm" />}
+            </div>
             <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <MapPin className="w-3 h-3" />
               New York, NY

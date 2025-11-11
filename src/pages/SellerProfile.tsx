@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFollowSeller } from "@/hooks/useFollowSeller";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
+import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
 
 interface SellerProfile {
   user_id: string;
@@ -35,6 +36,7 @@ interface SellerProfile {
   favorites_total: number;
   verified_artist: boolean;
   is_verified_seller: boolean;
+  is_featured_seller: boolean;
   bio: string | null;
   joined_at: string;
 }
@@ -88,7 +90,7 @@ export default function SellerProfile() {
       
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, bio, joined_at")
+        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, is_featured_seller, bio, joined_at")
         .ilike("username", username)
         .maybeSingle();
 
@@ -253,6 +255,7 @@ export default function SellerProfile() {
                 <div className="flex flex-col gap-2 mb-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-3xl font-bold">{sellerName}</h1>
+                    {profile.is_featured_seller && <FeaturedSellerBadge />}
                     {profile.is_verified_seller && <VerifiedSellerBadge size="md" />}
                     {profile.verified_artist && (
                       <TooltipProvider>

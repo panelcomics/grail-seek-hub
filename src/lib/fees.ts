@@ -85,3 +85,45 @@ export interface FeeCalculationWithPlatform extends FeeCalculation {
 export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
+
+/**
+ * Calculate marketplace fee with custom rate support
+ * Uses seller's custom_fee_rate if set, otherwise uses default 6.5%
+ * 
+ * @param priceCents - Price in cents
+ * @param customFeeRate - Optional custom fee rate (e.g., 0.02 for 2%)
+ */
+export function calculateMarketplaceFeeWithCustomRate(
+  priceCents: number,
+  customFeeRate?: number | null
+): FeeCalculation {
+  const feeRate = customFeeRate !== null && customFeeRate !== undefined 
+    ? customFeeRate 
+    : MARKETPLACE_FEE_RATE;
+  
+  // Calculate total fee using custom or default rate
+  const max_total_fee_cents = Math.round(priceCents * feeRate);
+  
+  // Estimate Stripe fees (2.9% + $0.30)
+  const estimated_stripe_fee_cents = Math.round(priceCents * STRIPE_RATE) + STRIPE_FIXED_CENTS;
+  
+  // Platform fee is what's left after Stripe takes their cut
+  const platform_fee_cents = Math.max(0, max_total_fee_cents - estimated_stripe_fee_cents);
+  
+  // Total fee charged to seller
+  const fee_cents = max_total_fee_cents;
+  const payout_cents = priceCents - fee_cents;
+  
+  return {
+    fee_cents,
+    payout_cents,
+    platform_fee_cents
+  };
+}
+
+/**
+ * Format fee rate as percentage string
+ */
+export function formatFeeRate(rate: number): string {
+  return `${(rate * 100).toFixed(2)}%`;
+}

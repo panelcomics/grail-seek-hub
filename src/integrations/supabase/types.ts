@@ -1762,6 +1762,7 @@ export type Database = {
           favorites_total: number | null
           hide_ai_scanner_tour: boolean | null
           id: string
+          is_featured_seller: boolean | null
           is_verified_seller: boolean | null
           joined_at: string | null
           notify_auction_ending: boolean | null
@@ -1792,6 +1793,7 @@ export type Database = {
           favorites_total?: number | null
           hide_ai_scanner_tour?: boolean | null
           id?: string
+          is_featured_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
           notify_auction_ending?: boolean | null
@@ -1822,6 +1824,7 @@ export type Database = {
           favorites_total?: number | null
           hide_ai_scanner_tour?: boolean | null
           id?: string
+          is_featured_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
           notify_auction_ending?: boolean | null

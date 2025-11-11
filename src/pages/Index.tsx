@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import Hero from "@/components/Hero";
 import TrendingAuctions from "@/components/TrendingAuctions";
 import FeaturedShops from "@/components/FeaturedShops";
+import { FeaturedSellers } from "@/components/FeaturedSellers";
 import LocalDiscovery from "@/components/LocalDiscovery";
 import EventsCarousel from "@/components/EventsCarousel";
 import SellerSpotlight from "@/components/SellerSpotlight";
@@ -50,6 +51,12 @@ export default function Index() {
         </section>
 
         <section className="py-12 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <FeaturedSellers />
+          </div>
+        </section>
+
+        <section className="py-12 bg-background">
           <div className="container mx-auto px-4">
             <TradingPostSection />
           </div>

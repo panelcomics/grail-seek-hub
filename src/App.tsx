@@ -36,6 +36,7 @@ import AdminFeaturedShops from "./pages/AdminFeaturedShops";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminSettings from "./pages/admin/Settings";
 import AdminVerifiedSellersPage from "./pages/admin/VerifiedSellers";
+import ManageSellers from "./pages/admin/ManageSellers";
 import UploadOriginalArt from "./pages/admin/UploadOriginalArt";
 import ManageOriginalArt from "./pages/admin/ManageOriginalArt";
 import InviteArtist from "./pages/admin/InviteArtist";
@@ -103,6 +104,7 @@ const AppContent = () => {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/verified-sellers" element={<AdminVerifiedSellersPage />} />
+            <Route path="/admin/manage-sellers" element={<ManageSellers />} />
             <Route path="/admin/original-art/upload" element={<UploadOriginalArt />} />
             <Route path="/admin/original-art/manage" element={<ManageOriginalArt />} />
             <Route path="/admin/invite-artist" element={<InviteArtist />} />
