@@ -26,7 +26,7 @@ interface PrefillData {
 }
 
 interface ScannerListingFormProps {
-  imageUrl: string; // Required - user's captured/uploaded image
+  imageUrl: string; // User's captured/uploaded image (empty string if from search)
   initialData?: PrefillData;
   confidence?: number | null; // Optional confidence score for display
 }
@@ -149,26 +149,30 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Image Display Section */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* User's Image - Primary */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">Your Photo (Primary Listing Image)</Label>
-              <div className="relative aspect-[2/3] bg-muted rounded-lg overflow-hidden border-4 border-primary/30 shadow-lg">
-                <img
-                  src={imageUrl}
-                  alt="Your comic photo"
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
-                  <ImageIcon className="inline w-3 h-3 mr-1" />
-                  Your Photo
+            {/* User's Image - Primary (if provided) */}
+            {imageUrl && (
+              <div className="space-y-2">
+                <Label className="text-base font-semibold">Your Photo (Primary Listing Image)</Label>
+                <div className="relative aspect-[2/3] bg-muted rounded-lg overflow-hidden border-4 border-primary/30 shadow-lg">
+                  <img
+                    src={imageUrl}
+                    alt="Your comic photo"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
+                    <ImageIcon className="inline w-3 h-3 mr-1" />
+                    Your Photo
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* ComicVine Reference Cover - If Available */}
             {showReferenceCover && (
               <div className="space-y-2">
-                <Label className="text-base font-semibold text-muted-foreground">ComicVine Reference Cover</Label>
+                <Label className="text-base font-semibold text-muted-foreground">
+                  {imageUrl ? "ComicVine Reference Cover" : "Reference Cover"}
+                </Label>
                 <div className="aspect-[2/3] bg-muted rounded-lg overflow-hidden border-2 border-border opacity-70">
                   <img
                     src={initialData.comicvineCoverUrl}
@@ -176,12 +180,14 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
                     className="h-full w-full object-cover"
                   />
                 </div>
-                <Alert className="mt-2">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    This is for reference only. Your photo above will be the listing image.
-                  </AlertDescription>
-                </Alert>
+                {imageUrl && (
+                  <Alert className="mt-2">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      This is for reference only. Your photo above will be the listing image.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             )}
           </div>

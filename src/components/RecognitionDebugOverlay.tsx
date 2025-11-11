@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 
 interface RecognitionDebugData {
   status: "idle" | "processing" | "success" | "error";
-  method: "camera" | "upload" | null;
+  method: "camera" | "upload" | "search" | null;
   apiHit: "ComicVine" | "scan-item" | null;
   confidenceScore: number | null;
   responseTimeMs: number | null;

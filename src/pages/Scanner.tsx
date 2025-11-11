@@ -23,21 +23,37 @@ interface PrefillData {
   description?: string;
 }
 
-type ScannerStatus = "idle" | "recognizing" | "prefilled" | "manual";
+interface SearchResult {
+  id: string | number;
+  title?: string;
+  volume?: string;
+  volumeName?: string;
+  issue_number?: string;
+  publisher?: string;
+  year?: string;
+  image?: string;
+  cover_image?: string;
+  coverUrl?: string;
+  description?: string;
+}
+
+type ScannerStatus = "idle" | "previewing" | "recognizing" | "prefilled" | "manual";
 
 export default function Scanner() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // User's captured/uploaded image
+  const [previewImage, setPreviewImage] = useState<string | null>(null); // Preview before recognition
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // Final user image for listing
   const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [confidence, setConfidence] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   
   const [debugData, setDebugData] = useState({
     status: "idle" as "idle" | "processing" | "success" | "error",
-    method: null as "camera" | "upload" | null,
+    method: null as "camera" | "upload" | "search" | null,
     apiHit: null as "ComicVine" | "scan-item" | null,
     confidenceScore: null as number | null,
     responseTimeMs: null as number | null,
@@ -94,15 +110,23 @@ export default function Scanner() {
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const capturedImageData = canvas.toDataURL("image/jpeg");
-        setImageUrl(capturedImageData);
+        setPreviewImage(capturedImageData);
+        setStatus("previewing");
         stopCamera();
-        toast({
-          title: "Photo captured!",
-          description: "Processing your comic now...",
-        });
-        identifyFromImage(capturedImageData, "camera");
       }
     }
+  };
+
+  const handleRetake = () => {
+    setPreviewImage(null);
+    setStatus("idle");
+    startCamera();
+  };
+
+  const handleUsePhoto = () => {
+    if (!previewImage) return;
+    setImageUrl(previewImage);
+    identifyFromImage(previewImage, "camera");
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,14 +136,24 @@ export default function Scanner() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const uploadedImageData = e.target?.result as string;
-      setImageUrl(uploadedImageData);
-      toast({
-        title: "Image uploaded!",
-        description: "Processing your comic now...",
-      });
-      identifyFromImage(uploadedImageData, "upload");
+      setPreviewImage(uploadedImageData);
+      setStatus("previewing");
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleChooseDifferent = () => {
+    setPreviewImage(null);
+    setStatus("idle");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleContinue = () => {
+    if (!previewImage) return;
+    setImageUrl(previewImage);
+    identifyFromImage(previewImage, "upload");
   };
 
   // Recognition pipeline
@@ -209,7 +243,7 @@ export default function Scanner() {
         });
         toast({
           title: "Match found!",
-          description: `${title} #${issueNumber} (${calculatedConfidence}% confidence)`,
+          description: `Review the details below.`,
         });
       } else {
         setStatus("manual");
@@ -266,7 +300,7 @@ export default function Scanner() {
     }
 
     setLoading(true);
-    setPrefillData(null);
+    setSearchResults([]);
 
     try {
       const { data, error } = await supabase.functions.invoke("comic-scanner", {
@@ -274,32 +308,22 @@ export default function Scanner() {
       });
 
       if (error) throw error;
-      if (!data?.found || !data?.comic) {
+      
+      const results = data?.results || [];
+      
+      if (results.length === 0) {
         toast({
-          title: "No comic found",
+          title: "No results found",
           description: "Try a different search term.",
           variant: "destructive",
         });
         return;
       }
 
-      const comic = data.comic;
-      setPrefillData({
-        title: comic.title || "",
-        series: comic.title || "",
-        issueNumber: comic.issue_number || "",
-        publisher: comic.publisher || "",
-        year: comic.year || "",
-        comicvineId: comic.comicvine_id || "",
-        comicvineCoverUrl: comic.cover_image || "",
-        description: comic.description || "",
-      });
-      setConfidence(85); // Text search has good confidence
-      setStatus("prefilled");
-      
+      setSearchResults(results);
       toast({
-        title: "Comic found!",
-        description: comic.full_title || comic.title,
+        title: "Results found",
+        description: `Found ${results.length} result(s)`,
       });
     } catch (err: any) {
       console.error("Search error:", err);
@@ -313,16 +337,38 @@ export default function Scanner() {
     }
   };
 
+  const handleUseSearchResult = (result: SearchResult) => {
+    const title = result.title || result.volume || result.volumeName || "";
+    
+    setPrefillData({
+      title: title,
+      series: title,
+      issueNumber: result.issue_number || "",
+      publisher: result.publisher || "",
+      year: result.year || "",
+      comicvineId: result.id || "",
+      comicvineCoverUrl: result.image || result.cover_image || result.coverUrl || "",
+      description: result.description || "",
+    });
+    setConfidence(100); // Manual search selection = 100% confidence
+    setStatus("prefilled");
+    // Note: No imageUrl set for search results - form will handle this
+  };
+
   const handleReset = () => {
     setImageUrl(null);
+    setPreviewImage(null);
     setPrefillData(null);
     setStatus("idle");
     setConfidence(null);
     setQuery("");
+    setSearchResults([]);
+    setCameraActive(false);
+    stopCamera();
   };
 
-  // Show listing form when we have an image and status is prefilled or manual
-  const showListingForm = imageUrl && (status === "prefilled" || status === "manual");
+  // Show listing form when we have status prefilled or manual
+  const showListingForm = (status === "prefilled" || status === "manual") && (imageUrl || prefillData);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -335,7 +381,7 @@ export default function Scanner() {
                 GrailSeeker AI Scanner
               </h1>
               <p className="text-muted-foreground text-base md:text-lg">
-                Snap a photo or upload an image. We'll try to identify your comic and prefill details.
+                Snap a photo, upload an image, or search by title. We'll identify your comic and prefill details.
                 All fields remain editable - you can always list manually.
               </p>
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
@@ -370,7 +416,7 @@ export default function Scanner() {
               ← Scan Another Comic
             </Button>
             <ScannerListingForm
-              imageUrl={imageUrl}
+              imageUrl={imageUrl || ""}
               initialData={prefillData || {}}
               confidence={confidence}
             />
@@ -379,28 +425,39 @@ export default function Scanner() {
           // Show scanner interface
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
-              <TabsTrigger value="camera">Camera</TabsTrigger>
-              <TabsTrigger value="upload">Upload</TabsTrigger>
-              <TabsTrigger value="search">Search</TabsTrigger>
+              <TabsTrigger value="camera">
+                <Camera className="h-4 w-4 mr-2" />
+                Camera
+              </TabsTrigger>
+              <TabsTrigger value="upload">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload
+              </TabsTrigger>
+              <TabsTrigger value="search">
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </TabsTrigger>
             </TabsList>
 
             {/* Camera tab */}
             <TabsContent value="camera" className="mt-6 space-y-4">
-              {!cameraActive && (
+              {status === "idle" && !cameraActive && !previewImage && (
                 <Card>
-                  <CardContent className="flex flex-col items-center gap-4 py-6">
-                    <Camera className="h-10 w-10 text-primary" />
-                    <p className="text-sm text-muted-foreground text-center">
-                      Use your camera to capture the full front cover of the comic.
+                  <CardContent className="flex flex-col items-center gap-4 py-8">
+                    <Camera className="h-16 w-16 text-primary" />
+                    <h3 className="text-xl font-semibold">Use your camera</h3>
+                    <p className="text-sm text-muted-foreground text-center max-w-md">
+                      Use your camera to capture the full front cover.
                     </p>
                     <Button onClick={startCamera} size="lg">
-                      Enable Camera
+                      <Camera className="mr-2 h-5 w-5" />
+                      Open Camera
                     </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {cameraActive && (
+              {cameraActive && !previewImage && (
                 <Card>
                   <CardContent className="p-4">
                     <video
@@ -411,18 +468,9 @@ export default function Scanner() {
                     />
                     <canvas ref={canvasRef} className="hidden" />
                     <div className="flex gap-2 mt-4">
-                      <Button onClick={capturePhoto} className="flex-1" size="lg" disabled={loading}>
-                        {loading ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Camera className="mr-2 h-5 w-5" />
-                            Capture Photo
-                          </>
-                        )}
+                      <Button onClick={capturePhoto} className="flex-1" size="lg">
+                        <Camera className="mr-2 h-5 w-5" />
+                        Capture Photo
                       </Button>
                       <Button onClick={stopCamera} variant="outline" size="lg">
                         <X className="h-5 w-5" />
@@ -431,45 +479,118 @@ export default function Scanner() {
                   </CardContent>
                 </Card>
               )}
+
+              {status === "previewing" && previewImage && (
+                <Card>
+                  <CardContent className="p-6 space-y-4">
+                    <h3 className="text-xl font-semibold text-center">Preview</h3>
+                    <div className="max-w-md mx-auto">
+                      <img
+                        src={previewImage}
+                        alt="Preview"
+                        className="w-full rounded-lg border-2 border-border"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={handleRetake} className="flex-1">
+                        Retake
+                      </Button>
+                      <Button onClick={handleUsePhoto} className="flex-1">
+                        Use This Photo
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {status === "recognizing" && (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                    <h3 className="text-xl font-semibold">Identifying Comic...</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Analyzing cover and searching database
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Upload tab */}
             <TabsContent value="upload" className="mt-6 space-y-4">
-              <Card>
-                <CardContent className="flex flex-col items-center gap-4 py-6">
-                  <Upload className="h-10 w-10 text-primary" />
-                  <p className="text-sm text-muted-foreground text-center">
-                    Upload a clear photo of the comic cover.
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                  />
-                  <Button
-                    size="lg"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Choose Image"
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
+              {status === "idle" && !previewImage && (
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-4 py-8">
+                    <Upload className="h-16 w-16 text-primary" />
+                    <h3 className="text-xl font-semibold">Upload a photo</h3>
+                    <p className="text-sm text-muted-foreground text-center max-w-md">
+                      Upload a clear photo or scan of the front cover.
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                    />
+                    <Button
+                      size="lg"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="mr-2 h-5 w-5" />
+                      Choose File
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {status === "previewing" && previewImage && (
+                <Card>
+                  <CardContent className="p-6 space-y-4">
+                    <h3 className="text-xl font-semibold text-center">Preview</h3>
+                    <div className="max-w-md mx-auto">
+                      <img
+                        src={previewImage}
+                        alt="Preview"
+                        className="w-full rounded-lg border-2 border-border"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={handleChooseDifferent} className="flex-1">
+                        Choose Different Image
+                      </Button>
+                      <Button onClick={handleContinue} className="flex-1">
+                        Continue
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {status === "recognizing" && (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                    <h3 className="text-xl font-semibold">Identifying Comic...</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Analyzing cover and searching database
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
-            {/* Manual search tab */}
+            {/* Search tab */}
             <TabsContent value="search" className="mt-6 space-y-4">
               <Card>
                 <CardContent className="flex flex-col gap-4 py-6">
+                  <div className="text-center space-y-2">
+                    <Search className="h-16 w-16 mx-auto text-primary" />
+                    <h3 className="text-xl font-semibold">Search for a comic</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Find your comic by title, series, or issue number.
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     <Input
                       placeholder="e.g., 'Amazing Spider-Man 300'"
@@ -484,18 +605,54 @@ export default function Scanner() {
                       size="lg"
                     >
                       {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Searching...
-                        </>
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <>
-                          <Search className="mr-2 h-4 w-4" />
-                          Search
-                        </>
+                        <Search className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
+
+                  {searchResults.length > 0 && (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto mt-4">
+                      {searchResults.map((result, index) => {
+                        const title = result.title || result.volume || result.volumeName || "";
+                        const coverUrl = result.image || result.cover_image || result.coverUrl;
+                        
+                        return (
+                          <Card key={index} className="hover:border-primary/50 transition-colors">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-4">
+                                {coverUrl && (
+                                  <img
+                                    src={coverUrl}
+                                    alt={title}
+                                    className="w-16 h-24 object-cover rounded"
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold truncate">
+                                    {title}
+                                    {result.issue_number && ` #${result.issue_number}`}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {result.publisher}
+                                    {result.year && ` • ${result.year}`}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUseSearchResult(result)}
+                                >
+                                  Use This Issue
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
