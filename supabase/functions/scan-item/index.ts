@@ -83,7 +83,8 @@ async function checkRateLimit(supabase: any, userId: string | null, ipAddress: s
 }
 
 serve(async (req) => {
-  console.log('Function invoked:', req.method, req.url);
+  const startTime = Date.now();
+  console.log('[SCAN-ITEM] Function invoked:', req.method, req.url);
   
   // Handle OPTIONS for CORS preflight
   if (req.method === 'OPTIONS') {
@@ -92,7 +93,7 @@ serve(async (req) => {
 
   try {
     if (req.method !== "POST") {
-      console.log('Method not POST');
+      console.log('[SCAN-ITEM] Method not POST');
       return new Response(JSON.stringify({ ok: false, error: "Method not allowed" }), {
         status: 405,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -134,23 +135,35 @@ serve(async (req) => {
     try {
       body = await req.json();
     } catch (e) {
-      console.error('Failed to parse request body:', e);
+      console.error('[SCAN-ITEM] Failed to parse request body:', e);
       return new Response(
         JSON.stringify({ ok: false, error: "No scan image received. Please try again." }), 
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log('Body received:', { hasImage: !!body.imageBase64, hasQuery: !!body.textQuery });
-    const { imageBase64, textQuery } = body;
+    console.log('[SCAN-ITEM] Body received:', { 
+      hasImage: !!body.imageBase64, 
+      hasQuery: !!body.textQuery,
+      hasBarcode: !!body.barcodeData,
+      imageSize: body.imageBase64 ? body.imageBase64.length : 0
+    });
+    const { imageBase64, textQuery, barcodeData } = body;
     
-    // Accept imageBase64 or textQuery
-    if (!imageBase64 && !textQuery) {
-      console.log('No image or text query provided');
+    // Accept imageBase64, textQuery, or barcodeData
+    if (!imageBase64 && !textQuery && !barcodeData) {
+      console.log('[SCAN-ITEM] No image, text query, or barcode provided');
       return new Response(
         JSON.stringify({ ok: false, error: "No scan data received. Please try again." }), 
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Priority 1: If barcode/cert number provided, search by that first
+    if (barcodeData) {
+      console.log('[SCAN-ITEM] Barcode detected:', barcodeData);
+      // TODO: Implement cert number search in ComicVine API
+      // For now, treat it as a text query
     }
 
     // Compute SHA-256 hash for caching (only if image provided)
@@ -204,21 +217,22 @@ serve(async (req) => {
     } else if (imageBase64) {
       // Priority 3: Otherwise, perform server-side OCR with Google Vision
       const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
-      console.log('Keys check:', { vision: !!GOOGLE_VISION_API_KEY, comicvine: !!COMICVINE_API_KEY });
+      console.log('[SCAN-ITEM] Keys check:', { vision: !!GOOGLE_VISION_API_KEY, comicvine: !!COMICVINE_API_KEY });
 
       if (!GOOGLE_VISION_API_KEY || !COMICVINE_API_KEY) {
-        console.log('Missing secrets');
-        return new Response(JSON.stringify({ ok: false, error: "Missing API secrets – check Cloud → Secrets" }), {
+        console.error('[SCAN-ITEM] Missing API keys');
+        return new Response(JSON.stringify({ ok: false, error: "Server configuration error. Please contact support." }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       // Resize image to 800px max for faster OCR
-      console.log('Resizing image for OCR...');
+      console.log('[SCAN-ITEM] Resizing image for OCR...');
       const resizedImage = await resizeImageForOCR(imageBase64);
 
-      console.log('Calling Google Vision...');
+      console.log('[SCAN-ITEM] Calling Google Vision API...');
+      const visionStartTime = Date.now();
       const visionRes = await fetch(
         `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
         {
@@ -233,15 +247,16 @@ serve(async (req) => {
         },
       );
 
-      console.log('Vision response status:', visionRes.status);
+      const visionTime = Date.now() - visionStartTime;
+      console.log('[SCAN-ITEM] Vision response status:', visionRes.status, `(${visionTime}ms)`);
       const visionData = await visionRes.json();
       if (!visionRes.ok || visionData.error) {
-        console.error('Vision error:', visionData.error);
-        throw new Error(visionData.error?.message ?? "Vision API failed");
+        console.error('[SCAN-ITEM] Vision API error:', visionData.error);
+        throw new Error(visionData.error?.message ?? "OCR processing failed");
       }
 
       ocrText = visionData.responses?.[0]?.fullTextAnnotation?.text ?? "";
-      console.log('OCR raw text:', ocrText);
+      console.log('[SCAN-ITEM] OCR extracted text:', ocrText.substring(0, 200));
     }
     
     // Extract structured data from OCR
@@ -276,7 +291,10 @@ serve(async (req) => {
     if (issue_number) queryParts.push(`#${issue_number}`);
     const cleanQuery = queryParts.join(' ');
     
-    console.log('Extracted structured data:', { series_title, issue_number, year, cleanQuery });
+    console.log('[SCAN-ITEM] Extracted data:', { series_title, issue_number, year, cleanQuery });
+    
+    console.log('[SCAN-ITEM] Querying ComicVine API...');
+    const cvStartTime = Date.now();
     const cvRes = await fetch(
       `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleanQuery)}&resources=issue&field_list=name,issue_number,volume,cover_date,image,deck&limit=10`,
       {
@@ -286,9 +304,10 @@ serve(async (req) => {
       }
     );
 
-    console.log('ComicVine response status:', cvRes.status);
+    const cvTime = Date.now() - cvStartTime;
+    console.log('[SCAN-ITEM] ComicVine response:', cvRes.status, `(${cvTime}ms)`);
     const cvData = await cvRes.json();
-    console.log('ComicVine data:', JSON.stringify(cvData).substring(0, 200));
+    console.log('[SCAN-ITEM] ComicVine results count:', cvData.results?.length ?? 0);
     
     // ComicVine uses status_code: 1 for success (not error field)
     if (!cvRes.ok || cvData.status_code !== 1) {
@@ -309,7 +328,8 @@ serve(async (req) => {
         description: i.deck ?? "", // Include description for validation
       }));
 
-    console.log('Success – results count:', results.length);
+    const totalTime = Date.now() - startTime;
+    console.log('[SCAN-ITEM] Success! Results:', results.length, `Total time: ${totalTime}ms`);
 
     // Store in cache (only if we have an image hash)
     if (imageSha256) {
@@ -319,7 +339,7 @@ serve(async (req) => {
         ocr: ocrText,
         comicvine_results: results,
       }, { onConflict: 'image_sha256' });
-      console.log('Cached result for future requests');
+      console.log('[SCAN-ITEM] Cached result for future requests');
     }
 
     return new Response(
@@ -330,12 +350,16 @@ serve(async (req) => {
         ocrText: ocrText, // Raw OCR for debug
         cvQuery: cleanQuery, // Query sent to ComicVine for debug
         cached: false,
+        timing: { total: totalTime, vision: visionTime || 0, comicvine: cvTime || 0 }
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error('Function error:', err);
+    console.error('[SCAN-ITEM] Function error:', err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    const totalTime = Date.now() - startTime;
+    console.error('[SCAN-ITEM] Failed after', totalTime, 'ms');
+    
     return new Response(
       JSON.stringify({ 
         ok: false, 

@@ -193,6 +193,20 @@ export default function Scanner() {
     );
 
     try {
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to use the scanner",
+          variant: "destructive"
+        });
+        setLoading(false);
+        setStatus("idle");
+        setDebugData(prev => ({ ...prev, status: 'error', errorMessage: 'Not authenticated' }));
+        return;
+      }
+
       // Step 1: Upload image to Storage first (preserve photo)
       toast({
         title: "📤 Uploading photo...",
