@@ -170,11 +170,7 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
   };
 
   const handleClick = () => {
-    if (showCamera) {
-      stopCamera();
-    } else {
-      fileInputRef.current?.click();
-    }
+    startCamera();
   };
 
   return (
@@ -212,7 +208,18 @@ export function ScanButton({ onScanResult }: ScanButtonProps) {
                       <Camera className="mr-2 h-5 w-5" />
                       Take Photo
                     </Button>
-                    <Button onClick={stopCamera} variant="outline" size="lg">
+                    <Button 
+                      onClick={() => {
+                        stopCamera();
+                        fileInputRef.current?.click();
+                      }} 
+                      variant="outline" 
+                      className="flex-1"
+                      size="lg"
+                    >
+                      Upload
+                    </Button>
+                    <Button onClick={stopCamera} variant="outline" size="icon">
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
