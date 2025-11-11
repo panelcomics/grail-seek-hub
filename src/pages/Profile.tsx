@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ShippingPresets } from "@/components/ShippingPresets";
+import { ProfileEditForm } from "@/components/ProfileEditForm";
+import { UserAvatar } from "@/components/UserAvatar";
 
 interface UserBadge {
   id: string;
@@ -79,13 +81,13 @@ export default function Profile() {
       // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('verified_artist, display_name, bio, profile_image_url')
+        .select('verified_artist, username, bio, profile_image_url')
         .eq('user_id', user.id)
         .single();
 
       if (profileError) throw profileError;
       setProfile(profileData);
-      setDisplayName(profileData.display_name || "");
+      setDisplayName(profileData.username || "");
       setBio(profileData.bio || "");
       setProfileImageUrl(profileData.profile_image_url || "");
 
@@ -364,92 +366,7 @@ export default function Profile() {
           </TabsList>
 
           <TabsContent value="edit-profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Edit Profile</CardTitle>
-                <CardDescription>Update your public seller profile information</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleUpdateProfile} className="space-y-6">
-                  <div className="space-y-4">
-                    <Label>Profile Image</Label>
-                    <div className="flex items-center gap-6">
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden border-4 border-background shadow-lg">
-                        {profileImageUrl ? (
-                          <img
-                            src={profileImageUrl}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-3xl font-bold text-primary">
-                            {displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <Input
-                          id="profile-image"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          disabled={uploadingImage}
-                          className="cursor-pointer"
-                        />
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Upload a profile picture (max 5MB). JPG, PNG, or WEBP.
-                        </p>
-                        {uploadingImage && (
-                          <p className="text-xs text-primary mt-1 flex items-center gap-2">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Uploading...
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="display-name">Seller Name / Display Name</Label>
-                    <Input
-                      id="display-name"
-                      type="text"
-                      placeholder="Your shop name"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      This is how your name appears to buyers. If left blank, a shortened version of your email will be used.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      placeholder="Tell buyers about yourself and your collection..."
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-
-                  <Button type="submit" disabled={saving}>
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <User className="mr-2 h-4 w-4" />
-                        Save Profile
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+            <ProfileEditForm userId={user.id} />
           </TabsContent>
 
           <TabsContent value="account">
