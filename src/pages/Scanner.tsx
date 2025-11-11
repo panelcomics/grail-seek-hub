@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
 import Tesseract from "tesseract.js";
+import { preprocessSlabImage } from "@/lib/imagePreprocessing";
+import { parseSlabText, buildSlabQuery } from "@/lib/slabTextParser";
 
 interface PrefillData {
   title?: string;
@@ -59,6 +61,9 @@ export default function Scanner() {
     confidenceScore: null as number | null,
     responseTimeMs: null as number | null,
     errorMessage: null as string | null,
+    rawOcrText: null as string | null,
+    cvQuery: null as string | null,
+    slabData: null as any,
   });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -157,7 +162,7 @@ export default function Scanner() {
     identifyFromImage(previewImage, "upload");
   };
 
-  // Recognition pipeline with client-side OCR
+  // Recognition pipeline with client-side OCR + preprocessing
   const identifyFromImage = async (imageData: string, method: "camera" | "upload") => {
     if (!imageData) return;
 
@@ -174,16 +179,28 @@ export default function Scanner() {
       confidenceScore: null,
       responseTimeMs: null,
       errorMessage: null,
+      rawOcrText: null,
+      cvQuery: null,
+      slabData: null,
     });
 
     try {
-      // Step 1: Client-side OCR with Tesseract.js
+      // Step 1: Preprocess image for slabbed comics
       toast({
-        title: "Extracting text...",
-        description: "Analyzing your photo",
+        title: "Preprocessing image...",
+        description: "Detecting slab edges and enhancing",
       });
 
-      const { data: { text } } = await Tesseract.recognize(imageData, 'eng', {
+      const preprocessedImage = await preprocessSlabImage(imageData);
+      console.log('Image preprocessed for OCR');
+
+      // Step 2: Client-side OCR with Tesseract.js
+      toast({
+        title: "Extracting text...",
+        description: "Analyzing slab labels and cover",
+      });
+
+      const { data: { text } } = await Tesseract.recognize(preprocessedImage, 'eng', {
         logger: (m) => {
           if (m.status === 'recognizing text') {
             console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
@@ -191,17 +208,17 @@ export default function Scanner() {
         },
       });
 
-      console.log('Tesseract extracted text:', text);
+      console.log('Tesseract raw OCR text:', text);
 
-      // Step 2: Clean extracted text for better query
-      const cleanText = text.replace(/\n/g, ' ').trim();
-      const issueMatch = cleanText.match(/#\s*(\d+)/i);
-      const titleGuess = cleanText.split('#')[0].trim().slice(0, 50);
-      const ocrQuery = `${titleGuess}${issueMatch ? ' ' + issueMatch[0] : ''}`.trim();
+      // Step 3: Parse slab-specific data (CGC/CBCS labels)
+      const slabData = parseSlabText(text);
+      console.log('Parsed slab data:', slabData);
 
-      console.log('OCR Query:', ocrQuery);
+      // Step 4: Build optimized ComicVine query
+      const ocrQuery = buildSlabQuery(slabData, text);
+      console.log('ComicVine query:', ocrQuery);
 
-      // Step 3: Send OCR text to scan-item edge function (secure API key)
+      // Step 5: Send OCR query to scan-item edge function (secure API key)
       toast({
         title: "Searching database...",
         description: "Looking for matches",
@@ -227,6 +244,9 @@ export default function Scanner() {
           confidenceScore: 0,
           responseTimeMs: responseTime,
           errorMessage: "No match found",
+          rawOcrText: text,
+          cvQuery: ocrQuery,
+          slabData,
         });
         setStatus("manual");
         setPrefillData({});
@@ -259,6 +279,30 @@ export default function Scanner() {
       setPrefillData(prefill);
       setConfidence(calculatedConfidence);
       
+      // Step 6: Fetch eBay pricing if we have good match
+      if (calculatedConfidence >= 65 && title && issueNumber) {
+        try {
+          const { data: pricingData } = await supabase.functions.invoke("ebay-pricing", {
+            body: { 
+              title, 
+              issueNumber, 
+              grade: slabData.grade 
+            },
+          });
+          
+          if (pricingData?.ok && pricingData.avgPrice) {
+            console.log('eBay pricing:', pricingData);
+            // Store pricing in prefill for display in form
+            prefill.description = prefill.description 
+              ? `${prefill.description}\n\nRecent eBay sales avg: $${pricingData.avgPrice.toFixed(2)}`
+              : `Recent eBay sales avg: $${pricingData.avgPrice.toFixed(2)}`;
+            setPrefillData(prefill);
+          }
+        } catch (err) {
+          console.error('eBay pricing failed (non-fatal):', err);
+        }
+      }
+      
       // Check confidence threshold (65% as specified)
       if (calculatedConfidence >= 65 && title && issueNumber) {
         setStatus("prefilled");
@@ -269,6 +313,9 @@ export default function Scanner() {
           confidenceScore: calculatedConfidence,
           responseTimeMs: responseTime,
           errorMessage: null,
+          rawOcrText: text,
+          cvQuery: ocrQuery,
+          slabData,
         });
         toast({
           title: "Match found!",
@@ -283,6 +330,9 @@ export default function Scanner() {
           confidenceScore: calculatedConfidence,
           responseTimeMs: responseTime,
           errorMessage: `Low confidence (${calculatedConfidence}%)`,
+          rawOcrText: text,
+          cvQuery: ocrQuery,
+          slabData,
         });
         toast({
           title: "Low confidence match",
@@ -301,6 +351,9 @@ export default function Scanner() {
         confidenceScore: null,
         responseTimeMs: responseTime,
         errorMessage: err.message || "Unexpected error",
+        rawOcrText: null,
+        cvQuery: null,
+        slabData: null,
       });
 
       setStatus("manual");

@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.ebay-search]
 verify_jwt = false
 
+[functions.ebay-pricing]
+verify_jwt = false
+
 [functions.comic-scanner]
 verify_jwt = false
 

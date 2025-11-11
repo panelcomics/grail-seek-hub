@@ -247,7 +247,7 @@ serve(async (req) => {
     
     console.log('Extracted structured data:', { series_title, issue_number, year, cleanQuery });
     const cvRes = await fetch(
-      `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleanQuery)}&resources=issue&limit=10`,
+      `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleanQuery)}&resources=issue&field_list=name,issue_number,volume,cover_date,image,deck&limit=10`,
       {
         headers: {
           "User-Agent": "GrailSeeker/1.0 (panelcomics.com)",
@@ -275,6 +275,7 @@ serve(async (req) => {
         volume: i.volume.name,
         cover_date: i.cover_date ?? "",
         image: i.image?.small_url ?? i.image?.thumb_url ?? null,
+        description: i.deck ?? "", // Include description for validation
       }));
 
     console.log('Success – results count:', results.length);
