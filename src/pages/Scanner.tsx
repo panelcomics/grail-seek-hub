@@ -33,8 +33,8 @@ export default function Scanner() {
   const [comic, setComic] = useState<ComicData | null>(null);
   const [loading, setLoading] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"scan" | "upload" | "search">("scan");
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -54,6 +54,8 @@ export default function Scanner() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+        // Explicitly play the video
+        await videoRef.current.play();
         setCameraActive(true);
       }
     } catch (error) {
@@ -84,14 +86,14 @@ export default function Scanner() {
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = canvas.toDataURL("image/jpeg");
-        setCapturedImage(imageData);
+        const capturedImageData = canvas.toDataURL("image/jpeg");
+        setImageData(capturedImageData);
         stopCamera();
         toast({
           title: "Photo captured!",
           description: "Processing your comic now...",
         });
-        identifyFromImage(imageData);
+        identifyFromImage(capturedImageData);
       }
     }
   };
@@ -102,13 +104,13 @@ export default function Scanner() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const imageData = e.target?.result as string;
-      setCapturedImage(imageData);
+      const uploadedImageData = e.target?.result as string;
+      setImageData(uploadedImageData);
       toast({
         title: "Image uploaded!",
         description: "Processing your comic now...",
       });
-      identifyFromImage(imageData);
+      identifyFromImage(uploadedImageData);
     };
     reader.readAsDataURL(file);
   };
@@ -312,14 +314,14 @@ export default function Scanner() {
       <section className="container mx-auto px-4 py-8 flex-1">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
-            <TabsTrigger value="scan">Scan</TabsTrigger>
+            <TabsTrigger value="camera">Camera</TabsTrigger>
             <TabsTrigger value="upload">Upload</TabsTrigger>
             <TabsTrigger value="search">Search</TabsTrigger>
           </TabsList>
 
-          {/* Scan tab */}
-          <TabsContent value="scan" className="mt-6 space-y-4">
-            {!cameraActive && !capturedImage && (
+          {/* Camera tab */}
+          <TabsContent value="camera" className="mt-6 space-y-4">
+            {!cameraActive && !imageData && (
               <Card>
                 <CardContent className="flex flex-col items-center gap-4 py-6">
                   <Camera className="h-10 w-10 text-primary" />
@@ -357,24 +359,24 @@ export default function Scanner() {
               </Card>
             )}
 
-            {capturedImage && !cameraActive && (
+            {imageData && !cameraActive && (
               <Card>
                 <CardContent className="p-4">
                   <img
-                    src={capturedImage}
+                    src={imageData}
                     alt="Captured"
                     className="w-full rounded-lg mb-4"
                   />
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => setCapturedImage(null)}
+                      onClick={() => setImageData(null)}
                       variant="outline"
                       className="flex-1"
                     >
                       Retake Photo
                     </Button>
                     <Button
-                      onClick={() => identifyFromImage(capturedImage)}
+                      onClick={() => identifyFromImage(imageData)}
                       disabled={loading}
                       className="flex-1"
                     >
