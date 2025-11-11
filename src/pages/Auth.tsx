@@ -69,7 +69,7 @@ const Auth = () => {
       }
 
       await logAuthEvent('login_success', { email: signInEmail });
-      window.location.href = "/";
+      navigate("/");
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -138,7 +138,7 @@ const Auth = () => {
       
       // If user is automatically signed in (auto-confirm enabled), redirect
       if (data.session) {
-        window.location.href = "/";
+        navigate("/");
       } else {
         // Only show toast if email verification is required
         toast({
