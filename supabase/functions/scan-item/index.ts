@@ -172,39 +172,39 @@ serve(async (req) => {
       imageSha256 = await computeSHA256(imageBase64);
       console.log('Image SHA-256:', imageSha256);
 
-      // Check cache (7 days TTL)
-      const cacheTTLDays = 7;
-      const cacheMinDate = new Date(Date.now() - cacheTTLDays * 24 * 60 * 60 * 1000).toISOString();
-      const { data: cachedResult } = await supabase
-        .from('scan_cache')
-        .select('*')
-        .eq('image_sha256', imageSha256)
-        .gte('created_at', cacheMinDate)
-        .single();
+      // CACHE DISABLED FOR TESTING - Always process fresh
+      // const cacheTTLDays = 7;
+      // const cacheMinDate = new Date(Date.now() - cacheTTLDays * 24 * 60 * 60 * 1000).toISOString();
+      // const { data: cachedResult } = await supabase
+      //   .from('scan_cache')
+      //   .select('*')
+      //   .eq('image_sha256', imageSha256)
+      //   .gte('created_at', cacheMinDate)
+      //   .single();
 
-      if (cachedResult) {
-        console.log('Cache hit - returning cached result');
-        const cachedOcr = cachedResult.ocr || "";
-        const issueMatch = cachedOcr.match(/#?\s*(\d+)/) || cachedOcr.match(/No\.?\s*(\d+)/i);
-        const issue_number = issueMatch ? issueMatch[1] : "";
-        const yearMatch = cachedOcr.match(/\b(19\d{2}|20\d{2})\b/);
-        const year = yearMatch ? parseInt(yearMatch[1]) : null;
-        
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            extracted: { series_title: "", issue_number, year },
-            comicvineResults: cachedResult.comicvine_results || [],
-            ocrText: cachedOcr, // Raw OCR for debug
-            cvQuery: '', // Not available from cache
-            cached: true,
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      // if (cachedResult) {
+      //   console.log('Cache hit - returning cached result');
+      //   const cachedOcr = cachedResult.ocr || "";
+      //   const issueMatch = cachedOcr.match(/#?\s*(\d+)/) || cachedOcr.match(/No\.?\s*(\d+)/i);
+      //   const issue_number = issueMatch ? issueMatch[1] : "";
+      //   const yearMatch = cachedOcr.match(/\b(19\d{2}|20\d{2})\b/);
+      //   const year = yearMatch ? parseInt(yearMatch[1]) : null;
+      //   
+      //   return new Response(
+      //     JSON.stringify({
+      //       ok: true,
+      //       extracted: { series_title: "", issue_number, year },
+      //       comicvineResults: cachedResult.comicvine_results || [],
+      //       ocrText: cachedOcr, // Raw OCR for debug
+      //       cvQuery: '', // Not available from cache
+      //       cached: true,
+      //     }),
+      //     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      //   );
+      // }
     }
 
-    console.log('Cache miss - processing request');
+    console.log('[SCAN-ITEM] Processing fresh scan (cache disabled)');
 
     const COMICVINE_API_KEY = Deno.env.get("COMICVINE_API_KEY");
     const GOOGLE_VISION_API_KEY = Deno.env.get("GOOGLE_VISION_API_KEY");
@@ -409,16 +409,16 @@ serve(async (req) => {
     const totalTime = Date.now() - startTime;
     console.log('[SCAN-ITEM] Success! Results:', results.length, `Total time: ${totalTime}ms`);
 
-    // Store in cache (only if we have an image hash)
-    if (imageSha256) {
-      await supabase.from('scan_cache').upsert({
-        image_sha256: imageSha256,
-        user_id: userId,
-        ocr: ocrText,
-        comicvine_results: results,
-      }, { onConflict: 'image_sha256' });
-      console.log('[SCAN-ITEM] Cached result for future requests');
-    }
+    // CACHE DISABLED FOR TESTING
+    // if (imageSha256) {
+    //   await supabase.from('scan_cache').upsert({
+    //     image_sha256: imageSha256,
+    //     user_id: userId,
+    //     ocr: ocrText,
+    //     comicvine_results: results,
+    //   }, { onConflict: 'image_sha256' });
+    //   console.log('[SCAN-ITEM] Cached result for future requests');
+    // }
 
     return new Response(
       JSON.stringify({
