@@ -245,82 +245,31 @@ serve(async (req) => {
       }
     }
     
-    // Extract structured data from OCR - optimized for CGC slab format
-    // Strategy: Look for "Title #Issue" pattern, avoiding publisher names
+    // Extract structured data from OCR - optimized parsing
     
     // Extract grade (appears BEFORE CGC/CBCS keyword)
     const gradeMatch = ocrText.match(/(10\.0|9\.[0-9]|[0-8]\.[0-9]|[0-9]\.5)\s+[\w\s-]+?\s+(CGC|CBCS)/i);
     const grade = gradeMatch ? gradeMatch[1] : "";
     const gradingCompany = gradeMatch ? gradeMatch[2].toUpperCase() : "";
     
-    // Extract issue number first (most reliable anchor)
-    const issueMatch = ocrText.match(/#\s*(\d+)/i);
-    const issue_number = issueMatch ? issueMatch[1] : "";
+    // Extract title - prioritize "Marvel Super Heroes" pattern and special titles
+    const titleMatch = ocrText.match(/(?:Marvel Super Heroes )?(.+?) #\d+/i);
+    const series_title = titleMatch?.[1]?.trim() || ocrText.match(/G\.I\.\s*JOE/i)?.[0] || '';
     
-    // Extract title - multiple strategies
-    let series_title = "";
-    
-    // Strategy 1: Look for title after CGC label (e.g., "CGC UNIVERSAL GRADE Batman #232")
-    const cgcTitleMatch = ocrText.match(/(?:CGC|CBCS)\s+(?:UNIVERSAL GRADE|SIGNATURE SERIES|RESTORED|QUALIFIED)\s+([A-Za-z][A-Za-z\s\.&'-]+?)\s+#\d+/i);
-    if (cgcTitleMatch) {
-      series_title = cgcTitleMatch[1].trim();
-    }
-    
-    // Strategy 2: Look for known titles with special characters (G.I. JOE, etc.)
-    if (!series_title) {
-      const specialTitleMatch = ocrText.match(/\b(G\.I\.\s*JOE|X-MEN|SPIDER-MAN|TEENAGE MUTANT NINJA TURTLES)\b/i);
-      if (specialTitleMatch) {
-        series_title = specialTitleMatch[1];
-      }
-    }
-    
-    // Strategy 3: Generic "Title #Issue" pattern (excluding known publishers)
-    if (!series_title && issue_number) {
-      // Match title before #issue, but exclude common publisher names
-      const genericMatch = ocrText.match(/([A-Za-z][A-Za-z\s\.&'-]{2,}?)\s+#\d+/);
-      if (genericMatch) {
-        const candidate = genericMatch[1].trim();
-        // Exclude if it's just a publisher name
-        if (!['Image', 'Marvel', 'DC', 'D.C.', 'Dark Horse', 'IDW'].some(pub => 
-          candidate.toLowerCase() === pub.toLowerCase()
-        )) {
-          series_title = candidate;
-        }
-      }
-    }
-    
-    // Clean up extracted title (remove CGC label artifacts)
-    series_title = series_title
-      .replace(/CGC.*?GRADE/gi, '')
-      .replace(/AUTHENTIC.*?Autograph/gi, '')
-      .replace(/JSA/gi, '')
-      .trim();
+    // Extract issue number
+    const issue_number = ocrText.match(/#\s*(\d+)/i)?.[1] || '';
     
     // Extract publisher
-    let publisher = "";
-    if (ocrText.match(/\bMarvel\b/i)) {
-      publisher = "Marvel";
-    } else if (ocrText.match(/\bD\.C\.|DC\b/i)) {
-      publisher = "DC";
-    } else if (ocrText.match(/\bImage\b/i)) {
-      publisher = "Image";
-    } else if (ocrText.match(/\bDark Horse\b/i)) {
-      publisher = "Dark Horse";
-    } else if (ocrText.match(/\bIDW\b/i)) {
-      publisher = "IDW";
-    }
+    const publisher = ocrText.includes('Marvel') ? 'Marvel' 
+                     : ocrText.includes('Image') ? 'Image' 
+                     : ocrText.includes('DC') || ocrText.includes('D.C.') ? 'DC' 
+                     : '';
     
     // Extract year from date format "M/YY" or "MM/YYYY" or just "YYYY"
     let year: number | null = null;
-    const dateMatch = ocrText.match(/\b(\d{1,2})\/(\d{2,4})\b/);
+    const dateMatch = ocrText.match(/,\s*(\d{4})/);
     if (dateMatch) {
-      let yearStr = dateMatch[2];
-      // Convert 2-digit year to 4-digit (71 -> 1971, 84 -> 1984)
-      if (yearStr.length === 2) {
-        const twoDigit = parseInt(yearStr);
-        yearStr = twoDigit >= 38 ? `19${yearStr}` : `20${yearStr}`;
-      }
-      year = parseInt(yearStr);
+      year = parseInt(dateMatch[1]);
     } else {
       // Fallback: Look for standalone 4-digit year
       const yearMatch = ocrText.match(/\b(19\d{2}|20\d{2})\b/);
