@@ -317,7 +317,8 @@ export default function Scanner() {
         title: results[0].volume || "",
         issueNumber: results[0].issue_number || "",
         grade: rawOcrText.match(/CGC\s+([\d.]+)/i)?.[1] || 
-               rawOcrText.match(/CBCS\s+([\d.]+)/i)?.[1] || "",
+               rawOcrText.match(/CBCS\s+([\d.]+)/i)?.[1] ||
+               rawOcrText.match(/\b(10\.0|9\.[0-9]|[0-8]\.[0-9])\b/)?.[1] || "", // Standalone grade numbers
         certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
         gradingCompany: rawOcrText.match(/CGC|CBCS/i)?.[0] || "",
       };
