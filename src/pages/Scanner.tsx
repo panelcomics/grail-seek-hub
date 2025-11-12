@@ -11,6 +11,9 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
+import { uploadViaProxy } from "@/lib/uploadImage";
+import { withTimeout } from "@/lib/withTimeout";
+import { toast as sonnerToast } from "sonner";
 
 async function testExternalUpload() {
   try {
@@ -271,151 +274,115 @@ export default function Scanner() {
   const identifyFromImage = async (imageData: string, method: "camera" | "upload", retryCount = 0) => {
     if (!imageData) return;
 
-    const startTime = Date.now();
     const getTimestamp = () => `[Scanner ${new Date().toISOString()}]`;
     
-    console.log(`${getTimestamp()} START identifyFromImage - method: ${method}, retry: ${retryCount}`);
-    
-    // Create AbortController for 45s timeout
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.error(`${getTimestamp()} TIMEOUT - aborting after 45s`);
-      abortController.abort();
-    }, 45000);
-
-    setLoading(true);
-    setStatus("recognizing");
-    setPrefillData(null);
-    setConfidence(null);
-
-    setDebugData({
-      status: "processing",
-      method,
-      apiHit: null,
-      confidenceScore: null,
-      responseTimeMs: null,
-      ocrTimeMs: null,
-      errorMessage: null,
-      rawOcrText: null,
-      cvQuery: null,
-      slabData: null,
-      ebayData: null,
-      retryAttempt: retryCount,
-    });
+    console.log(`${getTimestamp()} 📸 Starting scanner flow...`, { method, retryCount });
 
     try {
-      // Check if user is authenticated
-      console.log(`${getTimestamp()} Checking authentication...`);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        console.error(`${getTimestamp()} ERROR: Not authenticated`);
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to use the scanner",
-          variant: "destructive",
-        });
-        setLoading(false);
-        setStatus("idle");
-        setDebugData((prev) => ({ ...prev, status: "error", errorMessage: "Not authenticated" }));
-        return;
-      }
-      console.log(`${getTimestamp()} User authenticated: ${user.id}`);
+      setLoading(true);
+      setStatus("recognizing");
+      setPrefillData(null);
+      setConfidence(null);
 
-      // Step 1: Upload image to Storage via proxy (preserve photo)
+      setDebugData({
+        status: "processing",
+        method,
+        apiHit: null,
+        confidenceScore: null,
+        responseTimeMs: null,
+        ocrTimeMs: null,
+        errorMessage: null,
+        rawOcrText: null,
+        cvQuery: null,
+        slabData: null,
+        ebayData: null,
+        retryAttempt: retryCount,
+      });
+
+      // Check authentication
+      console.log(`${getTimestamp()} Checking authentication...`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error(`${getTimestamp()} ERROR: Not authenticated`);
+        throw new Error("Please sign in to use the scanner");
+      }
+      console.log(`${getTimestamp()} User authenticated`);
+
+      // Step 1: Upload via proxy with 20s timeout
       const base64Data = imageData.split(",")[1];
       const binaryData = atob(base64Data);
       const bytes = new Uint8Array(binaryData.length);
       for (let i = 0; i < binaryData.length; i++) {
         bytes[i] = binaryData.charCodeAt(i);
       }
-      const file = new File([bytes], `comic-scan.jpg`, { type: "image/jpeg" });
+      const file = new File([bytes], `comic-scan-${Date.now()}.jpg`, { type: "image/jpeg" });
       
-      console.log(`${getTimestamp()} Preparing upload - file size: ${file.size} bytes, type: ${file.type}`);
-      
-      toast({
-        title: "📤 Uploading photo...",
-        description: "Securing your image",
+      console.log(`${getTimestamp()} ⏫ Uploading via proxy...`, {
+        fileSize: file.size,
+        fileType: file.type
       });
 
-      const formData = new FormData();
-      formData.append("file", file);
+      const { path: uploadPath, publicUrl } = await withTimeout(
+        uploadViaProxy(file),
+        20000,
+        "upload"
+      );
 
-      // Get auth token for upload proxy
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        console.error(`${getTimestamp()} ERROR: No session found`);
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to upload images",
-          variant: "destructive",
-        });
-        setLoading(false);
-        setStatus("idle");
-        return;
-      }
-
-      console.log(`${getTimestamp()} Calling upload-scanner-image edge function...`);
-      const uploadStartTime = Date.now();
-      
-      const { data: uploadData, error: uploadError } = await supabase.functions.invoke("upload-scanner-image", {
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      const uploadDuration = Date.now() - uploadStartTime;
-      console.log(`${getTimestamp()} Upload proxy response received (${uploadDuration}ms)`);
-
-      if (uploadError) {
-        console.error(`${getTimestamp()} ERROR: Image upload failed:`, uploadError);
-
-        let errorMsg = "Please try again";
-        if (uploadError.message?.includes("401")) {
-          errorMsg = "Not signed in - please sign in again";
-        } else if (uploadError.message?.includes("400")) {
-          errorMsg = "No file provided";
-        } else if (uploadError.message) {
-          errorMsg = uploadError.message;
-        }
-
-        toast({
-          title: "Image upload failed",
-          description: errorMsg,
-          variant: "destructive",
-        });
-        throw new Error(`Upload failed: ${errorMsg}`);
-      }
-
-      if (!uploadData?.publicUrl) {
-        console.error(`${getTimestamp()} ERROR: No public URL returned:`, uploadData);
-        toast({
-          title: "Upload failed",
-          description: "No public URL returned from server",
-          variant: "destructive",
-        });
-        throw new Error("No public URL returned");
-      }
-
-      const { path: uploadPath, publicUrl } = uploadData;
       console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 
         path: uploadPath, 
         publicUrl 
       });
-      setImageUrl(publicUrl); // Preserve photo URL
 
-      // Step 2: Server-side barcode + OCR + ComicVine
+      // Immediately show the image and allow manual listing
+      setImageUrl(publicUrl);
+      setPrefillData({ comicvineCoverUrl: publicUrl });
+      setStatus("manual");
+
       toast({
-        title: "🔍 AI Recognition...",
-        description: retryCount > 0 ? "Retry attempt..." : "Scanning barcode & reading text",
+        title: "✅ Photo uploaded",
+        description: "You can start listing while we scan for details...",
       });
 
-      console.log(`${getTimestamp()} Starting OCR/vision call...`);
-      const ocrStartTime = Date.now();
+      // Step 2: Run recognition in background (non-blocking)
+      console.log(`${getTimestamp()} 🔍 Starting background recognition...`);
+      (async () => {
+        try {
+          const ocrStartTime = Date.now();
+          const { data: scanResult, error: scanError } = await withTimeout(
+            supabase.functions.invoke("scan-item", {
+              body: { imageBase64: base64Data },
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            }),
+            45000,
+            "scan-item"
+          );
+
+          const ocrTime = Date.now() - ocrStartTime;
+
+          if (scanError) {
+            console.warn(`${getTimestamp()} ⚠️ Background scan failed:`, scanError.message);
+            setDebugData(prev => ({ ...prev, status: "error", errorMessage: scanError.message }));
+            return;
+          }
+
+          if (scanResult?.ok === false) {
+            console.warn(`${getTimestamp()} ⚠️ scan-item returned ok=false:`, scanResult.error);
+            return;
+          }
+
+          const results = scanResult?.comicvineResults || [];
+          const rawOcrText = scanResult?.ocrText || "";
+          const cvQuery = scanResult?.cvQuery || "";
+          const extracted = scanResult?.extracted || {};
+
+          console.log(`${getTimestamp()} ✅ OCR/vision result:`, {
+            ocrTime: `${ocrTime}ms`,
+            rawOcrText: rawOcrText.substring(0, 100) + (rawOcrText.length > 100 ? "..." : ""),
+            cvQuery,
+            extracted,
+            confidence: scanResult?.confidence,
+            matchesFound: results.length
+          });
       
       const { data, error } = await supabase.functions.invoke("scan-item", {
         body: {
