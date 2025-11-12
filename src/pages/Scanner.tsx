@@ -208,7 +208,7 @@ export default function Scanner() {
         return;
       }
 
-      // Step 1: Upload image to Storage first (preserve photo)
+      // Step 1: Upload image to Storage via proxy (preserve photo)
       toast({
         title: "📤 Uploading photo...",
         description: "Securing your image",
@@ -222,14 +222,16 @@ export default function Scanner() {
       for (let i = 0; i < binaryData.length; i++) {
         bytes[i] = binaryData.charCodeAt(i);
       }
-      const blob = new Blob([bytes], { type: 'image/jpeg' });
+      const file = new File([bytes], `${timestamp}.jpg`, { type: 'image/jpeg' });
 
-      const { data: uploadData, error: uploadError } = await externalSupabase.storage
-        .from('images')
-        .upload(fileName, blob, {
-          contentType: 'image/jpeg',
-          upsert: false
-        });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('filePath', fileName);
+
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
+        'upload-scanner-image',
+        { body: formData }
+      );
 
       if (uploadError) {
         console.error('Image upload failed:', uploadError);
@@ -241,10 +243,7 @@ export default function Scanner() {
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
-      const { data: { publicUrl } } = externalSupabase.storage
-        .from('images')
-        .getPublicUrl(fileName);
-
+      const publicUrl = uploadData.publicUrl;
       console.log('Photo uploaded:', publicUrl);
       setImageUrl(publicUrl); // Preserve photo URL
 
