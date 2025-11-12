@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Search, Camera, Zap, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/lib/externalSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -222,8 +223,8 @@ export default function Scanner() {
       }
       const blob = new Blob([bytes], { type: 'image/jpeg' });
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('comic-photos')
+      const { data: uploadData, error: uploadError } = await externalSupabase.storage
+        .from('images')
         .upload(fileName, blob, {
           contentType: 'image/jpeg',
           upsert: false
@@ -231,8 +232,8 @@ export default function Scanner() {
 
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('comic-photos')
+      const { data: { publicUrl } } = externalSupabase.storage
+        .from('images')
         .getPublicUrl(fileName);
 
       console.log('Photo uploaded:', publicUrl);
