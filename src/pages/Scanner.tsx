@@ -75,6 +75,53 @@ export default function Scanner() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const [testingUpload, setTestingUpload] = useState(false);
+  const isDev = import.meta.env.DEV || window.location.hostname.includes('lovableproject.com');
+
+  const handleTestUpload = async () => {
+    setTestingUpload(true);
+    console.log('[TEST-UPLOAD] Starting test upload probe...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('test-upload', {
+        method: 'POST'
+      });
+
+      console.log('[TEST-UPLOAD] Full response:', { data, error });
+
+      if (error) {
+        console.error('[TEST-UPLOAD] Error:', error);
+        toast({
+          title: "❌ Test Upload Failed",
+          description: error.message || "Check console for details",
+          variant: "destructive",
+        });
+      } else if (data?.ok) {
+        console.log('[TEST-UPLOAD] Success! URL:', data.url);
+        toast({
+          title: "✅ Test Upload Success",
+          description: `Image uploaded: ${data.url.substring(0, 50)}...`,
+        });
+      } else {
+        console.error('[TEST-UPLOAD] Failed:', data);
+        toast({
+          title: "❌ Test Upload Failed",
+          description: data?.message || "Check console for details",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      console.error('[TEST-UPLOAD] Exception:', err);
+      toast({
+        title: "❌ Test Upload Error",
+        description: err.message || "Check console for details",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingUpload(false);
+    }
+  };
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -610,7 +657,28 @@ export default function Scanner() {
     <div className="min-h-screen flex flex-col">
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
-        <div className="container mx-auto py-10 px-4">
+        <div className="container mx-auto py-10 px-4 relative">
+          {isDev && (
+            <Button
+              onClick={handleTestUpload}
+              disabled={testingUpload}
+              size="sm"
+              variant="outline"
+              className="absolute top-4 right-4 text-xs"
+            >
+              {testingUpload ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-3 w-3 mr-1" />
+                  Run Upload Probe
+                </>
+              )}
+            </Button>
+          )}
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="flex-1 space-y-4">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
