@@ -154,14 +154,17 @@ export default function Scanner() {
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('UPLOAD_CLICK');
     const file = event.target.files?.[0];
+    console.log('FILE_SELECTED', file?.name, file?.size, file?.type);
+    
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const uploadedImageData = e.target?.result as string;
-      setPreviewImage(uploadedImageData);
-      setStatus("previewing");
+      // Skip preview, immediately upload
+      identifyFromImage(uploadedImageData, "upload");
     };
     reader.readAsDataURL(file);
   };
@@ -233,11 +236,28 @@ export default function Scanner() {
       });
 
       const uploadStartTime = Date.now();
-      const { path: uploadPath, publicUrl } = await withTimeout(
-        uploadViaProxy(file),
-        30000,
-        "upload"
-      );
+      let uploadResult;
+      try {
+        uploadResult = await withTimeout(
+          uploadViaProxy(file),
+          30000,
+          "upload"
+        );
+        console.log('UPLOAD_RESPONSE', uploadResult);
+        
+        if (!uploadResult?.publicUrl) {
+          console.warn('NO_PUBLIC_URL_FROM_UPLOAD');
+          throw new Error("Upload succeeded but returned no public URL");
+        }
+      } catch (e: any) {
+        console.error('UPLOAD_FAILED', e?.message ?? e);
+        sonnerToast.error("Upload failed", {
+          description: e?.message ?? "Unknown error during upload"
+        });
+        throw e;
+      }
+      
+      const { path: uploadPath, publicUrl } = uploadResult;
       const uploadElapsed = Date.now() - uploadStartTime;
 
       console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 

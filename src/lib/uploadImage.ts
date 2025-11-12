@@ -4,7 +4,16 @@ async function uploadAttempt(file: File): Promise<{ path: string; publicUrl: str
   const form = new FormData();
   form.append("image", file);
 
+  console.log('CALLING_EDGE /functions/v1/upload-scanner-image', {
+    name: file.name,
+    size: file.size,
+    type: file.type
+  });
+
   const { data, error } = await supabase.functions.invoke("upload-scanner-image", { body: form });
+  
+  console.log('EDGE_RESPONSE', error ? 'ERROR' : 'SUCCESS', { data, error });
+  
   if (error) throw new Error(error.message || "Upload proxy failed");
 
   const path = data?.path?.toString() ?? "";
