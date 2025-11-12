@@ -1,3 +1,32 @@
+import { externalSupabase } from "@/lib/externalSupabase";
+
+async function testExternalUpload() {
+  try {
+    const path = `probes/test-${Date.now()}.txt`;
+    const blob = new Blob(["ok"], { type: "text/plain" });
+
+    const { data, error } = await externalSupabase.storage.from("images").upload(path, blob, {
+      upsert: true,
+      cacheControl: "3600",
+      contentType: "text/plain",
+    });
+
+    if (error) {
+      console.error("Upload error:", error);
+      alert(`Upload error: ${error.message}`);
+      return;
+    }
+
+    const { data: pub } = externalSupabase.storage.from("images").getPublicUrl(data.path);
+
+    console.log("Public URL:", pub.publicUrl);
+    alert(`Success!\n${pub.publicUrl}`);
+  } catch (e: any) {
+    console.error(e);
+    alert(`Unexpected error: ${e.message ?? e}`);
+  }
+}
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,10 +51,10 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
       });
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
@@ -43,7 +72,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     setShowCamera(false);
@@ -89,7 +118,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         const MAX_WIDTH = 1024;
         const MAX_HEIGHT = 1024;
         let width = img.width;
@@ -109,9 +138,9 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
 
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
       img.src = imageData;
     });
@@ -123,9 +152,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
     try {
       // Compress image before sending
       const compressedImage = await compressImage(imageData);
-      const base64Data = compressedImage.includes(',') 
-        ? compressedImage.split(',')[1] 
-        : compressedImage;
+      const base64Data = compressedImage.includes(",") ? compressedImage.split(",")[1] : compressedImage;
 
       const { data, error } = await supabase.functions.invoke("scan-item", {
         body: { imageBase64: base64Data },
@@ -153,9 +180,9 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
           title: "Text detected",
           description: `Found: ${searchText}. Searching...`,
         });
-        
+
         setShowModal(false);
-        
+
         if (onScanResult) {
           onScanResult(searchText);
         } else {
@@ -171,10 +198,10 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
       }
     } catch (error: any) {
       console.error("Image processing error:", error);
-      const errorMsg = error.message?.includes("Failed to send a request") 
+      const errorMsg = error.message?.includes("Failed to send a request")
         ? "Scanning service temporarily unavailable. Please check your connection or try manual search."
         : error.message || "Scan failed. Try manual search or take another photo.";
-      
+
       toast({
         title: "Scan failed",
         description: errorMsg,
@@ -238,11 +265,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
         className={`h-12 w-12 shrink-0 bg-orange-500 hover:bg-orange-600 text-white transition-all duration-200 hover:scale-105 active:scale-95 ${className || ""}`}
         aria-label="Scan book"
       >
-        {loading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <Camera className="h-5 w-5" />
-        )}
+        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
       </Button>
 
       {/* Scan Options Modal */}
@@ -253,12 +276,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-semibold">Scan a Book</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowModal(false)}
-                    className="h-8 w-8"
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => setShowModal(false)} className="h-8 w-8">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -294,12 +312,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
             <Card>
               <CardContent className="p-4">
                 <div className="relative">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full rounded-lg"
-                  />
+                  <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg" />
                   <div className="flex gap-2 mt-4">
                     <Button onClick={capturePhoto} className="flex-1 bg-orange-500 hover:bg-orange-600" size="lg">
                       <Camera className="mr-2 h-5 w-5" />
@@ -317,13 +330,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
       )}
 
       <canvas ref={canvasRef} className="hidden" />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileUpload}
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
     </>
   );
 }

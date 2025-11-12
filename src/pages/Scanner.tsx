@@ -12,6 +12,35 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
 
+import { externalSupabase } from "@/lib/externalSupabase";
+
+async function testExternalUpload() {
+  try {
+    const path = `probes/test-${Date.now()}.txt`;
+    const blob = new Blob(["ok"], { type: "text/plain" });
+
+    const { data, error } = await externalSupabase.storage.from("images").upload(path, blob, {
+      upsert: true,
+      cacheControl: "3600",
+      contentType: "text/plain",
+    });
+
+    if (error) {
+      console.error("Upload error:", error);
+      alert(`Upload error: ${error.message}`);
+      return;
+    }
+
+    const { data: pub } = externalSupabase.storage.from("images").getPublicUrl(data.path);
+
+    console.log("Public URL:", pub.publicUrl);
+    alert(`✅ Success!\n${pub.publicUrl}`);
+  } catch (e: any) {
+    console.error(e);
+    alert(`Unexpected error: ${e.message ?? e}`);
+  }
+}
+
 interface PrefillData {
   title?: string;
   series?: string;
@@ -50,7 +79,7 @@ export default function Scanner() {
   const [confidence, setConfidence] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  
+
   const [debugData, setDebugData] = useState({
     status: "idle" as "idle" | "processing" | "success" | "error",
     method: null as "camera" | "upload" | "search" | null,
@@ -76,34 +105,34 @@ export default function Scanner() {
   const { user } = useAuth();
 
   const [testingUpload, setTestingUpload] = useState(false);
-  const isDev = import.meta.env.DEV || window.location.hostname.includes('lovableproject.com');
+  const isDev = import.meta.env.DEV || window.location.hostname.includes("lovableproject.com");
 
   const handleTestUpload = async () => {
     setTestingUpload(true);
-    console.log('[TEST-UPLOAD] Starting test upload probe...');
-    
+    console.log("[TEST-UPLOAD] Starting test upload probe...");
+
     try {
-      const { data, error } = await supabase.functions.invoke('test-upload', {
-        method: 'POST'
+      const { data, error } = await supabase.functions.invoke("test-upload", {
+        method: "POST",
       });
 
-      console.log('[TEST-UPLOAD] Full response:', { data, error });
+      console.log("[TEST-UPLOAD] Full response:", { data, error });
 
       if (error) {
-        console.error('[TEST-UPLOAD] Error:', error);
+        console.error("[TEST-UPLOAD] Error:", error);
         toast({
           title: "❌ Test Upload Failed",
           description: error.message || "Check console for details",
           variant: "destructive",
         });
       } else if (data?.ok) {
-        console.log('[TEST-UPLOAD] Success! URL:', data.url);
+        console.log("[TEST-UPLOAD] Success! URL:", data.url);
         toast({
           title: "✅ Test Upload Success",
           description: `Image uploaded: ${data.url.substring(0, 50)}...`,
         });
       } else {
-        console.error('[TEST-UPLOAD] Failed:', data);
+        console.error("[TEST-UPLOAD] Failed:", data);
         toast({
           title: "❌ Test Upload Failed",
           description: data?.message || "Check console for details",
@@ -111,7 +140,7 @@ export default function Scanner() {
         });
       }
     } catch (err: any) {
-      console.error('[TEST-UPLOAD] Exception:', err);
+      console.error("[TEST-UPLOAD] Exception:", err);
       toast({
         title: "❌ Test Upload Error",
         description: err.message || "Check console for details",
@@ -218,7 +247,7 @@ export default function Scanner() {
     setStatus("recognizing");
     setPrefillData(null);
     setConfidence(null);
-    
+
     setDebugData({
       status: "processing",
       method,
@@ -236,21 +265,23 @@ export default function Scanner() {
 
     // 10-second timeout
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Scan timeout after 10s')), 10000)
+      setTimeout(() => reject(new Error("Scan timeout after 10s")), 10000),
     );
 
     try {
       // Check if user is authenticated
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         toast({
           title: "Authentication required",
           description: "Please sign in to use the scanner",
-          variant: "destructive"
+          variant: "destructive",
         });
         setLoading(false);
         setStatus("idle");
-        setDebugData(prev => ({ ...prev, status: 'error', errorMessage: 'Not authenticated' }));
+        setDebugData((prev) => ({ ...prev, status: "error", errorMessage: "Not authenticated" }));
         return;
       }
 
@@ -260,56 +291,55 @@ export default function Scanner() {
         description: "Securing your image",
       });
 
-      const base64Data = imageData.split(',')[1];
+      const base64Data = imageData.split(",")[1];
       const binaryData = atob(base64Data);
       const bytes = new Uint8Array(binaryData.length);
       for (let i = 0; i < binaryData.length; i++) {
         bytes[i] = binaryData.charCodeAt(i);
       }
-      const file = new File([bytes], `comic-scan.jpg`, { type: 'image/jpeg' });
+      const file = new File([bytes], `comic-scan.jpg`, { type: "image/jpeg" });
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
       // Get auth token for upload proxy
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         toast({
           title: "Authentication required",
           description: "Please sign in to upload images",
-          variant: "destructive"
+          variant: "destructive",
         });
         setLoading(false);
         setStatus("idle");
         return;
       }
 
-      const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
-        'upload-scanner-image',
-        { 
-          body: formData,
-          headers: {
-            Authorization: `Bearer ${session.access_token}`
-          }
-        }
-      );
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke("upload-scanner-image", {
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (uploadError) {
-        console.error('Image upload failed:', uploadError);
-        
+        console.error("Image upload failed:", uploadError);
+
         let errorMsg = "Please try again";
-        if (uploadError.message?.includes('401')) {
+        if (uploadError.message?.includes("401")) {
           errorMsg = "Not signed in - please sign in again";
-        } else if (uploadError.message?.includes('400')) {
+        } else if (uploadError.message?.includes("400")) {
           errorMsg = "No file provided";
         } else if (uploadError.message) {
           errorMsg = uploadError.message;
         }
-        
+
         toast({
           title: "Image upload failed",
           description: errorMsg,
-          variant: "destructive"
+          variant: "destructive",
         });
         throw new Error(`Upload failed: ${errorMsg}`);
       }
@@ -318,13 +348,13 @@ export default function Scanner() {
         toast({
           title: "Upload failed",
           description: "No public URL returned from server",
-          variant: "destructive"
+          variant: "destructive",
         });
-        throw new Error('No public URL returned');
+        throw new Error("No public URL returned");
       }
 
       const publicUrl = uploadData.publicUrl;
-      console.log('Photo uploaded:', publicUrl);
+      console.log("Photo uploaded:", publicUrl);
       setImageUrl(publicUrl); // Preserve photo URL
 
       // Step 2: Server-side barcode + OCR + ComicVine
@@ -335,15 +365,12 @@ export default function Scanner() {
 
       const ocrStartTime = Date.now();
       const scanPromise = supabase.functions.invoke("scan-item", {
-        body: { 
+        body: {
           imageBase64: base64Data,
         },
       });
 
-      const { data, error } = await Promise.race([
-        scanPromise,
-        timeoutPromise
-      ]) as any;
+      const { data, error } = (await Promise.race([scanPromise, timeoutPromise])) as any;
 
       const ocrTime = Date.now() - ocrStartTime;
       const responseTime = Date.now() - startTime;
@@ -352,22 +379,22 @@ export default function Scanner() {
       if (data?.ok === false) throw new Error(data.error || "Unable to process image");
 
       const results = data?.comicvineResults || [];
-      const rawOcrText = data?.ocrText || '';
-      const cvQuery = data?.cvQuery || '';
+      const rawOcrText = data?.ocrText || "";
+      const cvQuery = data?.cvQuery || "";
       const extracted = data?.extracted || {};
-      
-      console.log('Server response:', { 
-        ocrTime: `${ocrTime}ms`, 
-        rawOcrText: rawOcrText.substring(0, 100), 
-        cvQuery, 
+
+      console.log("Server response:", {
+        ocrTime: `${ocrTime}ms`,
+        rawOcrText: rawOcrText.substring(0, 100),
+        cvQuery,
         extracted,
-        results: results.length 
+        results: results.length,
       });
-      
+
       if (results.length === 0) {
         // No match - retry once if first attempt
         if (retryCount === 0) {
-          console.log('No results, retrying...');
+          console.log("No results, retrying...");
           toast({
             title: "Retrying...",
             description: "Attempting different recognition method",
@@ -375,7 +402,7 @@ export default function Scanner() {
           setLoading(false);
           return identifyFromImage(imageData, method, 1);
         }
-        
+
         // After retry, fallback to manual
         setDebugData({
           status: "error",
@@ -391,13 +418,13 @@ export default function Scanner() {
           ebayData: null,
           retryAttempt: retryCount,
         });
-        
+
         toast({
           title: "No match found",
           description: "Opening manual search...",
           variant: "destructive",
         });
-        
+
         setTimeout(() => setActiveTab("search"), 1000);
         setLoading(false);
         return;
@@ -416,10 +443,10 @@ export default function Scanner() {
 
       const topResult = results[0];
       const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
-      
+
       const title = topResult.volume || topResult.volumeName || "";
       const issueNumber = topResult.issue_number || "";
-      
+
       const prefill: PrefillData = {
         title: title,
         series: title,
@@ -433,7 +460,7 @@ export default function Scanner() {
 
       setPrefillData(prefill);
       setConfidence(calculatedConfidence);
-      
+
       // Step 5: Fetch eBay pricing (ALWAYS if grade detected)
       let ebayData = null;
       if (title && issueNumber && slabData.grade) {
@@ -444,43 +471,43 @@ export default function Scanner() {
           });
 
           const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
-            body: { 
-              title, 
-              issueNumber, 
-              grade: slabData.grade 
+            body: {
+              title,
+              issueNumber,
+              grade: slabData.grade,
             },
           });
-          
+
           if (pricingError) {
-            console.error('eBay API error:', pricingError);
+            console.error("eBay API error:", pricingError);
           } else if (pricingData?.ok && pricingData.avgPrice) {
             ebayData = pricingData;
-            console.log('eBay pricing:', {
+            console.log("eBay pricing:", {
               avg: pricingData.avgPrice,
               range: `${pricingData.minPrice}-${pricingData.maxPrice}`,
-              comps: pricingData.items?.length
+              comps: pricingData.items?.length,
             });
-            
+
             // Add prominent pricing to description
             const avgPrice = pricingData.avgPrice.toFixed(0);
             const comp = pricingData.items?.[0];
-            const compLink = comp?.url ? `[View listing](${comp.url})` : '';
-            const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ''}`;
-            prefill.description = (prefill.description || '') + pricingText;
+            const compLink = comp?.url ? `[View listing](${comp.url})` : "";
+            const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ""}`;
+            prefill.description = (prefill.description || "") + pricingText;
             setPrefillData(prefill);
-            
+
             toast({
               title: "💰 Market data found",
               description: `Avg sold: $${avgPrice} | ${pricingData.items?.length || 0} comps`,
             });
           } else {
-            console.log('No eBay pricing data available');
+            console.log("No eBay pricing data available");
           }
         } catch (err) {
-          console.error('eBay fetch failed:', err);
+          console.error("eBay fetch failed:", err);
         }
       }
-      
+
       // Step 6: Update UI based on confidence
       if (calculatedConfidence >= 65 && title && issueNumber) {
         setStatus("prefilled");
@@ -498,8 +525,8 @@ export default function Scanner() {
           ebayData,
           retryAttempt: retryCount,
         });
-        
-        const ebayMsg = ebayData?.avgPrice ? ` | eBay avg: $${ebayData.avgPrice.toFixed(0)}` : '';
+
+        const ebayMsg = ebayData?.avgPrice ? ` | eBay avg: $${ebayData.avgPrice.toFixed(0)}` : "";
         toast({
           title: "✅ Comic identified!",
           description: `${title} #${issueNumber}${ebayMsg}`,
@@ -525,16 +552,15 @@ export default function Scanner() {
           description: "Review and edit details.",
         });
       }
-
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
       console.error("Scan error:", err);
-      
-      const isTimeout = err.message?.includes('timeout');
-      
+
+      const isTimeout = err.message?.includes("timeout");
+
       // Retry once on timeout if first attempt
       if (isTimeout && retryCount === 0) {
-        console.log('Timeout, retrying...');
+        console.log("Timeout, retrying...");
         setLoading(false);
         toast({
           title: "⏱️ Timeout - retrying...",
@@ -542,7 +568,7 @@ export default function Scanner() {
         });
         return identifyFromImage(imageData, method, 1);
       }
-      
+
       setDebugData({
         status: "error",
         method,
@@ -563,9 +589,8 @@ export default function Scanner() {
         description: "Photo saved - opening manual search",
         variant: "destructive",
       });
-      
+
       setTimeout(() => setActiveTab("search"), 1000);
-      
     } finally {
       setLoading(false);
     }
@@ -591,9 +616,9 @@ export default function Scanner() {
       });
 
       if (error) throw error;
-      
+
       const results = data?.results || [];
-      
+
       if (results.length === 0) {
         toast({
           title: "No results found",
@@ -622,7 +647,7 @@ export default function Scanner() {
 
   const handleUseSearchResult = (result: SearchResult) => {
     const title = result.title || result.volume || result.volumeName || "";
-    
+
     setPrefillData({
       title: title,
       series: title,
@@ -655,6 +680,10 @@ export default function Scanner() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Button onClick={testExternalUpload} style={{ margin: "10px" }}>
+        Test External Upload
+      </Button>
+
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
         <div className="container mx-auto py-10 px-4 relative">
@@ -681,12 +710,10 @@ export default function Scanner() {
           )}
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="flex-1 space-y-4">
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-                GrailSeeker AI Scanner
-              </h1>
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">GrailSeeker AI Scanner</h1>
               <p className="text-muted-foreground text-base md:text-lg">
-                Snap a photo, upload an image, or search by title. We'll identify your comic and prefill details.
-                All fields remain editable - you can always list manually.
+                Snap a photo, upload an image, or search by title. We'll identify your comic and prefill details. All
+                fields remain editable - you can always list manually.
               </p>
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
@@ -712,18 +739,10 @@ export default function Scanner() {
         {showListingForm ? (
           // Show listing form with user's image
           <div className="space-y-4">
-            <Button
-              variant="outline"
-              onClick={handleReset}
-              className="mb-4"
-            >
+            <Button variant="outline" onClick={handleReset} className="mb-4">
               ← Scan Another Comic
             </Button>
-            <ScannerListingForm
-              imageUrl={imageUrl || ""}
-              initialData={prefillData || {}}
-              confidence={confidence}
-            />
+            <ScannerListingForm imageUrl={imageUrl || ""} initialData={prefillData || {}} confidence={confidence} />
           </div>
         ) : (
           // Show scanner interface
@@ -764,12 +783,7 @@ export default function Scanner() {
               {cameraActive && !previewImage && (
                 <Card>
                   <CardContent className="p-4">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full rounded-lg"
-                    />
+                    <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg" />
                     <canvas ref={canvasRef} className="hidden" />
                     <div className="flex gap-2 mt-4">
                       <Button onClick={capturePhoto} className="flex-1" size="lg">
@@ -789,11 +803,7 @@ export default function Scanner() {
                   <CardContent className="p-6 space-y-4">
                     <h3 className="text-xl font-semibold text-center">Preview</h3>
                     <div className="max-w-md mx-auto">
-                      <img
-                        src={previewImage}
-                        alt="Preview"
-                        className="w-full rounded-lg border-2 border-border"
-                      />
+                      <img src={previewImage} alt="Preview" className="w-full rounded-lg border-2 border-border" />
                     </div>
                     <div className="flex gap-3">
                       <Button variant="outline" onClick={handleRetake} className="flex-1">
@@ -812,9 +822,7 @@ export default function Scanner() {
                   <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     <h3 className="text-xl font-semibold">Identifying Comic...</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Extracting text and searching database
-                    </p>
+                    <p className="text-sm text-muted-foreground">Extracting text and searching database</p>
                   </CardContent>
                 </Card>
               )}
@@ -837,10 +845,7 @@ export default function Scanner() {
                       ref={fileInputRef}
                       onChange={handleFileUpload}
                     />
-                    <Button
-                      size="lg"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
+                    <Button size="lg" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-2 h-5 w-5" />
                       Choose File
                     </Button>
@@ -853,11 +858,7 @@ export default function Scanner() {
                   <CardContent className="p-6 space-y-4">
                     <h3 className="text-xl font-semibold text-center">Preview</h3>
                     <div className="max-w-md mx-auto">
-                      <img
-                        src={previewImage}
-                        alt="Preview"
-                        className="w-full rounded-lg border-2 border-border"
-                      />
+                      <img src={previewImage} alt="Preview" className="w-full rounded-lg border-2 border-border" />
                     </div>
                     <div className="flex gap-3">
                       <Button variant="outline" onClick={handleChooseDifferent} className="flex-1">
@@ -876,9 +877,7 @@ export default function Scanner() {
                   <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     <h3 className="text-xl font-semibold">Identifying Comic...</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Extracting text and searching database
-                    </p>
+                    <p className="text-sm text-muted-foreground">Extracting text and searching database</p>
                   </CardContent>
                 </Card>
               )}
@@ -891,9 +890,7 @@ export default function Scanner() {
                   <div className="text-center space-y-2">
                     <Search className="h-16 w-16 mx-auto text-primary" />
                     <h3 className="text-xl font-semibold">Search for a comic</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Find your comic by title, series, or issue number.
-                    </p>
+                    <p className="text-sm text-muted-foreground">Find your comic by title, series, or issue number.</p>
                   </div>
                   <div className="flex gap-2">
                     <Input
@@ -903,16 +900,8 @@ export default function Scanner() {
                       onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
                       className="flex-1"
                     />
-                    <Button
-                      onClick={handleTextSearch}
-                      disabled={loading}
-                      size="lg"
-                    >
-                      {loading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Search className="h-4 w-4" />
-                      )}
+                    <Button onClick={handleTextSearch} disabled={loading} size="lg">
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
 
@@ -921,17 +910,13 @@ export default function Scanner() {
                       {searchResults.map((result, index) => {
                         const title = result.title || result.volume || result.volumeName || "";
                         const coverUrl = result.image || result.cover_image || result.coverUrl;
-                        
+
                         return (
                           <Card key={index} className="hover:border-primary/50 transition-colors">
                             <CardContent className="p-4">
                               <div className="flex items-center gap-4">
                                 {coverUrl && (
-                                  <img
-                                    src={coverUrl}
-                                    alt={title}
-                                    className="w-16 h-24 object-cover rounded"
-                                  />
+                                  <img src={coverUrl} alt={title} className="w-16 h-24 object-cover rounded" />
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <h4 className="font-semibold truncate">
@@ -943,11 +928,7 @@ export default function Scanner() {
                                     {result.year && ` • ${result.year}`}
                                   </p>
                                 </div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleUseSearchResult(result)}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => handleUseSearchResult(result)}>
                                   Use This Issue
                                 </Button>
                               </div>
@@ -965,7 +946,7 @@ export default function Scanner() {
       </section>
 
       <Footer />
-      
+
       {/* Debug overlay - only in development */}
       {import.meta.env.DEV && <RecognitionDebugOverlay debugData={debugData} />}
     </div>
