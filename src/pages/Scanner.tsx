@@ -473,27 +473,6 @@ export default function Scanner() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
         <div className="container mx-auto py-10 px-4 relative">
-          {isDev && (
-            <Button
-              onClick={handleTestUpload}
-              disabled={testingUpload}
-              size="sm"
-              variant="outline"
-              className="absolute top-4 right-4 text-xs"
-            >
-              {testingUpload ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Testing...
-                </>
-              ) : (
-                <>
-                  <Zap className="h-3 w-3 mr-1" />
-                  Run Upload Probe
-                </>
-              )}
-            </Button>
-          )}
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="flex-1 space-y-4">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">GrailSeeker AI Scanner</h1>
