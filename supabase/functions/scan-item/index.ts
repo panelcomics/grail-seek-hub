@@ -57,6 +57,16 @@ async function checkRateLimit(supabase: any, userId: string | null, ipAddress: s
   return true;
 }
 
+// Timeout helper
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms)
+    )
+  ]);
+}
+
 serve(async (req) => {
   const startTime = Date.now();
   console.log('[SCAN-ITEM] Function invoked:', req.method, req.url);
@@ -67,11 +77,6 @@ serve(async (req) => {
   }
 
   try {
-    // Early timeout check
-    const timeoutMs = 4000; // 4 second timeout
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('COMPUTE_TIMEOUT')), timeoutMs)
-    );
     if (req.method !== "POST") {
       console.log('[SCAN-ITEM] Method not POST');
       return new Response(JSON.stringify({ ok: false, error: "Method not allowed" }), {
@@ -208,40 +213,50 @@ serve(async (req) => {
         });
       }
 
-      // Skip resize - send original image to Google Vision (it handles optimization)
+      // Call Google Vision with timeout
       console.log('[SCAN-ITEM] Calling Google Vision API...');
       const visionStartTime = Date.now();
       
-      const visionRes = await fetch(
-        `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requests: [{
-              image: { content: imageBase64 },
-              features: [{ type: 'TEXT_DETECTION' }],
-            }],
-          }),
+      try {
+        const visionRes = await withTimeout(
+          fetch(
+            `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requests: [{
+                  image: { content: imageBase64 },
+                  features: [{ type: 'TEXT_DETECTION' }],
+                }],
+              }),
+            }
+          ),
+          20000,
+          'Google Vision'
+        );
+
+        visionTime = Date.now() - visionStartTime;
+        console.log('[SCAN-ITEM] Google Vision response:', visionRes.status, `(${visionTime}ms)`);
+        
+        if (!visionRes.ok) {
+          throw new Error('Google Vision API request failed');
         }
-      );
 
-      visionTime = Date.now() - visionStartTime;
-      console.log('[SCAN-ITEM] Google Vision response:', visionRes.status, `(${visionTime}ms)`);
-      
-      if (!visionRes.ok) {
-        throw new Error('Google Vision API request failed');
-      }
-
-      const visionData = await visionRes.json();
-      const annotations = visionData.responses?.[0]?.textAnnotations;
-      
-      if (!annotations || annotations.length === 0) {
-        console.log('[SCAN-ITEM] No text detected in image');
-        ocrText = "";
-      } else {
-        ocrText = annotations[0].description || "";
-        console.log('[SCAN-ITEM] OCR extracted text:', ocrText.substring(0, 200));
+        const visionData = await visionRes.json();
+        const annotations = visionData.responses?.[0]?.textAnnotations;
+        
+        if (!annotations || annotations.length === 0) {
+          console.log('[SCAN-ITEM] No text detected in image');
+          ocrText = "";
+        } else {
+          ocrText = annotations[0].description || "";
+          console.log('[SCAN-ITEM] OCR extracted text:', ocrText.substring(0, 200));
+        }
+      } catch (err: any) {
+        visionTime = Date.now() - visionStartTime;
+        console.warn('[SCAN-ITEM] Vision timeout or error:', err.message);
+        ocrText = ""; // Continue without OCR text
       }
     }
     
@@ -297,62 +312,100 @@ serve(async (req) => {
     });
     
     console.log('[SCAN-ITEM] 🎯 Final Query:', cleanQuery);
-    console.log('[SCAN-ITEM] Querying ComicVine API...');
-    const cvStartTime = Date.now();
-    const cvRes = await fetch(
-      `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&query=${encodeURIComponent(cleanQuery)}&resources=issue&field_list=name,issue_number,volume,cover_date,image,deck&limit=10`,
-      {
-        headers: {
-          "User-Agent": "GrailSeeker/1.0 (panelcomics.com)",
-        },
-      }
-    );
-
-    const cvTime = Date.now() - cvStartTime;
-    console.log('[SCAN-ITEM] ComicVine response:', cvRes.status, `(${cvTime}ms)`);
-    const cvData = await cvRes.json();
-    console.log('[SCAN-ITEM] ComicVine results count:', cvData.results?.length ?? 0);
     
-    // ComicVine uses status_code: 1 for success (not error field)
-    if (!cvRes.ok || cvData.status_code !== 1) {
-      console.error('ComicVine failed:', { status_code: cvData.status_code, error: cvData.error });
-      throw new Error(cvData.error ?? "ComicVine API failed");
+    // Query ComicVine with timeout
+    let cvData: any = null;
+    let cvTime = 0;
+    let results: any[] = [];
+    
+    try {
+      console.log('[SCAN-ITEM] Querying ComicVine API...');
+      const cvStartTime = Date.now();
+      
+      const cvRes = await withTimeout(
+        fetch(
+          `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&resources=issue,volume&query=${encodeURIComponent(cleanQuery)}&field_list=id,name,issue_number,volume,cover_date,start_year,image&limit=10`,
+          {
+            headers: {
+              "User-Agent": "GrailSeeker/1.0 (panelcomics.com)",
+            },
+          }
+        ),
+        25000,
+        'ComicVine API'
+      );
+
+      cvTime = Date.now() - cvStartTime;
+      console.log('[SCAN-ITEM] ComicVine response:', cvRes.status, `(${cvTime}ms)`);
+      
+      if (!cvRes.ok) {
+        console.warn('[SCAN-ITEM] ComicVine HTTP error:', cvRes.status);
+      } else {
+        cvData = await cvRes.json();
+        console.log('[SCAN-ITEM] ComicVine results count:', cvData.results?.length ?? 0);
+        
+        if (cvData.status_code === 1 && cvData.results?.length > 0) {
+          // Map results to structured format
+          results = cvData.results
+            .filter((i: any) => i.volume?.name || i.name) // Must have a name
+            .slice(0, 10)
+            .map((i: any) => {
+              const title = i.name || i.volume?.name || "";
+              const issueNumber = i.issue_number || i.volume?.start_issue_number || "";
+              const publisher = i.volume?.publisher?.name || "";
+              const coverYear = i.cover_date?.slice(0, 4) || i.start_year?.toString() || "";
+              const comicvineCoverUrl = i.image?.original_url || i.image?.medium_url || i.image?.small_url || null;
+              
+              return {
+                id: i.id,
+                name: title,
+                issue_number: issueNumber,
+                volume: i.volume?.name || title,
+                publisher,
+                year: coverYear,
+                cover_date: i.cover_date || "",
+                image: comicvineCoverUrl,
+                comicvineCoverUrl, // Explicit field for UI
+                description: i.deck || "",
+              };
+            });
+          
+          if (results.length > 0) {
+            const best = results[0];
+            console.log('[SCAN-ITEM] Returning:', `${best.name || best.volume} #${best.issue_number} (${best.year})`);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[SCAN-ITEM] ComicVine error:', err.message);
+      cvTime = Date.now() - startTime;
     }
 
-    // Filter out results with missing critical data, map the rest
-    const results = (cvData.results ?? [])
-      .filter((i: any) => i.volume?.name && i.id) // Must have volume name and ID
-      .map((i: any) => ({
-        id: i.id,
-        name: i.name || i.volume.name, // Use volume name if issue name missing
-        issue_number: i.issue_number ?? "",
-        volume: i.volume.name,
-        cover_date: i.cover_date ?? "",
-        image: i.image?.small_url ?? i.image?.thumb_url ?? null,
-        description: i.deck ?? "", // Include description for validation
-      }));
-
     const totalTime = Date.now() - startTime;
-    console.log('[SCAN-ITEM] Success! Results:', results.length, `Total time: ${totalTime}ms`);
-
-    // CACHE DISABLED FOR TESTING
-    // if (imageSha256) {
-    //   await supabase.from('scan_cache').upsert({
-    //     image_sha256: imageSha256,
-    //     user_id: userId,
-    //     ocr: ocrText,
-    //     comicvine_results: results,
-    //   }, { onConflict: 'image_sha256' });
-    //   console.log('[SCAN-ITEM] Cached result for future requests');
-    // }
+    
+    // Always return 200 with ok status indicating if we found results
+    const hasResults = results.length > 0;
+    console.log('[SCAN-ITEM] Complete:', { 
+      ok: hasResults, 
+      resultsCount: results.length, 
+      totalTime: `${totalTime}ms` 
+    });
 
     return new Response(
       JSON.stringify({
-        ok: true,
+        ok: hasResults,
+        reason: hasResults ? undefined : "timeout_or_no_match",
         extracted: { series_title, issue_number, year, publisher, grade, gradingCompany },
+        prefill: hasResults ? {
+          title: results[0].name || results[0].volume,
+          issueNumber: results[0].issue_number,
+          publisher: results[0].publisher,
+          year: results[0].year,
+          comicvineCoverUrl: results[0].comicvineCoverUrl,
+        } : undefined,
         comicvineResults: results,
-        ocrText: ocrText, // Raw OCR for debug
-        cvQuery: cleanQuery, // Query sent to ComicVine for debug
+        ocrText: ocrText,
+        cvQuery: cleanQuery,
         cached: false,
         timing: { total: totalTime, vision: visionTime || 0, comicvine: cvTime || 0 }
       }),
@@ -364,25 +417,16 @@ serve(async (req) => {
     const totalTime = Date.now() - startTime;
     console.error('[SCAN-ITEM] Failed after', totalTime, 'ms');
     
-    // Check if it's a compute timeout
-    if (errorMessage === 'COMPUTE_TIMEOUT' || errorMessage.includes('CPU') || errorMessage.includes('WORKER_LIMIT')) {
-      return new Response(
-        JSON.stringify({ 
-          ok: false, 
-          error: "Processing timeout - image too large. Please try a smaller photo.",
-          code: 'COMPUTE_LIMIT'
-        }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    
+    // Always return 200 with ok: false to prevent UI hangs
     return new Response(
       JSON.stringify({ 
         ok: false, 
-        error: "Scan failed. Please retake the photo or try again.",
-        details: errorMessage 
+        reason: "error",
+        error: "Scan processing error. Please try again.",
+        details: errorMessage,
+        timing: { total: totalTime }
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
