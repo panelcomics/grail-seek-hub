@@ -95,10 +95,10 @@ Deno.serve(async (req) => {
 
     // Generate public URL
     const publicUrl = `${externalUrl}/storage/v1/object/public/${bucket}/${path}`;
-    console.log('Upload successful:', publicUrl);
+    console.log('Upload successful - path:', path, 'publicUrl:', publicUrl);
 
     return new Response(
-      JSON.stringify({ publicUrl }),
+      JSON.stringify({ path, publicUrl }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

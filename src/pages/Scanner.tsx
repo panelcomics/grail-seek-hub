@@ -401,8 +401,11 @@ export default function Scanner() {
         throw new Error("No public URL returned");
       }
 
-      const publicUrl = uploadData.publicUrl;
-      console.log(`${getTimestamp()} ✅ Photo uploaded successfully: ${publicUrl}`);
+      const { path: uploadPath, publicUrl } = uploadData;
+      console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 
+        path: uploadPath, 
+        publicUrl 
+      });
       setImageUrl(publicUrl); // Preserve photo URL
 
       // Step 2: Server-side barcode + OCR + ComicVine
