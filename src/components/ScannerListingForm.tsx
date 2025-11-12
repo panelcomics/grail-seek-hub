@@ -66,22 +66,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
     setSubmitting(true);
 
     try {
-      // Upload user's image to Supabase Storage
-      const imageBlob = await fetch(imageUrl).then(r => r.blob());
-      const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("comic-photos")
-        .upload(fileName, imageBlob, {
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("comic-photos")
-        .getPublicUrl(fileName);
+      // Use the imageUrl that was already uploaded to external Supabase
+      // No need to re-upload since Scanner already handled it
+      const finalImageUrl = imageUrl; // Already uploaded to external Supabase
 
       // Create inventory item with user's image as primary
       const inventoryData: any = {
@@ -96,7 +83,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
         details: notes.trim() || null,
         comicvine_issue_id: initialData.comicvineId ? parseInt(initialData.comicvineId.toString()) : null,
         images: {
-          front: publicUrl, // User's image is the primary image
+          front: finalImageUrl, // User's image from external Supabase
           comicvine_reference: initialData.comicvineCoverUrl || null, // Store reference separately
         },
         listing_status: "not_listed",
