@@ -29,6 +29,7 @@ interface PrefillData {
 
 interface SearchResult {
   id: string | number;
+  name?: string;
   title?: string;
   volume?: string;
   volumeName?: string;
@@ -36,9 +37,12 @@ interface SearchResult {
   publisher?: string;
   year?: string;
   image?: string;
+  thumbnail?: string;
   cover_image?: string;
   coverUrl?: string;
   description?: string;
+  score?: number;
+  normalizedScore?: number;
 }
 
 type ScannerStatus = "idle" | "previewing" | "recognizing" | "prefilled" | "manual";
@@ -327,10 +331,10 @@ export default function Scanner() {
             matchesFound: results.length
           });
 
-          console.log(`${getTimestamp()} 📚 ComicVine search completed:`, {
-            resultsCount: results.length,
-            topMatch: results[0]?.volume
-          });
+          console.log(`${getTimestamp()} 📚 ComicVine top 3 results:`, results);
+
+          // Store results for picker
+          setSearchResults(results);
 
           // Merge results if found
           if (results.length > 0) {
@@ -562,7 +566,23 @@ export default function Scanner() {
             <Button variant="outline" onClick={handleReset} className="mb-4">
               ← Scan Another Comic
             </Button>
-            <ScannerListingForm imageUrl={imageUrl || ""} initialData={prefillData || {}} confidence={confidence} />
+            <ScannerListingForm 
+              imageUrl={imageUrl || ""} 
+              initialData={prefillData || {}} 
+              confidence={confidence}
+              comicvineResults={searchResults.length > 0 ? searchResults.map(r => ({
+                id: r.id,
+                name: r.name || r.title || r.volume || r.volumeName || "",
+                issue_number: r.issue_number || "",
+                volume: r.volume || r.volumeName || r.title || "",
+                publisher: r.publisher || "",
+                year: r.year || "",
+                thumbnail: r.thumbnail || r.image || r.cover_image || r.coverUrl || "",
+                score: r.score || 0,
+                normalizedScore: r.normalizedScore || 0,
+                description: r.description || ""
+              })) : undefined}
+            />
           </div>
         ) : (
           // Show scanner interface

@@ -280,36 +280,48 @@ serve(async (req) => {
                      : ocrText.includes('DC') || ocrText.includes('D.C.') ? 'DC' 
                      : '';
     
-    // Extract year from date format "M/YY" or "MM/YYYY" or just "YYYY"
+    // OCR Helpers: Extract year hint from multiple patterns
     let year: number | null = null;
-    const dateMatch = ocrText.match(/,\s*(\d{4})/);
-    if (dateMatch) {
-      year = parseInt(dateMatch[1]);
-    } else {
-      // Check for CGC date like "3/66" → 1966
-      const cgcDateMatch = ocrText.match(/\b\d{1,2}\/(\d{2})\b/);
-      if (cgcDateMatch) {
-        const yy = parseInt(cgcDateMatch[1]);
+    
+    // 1. Try comma + 4-digit year (e.g., ", 1966")
+    const commaYearMatch = ocrText.match(/,\s*(\d{4})/);
+    if (commaYearMatch) {
+      year = parseInt(commaYearMatch[1]);
+    }
+    
+    // 2. Try month + 2-digit year (e.g., "MAR 66" or "3/66")
+    if (!year) {
+      const monthYearMatch = ocrText.match(/\b(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC|\d{1,2})[\/\s](\d{2})\b/i);
+      if (monthYearMatch) {
+        const yy = parseInt(monthYearMatch[1]);
         year = yy >= 30 && yy <= 99 ? 1900 + yy : 2000 + yy;
-      } else {
-        // Fallback: Look for standalone 4-digit year
-        const yearMatch = ocrText.match(/\b(19\d{2}|20\d{2})\b/);
-        if (yearMatch) {
-          year = parseInt(yearMatch[1]);
-        }
       }
     }
+    
+    // 3. Fallback: standalone 4-digit year
+    if (!year) {
+      const yearMatch = ocrText.match(/\b(19\d{2}|20\d{2})\b/);
+      if (yearMatch) {
+        year = parseInt(yearMatch[1]);
+      }
+    }
+    
+    // OCR Helpers: Extract price tokens
+    const priceTokens = ocrText.match(/\d+¢|\$\s*\d+\.\d+/g) || [];
+    
+    // OCR Helpers: Detect modern barcode (12-13 digits)
+    const hasModernBarcode = /\d{12,13}/.test(ocrText);
     
     // Build hints for scoring
     const hints = {
       yearHint: year,
       issue: issue_number,
-      priceTokens: ocrText.match(/\d+¢|\$\s*\d+\.\d+/g) || [],
-      hasModernBarcode: /\d{13}/.test(ocrText), // UPC-13 barcode
+      priceTokens,
+      hasModernBarcode,
       textTokens: ocrText.toLowerCase().split(/\s+/),
     };
     
-    console.log('[SCAN-ITEM] Hints for scoring:', hints);
+    console.log('[SCAN-ITEM] OCR Hints:', hints);
     
     // Build clean Comic Vine query: "Title #Issue Publisher Year"
     const queryParts = [];
@@ -430,13 +442,41 @@ serve(async (req) => {
             if (hints.hasModernBarcode) score -= 1.5;
             if (hints.priceTokens.some((p: string) => /\$\s*3\.99|\$\s*4\.99/.test(p))) score -= 1.5;
             
-            return { ...cv, score };
+            // Normalize score to 0-1 range for UI display
+            const normalizedScore = Math.max(0, Math.min(1, (score + 5) / 15));
+            
+            return { ...cv, score, normalizedScore };
           }).sort((a: any, b: any) => b.score - a.score);
           
-          if (results.length > 0) {
-            const best = results[0];
-            console.log('[SCAN-ITEM] Best match (score:', best.score, '):', `${best.name || best.volume} #${best.issue_number} (${best.year})`);
-          }
+          // Log top 3 candidates with details
+          const top3 = results.slice(0, 3);
+          top3.forEach((cv: any, idx: number) => {
+            console.log(`[SCAN-ITEM] Candidate #${idx + 1}:`, {
+              id: cv.id,
+              title: cv.name || cv.volume,
+              issue: cv.issue_number,
+              year: cv.year,
+              score: cv.score.toFixed(2),
+              normalizedScore: cv.normalizedScore.toFixed(2),
+              variantDescription: cv.description?.substring(0, 100) || 'N/A'
+            });
+          });
+          
+          // Return only top 3 with compact payload
+          results = top3.map((cv: any) => ({
+            id: cv.id,
+            name: cv.name,
+            issue_number: cv.issue_number,
+            volume: cv.volume,
+            publisher: cv.publisher,
+            year: cv.year,
+            cover_date: cv.cover_date,
+            thumbnail: cv.image, // Use existing image (already has thumbnail)
+            score: cv.score,
+            normalizedScore: cv.normalizedScore,
+            description: cv.description,
+            volumeStartYear: cv.volumeStartYear,
+          }));
         }
       }
     } catch (err: any) {

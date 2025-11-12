@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Image as ImageIcon, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ComicVinePicker } from "./ComicVinePicker";
 
 interface PrefillData {
   title?: string;
@@ -25,16 +26,31 @@ interface PrefillData {
   comicvineCoverUrl?: string; // Reference cover from ComicVine
 }
 
+interface ComicVineResult {
+  id: string | number;
+  name: string;
+  issue_number: string;
+  volume: string;
+  publisher: string;
+  year: string;
+  thumbnail: string;
+  score: number;
+  normalizedScore: number;
+  description?: string;
+}
+
 interface ScannerListingFormProps {
   imageUrl: string; // User's captured/uploaded image (empty string if from search)
   initialData?: PrefillData;
   confidence?: number | null; // Optional confidence score for display
+  comicvineResults?: ComicVineResult[]; // Top 3 results from scan
 }
 
-export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: ScannerListingFormProps) {
+export function ScannerListingForm({ imageUrl, initialData = {}, confidence, comicvineResults }: ScannerListingFormProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
 
   // Form state - all editable
   const [title, setTitle] = useState(initialData.title || initialData.series || "");
@@ -45,9 +61,24 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
   const [grade, setGrade] = useState(initialData.grade || "");
   const [condition, setCondition] = useState("NM");
   const [notes, setNotes] = useState(initialData.notes || initialData.description || "");
+  const [selectedCover, setSelectedCover] = useState(initialData.comicvineCoverUrl || null);
 
   const hasConfidentMatch = confidence !== null && confidence !== undefined && confidence >= 65;
-  const showReferenceCover = initialData.comicvineCoverUrl && imageUrl;
+  const showReferenceCover = selectedCover && imageUrl;
+  const hasComicVineResults = comicvineResults && comicvineResults.length > 0;
+
+  const handleComicVineSelect = (result: any) => {
+    setTitle(result.volume || result.name);
+    setSeries(result.volume || result.name);
+    setIssueNumber(result.issue_number);
+    setPublisher(result.publisher);
+    setYear(result.year);
+    setSelectedCover(result.thumbnail);
+    setShowPicker(false);
+    toast.success("Match applied", {
+      description: `Using ${result.volume} #${result.issue_number}`
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +115,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
         comicvine_issue_id: initialData.comicvineId ? parseInt(initialData.comicvineId.toString()) : null,
         images: {
           front: finalImageUrl, // User's image from external Supabase
-          comicvine_reference: initialData.comicvineCoverUrl || null, // Store reference separately
+          comicvine_reference: selectedCover || null, // Store reference separately
         },
         listing_status: "not_listed",
       };
@@ -133,6 +164,16 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
       </CardHeader>
 
       <CardContent>
+        {/* ComicVine Picker - Show if we have results and haven't selected yet */}
+        {hasComicVineResults && !hasConfidentMatch && (
+          <div className="mb-6">
+            <ComicVinePicker
+              results={comicvineResults}
+              onSelect={handleComicVineSelect}
+            />
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Image Display Section */}
           <div className="grid md:grid-cols-2 gap-6">
@@ -162,7 +203,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence }: S
                 </Label>
                 <div className="aspect-[2/3] bg-muted rounded-lg overflow-hidden border-2 border-border opacity-70">
                   <img
-                    src={initialData.comicvineCoverUrl}
+                    src={selectedCover}
                     alt="ComicVine reference"
                     className="h-full w-full object-cover"
                   />
