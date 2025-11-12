@@ -10,6 +10,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  
   try {
     // Get external Supabase credentials
     const externalUrl = Deno.env.get('VITE_EXTERNAL_SUPABASE_URL');
@@ -24,46 +26,67 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify user is authenticated with main Supabase
+    // Resolve user ID from JWT or fallback header
+    let userId = 'public';
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Not authenticated - please sign in' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const userIdHeader = req.headers.get('x-user-id');
+
+    if (authHeader) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          global: { headers: { Authorization: authHeader } }
+        });
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (!authError && user) {
+          userId = user.id;
+        }
+      } catch (e) {
+        console.warn('Auth verification failed, using fallback:', e);
+      }
     }
 
-    // Create main Supabase client to verify auth
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('Auth verification failed:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid session - please sign in again' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Fallback to x-user-id header if JWT failed
+    if (userId === 'public' && userIdHeader) {
+      userId = userIdHeader;
     }
 
     // Parse multipart form data
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    
+    // Accept both 'image' and 'file', prefer 'image'
+    let file = formData.get('image') as File | null;
+    let fieldName = 'image';
+    
+    if (!file) {
+      file = formData.get('file') as File | null;
+      fieldName = 'file';
+    }
 
     if (!file) {
+      console.error('No file provided in form data');
       return new Response(
-        JSON.stringify({ error: 'No file provided' }),
+        JSON.stringify({ error: 'No file provided. Expected "image" or "file" field.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Structured logging
+    const logEntry = {
+      when: new Date().toISOString(),
+      userId,
+      fieldName,
+      size: file.size,
+      type: file.type,
+      name: file.name
+    };
+    console.log('[upload-scanner-image]', JSON.stringify(logEntry));
+
     // Generate upload path
     const timestamp = Date.now();
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const path = `uploads/${user.id}/${timestamp}-${originalName}`;
+    const path = `uploads/${userId}/${timestamp}-${originalName}`;
 
     console.log('Uploading to external Supabase:', path);
 
@@ -95,7 +118,9 @@ Deno.serve(async (req) => {
 
     // Generate public URL
     const publicUrl = `${externalUrl}/storage/v1/object/public/${bucket}/${path}`;
-    console.log('Upload successful - path:', path, 'publicUrl:', publicUrl);
+    const elapsed = Date.now() - startTime;
+    
+    console.log('[upload-scanner-image] Success:', { path, publicUrl, elapsed: `${elapsed}ms` });
 
     return new Response(
       JSON.stringify({ path, publicUrl }),
@@ -103,7 +128,8 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Upload proxy error:', error);
+    const elapsed = Date.now() - startTime;
+    console.error('[upload-scanner-image] Error:', { error: error.message, elapsed: `${elapsed}ms` });
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

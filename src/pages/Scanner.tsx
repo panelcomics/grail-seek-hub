@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
+import { UploadLogPanel } from "@/components/UploadLogPanel";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
 import { uploadViaProxy } from "@/lib/uploadImage";
 import { withTimeout } from "@/lib/withTimeout";
@@ -68,6 +69,18 @@ export default function Scanner() {
     ebayData: null as any,
     retryAttempt: 0,
   });
+
+  const [uploadLog, setUploadLog] = useState<{
+    timestamp: string;
+    fieldName: string;
+    size: string;
+    type: string;
+    status: number;
+    path?: string;
+    publicUrl?: string;
+    elapsed: string;
+    error?: string;
+  } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -219,15 +232,29 @@ export default function Scanner() {
         fileType: file.type
       });
 
+      const uploadStartTime = Date.now();
       const { path: uploadPath, publicUrl } = await withTimeout(
         uploadViaProxy(file),
-        20000,
+        30000,
         "upload"
       );
+      const uploadElapsed = Date.now() - uploadStartTime;
 
       console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 
         path: uploadPath, 
         publicUrl 
+      });
+
+      // Log upload details
+      setUploadLog({
+        timestamp: new Date().toLocaleTimeString(),
+        fieldName: "image",
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+        type: file.type,
+        status: 200,
+        path: uploadPath,
+        publicUrl,
+        elapsed: `${uploadElapsed}ms`
       });
 
       // Immediately show the image and allow manual listing
@@ -374,6 +401,14 @@ export default function Scanner() {
 
     } catch (error: any) {
       console.error("[Scanner]", error);
+      
+      // Log upload error
+      setUploadLog(prev => prev ? {
+        ...prev,
+        status: 500,
+        error: error?.message || String(error)
+      } : null);
+
       sonnerToast("Scan failed", {
         description: error?.message ?? "Unknown error",
       });
@@ -714,6 +749,9 @@ export default function Scanner() {
 
       {/* Debug overlay - enabled in dev and preview */}
       {isDev && <RecognitionDebugOverlay debugData={debugData} />}
+      
+      {/* Upload log panel - dev/preview only */}
+      <UploadLogPanel log={uploadLog} />
     </div>
   );
 }
