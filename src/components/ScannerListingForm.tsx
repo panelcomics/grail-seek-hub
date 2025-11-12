@@ -13,37 +13,31 @@ import { Loader2, Image as ImageIcon, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ComicVinePicker } from "./ComicVinePicker";
 
-interface PrefillData {
-  title?: string;
-  series?: string;
-  issueNumber?: string;
-  publisher?: string;
-  year?: string | number;
-  grade?: string;
-  notes?: string;
-  description?: string;
-  comicvineId?: string | number;
-  comicvineCoverUrl?: string; // Reference cover from ComicVine
+interface ComicVinePick {
+  id: number;
+  resource: 'issue' | 'volume';
+  title: string;
+  issue: string | null;
+  year: number | null;
+  publisher?: string | null;
+  volumeName?: string | null;
+  volumeId?: number | null;
+  variantDescription?: string | null;
+  thumbUrl: string;
+  coverUrl: string;
+  score: number;
+  isReprint: boolean;
 }
 
-interface ComicVineResult {
-  id: string | number;
-  name: string;
-  issue_number: string;
-  volume: string;
-  publisher: string;
-  year: string;
-  thumbnail: string;
-  score: number;
-  normalizedScore: number;
-  description?: string;
+interface PrefillData {
+  picks?: ComicVinePick[];
 }
 
 interface ScannerListingFormProps {
   imageUrl: string; // User's captured/uploaded image (empty string if from search)
   initialData?: PrefillData;
   confidence?: number | null; // Optional confidence score for display
-  comicvineResults?: ComicVineResult[]; // Top 3 results from scan
+  comicvineResults?: ComicVinePick[]; // Top 3 results from scan
 }
 
 export function ScannerListingForm({ imageUrl, initialData = {}, confidence, comicvineResults }: ScannerListingFormProps) {
@@ -53,30 +47,35 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [showPicker, setShowPicker] = useState(false);
 
   // Form state - all editable
-  const [title, setTitle] = useState(initialData.title || initialData.series || "");
-  const [series, setSeries] = useState(initialData.series || "");
-  const [issueNumber, setIssueNumber] = useState(initialData.issueNumber || "");
-  const [publisher, setPublisher] = useState(initialData.publisher || "");
-  const [year, setYear] = useState(initialData.year?.toString() || "");
-  const [grade, setGrade] = useState(initialData.grade || "");
+  const [title, setTitle] = useState("");
+  const [series, setSeries] = useState("");
+  const [issueNumber, setIssueNumber] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [year, setYear] = useState("");
+  const [grade, setGrade] = useState("");
   const [condition, setCondition] = useState("NM");
-  const [notes, setNotes] = useState(initialData.notes || initialData.description || "");
-  const [selectedCover, setSelectedCover] = useState(initialData.comicvineCoverUrl || null);
+  const [notes, setNotes] = useState("");
+  const [selectedCover, setSelectedCover] = useState<string | null>(null);
+  const [comicvineId, setComicvineId] = useState<number | null>(null);
+  const [volumeId, setVolumeId] = useState<number | null>(null);
+  const [variantInfo, setVariantInfo] = useState<string>("");
 
-  const hasConfidentMatch = confidence !== null && confidence !== undefined && confidence >= 65;
+  const hasPicks = Boolean(comicvineResults?.length);
   const showReferenceCover = selectedCover && imageUrl;
-  const hasComicVineResults = comicvineResults && comicvineResults.length > 0;
 
-  const handleComicVineSelect = (result: any) => {
-    setTitle(result.volume || result.name);
-    setSeries(result.volume || result.name);
-    setIssueNumber(result.issue_number);
-    setPublisher(result.publisher);
-    setYear(result.year);
-    setSelectedCover(result.thumbnail);
+  const handleComicVineSelect = (pick: ComicVinePick) => {
+    setTitle(pick.title);
+    setSeries(pick.title);
+    setIssueNumber(pick.issue || "");
+    setPublisher(pick.publisher || "");
+    setYear(pick.year?.toString() || "");
+    setSelectedCover(pick.coverUrl);
+    setComicvineId(pick.id);
+    setVolumeId(pick.volumeId || null);
+    setVariantInfo(pick.variantDescription || "");
     setShowPicker(false);
     toast.success("Match applied", {
-      description: `Using ${result.volume} #${result.issue_number}`
+      description: `Using ${pick.title} ${pick.issue ? `#${pick.issue}` : ''}`
     });
   };
 
@@ -112,7 +111,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         grade: grade.trim() || null,
         condition: condition,
         details: notes.trim() || null,
-        comicvine_issue_id: initialData.comicvineId ? parseInt(initialData.comicvineId.toString()) : null,
+        comicvine_issue_id: comicvineId || null,
+        comicvine_volume_id: volumeId || null,
+        variant_description: variantInfo || null,
         images: {
           front: finalImageUrl, // User's image from external Supabase
           comicvine_reference: selectedCover || null, // Store reference separately
@@ -152,23 +153,21 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>
-          {hasConfidentMatch ? "Review & Complete Listing" : "Create Listing Manually"}
-        </CardTitle>
+        <CardTitle>Create Listing</CardTitle>
         <CardDescription>
-          {hasConfidentMatch 
-            ? `We found a match (${Math.round(confidence!)}% confidence). Review and edit the details below.`
-            : "We couldn't confidently identify this comic. Fill in the details below - all fields are editable."
+          {hasPicks 
+            ? "Select a match or enter details manually - all fields are editable."
+            : "Fill in the details below - all fields are editable."
           }
         </CardDescription>
       </CardHeader>
 
       <CardContent>
-        {/* ComicVine Picker - Show if we have results and haven't selected yet */}
-        {hasComicVineResults && !hasConfidentMatch && (
+        {/* ComicVine Picker - Show if we have picks */}
+        {hasPicks && (
           <div className="mb-6">
             <ComicVinePicker
-              results={comicvineResults}
+              picks={comicvineResults || []}
               onSelect={handleComicVineSelect}
             />
           </div>

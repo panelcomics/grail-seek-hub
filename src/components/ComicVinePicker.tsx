@@ -6,49 +6,50 @@ import { Check, Star } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-interface ComicVineResult {
-  id: string | number;
-  name: string;
-  issue_number: string;
-  volume: string;
-  publisher: string;
-  year: string;
-  thumbnail: string;
+interface ComicVinePick {
+  id: number;
+  resource: 'issue' | 'volume';
+  title: string;
+  issue: string | null;
+  year: number | null;
+  publisher?: string | null;
+  volumeName?: string | null;
+  volumeId?: number | null;
+  variantDescription?: string | null;
+  thumbUrl: string;
+  coverUrl: string;
   score: number;
-  normalizedScore: number;
-  description?: string;
+  isReprint: boolean;
 }
 
 interface ComicVinePickerProps {
-  results: ComicVineResult[];
-  onSelect: (result: ComicVineResult) => void;
+  picks: ComicVinePick[];
+  onSelect: (pick: ComicVinePick) => void;
 }
 
-export function ComicVinePicker({ results, onSelect }: ComicVinePickerProps) {
-  const [selectedId, setSelectedId] = useState<string | number | null>(null);
+export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [excludeReprints, setExcludeReprints] = useState(true);
-
-  const reprintPattern = /(facsimile|true believers|reprint|anniversary|2nd print|third print|second print)/i;
   
-  const filteredResults = excludeReprints 
-    ? results.filter(r => !reprintPattern.test(r.description || ''))
-    : results;
+  const filteredPicks = excludeReprints 
+    ? picks.filter(p => !p.isReprint)
+    : picks;
 
-  // Auto-select if top result has normalizedScore >= 0.72
+  // Auto-select if top pick has score >= 0.72
   useEffect(() => {
-    if (filteredResults.length > 0 && filteredResults[0].normalizedScore >= 0.72) {
-      setSelectedId(filteredResults[0].id);
+    if (filteredPicks.length > 0 && filteredPicks[0].score >= 0.72) {
+      setSelectedId(filteredPicks[0].id);
     }
-  }, [filteredResults]);
+  }, [filteredPicks]);
 
   const handleConfirm = () => {
-    const selected = filteredResults.find(r => r.id === selectedId);
+    const selected = filteredPicks.find(p => p.id === selectedId);
     if (selected) {
       onSelect(selected);
     }
   };
 
-  if (filteredResults.length === 0 && excludeReprints) {
+  if (filteredPicks.length === 0 && excludeReprints) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -94,15 +95,15 @@ export function ComicVinePicker({ results, onSelect }: ComicVinePickerProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3">
-          {filteredResults.map((result, idx) => {
-            const isSelected = result.id === selectedId;
+          {filteredPicks.map((pick, idx) => {
+            const isSelected = pick.id === selectedId;
             const isTopPick = idx === 0;
-            const confidencePercent = Math.round(result.normalizedScore * 100);
+            const confidencePercent = Math.round(pick.score * 100);
 
             return (
               <button
-                key={result.id}
-                onClick={() => setSelectedId(result.id)}
+                key={pick.id}
+                onClick={() => setSelectedId(pick.id)}
                 className={`
                   relative flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left
                   ${isSelected 
@@ -114,8 +115,8 @@ export function ComicVinePicker({ results, onSelect }: ComicVinePickerProps) {
                 {/* Thumbnail */}
                 <div className="flex-shrink-0 w-16 h-24 bg-muted rounded overflow-hidden">
                   <img
-                    src={result.thumbnail}
-                    alt={`${result.volume} #${result.issue_number}`}
+                    src={pick.thumbUrl}
+                    alt={`${pick.title} #${pick.issue || ''}`}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -125,16 +126,16 @@ export function ComicVinePicker({ results, onSelect }: ComicVinePickerProps) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-sm truncate">
-                        {result.volume || result.name} #{result.issue_number}
+                        {pick.title} {pick.issue ? `#${pick.issue}` : ''}
                       </h4>
                       <p className="text-xs text-muted-foreground">
-                        {result.publisher} • {result.year}
+                        {pick.publisher} {pick.year ? `• ${pick.year}` : ''}
                       </p>
                     </div>
                     
                     {/* Badges */}
                     <div className="flex flex-col items-end gap-1">
-                      {isTopPick && result.normalizedScore >= 0.72 && (
+                      {isTopPick && pick.score >= 0.72 && (
                         <Badge variant="default" className="text-xs">
                           <Star className="w-3 h-3 mr-1" />
                           Best Match
@@ -148,13 +149,6 @@ export function ComicVinePicker({ results, onSelect }: ComicVinePickerProps) {
                       </Badge>
                     </div>
                   </div>
-
-                  {/* Score details (dev only) */}
-                  {import.meta.env.DEV && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Raw score: {result.score.toFixed(2)}
-                    </p>
-                  )}
                 </div>
 
                 {/* Selection indicator */}

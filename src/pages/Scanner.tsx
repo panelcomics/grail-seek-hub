@@ -27,22 +27,20 @@ interface PrefillData {
   description?: string;
 }
 
-interface SearchResult {
-  id: string | number;
-  name?: string;
-  title?: string;
-  volume?: string;
-  volumeName?: string;
-  issue_number?: string;
-  publisher?: string;
-  year?: string;
-  image?: string;
-  thumbnail?: string;
-  cover_image?: string;
-  coverUrl?: string;
-  description?: string;
-  score?: number;
-  normalizedScore?: number;
+interface ComicVinePick {
+  id: number;
+  resource: 'issue' | 'volume';
+  title: string;
+  issue: string | null;
+  year: number | null;
+  publisher?: string | null;
+  volumeName?: string | null;
+  volumeId?: number | null;
+  variantDescription?: string | null;
+  thumbUrl: string;
+  coverUrl: string;
+  score: number;
+  isReprint: boolean;
 }
 
 type ScannerStatus = "idle" | "previewing" | "recognizing" | "prefilled" | "manual";
@@ -57,7 +55,8 @@ export default function Scanner() {
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [confidence, setConfidence] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<ComicVinePick[]>([]);
+  const [textSearchResults, setTextSearchResults] = useState<any[]>([]);
 
   const [debugData, setDebugData] = useState({
     status: "idle" as "idle" | "processing" | "success" | "error",
@@ -318,7 +317,7 @@ export default function Scanner() {
             return;
           }
 
-          const results = scanResult?.comicvineResults || [];
+          const results = scanResult?.picks || [];
           const rawOcrText = scanResult?.ocrText || "";
           const cvQuery = scanResult?.cvQuery || "";
           const extracted = scanResult?.extracted || {};
@@ -457,7 +456,7 @@ export default function Scanner() {
     }
 
     setLoading(true);
-    setSearchResults([]);
+    setTextSearchResults([]);
 
     try {
       const { data, error } = await supabase.functions.invoke("comic-scanner", {
@@ -477,7 +476,7 @@ export default function Scanner() {
         return;
       }
 
-      setSearchResults(results);
+      setTextSearchResults(results);
       toast({
         title: "Results found",
         description: `Found ${results.length} result(s)`,
@@ -494,22 +493,25 @@ export default function Scanner() {
     }
   };
 
-  const handleUseSearchResult = (result: SearchResult) => {
-    const title = result.title || result.volume || result.volumeName || "";
-
-    setPrefillData({
-      title: title,
-      series: title,
-      issueNumber: result.issue_number || "",
-      publisher: result.publisher || "",
-      year: result.year || "",
-      comicvineId: result.id || "",
-      comicvineCoverUrl: result.image || result.cover_image || result.coverUrl || "",
-      description: result.description || "",
-    });
-    setConfidence(100); // Manual search selection = 100% confidence
+  const handleUseSearchResult = (result: any) => {
+    // Set the searchResults to pass to form as picks
+    setSearchResults([{
+      id: result.id || 0,
+      resource: 'issue',
+      title: result.title || result.volume || result.volumeName || "",
+      issue: result.issue_number || null,
+      year: result.year ? parseInt(result.year) : null,
+      publisher: result.publisher || null,
+      volumeName: result.volumeName || result.volume || null,
+      volumeId: result.volumeId || null,
+      variantDescription: result.description || null,
+      thumbUrl: result.thumbnail || result.image || result.cover_image || result.coverUrl || "",
+      coverUrl: result.image || result.cover_image || result.coverUrl || "",
+      score: 1,
+      isReprint: false,
+    }]);
+    setImageUrl("");
     setStatus("prefilled");
-    // Note: No imageUrl set for search results - form will handle this
   };
 
   const handleReset = () => {
@@ -519,7 +521,7 @@ export default function Scanner() {
     setStatus("idle");
     setConfidence(null);
     setQuery("");
-    setSearchResults([]);
+    setTextSearchResults([]);
     setCameraActive(false);
     stopCamera();
   };
@@ -568,20 +570,9 @@ export default function Scanner() {
             </Button>
             <ScannerListingForm 
               imageUrl={imageUrl || ""} 
-              initialData={prefillData || {}} 
+              initialData={{}}
               confidence={confidence}
-              comicvineResults={searchResults.length > 0 ? searchResults.map(r => ({
-                id: r.id,
-                name: r.name || r.title || r.volume || r.volumeName || "",
-                issue_number: r.issue_number || "",
-                volume: r.volume || r.volumeName || r.title || "",
-                publisher: r.publisher || "",
-                year: r.year || "",
-                thumbnail: r.thumbnail || r.image || r.cover_image || r.coverUrl || "",
-                score: r.score || 0,
-                normalizedScore: r.normalizedScore || 0,
-                description: r.description || ""
-              })) : undefined}
+              comicvineResults={searchResults}
             />
           </div>
         ) : (
@@ -745,9 +736,9 @@ export default function Scanner() {
                     </Button>
                   </div>
 
-                  {searchResults.length > 0 && (
+                  {textSearchResults.length > 0 && (
                     <div className="space-y-3 max-h-[600px] overflow-y-auto mt-4">
-                      {searchResults.map((result, index) => {
+                      {textSearchResults.map((result, index) => {
                         const title = result.title || result.volume || result.volumeName || "";
                         const coverUrl = result.image || result.cover_image || result.coverUrl;
 

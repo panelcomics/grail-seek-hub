@@ -380,24 +380,26 @@ serve(async (req) => {
             .filter((i: any) => i.volume?.name || i.name) // Must have a name
             .slice(0, 10)
             .map((i: any) => {
-              const title = i.name || i.volume?.name || "";
-              const issueNumber = i.issue_number || i.volume?.start_issue_number || "";
+              const title = i.volume?.name || i.name || "";
+              const issueNumber = i.issue_number || "";
               const publisherName = i.volume?.publisher?.name || "";
-              const coverYear = i.cover_date?.slice(0, 4) || i.start_year?.toString() || "";
-              const comicvineCoverUrl = i.image?.original_url || i.image?.medium_url || i.image?.small_url || null;
+              const coverYear = i.cover_date ? parseInt(i.cover_date.slice(0, 4)) : (i.start_year ? parseInt(i.start_year) : null);
               const volumeStartYear = i.volume?.start_year ? parseInt(i.volume.start_year) : null;
               const variantDescription = i.volume?.description || i.deck || "";
               
               return {
                 id: i.id,
+                resource: i.resource_type || 'issue',
                 name: title,
                 issue_number: issueNumber,
                 volume: i.volume?.name || title,
+                volumeId: i.volume?.id || null,
+                volumeName: i.volume?.name || null,
                 publisher: publisherName,
                 year: coverYear,
                 cover_date: i.cover_date || "",
-                image: comicvineCoverUrl,
-                comicvineCoverUrl, // Explicit field for UI
+                thumbUrl: i.image?.thumb_url || i.image?.small_url || i.image?.medium_url || "",
+                coverUrl: i.image?.original_url || i.image?.super_url || i.image?.medium_url || "",
                 description: variantDescription,
                 volumeStartYear,
               };
@@ -409,13 +411,14 @@ serve(async (req) => {
           
           results = results.map((cv: any) => {
             let score = 0;
+            const isReprint = variantBad.test(cv.description || '');
             
             // Exact issue match
             if (cv.issue_number === hints.issue) score += 3;
             
             // Year closeness
             if (hints.yearHint && cv.year) {
-              const cvYear = parseInt(cv.year);
+              const cvYear = cv.year;
               if (!isNaN(cvYear)) {
                 score += Math.max(0, 3 - Math.min(3, Math.abs(cvYear - hints.yearHint)));
               }
@@ -434,9 +437,9 @@ serve(async (req) => {
             if (hints.priceTokens.some((p: string) => oldPrice.includes(p))) score += 1;
             
             // Penalties for reprints
-            if (variantBad.test(cv.description || '')) score -= 5;
+            if (isReprint) score -= 5;
             if (cv.year && hints.yearHint) {
-              const cvYear = parseInt(cv.year);
+              const cvYear = cv.year;
               if (!isNaN(cvYear) && cvYear > hints.yearHint + 5) score -= 2;
             }
             if (hints.hasModernBarcode) score -= 1.5;
@@ -445,7 +448,7 @@ serve(async (req) => {
             // Normalize score to 0-1 range for UI display
             const normalizedScore = Math.max(0, Math.min(1, (score + 5) / 15));
             
-            return { ...cv, score, normalizedScore };
+            return { ...cv, score, normalizedScore, isReprint };
           }).sort((a: any, b: any) => b.score - a.score);
           
           // Log top 3 candidates with details
@@ -465,17 +468,18 @@ serve(async (req) => {
           // Return only top 3 with compact payload
           results = top3.map((cv: any) => ({
             id: cv.id,
-            name: cv.name,
-            issue_number: cv.issue_number,
-            volume: cv.volume,
-            publisher: cv.publisher,
+            resource: cv.resource,
+            title: cv.name || cv.volume,
+            issue: cv.issue_number,
             year: cv.year,
-            cover_date: cv.cover_date,
-            thumbnail: cv.image, // Use existing image (already has thumbnail)
-            score: cv.score,
-            normalizedScore: cv.normalizedScore,
-            description: cv.description,
-            volumeStartYear: cv.volumeStartYear,
+            publisher: cv.publisher,
+            volumeName: cv.volumeName,
+            volumeId: cv.volumeId,
+            variantDescription: cv.description,
+            thumbUrl: cv.thumbUrl,
+            coverUrl: cv.coverUrl,
+            score: cv.normalizedScore,
+            isReprint: cv.isReprint,
           }));
         }
       }
@@ -499,14 +503,7 @@ serve(async (req) => {
         ok: hasResults,
         reason: hasResults ? undefined : "timeout_or_no_match",
         extracted: { series_title, issue_number, year, publisher, grade, gradingCompany },
-        prefill: hasResults ? {
-          title: results[0].name || results[0].volume,
-          issueNumber: results[0].issue_number,
-          publisher: results[0].publisher,
-          year: results[0].year,
-          comicvineCoverUrl: results[0].comicvineCoverUrl,
-        } : undefined,
-        comicvineResults: results,
+        picks: results,
         ocrText: ocrText,
         cvQuery: cleanQuery,
         cached: false,
