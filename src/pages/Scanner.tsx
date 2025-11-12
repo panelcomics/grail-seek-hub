@@ -15,6 +15,7 @@ import { ScannerListingForm } from "@/components/ScannerListingForm";
 import { uploadViaProxy } from "@/lib/uploadImage";
 import { withTimeout } from "@/lib/withTimeout";
 import { toast as sonnerToast } from "sonner";
+import { getSessionId } from "@/lib/session";
 
 interface PrefillData {
   title?: string;
@@ -41,6 +42,7 @@ interface ComicVinePick {
   coverUrl: string;
   score: number;
   isReprint: boolean;
+  source?: 'comicvine' | 'cache' | 'gcd';
 }
 
 type ScannerStatus = "idle" | "previewing" | "recognizing" | "prefilled" | "manual";
@@ -315,9 +317,16 @@ export default function Scanner() {
       (async () => {
         try {
           const ocrStartTime = Date.now();
+          
+          // Get session ID for analytics
+          const sessionId = getSessionId();
+          
           const { data: scanResult, error: scanError } = await withTimeout(
             supabase.functions.invoke("scan-item", {
-              body: { imageBase64: base64Data },
+              body: { 
+                imageBase64: base64Data,
+                sessionId 
+              },
               headers: { Authorization: `Bearer ${session.access_token}` }
             }),
             45000,

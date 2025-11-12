@@ -1,6 +1,7 @@
 // supabase/functions/scan-item/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { track } from '../_shared/track.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,25 @@ async function computeSHA256(data: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Helper to compute match hash for verified cache
+async function matchHash(title: string, issue?: string | null, publisher?: string | null): Promise<string> {
+  const normalize = (s: string) => s.toLowerCase().trim().replace(/[^\w\s]/g, '');
+  const parts = [
+    normalize(title),
+    issue ? normalize(issue) : '',
+    publisher ? normalize(publisher) : ''
+  ];
+  const combined = parts.join('|');
+  
+  const encoder = new TextEncoder();
+  const data_buf = encoder.encode(combined);
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data_buf);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return hashHex.substring(0, 12);
 }
 
 // Helper to check rate limit
@@ -71,6 +91,8 @@ serve(async (req) => {
   const startTime = Date.now();
   console.log('[SCAN-ITEM] Function invoked:', req.method, req.url);
   
+  let sessionId: string | null = null;
+  
   // Handle OPTIONS for CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -119,6 +141,7 @@ serve(async (req) => {
     let body;
     try {
       body = await req.json();
+      sessionId = body.sessionId || null;
     } catch (e) {
       console.error('[SCAN-ITEM] Failed to parse request body:', e);
       return new Response(
@@ -126,6 +149,14 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Track scan start
+    await track(supabase, {
+      flow: 'scan-item',
+      action: 'start',
+      session_id: sessionId,
+      user_id: userId
+    });
 
     console.log('[SCAN-ITEM] Body received:', { 
       hasImage: !!body.imageBase64, 
@@ -343,6 +374,52 @@ serve(async (req) => {
     
     console.log('[SCAN-ITEM] 🎯 Final Query:', cleanQuery);
     
+    // Check verified match cache (if feature enabled)
+    let cachedMatch: any = null;
+    if (Deno.env.get('FEATURE_SCANNER_CACHE') === 'true' && series_title) {
+      try {
+        const hash = await matchHash(series_title, issue_number, publisher);
+        console.log('[SCAN-ITEM] Checking verified_matches cache, hash:', hash);
+        
+        const { data: verified } = await supabase
+          .from('verified_matches')
+          .select('*')
+          .eq('hash', hash)
+          .single();
+        
+        if (verified) {
+          console.log('[SCAN-ITEM] ✅ Cache hit from verified_matches!');
+          cachedMatch = {
+            id: parseInt(verified.source_id || '0'),
+            resource: 'issue',
+            title: verified.title,
+            issue: verified.issue,
+            year: verified.year,
+            publisher: verified.publisher,
+            volumeName: verified.title,
+            volumeId: null,
+            variantDescription: verified.variant_description,
+            thumbUrl: verified.cover_url,
+            coverUrl: verified.cover_url,
+            score: 10, // Max score for verified matches
+            normalizedScore: 1.0,
+            isReprint: false,
+            source: 'cache'
+          };
+          
+          await track(supabase, {
+            flow: 'cache',
+            action: 'cache_hit',
+            session_id: sessionId,
+            user_id: userId,
+            duration_ms: Date.now() - startTime
+          });
+        }
+      } catch (e) {
+        console.warn('[SCAN-ITEM] Cache lookup failed:', e);
+      }
+    }
+    
     // Query ComicVine with timeout
     let cvData: any = null;
     let cvTime = 0;
@@ -351,6 +428,14 @@ serve(async (req) => {
     try {
       console.log('[SCAN-ITEM] Querying ComicVine API...');
       const cvStartTime = Date.now();
+      
+      await track(supabase, {
+        flow: 'comicvine',
+        action: 'start',
+        session_id: sessionId,
+        user_id: userId,
+        query: cleanQuery
+      });
       
       const cvRes = await withTimeout(
         fetch(
@@ -369,10 +454,29 @@ serve(async (req) => {
       console.log('[SCAN-ITEM] ComicVine response:', cvRes.status, `(${cvTime}ms)`);
       
       if (!cvRes.ok) {
-        console.warn('[SCAN-ITEM] ComicVine HTTP error:', cvRes.status);
-      } else {
+        await track(supabase, {
+          flow: 'comicvine',
+          action: 'fail',
+          session_id: sessionId,
+          user_id: userId,
+          duration_ms: cvTime,
+          notes: `HTTP ${cvRes.status}`
+        });
+      }
+      
+      if (cvRes.ok) {
         cvData = await cvRes.json();
-        console.log('[SCAN-ITEM] ComicVine results count:', cvData.results?.length ?? 0);
+        const resultCount = cvData.results?.length ?? 0;
+        console.log('[SCAN-ITEM] ComicVine results count:', resultCount);
+        
+        await track(supabase, {
+          flow: 'comicvine',
+          action: 'success',
+          session_id: sessionId,
+          user_id: userId,
+          duration_ms: cvTime,
+          result_count: resultCount
+        });
         
         if (cvData.status_code === 1 && cvData.results?.length > 0) {
           // Map results to structured format
@@ -436,8 +540,11 @@ serve(async (req) => {
             // Old price tokens imply original
             if (hints.priceTokens.some((p: string) => oldPrice.includes(p))) score += 1;
             
-            // Penalties for reprints
+            // Enhanced penalties for reprints and modern editions
             if (isReprint) score -= 5;
+            if (/(facsimile|true believers|reprint|2nd print|anniversary)/i.test(cv.description || '')) {
+              score -= 5; // Stronger reprint penalty
+            }
             if (cv.year && hints.yearHint) {
               const cvYear = cv.year;
               if (!isNaN(cvYear) && cvYear > hints.yearHint + 5) score -= 2;
@@ -490,12 +597,31 @@ serve(async (req) => {
 
     const totalTime = Date.now() - startTime;
     
+    // Prepend cached match if available
+    if (cachedMatch) {
+      results = [cachedMatch, ...results.slice(0, 2)]; // Cache + top 2 ComicVine
+    }
+    
+    // Track scan success
+    await track(supabase, {
+      flow: 'scan-item',
+      action: 'success',
+      session_id: sessionId,
+      user_id: userId,
+      duration_ms: totalTime,
+      result_count: results.length
+    });
+    
+    // Add flush delay before returning
+    await new Promise(r => setTimeout(r, 250));
+    
     // Always return 200 with ok status indicating if we found results
     const hasResults = results.length > 0;
     console.log('[SCAN-ITEM] Complete:', { 
       ok: hasResults, 
       resultsCount: results.length, 
-      totalTime: `${totalTime}ms` 
+      totalTime: `${totalTime}ms`,
+      hasCache: !!cachedMatch
     });
 
     return new Response(

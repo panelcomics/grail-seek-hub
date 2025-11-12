@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star } from "lucide-react";
+import { Check, Star, Sparkles, Database } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { getSessionId } from "@/lib/session";
 
 interface ComicVinePick {
   id: number;
@@ -20,6 +22,7 @@ interface ComicVinePick {
   coverUrl: string;
   score: number;
   isReprint: boolean;
+  source?: 'comicvine' | 'cache' | 'gcd';
 }
 
 interface ComicVinePickerProps {
@@ -42,11 +45,41 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
     }
   }, [filteredPicks]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const selected = filteredPicks.find(p => p.id === selectedId);
-    if (selected) {
-      onSelect(selected);
+    if (!selected) return;
+    
+    try {
+      const sessionId = getSessionId();
+      
+      // Track pick selection
+      await supabase.functions.invoke('track-pick', {
+        body: {
+          sessionId,
+          source: selected.source || 'comicvine',
+          score: selected.score
+        }
+      });
+      
+      // Save as verified match for future cache
+      await supabase.functions.invoke('save-verified', {
+        body: {
+          title: selected.title,
+          issue: selected.issue,
+          publisher: selected.publisher,
+          year: selected.year,
+          variant_description: selected.variantDescription,
+          cover_url: selected.coverUrl,
+          source_id: selected.id.toString(),
+          source: selected.source || 'comicvine'
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to track/save pick:', error);
+      // Don't block user - continue with selection
     }
+    
+    onSelect(selected);
   };
 
   if (filteredPicks.length === 0 && excludeReprints) {
@@ -99,6 +132,12 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
             const isSelected = pick.id === selectedId;
             const isTopPick = idx === 0;
             const confidencePercent = Math.round(pick.score * 100);
+            const sourceLabel = pick.source === 'cache' ? 'Verified Match' 
+                              : pick.source === 'gcd' ? 'GCD' 
+                              : 'ComicVine';
+            const sourceIcon = pick.source === 'cache' ? <Sparkles className="w-3 h-3" />
+                             : pick.source === 'gcd' ? <Database className="w-3 h-3" />
+                             : null;
 
             return (
               <button
@@ -135,12 +174,20 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
                     
                     {/* Badges */}
                     <div className="flex flex-col items-end gap-1">
-                      {isTopPick && pick.score >= 0.72 && (
-                        <Badge variant="default" className="text-xs">
-                          <Star className="w-3 h-3 mr-1" />
-                          Best Match
+                      {pick.source === 'cache' && (
+                        <Badge variant="default" className="text-xs bg-green-600">
+                          {sourceIcon}
+                          <span className="ml-1">{sourceLabel}</span>
                         </Badge>
                       )}
+                      {!pick.source || pick.source === 'comicvine' ? (
+                        isTopPick && pick.score >= 0.72 && (
+                          <Badge variant="default" className="text-xs">
+                            <Star className="w-3 h-3 mr-1" />
+                            Best Match
+                          </Badge>
+                        )
+                      ) : null}
                       <Badge 
                         variant={confidencePercent >= 72 ? "default" : "secondary"}
                         className="text-xs"

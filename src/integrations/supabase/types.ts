@@ -994,6 +994,42 @@ export type Database = {
         }
         Relationships: []
       }
+      gcd_index: {
+        Row: {
+          cover_url: string | null
+          gcd_id: string | null
+          id: string
+          indexed_at: string | null
+          issue: string | null
+          publisher: string | null
+          title: string | null
+          variant_description: string | null
+          year: number | null
+        }
+        Insert: {
+          cover_url?: string | null
+          gcd_id?: string | null
+          id?: string
+          indexed_at?: string | null
+          issue?: string | null
+          publisher?: string | null
+          title?: string | null
+          variant_description?: string | null
+          year?: number | null
+        }
+        Update: {
+          cover_url?: string | null
+          gcd_id?: string | null
+          id?: string
+          indexed_at?: string | null
+          issue?: string | null
+          publisher?: string | null
+          title?: string | null
+          variant_description?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
       influencer_codes: {
         Row: {
           approved_at: string | null
@@ -1951,6 +1987,51 @@ export type Database = {
         }
         Relationships: []
       }
+      scanner_metrics: {
+        Row: {
+          action: string
+          duration_ms: number | null
+          flow: string
+          id: string
+          notes: string | null
+          query: string | null
+          result_count: number | null
+          selected_score: number | null
+          selected_source: string | null
+          session_id: string | null
+          ts: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          duration_ms?: number | null
+          flow: string
+          id?: string
+          notes?: string | null
+          query?: string | null
+          result_count?: number | null
+          selected_score?: number | null
+          selected_source?: string | null
+          session_id?: string | null
+          ts?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          duration_ms?: number | null
+          flow?: string
+          id?: string
+          notes?: string | null
+          query?: string | null
+          result_count?: number | null
+          selected_score?: number | null
+          selected_source?: string | null
+          session_id?: string | null
+          ts?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       seller_featured: {
         Row: {
           active: boolean
@@ -2491,6 +2572,51 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      verified_matches: {
+        Row: {
+          cover_url: string | null
+          created_at: string | null
+          created_by: string | null
+          hash: string
+          id: string
+          issue: string | null
+          publisher: string | null
+          source: string
+          source_id: string | null
+          title: string | null
+          variant_description: string | null
+          year: number | null
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          hash: string
+          id?: string
+          issue?: string | null
+          publisher?: string | null
+          source?: string
+          source_id?: string | null
+          title?: string | null
+          variant_description?: string | null
+          year?: number | null
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          hash?: string
+          id?: string
+          issue?: string | null
+          publisher?: string | null
+          source?: string
+          source_id?: string | null
+          title?: string | null
+          variant_description?: string | null
+          year?: number | null
         }
         Relationships: []
       }
