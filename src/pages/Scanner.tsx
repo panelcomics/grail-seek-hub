@@ -11,64 +11,9 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
-
-async function testExternalUpload() {
-  try {
-    console.log("[TEST-EXTERNAL] Creating test image...");
-    
-    // Create a simple test image (red 10x10 PNG)
-    const canvas = document.createElement("canvas");
-    canvas.width = 10;
-    canvas.height = 10;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "red";
-      ctx.fillRect(0, 0, 10, 10);
-    }
-    
-    // Convert to blob
-    const blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((b) => resolve(b!), "image/png");
-    });
-    
-    const file = new File([blob], `test-upload-${Date.now()}.png`, { type: "image/png" });
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // Get auth token
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert("❌ Not authenticated - please sign in");
-      return;
-    }
-
-    console.log("[TEST-EXTERNAL] Uploading via edge function...");
-    const { data, error } = await supabase.functions.invoke("upload-scanner-image", {
-      body: formData,
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-
-    if (error) {
-      console.error("[TEST-EXTERNAL] Upload error:", error);
-      alert(`❌ Upload error: ${error.message}`);
-      return;
-    }
-
-    if (!data?.publicUrl) {
-      console.error("[TEST-EXTERNAL] No public URL returned:", data);
-      alert(`❌ No public URL returned`);
-      return;
-    }
-
-    console.log("[TEST-EXTERNAL] Success! Public URL:", data.publicUrl);
-    alert(`✅ Success!\n${data.publicUrl}`);
-  } catch (e: any) {
-    console.error("[TEST-EXTERNAL] Exception:", e);
-    alert(`❌ Unexpected error: ${e.message ?? e}`);
-  }
-}
+import { uploadViaProxy } from "@/lib/uploadImage";
+import { withTimeout } from "@/lib/withTimeout";
+import { toast as sonnerToast } from "sonner";
 
 interface PrefillData {
   title?: string;
@@ -133,52 +78,7 @@ export default function Scanner() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [testingUpload, setTestingUpload] = useState(false);
   const isDev = import.meta.env.DEV || window.location.hostname.includes("lovableproject.com");
-
-  const handleTestUpload = async () => {
-    setTestingUpload(true);
-    console.log("[TEST-UPLOAD] Starting test upload probe...");
-
-    try {
-      const { data, error } = await supabase.functions.invoke("test-upload", {
-        method: "POST",
-      });
-
-      console.log("[TEST-UPLOAD] Full response:", { data, error });
-
-      if (error) {
-        console.error("[TEST-UPLOAD] Error:", error);
-        toast({
-          title: "❌ Test Upload Failed",
-          description: error.message || "Check console for details",
-          variant: "destructive",
-        });
-      } else if (data?.ok) {
-        console.log("[TEST-UPLOAD] Success! URL:", data.url);
-        toast({
-          title: "✅ Test Upload Success",
-          description: `Image uploaded: ${data.url.substring(0, 50)}...`,
-        });
-      } else {
-        console.error("[TEST-UPLOAD] Failed:", data);
-        toast({
-          title: "❌ Test Upload Failed",
-          description: data?.message || "Check console for details",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      console.error("[TEST-UPLOAD] Exception:", err);
-      toast({
-        title: "❌ Test Upload Error",
-        description: err.message || "Check console for details",
-        variant: "destructive",
-      });
-    } finally {
-      setTestingUpload(false);
-    }
-  };
 
   const startCamera = async () => {
     try {
@@ -271,385 +171,24 @@ export default function Scanner() {
   const identifyFromImage = async (imageData: string, method: "camera" | "upload", retryCount = 0) => {
     if (!imageData) return;
 
-    const startTime = Date.now();
     const getTimestamp = () => `[Scanner ${new Date().toISOString()}]`;
     
-    console.log(`${getTimestamp()} START identifyFromImage - method: ${method}, retry: ${retryCount}`);
-    
-    // Create AbortController for 45s timeout
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.error(`${getTimestamp()} TIMEOUT - aborting after 45s`);
-      abortController.abort();
-    }, 45000);
-
-    setLoading(true);
-    setStatus("recognizing");
-    setPrefillData(null);
-    setConfidence(null);
-
-    setDebugData({
-      status: "processing",
-      method,
-      apiHit: null,
-      confidenceScore: null,
-      responseTimeMs: null,
-      ocrTimeMs: null,
-      errorMessage: null,
-      rawOcrText: null,
-      cvQuery: null,
-      slabData: null,
-      ebayData: null,
-      retryAttempt: retryCount,
-    });
+    console.log(`${getTimestamp()} 📸 Starting scanner flow...`, { method, retryCount });
 
     try {
-      // Check if user is authenticated
-      console.log(`${getTimestamp()} Checking authentication...`);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        console.error(`${getTimestamp()} ERROR: Not authenticated`);
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to use the scanner",
-          variant: "destructive",
-        });
-        setLoading(false);
-        setStatus("idle");
-        setDebugData((prev) => ({ ...prev, status: "error", errorMessage: "Not authenticated" }));
-        return;
-      }
-      console.log(`${getTimestamp()} User authenticated: ${user.id}`);
-
-      // Step 1: Upload image to Storage via proxy (preserve photo)
-      const base64Data = imageData.split(",")[1];
-      const binaryData = atob(base64Data);
-      const bytes = new Uint8Array(binaryData.length);
-      for (let i = 0; i < binaryData.length; i++) {
-        bytes[i] = binaryData.charCodeAt(i);
-      }
-      const file = new File([bytes], `comic-scan.jpg`, { type: "image/jpeg" });
-      
-      console.log(`${getTimestamp()} Preparing upload - file size: ${file.size} bytes, type: ${file.type}`);
-      
-      toast({
-        title: "📤 Uploading photo...",
-        description: "Securing your image",
-      });
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Get auth token for upload proxy
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        console.error(`${getTimestamp()} ERROR: No session found`);
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to upload images",
-          variant: "destructive",
-        });
-        setLoading(false);
-        setStatus("idle");
-        return;
-      }
-
-      console.log(`${getTimestamp()} Calling upload-scanner-image edge function...`);
-      const uploadStartTime = Date.now();
-      
-      const { data: uploadData, error: uploadError } = await supabase.functions.invoke("upload-scanner-image", {
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      const uploadDuration = Date.now() - uploadStartTime;
-      console.log(`${getTimestamp()} Upload proxy response received (${uploadDuration}ms)`);
-
-      if (uploadError) {
-        console.error(`${getTimestamp()} ERROR: Image upload failed:`, uploadError);
-
-        let errorMsg = "Please try again";
-        if (uploadError.message?.includes("401")) {
-          errorMsg = "Not signed in - please sign in again";
-        } else if (uploadError.message?.includes("400")) {
-          errorMsg = "No file provided";
-        } else if (uploadError.message) {
-          errorMsg = uploadError.message;
-        }
-
-        toast({
-          title: "Image upload failed",
-          description: errorMsg,
-          variant: "destructive",
-        });
-        throw new Error(`Upload failed: ${errorMsg}`);
-      }
-
-      if (!uploadData?.publicUrl) {
-        console.error(`${getTimestamp()} ERROR: No public URL returned:`, uploadData);
-        toast({
-          title: "Upload failed",
-          description: "No public URL returned from server",
-          variant: "destructive",
-        });
-        throw new Error("No public URL returned");
-      }
-
-      const { path: uploadPath, publicUrl } = uploadData;
-      console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 
-        path: uploadPath, 
-        publicUrl 
-      });
-      setImageUrl(publicUrl); // Preserve photo URL
-
-      // Step 2: Server-side barcode + OCR + ComicVine
-      toast({
-        title: "🔍 AI Recognition...",
-        description: retryCount > 0 ? "Retry attempt..." : "Scanning barcode & reading text",
-      });
-
-      console.log(`${getTimestamp()} Starting OCR/vision call...`);
-      const ocrStartTime = Date.now();
-      
-      const { data, error } = await supabase.functions.invoke("scan-item", {
-        body: {
-          imageBase64: base64Data,
-        },
-      });
-
-      const ocrTime = Date.now() - ocrStartTime;
-      const responseTime = Date.now() - startTime;
-      console.log(`${getTimestamp()} OCR/vision call completed (${ocrTime}ms)`);
-
-      if (error) {
-        console.error(`${getTimestamp()} ERROR: scan-item failed:`, error);
-        throw error;
-      }
-      if (data?.ok === false) {
-        console.error(`${getTimestamp()} ERROR: scan-item returned ok=false:`, data.error);
-        throw new Error(data.error || "Unable to process image");
-      }
-
-      const results = data?.comicvineResults || [];
-      const rawOcrText = data?.ocrText || "";
-      const cvQuery = data?.cvQuery || "";
-      const extracted = data?.extracted || {};
-
-      console.log(`${getTimestamp()} OCR result summary:`, {
-        ocrTime: `${ocrTime}ms`,
-        rawOcrText: rawOcrText.substring(0, 100) + (rawOcrText.length > 100 ? "..." : ""),
-        cvQuery,
-        extracted,
-        resultsCount: results.length,
-      });
-
-      console.log(`${getTimestamp()} ComicVine metadata search - ${results.length} results found`);
-
-      if (results.length === 0) {
-        console.log(`${getTimestamp()} No results - checking retry...`);
-        // No match - retry once if first attempt
-        if (retryCount === 0) {
-          console.log(`${getTimestamp()} First attempt failed, retrying...`);
-          toast({
-            title: "Retrying...",
-            description: "Attempting different recognition method",
-          });
-          clearTimeout(timeoutId);
-          setLoading(false);
-          return identifyFromImage(imageData, method, 1);
-        }
-
-        // After retry, fallback to manual
-        console.log(`${getTimestamp()} No match after retry, opening manual search`);
-        setDebugData({
-          status: "error",
-          method,
-          apiHit: "ComicVine",
-          confidenceScore: 0,
-          responseTimeMs: responseTime,
-          ocrTimeMs: ocrTime,
-          errorMessage: "No match after retry",
-          rawOcrText,
-          cvQuery,
-          slabData: null,
-          ebayData: null,
-          retryAttempt: retryCount,
-        });
-
-        toast({
-          title: "No match found",
-          description: "Opening manual search...",
-          variant: "destructive",
-        });
-
-        setTimeout(() => setActiveTab("search"), 1000);
-        setLoading(false);
-        return;
-      }
-
-      // Step 4: Use extracted slab data from backend
-      console.log(`${getTimestamp()} Extracting slab data...`);
-      const slabData = {
-        title: extracted.series_title || results[0]?.volume || "",
-        issueNumber: extracted.issue_number || results[0]?.issue_number || "",
-        grade: extracted.grade || "",
-        certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
-        gradingCompany: extracted.gradingCompany || "",
-        publisher: extracted.publisher || "",
-        year: extracted.year || "",
-      };
-
-      const topResult = results[0];
-      const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
-
-      const title = topResult.volume || topResult.volumeName || "";
-      const issueNumber = topResult.issue_number || "";
-
-      console.log(`${getTimestamp()} Building prefill data - title: "${title}", issue: ${issueNumber}, confidence: ${calculatedConfidence}%`);
-
-      const prefill: PrefillData = {
-        title: title,
-        series: title,
-        issueNumber: issueNumber,
-        publisher: slabData.publisher || topResult.publisher || "",
-        year: slabData.year || topResult.year || "",
-        comicvineId: topResult.id || "",
-        comicvineCoverUrl: topResult.image || topResult.cover_image || topResult.coverUrl || "",
-        description: topResult.description || "",
-      };
-
-      setPrefillData(prefill);
-      setConfidence(calculatedConfidence);
-
-      // Step 5: Fetch eBay pricing (ALWAYS if grade detected)
-      let ebayData = null;
-      if (title && issueNumber && slabData.grade) {
-        try {
-          console.log(`${getTimestamp()} Fetching eBay pricing for grade ${slabData.grade}...`);
-          toast({
-            title: "💰 Checking market prices...",
-            description: "Fetching eBay sold listings",
-          });
-
-          const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
-            body: {
-              title,
-              issueNumber,
-              grade: slabData.grade,
-            },
-          });
-
-          if (pricingError) {
-            console.error(`${getTimestamp()} eBay API error:`, pricingError);
-          } else if (pricingData?.ok && pricingData.avgPrice) {
-            ebayData = pricingData;
-            console.log(`${getTimestamp()} ✅ eBay pricing found:`, {
-              avg: pricingData.avgPrice,
-              range: `${pricingData.minPrice}-${pricingData.maxPrice}`,
-              comps: pricingData.items?.length,
-            });
-
-            // Add prominent pricing to description
-            const avgPrice = pricingData.avgPrice.toFixed(0);
-            const comp = pricingData.items?.[0];
-            const compLink = comp?.url ? `[View listing](${comp.url})` : "";
-            const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ""}`;
-            prefill.description = (prefill.description || "") + pricingText;
-            setPrefillData(prefill);
-
-            toast({
-              title: "💰 Market data found",
-              description: `Avg sold: $${avgPrice} | ${pricingData.items?.length || 0} comps`,
-            });
-          } else {
-            console.log(`${getTimestamp()} No eBay pricing data available`);
-          }
-        } catch (err) {
-          console.error(`${getTimestamp()} eBay fetch failed:`, err);
-        }
-      }
-
-      // Step 6: Update UI based on confidence
-      console.log(`${getTimestamp()} Prefill complete - finalizing UI update...`);
-      if (calculatedConfidence >= 65 && title && issueNumber) {
-        setStatus("prefilled");
-        setDebugData({
-          status: "success",
-          method,
-          apiHit: "ComicVine",
-          confidenceScore: calculatedConfidence,
-          responseTimeMs: responseTime,
-          ocrTimeMs: ocrTime,
-          errorMessage: null,
-          rawOcrText,
-          cvQuery,
-          slabData,
-          ebayData,
-          retryAttempt: retryCount,
-        });
-
-        const ebayMsg = ebayData?.avgPrice ? ` | eBay avg: $${ebayData.avgPrice.toFixed(0)}` : "";
-        console.log(`${getTimestamp()} ✅ SUCCESS - Comic identified: ${title} #${issueNumber}${ebayMsg}`);
-        console.log(`${getTimestamp()} Final uploaded image URL: ${publicUrl}`);
-        toast({
-          title: "✅ Comic identified!",
-          description: `${title} #${issueNumber}${ebayMsg}`,
-        });
-      } else {
-        setStatus("manual");
-        setDebugData({
-          status: "error",
-          method,
-          apiHit: "ComicVine",
-          confidenceScore: calculatedConfidence,
-          responseTimeMs: responseTime,
-          ocrTimeMs: ocrTime,
-          errorMessage: `Low confidence (${calculatedConfidence}%)`,
-          rawOcrText,
-          cvQuery,
-          slabData,
-          ebayData,
-          retryAttempt: retryCount,
-        });
-        console.log(`${getTimestamp()} Low confidence (${calculatedConfidence}%) - manual review required`);
-        toast({
-          title: "Low confidence",
-          description: "Review and edit details.",
-        });
-      }
-    } catch (err: any) {
-      const responseTime = Date.now() - startTime;
-      console.error(`${getTimestamp()} ERROR in identifyFromImage:`, err);
-
-      const isTimeout = abortController.signal.aborted || err.name === "AbortError";
-      const isNetworkError = err.message?.includes("NetworkError") || err.message?.includes("Failed to fetch");
-
-      // Retry once on timeout/network if first attempt
-      if ((isTimeout || isNetworkError) && retryCount === 0) {
-        console.log(`${getTimestamp()} ${isTimeout ? "Timeout" : "Network error"} - retrying...`);
-        clearTimeout(timeoutId);
-        setLoading(false);
-        toast({
-          title: isTimeout ? "⏱️ Timeout - retrying..." : "🔄 Connection issue - retrying...",
-          description: "Attempting again",
-        });
-        return identifyFromImage(imageData, method, 1);
-      }
+      setLoading(true);
+      setStatus("recognizing");
+      setPrefillData(null);
+      setConfidence(null);
 
       setDebugData({
-        status: "error",
+        status: "processing",
         method,
-        apiHit: "scan-item",
+        apiHit: null,
         confidenceScore: null,
-        responseTimeMs: responseTime,
+        responseTimeMs: null,
         ocrTimeMs: null,
-        errorMessage: err.message || "Unexpected error",
+        errorMessage: null,
         rawOcrText: null,
         cvQuery: null,
         slabData: null,
@@ -657,21 +196,193 @@ export default function Scanner() {
         retryAttempt: retryCount,
       });
 
-      setStatus("idle");
+      // Check authentication
+      console.log(`${getTimestamp()} Checking authentication...`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error(`${getTimestamp()} ERROR: Not authenticated`);
+        throw new Error("Please sign in to use the scanner");
+      }
+      console.log(`${getTimestamp()} User authenticated`);
 
-      toast({
-        title: "Scan failed",
-        description: err.message ?? "Unknown error",
-        variant: "destructive",
+      // Step 1: Upload via proxy with 20s timeout
+      const base64Data = imageData.split(",")[1];
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const file = new File([bytes], `comic-scan-${Date.now()}.jpg`, { type: "image/jpeg" });
+      
+      console.log(`${getTimestamp()} ⏫ Uploading via proxy...`, {
+        fileSize: file.size,
+        fileType: file.type
       });
 
-      setTimeout(() => setActiveTab("search"), 1000);
+      const { path: uploadPath, publicUrl } = await withTimeout(
+        uploadViaProxy(file),
+        20000,
+        "upload"
+      );
+
+      console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 
+        path: uploadPath, 
+        publicUrl 
+      });
+
+      // Immediately show the image and allow manual listing
+      setImageUrl(publicUrl);
+      setPrefillData({ comicvineCoverUrl: publicUrl });
+      setStatus("manual");
+
+      toast({
+        title: "✅ Photo uploaded",
+        description: "You can start listing while we scan for details...",
+      });
+
+      // Step 2: Run recognition in background (non-blocking)
+      console.log(`${getTimestamp()} 🔍 Starting background recognition...`);
+      (async () => {
+        try {
+          const ocrStartTime = Date.now();
+          const { data: scanResult, error: scanError } = await withTimeout(
+            supabase.functions.invoke("scan-item", {
+              body: { imageBase64: base64Data },
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            }),
+            45000,
+            "scan-item"
+          );
+
+          const ocrTime = Date.now() - ocrStartTime;
+
+          if (scanError) {
+            console.warn(`${getTimestamp()} ⚠️ Background scan failed:`, scanError.message);
+            setDebugData(prev => ({ ...prev, status: "error", errorMessage: scanError.message }));
+            return;
+          }
+
+          if (scanResult?.ok === false) {
+            console.warn(`${getTimestamp()} ⚠️ scan-item returned ok=false:`, scanResult.error);
+            return;
+          }
+
+          const results = scanResult?.comicvineResults || [];
+          const rawOcrText = scanResult?.ocrText || "";
+          const cvQuery = scanResult?.cvQuery || "";
+          const extracted = scanResult?.extracted || {};
+
+          console.log(`${getTimestamp()} ✅ OCR/vision result:`, {
+            ocrTime: `${ocrTime}ms`,
+            rawOcrText: rawOcrText.substring(0, 100) + (rawOcrText.length > 100 ? "..." : ""),
+            cvQuery,
+            extracted,
+            matchesFound: results.length
+          });
+
+          console.log(`${getTimestamp()} 📚 ComicVine search completed:`, {
+            resultsCount: results.length,
+            topMatch: results[0]?.volume
+          });
+
+          // Merge results if found
+          if (results.length > 0) {
+            const topResult = results[0];
+            const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
+            const slabData = {
+              title: extracted.series_title || topResult.volume || "",
+              issueNumber: extracted.issue_number || topResult.issue_number || "",
+              grade: extracted.grade || "",
+              certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
+              gradingCompany: extracted.gradingCompany || "",
+              publisher: extracted.publisher || topResult.publisher || "",
+              year: extracted.year || topResult.year || "",
+            };
+
+            const title = topResult.volume || topResult.volumeName || "";
+            const issueNumber = topResult.issue_number || "";
+
+            const prefill: PrefillData = {
+              title: title,
+              series: title,
+              issueNumber: issueNumber,
+              publisher: slabData.publisher,
+              year: slabData.year,
+              comicvineId: topResult.id || "",
+              comicvineCoverUrl: topResult.image || topResult.cover_image || topResult.coverUrl || publicUrl,
+              description: topResult.description || "",
+            };
+
+            setPrefillData(prefill);
+            setConfidence(calculatedConfidence);
+
+            // Fetch eBay pricing if grade detected
+            if (title && issueNumber && slabData.grade) {
+              try {
+                console.log(`${getTimestamp()} 💰 Fetching eBay pricing...`);
+                const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
+                  body: { title, issueNumber, grade: slabData.grade },
+                });
+
+                if (!pricingError && pricingData?.ok && pricingData.avgPrice) {
+                  const avgPrice = pricingData.avgPrice.toFixed(0);
+                  const comp = pricingData.items?.[0];
+                  const compLink = comp?.url ? `[View listing](${comp.url})` : "";
+                  const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ""}`;
+                  prefill.description = (prefill.description || "") + pricingText;
+                  setPrefillData(prefill);
+
+                  console.log(`${getTimestamp()} ✅ eBay pricing: $${avgPrice}`);
+                }
+              } catch (err) {
+                console.warn(`${getTimestamp()} eBay fetch failed:`, err);
+              }
+            }
+
+            if (calculatedConfidence >= 65) {
+              setStatus("prefilled");
+              setDebugData({
+                status: "success",
+                method,
+                apiHit: "ComicVine",
+                confidenceScore: calculatedConfidence,
+                responseTimeMs: ocrTime,
+                ocrTimeMs: ocrTime,
+                errorMessage: null,
+                rawOcrText,
+                cvQuery,
+                slabData,
+                ebayData: null,
+                retryAttempt: retryCount,
+              });
+
+              console.log(`${getTimestamp()} ✅ Prefill complete:`, { title, issueNumber, confidence: calculatedConfidence });
+              sonnerToast("Auto-fill found", {
+                description: "We added details from the scan."
+              });
+            } else {
+              console.log(`${getTimestamp()} Low confidence: ${calculatedConfidence}%`);
+              setStatus("manual");
+            }
+          } else {
+            console.log(`${getTimestamp()} ℹ️ No metadata found`);
+          }
+        } catch (bgError: any) {
+          console.warn("[Scanner] background scan failed:", bgError?.message ?? bgError);
+        }
+      })();
+
+    } catch (error: any) {
+      console.error("[Scanner]", error);
+      sonnerToast("Scan failed", {
+        description: error?.message ?? "Unknown error",
+      });
+      setStatus("idle");
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
       setCameraActive(false);
       stopCamera();
-      console.log(`${getTimestamp()} identifyFromImage complete - cleanup done`);
+      console.log(`${getTimestamp()} Scanner flow complete`);
     }
   };
 
@@ -762,27 +473,6 @@ export default function Scanner() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
         <div className="container mx-auto py-10 px-4 relative">
-          {isDev && (
-            <Button
-              onClick={handleTestUpload}
-              disabled={testingUpload}
-              size="sm"
-              variant="outline"
-              className="absolute top-4 right-4 text-xs"
-            >
-              {testingUpload ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Testing...
-                </>
-              ) : (
-                <>
-                  <Zap className="h-3 w-3 mr-1" />
-                  Run Upload Probe
-                </>
-              )}
-            </Button>
-          )}
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="flex-1 space-y-4">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">GrailSeeker AI Scanner</h1>
