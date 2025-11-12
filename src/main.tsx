@@ -4,6 +4,10 @@ import { ModalProvider } from "./contexts/ModalContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import App from "./App.tsx";
 import "./index.css";
+import { bridgeAuthSessions } from "./lib/authBridge";
+
+// Initialize auth bridge to sync sessions between Supabase clients
+bridgeAuthSessions();
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
