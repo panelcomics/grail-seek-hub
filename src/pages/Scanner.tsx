@@ -709,10 +709,6 @@ export default function Scanner() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Button onClick={testExternalUpload} style={{ margin: "10px" }}>
-        Test External Upload
-      </Button>
-
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
         <div className="container mx-auto py-10 px-4 relative">
