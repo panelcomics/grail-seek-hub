@@ -15,64 +15,6 @@ import { uploadViaProxy } from "@/lib/uploadImage";
 import { withTimeout } from "@/lib/withTimeout";
 import { toast as sonnerToast } from "sonner";
 
-async function testExternalUpload() {
-  try {
-    console.log("[TEST-EXTERNAL] Creating test image...");
-    
-    // Create a simple test image (red 10x10 PNG)
-    const canvas = document.createElement("canvas");
-    canvas.width = 10;
-    canvas.height = 10;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "red";
-      ctx.fillRect(0, 0, 10, 10);
-    }
-    
-    // Convert to blob
-    const blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((b) => resolve(b!), "image/png");
-    });
-    
-    const file = new File([blob], `test-upload-${Date.now()}.png`, { type: "image/png" });
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // Get auth token
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert("❌ Not authenticated - please sign in");
-      return;
-    }
-
-    console.log("[TEST-EXTERNAL] Uploading via edge function...");
-    const { data, error } = await supabase.functions.invoke("upload-scanner-image", {
-      body: formData,
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-
-    if (error) {
-      console.error("[TEST-EXTERNAL] Upload error:", error);
-      alert(`❌ Upload error: ${error.message}`);
-      return;
-    }
-
-    if (!data?.publicUrl) {
-      console.error("[TEST-EXTERNAL] No public URL returned:", data);
-      alert(`❌ No public URL returned`);
-      return;
-    }
-
-    console.log("[TEST-EXTERNAL] Success! Public URL:", data.publicUrl);
-    alert(`✅ Success!\n${data.publicUrl}`);
-  } catch (e: any) {
-    console.error("[TEST-EXTERNAL] Exception:", e);
-    alert(`❌ Unexpected error: ${e.message ?? e}`);
-  }
-}
-
 interface PrefillData {
   title?: string;
   series?: string;
@@ -136,52 +78,7 @@ export default function Scanner() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [testingUpload, setTestingUpload] = useState(false);
   const isDev = import.meta.env.DEV || window.location.hostname.includes("lovableproject.com");
-
-  const handleTestUpload = async () => {
-    setTestingUpload(true);
-    console.log("[TEST-UPLOAD] Starting test upload probe...");
-
-    try {
-      const { data, error } = await supabase.functions.invoke("test-upload", {
-        method: "POST",
-      });
-
-      console.log("[TEST-UPLOAD] Full response:", { data, error });
-
-      if (error) {
-        console.error("[TEST-UPLOAD] Error:", error);
-        toast({
-          title: "❌ Test Upload Failed",
-          description: error.message || "Check console for details",
-          variant: "destructive",
-        });
-      } else if (data?.ok) {
-        console.log("[TEST-UPLOAD] Success! URL:", data.url);
-        toast({
-          title: "✅ Test Upload Success",
-          description: `Image uploaded: ${data.url.substring(0, 50)}...`,
-        });
-      } else {
-        console.error("[TEST-UPLOAD] Failed:", data);
-        toast({
-          title: "❌ Test Upload Failed",
-          description: data?.message || "Check console for details",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      console.error("[TEST-UPLOAD] Exception:", err);
-      toast({
-        title: "❌ Test Upload Error",
-        description: err.message || "Check console for details",
-        variant: "destructive",
-      });
-    } finally {
-      setTestingUpload(false);
-    }
-  };
 
   const startCamera = async () => {
     try {
