@@ -380,265 +380,112 @@ export default function Scanner() {
             rawOcrText: rawOcrText.substring(0, 100) + (rawOcrText.length > 100 ? "..." : ""),
             cvQuery,
             extracted,
-            confidence: scanResult?.confidence,
             matchesFound: results.length
           });
-      
-      const { data, error } = await supabase.functions.invoke("scan-item", {
-        body: {
-          imageBase64: base64Data,
-        },
-      });
 
-      const ocrTime = Date.now() - ocrStartTime;
-      const responseTime = Date.now() - startTime;
-      console.log(`${getTimestamp()} OCR/vision call completed (${ocrTime}ms)`);
-
-      if (error) {
-        console.error(`${getTimestamp()} ERROR: scan-item failed:`, error);
-        throw error;
-      }
-      if (data?.ok === false) {
-        console.error(`${getTimestamp()} ERROR: scan-item returned ok=false:`, data.error);
-        throw new Error(data.error || "Unable to process image");
-      }
-
-      const results = data?.comicvineResults || [];
-      const rawOcrText = data?.ocrText || "";
-      const cvQuery = data?.cvQuery || "";
-      const extracted = data?.extracted || {};
-
-      console.log(`${getTimestamp()} OCR result summary:`, {
-        ocrTime: `${ocrTime}ms`,
-        rawOcrText: rawOcrText.substring(0, 100) + (rawOcrText.length > 100 ? "..." : ""),
-        cvQuery,
-        extracted,
-        resultsCount: results.length,
-      });
-
-      console.log(`${getTimestamp()} ComicVine metadata search - ${results.length} results found`);
-
-      if (results.length === 0) {
-        console.log(`${getTimestamp()} No results - checking retry...`);
-        // No match - retry once if first attempt
-        if (retryCount === 0) {
-          console.log(`${getTimestamp()} First attempt failed, retrying...`);
-          toast({
-            title: "Retrying...",
-            description: "Attempting different recognition method",
-          });
-          clearTimeout(timeoutId);
-          setLoading(false);
-          return identifyFromImage(imageData, method, 1);
-        }
-
-        // After retry, fallback to manual
-        console.log(`${getTimestamp()} No match after retry, opening manual search`);
-        setDebugData({
-          status: "error",
-          method,
-          apiHit: "ComicVine",
-          confidenceScore: 0,
-          responseTimeMs: responseTime,
-          ocrTimeMs: ocrTime,
-          errorMessage: "No match after retry",
-          rawOcrText,
-          cvQuery,
-          slabData: null,
-          ebayData: null,
-          retryAttempt: retryCount,
-        });
-
-        toast({
-          title: "No match found",
-          description: "Opening manual search...",
-          variant: "destructive",
-        });
-
-        setTimeout(() => setActiveTab("search"), 1000);
-        setLoading(false);
-        return;
-      }
-
-      // Step 4: Use extracted slab data from backend
-      console.log(`${getTimestamp()} Extracting slab data...`);
-      const slabData = {
-        title: extracted.series_title || results[0]?.volume || "",
-        issueNumber: extracted.issue_number || results[0]?.issue_number || "",
-        grade: extracted.grade || "",
-        certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
-        gradingCompany: extracted.gradingCompany || "",
-        publisher: extracted.publisher || "",
-        year: extracted.year || "",
-      };
-
-      const topResult = results[0];
-      const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
-
-      const title = topResult.volume || topResult.volumeName || "";
-      const issueNumber = topResult.issue_number || "";
-
-      console.log(`${getTimestamp()} Building prefill data - title: "${title}", issue: ${issueNumber}, confidence: ${calculatedConfidence}%`);
-
-      const prefill: PrefillData = {
-        title: title,
-        series: title,
-        issueNumber: issueNumber,
-        publisher: slabData.publisher || topResult.publisher || "",
-        year: slabData.year || topResult.year || "",
-        comicvineId: topResult.id || "",
-        comicvineCoverUrl: topResult.image || topResult.cover_image || topResult.coverUrl || "",
-        description: topResult.description || "",
-      };
-
-      setPrefillData(prefill);
-      setConfidence(calculatedConfidence);
-
-      // Step 5: Fetch eBay pricing (ALWAYS if grade detected)
-      let ebayData = null;
-      if (title && issueNumber && slabData.grade) {
-        try {
-          console.log(`${getTimestamp()} Fetching eBay pricing for grade ${slabData.grade}...`);
-          toast({
-            title: "💰 Checking market prices...",
-            description: "Fetching eBay sold listings",
+          console.log(`${getTimestamp()} 📚 ComicVine search completed:`, {
+            resultsCount: results.length,
+            topMatch: results[0]?.volume
           });
 
-          const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
-            body: {
-              title,
-              issueNumber,
-              grade: slabData.grade,
-            },
-          });
+          // Merge results if found
+          if (results.length > 0) {
+            const topResult = results[0];
+            const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
+            const slabData = {
+              title: extracted.series_title || topResult.volume || "",
+              issueNumber: extracted.issue_number || topResult.issue_number || "",
+              grade: extracted.grade || "",
+              certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
+              gradingCompany: extracted.gradingCompany || "",
+              publisher: extracted.publisher || topResult.publisher || "",
+              year: extracted.year || topResult.year || "",
+            };
 
-          if (pricingError) {
-            console.error(`${getTimestamp()} eBay API error:`, pricingError);
-          } else if (pricingData?.ok && pricingData.avgPrice) {
-            ebayData = pricingData;
-            console.log(`${getTimestamp()} ✅ eBay pricing found:`, {
-              avg: pricingData.avgPrice,
-              range: `${pricingData.minPrice}-${pricingData.maxPrice}`,
-              comps: pricingData.items?.length,
-            });
+            const title = topResult.volume || topResult.volumeName || "";
+            const issueNumber = topResult.issue_number || "";
 
-            // Add prominent pricing to description
-            const avgPrice = pricingData.avgPrice.toFixed(0);
-            const comp = pricingData.items?.[0];
-            const compLink = comp?.url ? `[View listing](${comp.url})` : "";
-            const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ""}`;
-            prefill.description = (prefill.description || "") + pricingText;
+            const prefill: PrefillData = {
+              title: title,
+              series: title,
+              issueNumber: issueNumber,
+              publisher: slabData.publisher,
+              year: slabData.year,
+              comicvineId: topResult.id || "",
+              comicvineCoverUrl: topResult.image || topResult.cover_image || topResult.coverUrl || publicUrl,
+              description: topResult.description || "",
+            };
+
             setPrefillData(prefill);
+            setConfidence(calculatedConfidence);
 
-            toast({
-              title: "💰 Market data found",
-              description: `Avg sold: $${avgPrice} | ${pricingData.items?.length || 0} comps`,
-            });
+            // Fetch eBay pricing if grade detected
+            if (title && issueNumber && slabData.grade) {
+              try {
+                console.log(`${getTimestamp()} 💰 Fetching eBay pricing...`);
+                const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
+                  body: { title, issueNumber, grade: slabData.grade },
+                });
+
+                if (!pricingError && pricingData?.ok && pricingData.avgPrice) {
+                  const avgPrice = pricingData.avgPrice.toFixed(0);
+                  const comp = pricingData.items?.[0];
+                  const compLink = comp?.url ? `[View listing](${comp.url})` : "";
+                  const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ""}`;
+                  prefill.description = (prefill.description || "") + pricingText;
+                  setPrefillData(prefill);
+
+                  console.log(`${getTimestamp()} ✅ eBay pricing: $${avgPrice}`);
+                }
+              } catch (err) {
+                console.warn(`${getTimestamp()} eBay fetch failed:`, err);
+              }
+            }
+
+            if (calculatedConfidence >= 65) {
+              setStatus("prefilled");
+              setDebugData({
+                status: "success",
+                method,
+                apiHit: "ComicVine",
+                confidenceScore: calculatedConfidence,
+                responseTimeMs: ocrTime,
+                ocrTimeMs: ocrTime,
+                errorMessage: null,
+                rawOcrText,
+                cvQuery,
+                slabData,
+                ebayData: null,
+                retryAttempt: retryCount,
+              });
+
+              console.log(`${getTimestamp()} ✅ Prefill complete:`, { title, issueNumber, confidence: calculatedConfidence });
+              sonnerToast("Auto-fill found", {
+                description: "We added details from the scan."
+              });
+            } else {
+              console.log(`${getTimestamp()} Low confidence: ${calculatedConfidence}%`);
+              setStatus("manual");
+            }
           } else {
-            console.log(`${getTimestamp()} No eBay pricing data available`);
+            console.log(`${getTimestamp()} ℹ️ No metadata found`);
           }
-        } catch (err) {
-          console.error(`${getTimestamp()} eBay fetch failed:`, err);
+        } catch (bgError: any) {
+          console.warn("[Scanner] background scan failed:", bgError?.message ?? bgError);
         }
-      }
+      })();
 
-      // Step 6: Update UI based on confidence
-      console.log(`${getTimestamp()} Prefill complete - finalizing UI update...`);
-      if (calculatedConfidence >= 65 && title && issueNumber) {
-        setStatus("prefilled");
-        setDebugData({
-          status: "success",
-          method,
-          apiHit: "ComicVine",
-          confidenceScore: calculatedConfidence,
-          responseTimeMs: responseTime,
-          ocrTimeMs: ocrTime,
-          errorMessage: null,
-          rawOcrText,
-          cvQuery,
-          slabData,
-          ebayData,
-          retryAttempt: retryCount,
-        });
-
-        const ebayMsg = ebayData?.avgPrice ? ` | eBay avg: $${ebayData.avgPrice.toFixed(0)}` : "";
-        console.log(`${getTimestamp()} ✅ SUCCESS - Comic identified: ${title} #${issueNumber}${ebayMsg}`);
-        console.log(`${getTimestamp()} Final uploaded image URL: ${publicUrl}`);
-        toast({
-          title: "✅ Comic identified!",
-          description: `${title} #${issueNumber}${ebayMsg}`,
-        });
-      } else {
-        setStatus("manual");
-        setDebugData({
-          status: "error",
-          method,
-          apiHit: "ComicVine",
-          confidenceScore: calculatedConfidence,
-          responseTimeMs: responseTime,
-          ocrTimeMs: ocrTime,
-          errorMessage: `Low confidence (${calculatedConfidence}%)`,
-          rawOcrText,
-          cvQuery,
-          slabData,
-          ebayData,
-          retryAttempt: retryCount,
-        });
-        console.log(`${getTimestamp()} Low confidence (${calculatedConfidence}%) - manual review required`);
-        toast({
-          title: "Low confidence",
-          description: "Review and edit details.",
-        });
-      }
-    } catch (err: any) {
-      const responseTime = Date.now() - startTime;
-      console.error(`${getTimestamp()} ERROR in identifyFromImage:`, err);
-
-      const isTimeout = abortController.signal.aborted || err.name === "AbortError";
-      const isNetworkError = err.message?.includes("NetworkError") || err.message?.includes("Failed to fetch");
-
-      // Retry once on timeout/network if first attempt
-      if ((isTimeout || isNetworkError) && retryCount === 0) {
-        console.log(`${getTimestamp()} ${isTimeout ? "Timeout" : "Network error"} - retrying...`);
-        clearTimeout(timeoutId);
-        setLoading(false);
-        toast({
-          title: isTimeout ? "⏱️ Timeout - retrying..." : "🔄 Connection issue - retrying...",
-          description: "Attempting again",
-        });
-        return identifyFromImage(imageData, method, 1);
-      }
-
-      setDebugData({
-        status: "error",
-        method,
-        apiHit: "scan-item",
-        confidenceScore: null,
-        responseTimeMs: responseTime,
-        ocrTimeMs: null,
-        errorMessage: err.message || "Unexpected error",
-        rawOcrText: null,
-        cvQuery: null,
-        slabData: null,
-        ebayData: null,
-        retryAttempt: retryCount,
+    } catch (error: any) {
+      console.error("[Scanner]", error);
+      sonnerToast("Scan failed", {
+        description: error?.message ?? "Unknown error",
       });
-
       setStatus("idle");
-
-      toast({
-        title: "Scan failed",
-        description: err.message ?? "Unknown error",
-        variant: "destructive",
-      });
-
-      setTimeout(() => setActiveTab("search"), 1000);
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
       setCameraActive(false);
       stopCamera();
-      console.log(`${getTimestamp()} identifyFromImage complete - cleanup done`);
+      console.log(`${getTimestamp()} Scanner flow complete`);
     }
   };
 
