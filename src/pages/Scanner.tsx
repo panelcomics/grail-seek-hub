@@ -272,6 +272,17 @@ export default function Scanner() {
     if (!imageData) return;
 
     const startTime = Date.now();
+    const getTimestamp = () => `[Scanner ${new Date().toISOString()}]`;
+    
+    console.log(`${getTimestamp()} START identifyFromImage - method: ${method}, retry: ${retryCount}`);
+    
+    // Create AbortController for 45s timeout
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.error(`${getTimestamp()} TIMEOUT - aborting after 45s`);
+      abortController.abort();
+    }, 45000);
+
     setLoading(true);
     setStatus("recognizing");
     setPrefillData(null);
@@ -292,17 +303,14 @@ export default function Scanner() {
       retryAttempt: retryCount,
     });
 
-    // 10-second timeout
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Scan timeout after 10s")), 10000),
-    );
-
     try {
       // Check if user is authenticated
+      console.log(`${getTimestamp()} Checking authentication...`);
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
+        console.error(`${getTimestamp()} ERROR: Not authenticated`);
         toast({
           title: "Authentication required",
           description: "Please sign in to use the scanner",
@@ -313,13 +321,9 @@ export default function Scanner() {
         setDebugData((prev) => ({ ...prev, status: "error", errorMessage: "Not authenticated" }));
         return;
       }
+      console.log(`${getTimestamp()} User authenticated: ${user.id}`);
 
       // Step 1: Upload image to Storage via proxy (preserve photo)
-      toast({
-        title: "📤 Uploading photo...",
-        description: "Securing your image",
-      });
-
       const base64Data = imageData.split(",")[1];
       const binaryData = atob(base64Data);
       const bytes = new Uint8Array(binaryData.length);
@@ -327,6 +331,13 @@ export default function Scanner() {
         bytes[i] = binaryData.charCodeAt(i);
       }
       const file = new File([bytes], `comic-scan.jpg`, { type: "image/jpeg" });
+      
+      console.log(`${getTimestamp()} Preparing upload - file size: ${file.size} bytes, type: ${file.type}`);
+      
+      toast({
+        title: "📤 Uploading photo...",
+        description: "Securing your image",
+      });
 
       const formData = new FormData();
       formData.append("file", file);
@@ -336,6 +347,7 @@ export default function Scanner() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
+        console.error(`${getTimestamp()} ERROR: No session found`);
         toast({
           title: "Authentication required",
           description: "Please sign in to upload images",
@@ -346,6 +358,9 @@ export default function Scanner() {
         return;
       }
 
+      console.log(`${getTimestamp()} Calling upload-scanner-image edge function...`);
+      const uploadStartTime = Date.now();
+      
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke("upload-scanner-image", {
         body: formData,
         headers: {
@@ -353,8 +368,11 @@ export default function Scanner() {
         },
       });
 
+      const uploadDuration = Date.now() - uploadStartTime;
+      console.log(`${getTimestamp()} Upload proxy response received (${uploadDuration}ms)`);
+
       if (uploadError) {
-        console.error("Image upload failed:", uploadError);
+        console.error(`${getTimestamp()} ERROR: Image upload failed:`, uploadError);
 
         let errorMsg = "Please try again";
         if (uploadError.message?.includes("401")) {
@@ -374,6 +392,7 @@ export default function Scanner() {
       }
 
       if (!uploadData?.publicUrl) {
+        console.error(`${getTimestamp()} ERROR: No public URL returned:`, uploadData);
         toast({
           title: "Upload failed",
           description: "No public URL returned from server",
@@ -383,7 +402,7 @@ export default function Scanner() {
       }
 
       const publicUrl = uploadData.publicUrl;
-      console.log("Photo uploaded:", publicUrl);
+      console.log(`${getTimestamp()} ✅ Photo uploaded successfully: ${publicUrl}`);
       setImageUrl(publicUrl); // Preserve photo URL
 
       // Step 2: Server-side barcode + OCR + ComicVine
@@ -392,47 +411,59 @@ export default function Scanner() {
         description: retryCount > 0 ? "Retry attempt..." : "Scanning barcode & reading text",
       });
 
+      console.log(`${getTimestamp()} Starting OCR/vision call...`);
       const ocrStartTime = Date.now();
-      const scanPromise = supabase.functions.invoke("scan-item", {
+      
+      const { data, error } = await supabase.functions.invoke("scan-item", {
         body: {
           imageBase64: base64Data,
         },
       });
 
-      const { data, error } = (await Promise.race([scanPromise, timeoutPromise])) as any;
-
       const ocrTime = Date.now() - ocrStartTime;
       const responseTime = Date.now() - startTime;
+      console.log(`${getTimestamp()} OCR/vision call completed (${ocrTime}ms)`);
 
-      if (error) throw error;
-      if (data?.ok === false) throw new Error(data.error || "Unable to process image");
+      if (error) {
+        console.error(`${getTimestamp()} ERROR: scan-item failed:`, error);
+        throw error;
+      }
+      if (data?.ok === false) {
+        console.error(`${getTimestamp()} ERROR: scan-item returned ok=false:`, data.error);
+        throw new Error(data.error || "Unable to process image");
+      }
 
       const results = data?.comicvineResults || [];
       const rawOcrText = data?.ocrText || "";
       const cvQuery = data?.cvQuery || "";
       const extracted = data?.extracted || {};
 
-      console.log("Server response:", {
+      console.log(`${getTimestamp()} OCR result summary:`, {
         ocrTime: `${ocrTime}ms`,
-        rawOcrText: rawOcrText.substring(0, 100),
+        rawOcrText: rawOcrText.substring(0, 100) + (rawOcrText.length > 100 ? "..." : ""),
         cvQuery,
         extracted,
-        results: results.length,
+        resultsCount: results.length,
       });
 
+      console.log(`${getTimestamp()} ComicVine metadata search - ${results.length} results found`);
+
       if (results.length === 0) {
+        console.log(`${getTimestamp()} No results - checking retry...`);
         // No match - retry once if first attempt
         if (retryCount === 0) {
-          console.log("No results, retrying...");
+          console.log(`${getTimestamp()} First attempt failed, retrying...`);
           toast({
             title: "Retrying...",
             description: "Attempting different recognition method",
           });
+          clearTimeout(timeoutId);
           setLoading(false);
           return identifyFromImage(imageData, method, 1);
         }
 
         // After retry, fallback to manual
+        console.log(`${getTimestamp()} No match after retry, opening manual search`);
         setDebugData({
           status: "error",
           method,
@@ -460,6 +491,7 @@ export default function Scanner() {
       }
 
       // Step 4: Use extracted slab data from backend
+      console.log(`${getTimestamp()} Extracting slab data...`);
       const slabData = {
         title: extracted.series_title || results[0]?.volume || "",
         issueNumber: extracted.issue_number || results[0]?.issue_number || "",
@@ -475,6 +507,8 @@ export default function Scanner() {
 
       const title = topResult.volume || topResult.volumeName || "";
       const issueNumber = topResult.issue_number || "";
+
+      console.log(`${getTimestamp()} Building prefill data - title: "${title}", issue: ${issueNumber}, confidence: ${calculatedConfidence}%`);
 
       const prefill: PrefillData = {
         title: title,
@@ -494,6 +528,7 @@ export default function Scanner() {
       let ebayData = null;
       if (title && issueNumber && slabData.grade) {
         try {
+          console.log(`${getTimestamp()} Fetching eBay pricing for grade ${slabData.grade}...`);
           toast({
             title: "💰 Checking market prices...",
             description: "Fetching eBay sold listings",
@@ -508,10 +543,10 @@ export default function Scanner() {
           });
 
           if (pricingError) {
-            console.error("eBay API error:", pricingError);
+            console.error(`${getTimestamp()} eBay API error:`, pricingError);
           } else if (pricingData?.ok && pricingData.avgPrice) {
             ebayData = pricingData;
-            console.log("eBay pricing:", {
+            console.log(`${getTimestamp()} ✅ eBay pricing found:`, {
               avg: pricingData.avgPrice,
               range: `${pricingData.minPrice}-${pricingData.maxPrice}`,
               comps: pricingData.items?.length,
@@ -530,14 +565,15 @@ export default function Scanner() {
               description: `Avg sold: $${avgPrice} | ${pricingData.items?.length || 0} comps`,
             });
           } else {
-            console.log("No eBay pricing data available");
+            console.log(`${getTimestamp()} No eBay pricing data available`);
           }
         } catch (err) {
-          console.error("eBay fetch failed:", err);
+          console.error(`${getTimestamp()} eBay fetch failed:`, err);
         }
       }
 
       // Step 6: Update UI based on confidence
+      console.log(`${getTimestamp()} Prefill complete - finalizing UI update...`);
       if (calculatedConfidence >= 65 && title && issueNumber) {
         setStatus("prefilled");
         setDebugData({
@@ -556,6 +592,8 @@ export default function Scanner() {
         });
 
         const ebayMsg = ebayData?.avgPrice ? ` | eBay avg: $${ebayData.avgPrice.toFixed(0)}` : "";
+        console.log(`${getTimestamp()} ✅ SUCCESS - Comic identified: ${title} #${issueNumber}${ebayMsg}`);
+        console.log(`${getTimestamp()} Final uploaded image URL: ${publicUrl}`);
         toast({
           title: "✅ Comic identified!",
           description: `${title} #${issueNumber}${ebayMsg}`,
@@ -576,6 +614,7 @@ export default function Scanner() {
           ebayData,
           retryAttempt: retryCount,
         });
+        console.log(`${getTimestamp()} Low confidence (${calculatedConfidence}%) - manual review required`);
         toast({
           title: "Low confidence",
           description: "Review and edit details.",
@@ -583,16 +622,18 @@ export default function Scanner() {
       }
     } catch (err: any) {
       const responseTime = Date.now() - startTime;
-      console.error("Scan error:", err);
+      console.error(`${getTimestamp()} ERROR in identifyFromImage:`, err);
 
-      const isTimeout = err.message?.includes("timeout");
+      const isTimeout = abortController.signal.aborted || err.name === "AbortError";
+      const isNetworkError = err.message?.includes("NetworkError") || err.message?.includes("Failed to fetch");
 
-      // Retry once on timeout if first attempt
-      if (isTimeout && retryCount === 0) {
-        console.log("Timeout, retrying...");
+      // Retry once on timeout/network if first attempt
+      if ((isTimeout || isNetworkError) && retryCount === 0) {
+        console.log(`${getTimestamp()} ${isTimeout ? "Timeout" : "Network error"} - retrying...`);
+        clearTimeout(timeoutId);
         setLoading(false);
         toast({
-          title: "⏱️ Timeout - retrying...",
+          title: isTimeout ? "⏱️ Timeout - retrying..." : "🔄 Connection issue - retrying...",
           description: "Attempting again",
         });
         return identifyFromImage(imageData, method, 1);
@@ -613,15 +654,21 @@ export default function Scanner() {
         retryAttempt: retryCount,
       });
 
+      setStatus("idle");
+
       toast({
-        title: isTimeout ? "⏱️ Scan timeout" : "❌ Recognition failed",
-        description: "Photo saved - opening manual search",
+        title: "Scan failed",
+        description: err.message ?? "Unknown error",
         variant: "destructive",
       });
 
       setTimeout(() => setActiveTab("search"), 1000);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
+      setCameraActive(false);
+      stopCamera();
+      console.log(`${getTimestamp()} identifyFromImage complete - cleanup done`);
     }
   };
 
@@ -972,8 +1019,8 @@ export default function Scanner() {
 
       <Footer />
 
-      {/* Debug overlay - only in development */}
-      {import.meta.env.DEV && <RecognitionDebugOverlay debugData={debugData} />}
+      {/* Debug overlay - enabled in dev and preview */}
+      {isDev && <RecognitionDebugOverlay debugData={debugData} />}
     </div>
   );
 }
