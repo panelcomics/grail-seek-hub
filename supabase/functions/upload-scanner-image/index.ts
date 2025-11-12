@@ -11,58 +11,101 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Get external Supabase credentials
     const externalUrl = Deno.env.get('VITE_EXTERNAL_SUPABASE_URL');
-    const externalKey = Deno.env.get('VITE_EXTERNAL_SUPABASE_ANON_KEY');
+    const externalServiceRole = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE');
+    const bucket = 'images';
 
-    if (!externalUrl || !externalKey) {
-      throw new Error('External Supabase credentials not configured');
+    if (!externalUrl || !externalServiceRole) {
+      console.error('Missing external Supabase credentials');
+      return new Response(
+        JSON.stringify({ error: 'External storage not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const externalSupabase = createClient(externalUrl, externalKey);
+    // Verify user is authenticated with main Supabase
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Not authenticated - please sign in' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
+    // Create main Supabase client to verify auth
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth verification failed:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid session - please sign in again' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse multipart form data
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    const filePath = formData.get('filePath') as string;
 
-    if (!file || !filePath) {
+    if (!file) {
       return new Response(
-        JSON.stringify({ error: 'Missing file or filePath' }),
+        JSON.stringify({ error: 'No file provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Uploading to external Supabase:', filePath);
+    // Generate upload path
+    const timestamp = Date.now();
+    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const path = `uploads/${user.id}/${timestamp}-${originalName}`;
 
+    console.log('Uploading to external Supabase:', path);
+
+    // Upload directly to external Supabase Storage using service role
+    const uploadUrl = `${externalUrl}/storage/v1/object/${bucket}/${path}`;
     const fileBuffer = await file.arrayBuffer();
-    const { data, error } = await externalSupabase.storage
-      .from('images')
-      .upload(filePath, fileBuffer, {
-        contentType: file.type,
-        upsert: true,
-      });
 
-    if (error) {
-      console.error('Upload error:', error);
-      throw error;
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${externalServiceRole}`,
+        'x-upsert': 'true',
+        'Content-Type': file.type || 'application/octet-stream',
+      },
+      body: fileBuffer,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('Upload failed:', uploadResponse.status, errorText);
+      return new Response(
+        JSON.stringify({ 
+          error: `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`,
+          details: errorText 
+        }),
+        { status: uploadResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const { data: urlData } = externalSupabase.storage
-      .from('images')
-      .getPublicUrl(filePath);
-
-    console.log('Upload successful:', urlData.publicUrl);
+    // Generate public URL
+    const publicUrl = `${externalUrl}/storage/v1/object/public/${bucket}/${path}`;
+    console.log('Upload successful:', publicUrl);
 
     return new Response(
-      JSON.stringify({ 
-        path: data.path,
-        publicUrl: urlData.publicUrl 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ publicUrl }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+
+  } catch (error: any) {
     console.error('Upload proxy error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

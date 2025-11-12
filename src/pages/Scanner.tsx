@@ -214,33 +214,67 @@ export default function Scanner() {
         description: "Securing your image",
       });
 
-      const timestamp = Date.now();
-      const fileName = `listings/${user.id}/${timestamp}-comic.jpg`;
       const base64Data = imageData.split(',')[1];
       const binaryData = atob(base64Data);
       const bytes = new Uint8Array(binaryData.length);
       for (let i = 0; i < binaryData.length; i++) {
         bytes[i] = binaryData.charCodeAt(i);
       }
-      const file = new File([bytes], `${timestamp}.jpg`, { type: 'image/jpeg' });
+      const file = new File([bytes], `comic-scan.jpg`, { type: 'image/jpeg' });
 
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('filePath', fileName);
+
+      // Get auth token for upload proxy
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to upload images",
+          variant: "destructive"
+        });
+        setLoading(false);
+        setStatus("idle");
+        return;
+      }
 
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
         'upload-scanner-image',
-        { body: formData }
+        { 
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        }
       );
 
       if (uploadError) {
         console.error('Image upload failed:', uploadError);
+        
+        let errorMsg = "Please try again";
+        if (uploadError.message?.includes('401')) {
+          errorMsg = "Not signed in - please sign in again";
+        } else if (uploadError.message?.includes('400')) {
+          errorMsg = "No file provided";
+        } else if (uploadError.message) {
+          errorMsg = uploadError.message;
+        }
+        
         toast({
           title: "Image upload failed",
-          description: uploadError.message || "Please try again",
+          description: errorMsg,
           variant: "destructive"
         });
-        throw new Error(`Upload failed: ${uploadError.message}`);
+        throw new Error(`Upload failed: ${errorMsg}`);
+      }
+
+      if (!uploadData?.publicUrl) {
+        toast({
+          title: "Upload failed",
+          description: "No public URL returned from server",
+          variant: "destructive"
+        });
+        throw new Error('No public URL returned');
       }
 
       const publicUrl = uploadData.publicUrl;
