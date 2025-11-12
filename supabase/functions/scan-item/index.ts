@@ -286,12 +286,30 @@ serve(async (req) => {
     if (dateMatch) {
       year = parseInt(dateMatch[1]);
     } else {
-      // Fallback: Look for standalone 4-digit year
-      const yearMatch = ocrText.match(/\b(19\d{2}|20\d{2})\b/);
-      if (yearMatch) {
-        year = parseInt(yearMatch[1]);
+      // Check for CGC date like "3/66" → 1966
+      const cgcDateMatch = ocrText.match(/\b\d{1,2}\/(\d{2})\b/);
+      if (cgcDateMatch) {
+        const yy = parseInt(cgcDateMatch[1]);
+        year = yy >= 30 && yy <= 99 ? 1900 + yy : 2000 + yy;
+      } else {
+        // Fallback: Look for standalone 4-digit year
+        const yearMatch = ocrText.match(/\b(19\d{2}|20\d{2})\b/);
+        if (yearMatch) {
+          year = parseInt(yearMatch[1]);
+        }
       }
     }
+    
+    // Build hints for scoring
+    const hints = {
+      yearHint: year,
+      issue: issue_number,
+      priceTokens: ocrText.match(/\d+¢|\$\s*\d+\.\d+/g) || [],
+      hasModernBarcode: /\d{13}/.test(ocrText), // UPC-13 barcode
+      textTokens: ocrText.toLowerCase().split(/\s+/),
+    };
+    
+    console.log('[SCAN-ITEM] Hints for scoring:', hints);
     
     // Build clean Comic Vine query: "Title #Issue Publisher Year"
     const queryParts = [];
@@ -352,27 +370,72 @@ serve(async (req) => {
             .map((i: any) => {
               const title = i.name || i.volume?.name || "";
               const issueNumber = i.issue_number || i.volume?.start_issue_number || "";
-              const publisher = i.volume?.publisher?.name || "";
+              const publisherName = i.volume?.publisher?.name || "";
               const coverYear = i.cover_date?.slice(0, 4) || i.start_year?.toString() || "";
               const comicvineCoverUrl = i.image?.original_url || i.image?.medium_url || i.image?.small_url || null;
+              const volumeStartYear = i.volume?.start_year ? parseInt(i.volume.start_year) : null;
+              const variantDescription = i.volume?.description || i.deck || "";
               
               return {
                 id: i.id,
                 name: title,
                 issue_number: issueNumber,
                 volume: i.volume?.name || title,
-                publisher,
+                publisher: publisherName,
                 year: coverYear,
                 cover_date: i.cover_date || "",
                 image: comicvineCoverUrl,
                 comicvineCoverUrl, // Explicit field for UI
-                description: i.deck || "",
+                description: variantDescription,
+                volumeStartYear,
               };
             });
           
+          // Score and sort results to prefer originals
+          const oldPrice = ['12¢','15¢','20¢','25¢','30¢','35¢','40¢','50¢'];
+          const variantBad = /(facsimile|true believers|reprint|anniversary|2nd print|third print|second print)/i;
+          
+          results = results.map((cv: any) => {
+            let score = 0;
+            
+            // Exact issue match
+            if (cv.issue_number === hints.issue) score += 3;
+            
+            // Year closeness
+            if (hints.yearHint && cv.year) {
+              const cvYear = parseInt(cv.year);
+              if (!isNaN(cvYear)) {
+                score += Math.max(0, 3 - Math.min(3, Math.abs(cvYear - hints.yearHint)));
+              }
+            }
+            
+            // Original volume (started before or at hint year)
+            if (cv.volumeStartYear && hints.yearHint && cv.volumeStartYear <= hints.yearHint) {
+              score += 2;
+            }
+            
+            // Publisher match
+            if (cv.publisher?.toLowerCase().includes('marvel')) score += 0.5;
+            if (cv.publisher?.toLowerCase().includes('dc')) score += 0.5;
+            
+            // Old price tokens imply original
+            if (hints.priceTokens.some((p: string) => oldPrice.includes(p))) score += 1;
+            
+            // Penalties for reprints
+            if (variantBad.test(cv.description || '')) score -= 5;
+            if (cv.year && hints.yearHint) {
+              const cvYear = parseInt(cv.year);
+              if (!isNaN(cvYear) && cvYear > hints.yearHint + 5) score -= 2;
+            }
+            if (hints.hasModernBarcode) score -= 1.5;
+            if (hints.priceTokens.some((p: string) => /\$\s*3\.99|\$\s*4\.99/.test(p))) score -= 1.5;
+            
+            return { ...cv, score };
+          }).sort((a: any, b: any) => b.score - a.score);
+          
           if (results.length > 0) {
             const best = results[0];
-            console.log('[SCAN-ITEM] Returning:', `${best.name || best.volume} #${best.issue_number} (${best.year})`);
+            console.log('[SCAN-ITEM] Best match (score:', best.score, '):', `${best.name || best.volume} #${best.issue_number} (${best.year})`);
           }
         }
       }
