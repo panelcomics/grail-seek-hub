@@ -49,8 +49,9 @@ export default function Scanner() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null); // Preview before recognition
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // Final user image for listing
+  const [previewImage, setPreviewImage] = useState<string | null>(null); // Preview before recognition (local data URL)
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null); // Fast-loading thumbnail from server
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // Final compressed image for listing
   const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [confidence, setConfidence] = useState<number | null>(null);
@@ -146,6 +147,8 @@ export default function Scanner() {
 
   const handleRetake = () => {
     setPreviewImage(null);
+    setThumbnailUrl(null);
+    setImageUrl(null);
     setStatus("idle");
     startCamera();
   };
@@ -174,6 +177,8 @@ export default function Scanner() {
 
   const handleChooseDifferent = () => {
     setPreviewImage(null);
+    setThumbnailUrl(null);
+    setImageUrl(null);
     setStatus("idle");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -260,34 +265,49 @@ export default function Scanner() {
         throw e;
       }
       
-      const { path: uploadPath, publicUrl } = uploadResult;
+      const { path: uploadPath, publicUrl, previewUrl, stats } = uploadResult;
       const uploadElapsed = Date.now() - uploadStartTime;
 
       console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 
         path: uploadPath, 
-        publicUrl 
+        publicUrl,
+        previewUrl,
+        stats
       });
 
-      // Log upload details
+      // Log upload details with compression stats
       setUploadLog({
         timestamp: new Date().toLocaleTimeString(),
         fieldName: "image",
-        size: `${(file.size / 1024).toFixed(1)} KB`,
+        size: stats ? `${stats.originalKB}KB → ${stats.compressedKB}KB (preview: ${stats.previewKB}KB)` : `${(file.size / 1024).toFixed(1)} KB`,
         type: file.type,
         status: 200,
         path: uploadPath,
         publicUrl,
-        elapsed: `${uploadElapsed}ms`
+        elapsed: stats ? `${stats.elapsedMs}ms (compression + upload)` : `${uploadElapsed}ms`
       });
 
-      // Immediately show the image and allow manual listing
-      setImageUrl(publicUrl);
+      // Show thumbnail immediately, then swap to full compressed image
+      if (previewUrl) {
+        setThumbnailUrl(previewUrl);
+        setImageUrl(previewUrl); // Show thumbnail first
+        
+        // Swap to full compressed image after a brief moment
+        setTimeout(() => {
+          setImageUrl(publicUrl);
+        }, 100);
+      } else {
+        setImageUrl(publicUrl);
+      }
+      
       setPrefillData({ comicvineCoverUrl: publicUrl });
       setStatus("manual");
 
       toast({
         title: "✅ Photo uploaded",
-        description: "You can start listing while we scan for details...",
+        description: stats 
+          ? `Compressed ${stats.originalKB}KB → ${stats.compressedKB}KB. Scanning for details...`
+          : "You can start listing while we scan for details...",
       });
 
       // Step 2: Run recognition in background (non-blocking)

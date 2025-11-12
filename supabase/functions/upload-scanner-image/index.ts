@@ -72,6 +72,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check for optional preview/thumbnail
+    const preview = formData.get('preview') as File | null;
+
     // Structured logging
     const logEntry = {
       when: new Date().toISOString(),
@@ -79,19 +82,21 @@ Deno.serve(async (req) => {
       fieldName,
       size: file.size,
       type: file.type,
-      name: file.name
+      name: file.name,
+      hasPreview: !!preview,
+      previewSize: preview?.size
     };
     console.log('[upload-scanner-image]', JSON.stringify(logEntry));
 
     // Generate upload path
     const timestamp = Date.now();
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const path = `uploads/${userId}/${timestamp}-${originalName}`;
+    const baseName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.[^.]+$/, '');
+    const compressedPath = `uploads/${userId}/${timestamp}-${baseName}-compressed.jpg`;
 
-    console.log('Uploading to external Supabase:', path);
+    console.log('Uploading compressed image to external Supabase:', compressedPath);
 
-    // Upload directly to external Supabase Storage using service role
-    const uploadUrl = `${externalUrl}/storage/v1/object/${bucket}/${path}`;
+    // Upload compressed image directly to external Supabase Storage using service role
+    const uploadUrl = `${externalUrl}/storage/v1/object/${bucket}/${compressedPath}`;
     const fileBuffer = await file.arrayBuffer();
 
     const uploadResponse = await fetch(uploadUrl, {
@@ -99,7 +104,7 @@ Deno.serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${externalServiceRole}`,
         'x-upsert': 'true',
-        'Content-Type': file.type || 'application/octet-stream',
+        'Content-Type': 'image/jpeg',
       },
       body: fileBuffer,
     });
@@ -116,14 +121,56 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate public URL
-    const publicUrl = `${externalUrl}/storage/v1/object/public/${bucket}/${path}`;
+    // Generate public URL for compressed image
+    const publicUrl = `${externalUrl}/storage/v1/object/public/${bucket}/${compressedPath}`;
+    
+    // Upload preview/thumbnail if provided
+    let previewPath = null;
+    let previewUrl = null;
+    
+    if (preview) {
+      previewPath = `thumbnails/${userId}/${timestamp}-${baseName}-thumb.jpg`;
+      const previewUploadUrl = `${externalUrl}/storage/v1/object/${bucket}/${previewPath}`;
+      const previewBuffer = await preview.arrayBuffer();
+      
+      console.log('Uploading thumbnail to external Supabase:', previewPath);
+      
+      const previewResponse = await fetch(previewUploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${externalServiceRole}`,
+          'x-upsert': 'true',
+          'Content-Type': 'image/jpeg',
+        },
+        body: previewBuffer,
+      });
+      
+      if (previewResponse.ok) {
+        previewUrl = `${externalUrl}/storage/v1/object/public/${bucket}/${previewPath}`;
+      } else {
+        console.warn('Preview upload failed, continuing without it');
+      }
+    }
+    
     const elapsed = Date.now() - startTime;
     
-    console.log('[upload-scanner-image] Success:', { path, publicUrl, elapsed: `${elapsed}ms` });
+    const response = {
+      ok: true,
+      path: compressedPath,
+      publicUrl,
+      previewPath,
+      previewUrl,
+      sizes: {
+        originalKB: Math.round(file.size / 1024),
+        compressedKB: Math.round(file.size / 1024),
+        previewKB: preview ? Math.round(preview.size / 1024) : 0
+      }
+    };
+    
+    console.log('[upload-scanner-image] Success:', { ...response, elapsed: `${elapsed}ms` });
 
     return new Response(
-      JSON.stringify({ path, publicUrl }),
+      JSON.stringify(response),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
