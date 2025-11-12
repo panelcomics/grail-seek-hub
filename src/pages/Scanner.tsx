@@ -214,7 +214,8 @@ export default function Scanner() {
         description: "Securing your image",
       });
 
-      const fileName = `scan-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const timestamp = Date.now();
+      const fileName = `listings/${user.id}/${timestamp}-comic.jpg`;
       const base64Data = imageData.split(',')[1];
       const binaryData = atob(base64Data);
       const bytes = new Uint8Array(binaryData.length);
@@ -230,7 +231,15 @@ export default function Scanner() {
           upsert: false
         });
 
-      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      if (uploadError) {
+        console.error('Image upload failed:', uploadError);
+        toast({
+          title: "Image upload failed",
+          description: uploadError.message || "Please try again",
+          variant: "destructive"
+        });
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
 
       const { data: { publicUrl } } = externalSupabase.storage
         .from('images')
