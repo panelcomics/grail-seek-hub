@@ -1,31 +1,4 @@
-import { externalSupabase } from "@/lib/externalSupabase";
-
-async function testExternalUpload() {
-  try {
-    const path = `probes/test-${Date.now()}.txt`;
-    const blob = new Blob(["ok"], { type: "text/plain" });
-
-    const { data, error } = await externalSupabase.storage.from("images").upload(path, blob, {
-      upsert: true,
-      cacheControl: "3600",
-      contentType: "text/plain",
-    });
-
-    if (error) {
-      console.error("Upload error:", error);
-      alert(`Upload error: ${error.message}`);
-      return;
-    }
-
-    const { data: pub } = externalSupabase.storage.from("images").getPublicUrl(data.path);
-
-    console.log("Public URL:", pub.publicUrl);
-    alert(`Success!\n${pub.publicUrl}`);
-  } catch (e: any) {
-    console.error(e);
-    alert(`Unexpected error: ${e.message ?? e}`);
-  }
-}
+// Removed testExternalUpload - no longer needed in this component
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";

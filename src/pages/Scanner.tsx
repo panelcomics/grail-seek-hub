@@ -12,32 +12,61 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
 
-import { externalSupabase } from "@/lib/externalSupabase";
-
 async function testExternalUpload() {
   try {
-    const path = `probes/test-${Date.now()}.txt`;
-    const blob = new Blob(["ok"], { type: "text/plain" });
-
-    const { data, error } = await externalSupabase.storage.from("images").upload(path, blob, {
-      upsert: true,
-      cacheControl: "3600",
-      contentType: "text/plain",
+    console.log("[TEST-EXTERNAL] Creating test image...");
+    
+    // Create a simple test image (red 10x10 PNG)
+    const canvas = document.createElement("canvas");
+    canvas.width = 10;
+    canvas.height = 10;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "red";
+      ctx.fillRect(0, 0, 10, 10);
+    }
+    
+    // Convert to blob
+    const blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b!), "image/png");
     });
+    
+    const file = new File([blob], `test-upload-${Date.now()}.png`, { type: "image/png" });
+    const formData = new FormData();
+    formData.append("file", file);
 
-    if (error) {
-      console.error("Upload error:", error);
-      alert(`Upload error: ${error.message}`);
+    // Get auth token
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert("❌ Not authenticated - please sign in");
       return;
     }
 
-    const { data: pub } = externalSupabase.storage.from("images").getPublicUrl(data.path);
+    console.log("[TEST-EXTERNAL] Uploading via edge function...");
+    const { data, error } = await supabase.functions.invoke("upload-scanner-image", {
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
 
-    console.log("Public URL:", pub.publicUrl);
-    alert(`✅ Success!\n${pub.publicUrl}`);
+    if (error) {
+      console.error("[TEST-EXTERNAL] Upload error:", error);
+      alert(`❌ Upload error: ${error.message}`);
+      return;
+    }
+
+    if (!data?.publicUrl) {
+      console.error("[TEST-EXTERNAL] No public URL returned:", data);
+      alert(`❌ No public URL returned`);
+      return;
+    }
+
+    console.log("[TEST-EXTERNAL] Success! Public URL:", data.publicUrl);
+    alert(`✅ Success!\n${data.publicUrl}`);
   } catch (e: any) {
-    console.error(e);
-    alert(`Unexpected error: ${e.message ?? e}`);
+    console.error("[TEST-EXTERNAL] Exception:", e);
+    alert(`❌ Unexpected error: ${e.message ?? e}`);
   }
 }
 
