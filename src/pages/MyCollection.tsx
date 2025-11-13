@@ -10,7 +10,6 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
 import { formatComicDisplay } from "@/lib/comics/format";
 import { getComicCoverImage, getComicImageUrl } from "@/lib/comicImages";
-import { AppLayout } from "@/components/layout/AppLayout";
 import {
   Dialog,
   DialogContent,
@@ -227,8 +226,7 @@ const MyCollection = () => {
 
   return (
     <ProtectedRoute>
-      <AppLayout>
-        <div className="container py-8">
+      <div className="container py-8">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -486,7 +484,6 @@ const MyCollection = () => {
         </DialogContent>
       </Dialog>
       </div>
-      </AppLayout>
     </ProtectedRoute>
   );
 };
