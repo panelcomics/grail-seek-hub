@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +37,11 @@ interface ScannerListingFormProps {
   imageUrl: string; // User's captured/uploaded image (empty string if from search)
   initialData?: PrefillData;
   confidence?: number | null; // Optional confidence score for display
-  comicvineResults?: ComicVinePick[]; // Top 3 results from scan
+  comicvineResults?: ComicVinePick[]; // Top 3 results from scan (for backup)
+  selectedPick?: ComicVinePick | null; // Pre-selected pick from parent component
 }
 
-export function ScannerListingForm({ imageUrl, initialData = {}, confidence, comicvineResults }: ScannerListingFormProps) {
+export function ScannerListingForm({ imageUrl, initialData = {}, confidence, comicvineResults, selectedPick }: ScannerListingFormProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -62,10 +63,55 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [volumeId, setVolumeId] = useState<number | null>(null);
   const [variantInfo, setVariantInfo] = useState<string>("");
 
-  const hasPicks = Boolean(comicvineResults?.length);
+  // Auto-fill fields if a pick was pre-selected by parent
+  useEffect(() => {
+    if (selectedPick) {
+      setTitle(selectedPick.title);
+      setSeries(selectedPick.volumeName || selectedPick.title);
+      setIssueNumber(selectedPick.issue || "");
+      setPublisher(selectedPick.publisher || "");
+      setYear(selectedPick.year?.toString() || "");
+      setSelectedCover(selectedPick.coverUrl);
+      setComicvineId(selectedPick.id);
+      setVolumeId(selectedPick.volumeId || null);
+      setVariantInfo(selectedPick.variantDescription || "");
+
+      // Fetch pricing for the selected pick
+      (async () => {
+        try {
+          setLoadingPricing(true);
+          const { data: pricingResult, error: pricingError } = await supabase.functions.invoke('pricing-pipeline', {
+            body: {
+              title: selectedPick.title,
+              issue: selectedPick.issue,
+              year: selectedPick.year,
+              publisher: selectedPick.publisher,
+              grade: grade || null,
+              comicvineId: selectedPick.id
+            }
+          });
+
+          if (!pricingError && pricingResult?.ok) {
+            setPricingData(pricingResult.pricing);
+            if (pricingResult.pricing?.median) {
+              toast.info("Pricing data loaded", {
+                description: `Market value: $${pricingResult.pricing.median}`
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('[ScannerListingForm] Pricing fetch failed:', e);
+        } finally {
+          setLoadingPricing(false);
+        }
+      })();
+    }
+  }, [selectedPick]); // Only run when selectedPick changes
+
+  const hasPicks = Boolean(comicvineResults?.length) && !selectedPick; // Only show picker if no pick was pre-selected
   const showReferenceCover = selectedCover && imageUrl;
 
-  // FEATURE_PICK_AUTOFILL: Autofill all fields when a pick is selected
+  // FEATURE_PICK_AUTOFILL: Autofill all fields when a pick is selected (from embedded picker)
   const handleComicVineSelect = async (pick: ComicVinePick) => {
     setTitle(pick.title);
     setSeries(pick.volumeName || pick.title);
