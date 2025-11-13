@@ -347,14 +347,14 @@ const MyCollection = () => {
       </AlertDialog>
 
       <Dialog open={!!editingComic} onOpenChange={() => setEditingComic(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Comic Details</DialogTitle>
             <DialogDescription>
               Update the information for this comic in your collection.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 px-1">
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
               <Input
@@ -474,7 +474,7 @@ const MyCollection = () => {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setEditingComic(null)} disabled={saving}>
               Cancel
             </Button>
