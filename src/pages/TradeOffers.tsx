@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -129,12 +129,11 @@ export default function TradeOffers() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <Skeleton className="h-96" />
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -145,8 +144,7 @@ export default function TradeOffers() {
         <meta name="description" content="Manage your trade offers" />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold mb-6">Trade Offers</h1>
 
@@ -312,7 +310,7 @@ export default function TradeOffers() {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
+      </AppLayout>
     </>
   );
 }

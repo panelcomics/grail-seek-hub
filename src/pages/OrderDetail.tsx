@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Package, DollarSign, Truck } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Separator } from "@/components/ui/separator";
 import { useTerms } from "@/hooks/useTerms";
 import { TermsPopup } from "@/components/TermsPopup";
@@ -95,29 +95,26 @@ const OrderDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto py-12 px-4">
           <p className="text-center text-muted-foreground">Loading order...</p>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   if (!order || !sale) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto py-12 px-4">
           <p className="text-center text-muted-foreground">Order not found</p>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppLayout>
 
       <div className="container mx-auto py-8 px-4 max-w-3xl">
         <div className="mb-6">
@@ -344,7 +341,7 @@ const OrderDetail = () => {
         onAccept={handleAcceptTerms}
         onDecline={handleDeclineTerms}
       />
-    </div>
+    </AppLayout>
   );
 };
 

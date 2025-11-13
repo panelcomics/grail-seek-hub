@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 interface FeaturedShop {
   id: string;
@@ -214,8 +213,7 @@ export default function AdminFeaturedShops() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppLayout>
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold text-foreground mb-8">Manage Featured Shops</h1>
 
@@ -308,7 +306,6 @@ export default function AdminFeaturedShops() {
           </CardContent>
         </Card>
       </div>
-      <Footer />
-    </div>
+    </AppLayout>
   );
 }

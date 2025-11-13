@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, TrendingUp, Package, DollarSign, BarChart3 } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 interface SellerStats {
   total_scans: number;
@@ -87,9 +86,7 @@ export default function SellerStats() {
   const netPayout = stats ? stats.gross_sales * 0.935 : 0; // 6.5% total fee (including Stripe processing)
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
+    <AppLayout>
       <main className="flex-1 container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Seller Analytics</h1>
@@ -182,8 +179,6 @@ export default function SellerStats() {
           </CardContent>
         </Card>
       </main>
-
-      <Footer />
-    </div>
+    </AppLayout>
   );
 }

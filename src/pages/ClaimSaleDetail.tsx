@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Clock, MapPin, Tag, Package, TrendingUp } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { ShareButton } from "@/components/ShareButton";
 
 interface ClaimSale {
@@ -296,27 +296,25 @@ const ClaimSaleDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto py-12 px-4">
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Loading claim sale...</p>
           </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   if (!sale) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto py-12 px-4">
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Claim sale not found</p>
           </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -329,22 +327,11 @@ const ClaimSaleDetail = () => {
   const ogImage = items[0]?.image_url || "";
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       <Helmet>
         <title>{sale.title} - Grail Seeker</title>
-        <meta name="description" content={ogDescription} />
-        <meta property="og:title" content={sale.title} />
-        <meta property="og:description" content={ogDescription} />
-        {ogImage && <meta property="og:image" content={ogImage} />}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${window.location.origin}/claim-sale/${id}`} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={sale.title} />
-        <meta name="twitter:description" content={ogDescription} />
-        {ogImage && <meta name="twitter:image" content={ogImage} />}
+...
       </Helmet>
-      
-      <Navbar />
       
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         {/* Header Section */}
@@ -637,7 +624,7 @@ const ClaimSaleDetail = () => {
         onAccept={handleAcceptTerms}
         onDecline={handleDeclineTerms}
       />
-    </div>
+    </AppLayout>
   );
 };
 

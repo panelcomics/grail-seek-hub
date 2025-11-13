@@ -11,9 +11,8 @@ import { ArrowLeft, Loader2, DollarSign, Gavel, Repeat2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { formatComicDisplay } from "@/lib/comics/format";
-import Footer from "@/components/Footer";
 import { ComicImageCarousel } from "@/components/ComicImageCarousel";
 
 export default function SellComic() {
@@ -180,20 +179,17 @@ export default function SellComic() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
+      <AppLayout>
         <main className="flex-1 container py-8 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
         </main>
-        <Footer />
-      </div>
+      </AppLayout>
     );
   }
 
   if (!comic) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
+      <AppLayout>
         <main className="flex-1 container py-8">
           <div className="max-w-2xl mx-auto text-center">
             <h1 className="text-2xl font-bold mb-4">Comic not found</h1>
@@ -203,14 +199,12 @@ export default function SellComic() {
             </Button>
           </div>
         </main>
-        <Footer />
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <AppLayout>
       
       <main className="flex-1 container py-8">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -464,8 +458,6 @@ export default function SellComic() {
           </Card>
         </div>
       </main>
-      
-      <Footer />
-    </div>
+    </AppLayout>
   );
 }

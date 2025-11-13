@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { useTerms } from "@/hooks/useTerms";
 import { TermsPopup } from "@/components/TermsPopup";
 import { useAuth } from "@/contexts/AuthContext";
@@ -219,10 +219,8 @@ export default function TradeBoard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      
-      <main className="container mx-auto px-4 py-8 mt-20">
+    <AppLayout>
+      <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-4 mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -580,6 +578,6 @@ export default function TradeBoard() {
         onOpenChange={setTrustModalOpen}
         eligibility={eligibility}
       />
-    </div>
+    </AppLayout>
   );
 }

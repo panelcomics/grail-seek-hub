@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { UploadLogPanel } from "@/components/UploadLogPanel";
@@ -597,7 +597,7 @@ export default function Scanner() {
   const showEditingForm = scanSessionActive && status === "editing" && imageUrl;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <AppLayout>
       {/* Hero */}
       <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
         <div className="container mx-auto py-10 px-4 relative">
@@ -915,13 +915,11 @@ export default function Scanner() {
         )}
       </section>
 
-      <Footer />
-
       {/* Debug overlay - enabled in dev and preview */}
       {isDev && <RecognitionDebugOverlay debugData={debugData} />}
       
       {/* Upload log panel - dev/preview only */}
       <UploadLogPanel log={uploadLog} />
-    </div>
+    </AppLayout>
   );
 }

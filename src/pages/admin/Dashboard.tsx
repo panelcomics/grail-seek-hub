@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users, Package, ShoppingCart, Flag, Settings, FileText } from "lucide-react";
@@ -32,15 +31,14 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <>
       <Helmet>
         <title>Admin Dashboard | Management Console</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <Navbar />
-
-      <main className="flex-1 container py-8">
+      <AppLayout>
+        <main className="flex-1 container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage users, listings, and platform settings</p>
@@ -216,8 +214,7 @@ export default function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </main>
-
-      <Footer />
-    </div>
+      </AppLayout>
+    </>
   );
 }

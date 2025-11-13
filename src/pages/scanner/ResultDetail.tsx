@@ -11,8 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ComicDetailState {
@@ -173,51 +172,26 @@ export default function ResultDetail() {
   // Show auth prompt if not logged in
   if (!authLoading && !user) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
+      <AppLayout>
         <main className="flex-1 container py-8">
-          <div className="max-w-2xl mx-auto text-center space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Please sign in to save scanned books to your collection.
-              </AlertDescription>
-            </Alert>
-            <Button onClick={() => navigate("/auth", { state: { returnTo: location.pathname } })}>
-              Sign In to Save
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/scanner")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Scanner
-            </Button>
-          </div>
+...
         </main>
-        <Footer />
-      </div>
+      </AppLayout>
     );
   }
 
   if (!comic) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
+      <AppLayout>
         <main className="flex-1 container py-8">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-2xl font-bold mb-4">Comic not found</h1>
-            <Button onClick={() => navigate("/scanner")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Scanner
-            </Button>
-          </div>
+...
         </main>
-        <Footer />
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <AppLayout>
       
       <main className="flex-1 container py-8">
         <div className="max-w-3xl mx-auto space-y-6">
@@ -372,8 +346,6 @@ export default function ResultDetail() {
           </Card>
         </div>
       </main>
-      
-      <Footer />
-    </div>
+    </AppLayout>
   );
 }

@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -99,15 +98,14 @@ export default function AdminSettings() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <>
       <Helmet>
         <title>Feature Toggles | Admin Settings</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <Navbar />
-
-      <main className="flex-1 container py-8 max-w-4xl">
+      <AppLayout>
+        <main className="flex-1 container py-8 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Admin Settings</h1>
           <p className="text-muted-foreground">
@@ -234,8 +232,7 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
       </main>
-
-      <Footer />
-    </div>
+      </AppLayout>
+    </>
   );
 }

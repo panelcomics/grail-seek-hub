@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,8 +107,7 @@ export default function TradingPost() {
         <meta name="description" content="Trade comics and collectibles with other collectors. Find your grails through trades." />
       </Helmet>
       
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
@@ -210,7 +209,7 @@ export default function TradingPost() {
             )}
           </div>
         </div>
-      </div>
+      </AppLayout>
     </>
   );
 }

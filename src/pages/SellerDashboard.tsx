@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Copy, DollarSign, Package } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { ShareButton } from "@/components/ShareButton";
 import { SellerOrderManagement } from "@/components/SellerOrderManagement";
 import {
@@ -206,18 +206,16 @@ const SellerDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto py-12 px-4">
           <p className="text-center text-muted-foreground">Loading...</p>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppLayout>
       
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="mb-8">
@@ -357,7 +355,7 @@ const SellerDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 

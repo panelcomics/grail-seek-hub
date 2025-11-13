@@ -14,7 +14,7 @@ import { Upload, Loader2, MapPin, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTerms } from "@/hooks/useTerms";
 import { TermsPopup } from "@/components/TermsPopup";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 const CreateClaimSale = () => {
   const navigate = useNavigate();
@@ -381,9 +381,8 @@ const CreateClaimSale = () => {
 
   if (showPreview) {
     return (
-      <>
-        <Navbar />
-        <div className="container max-w-4xl mx-auto py-8 px-4 mt-20">
+      <AppLayout>
+        <div className="container max-w-4xl mx-auto py-8 px-4">
           <Card>
             <CardHeader>
             <CardTitle>Preview Your Claim Sale</CardTitle>
@@ -466,15 +465,14 @@ const CreateClaimSale = () => {
           </CardContent>
         </Card>
       </div>
-      </>
+      </AppLayout>
     );
   }
 
   if (checkingStripe) {
     return (
-      <>
-        <Navbar />
-        <div className="container max-w-4xl mx-auto py-8 px-4 mt-20">
+      <AppLayout>
+        <div className="container max-w-4xl mx-auto py-8 px-4">
           <Card>
             <CardHeader>
               <CardTitle>Create Claim Sale</CardTitle>
@@ -482,17 +480,16 @@ const CreateClaimSale = () => {
             </CardHeader>
             <CardContent className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </CardContent>
-          </Card>
-        </div>
-      </>
+          </CardContent>
+        </Card>
+      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="container max-w-4xl mx-auto py-8 px-4 mt-20">
+    <AppLayout>
+      <div className="container max-w-4xl mx-auto py-8 px-4">
         <Card>
           <CardHeader>
             <CardTitle>Create Claim Sale</CardTitle>
@@ -913,7 +910,7 @@ const CreateClaimSale = () => {
         onDecline={handleDeclineTerms}
       />
     </div>
-    </>
+    </AppLayout>
   );
 };
 

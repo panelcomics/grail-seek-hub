@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -162,12 +162,11 @@ export default function TradeDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <Skeleton className="h-96 w-full" />
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -184,8 +183,7 @@ export default function TradeDetail() {
         <meta name="description" content={`Trade for ${item.series || item.title}. ${item.in_search_of}`} />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-2 gap-8">
@@ -298,7 +296,7 @@ export default function TradeDetail() {
             </div>
           </div>
         </div>
-      </div>
+      </AppLayout>
 
       {user && item && !isOwnItem && (
         <MakeOfferModal
