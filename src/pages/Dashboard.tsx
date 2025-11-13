@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTerms } from "@/hooks/useTerms";
@@ -185,16 +184,14 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="container mx-auto py-12 px-4">
-          <p className="text-center text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </AppLayout>
+      <div className="container mx-auto py-12 px-4">
+        <p className="text-center text-muted-foreground">Loading dashboard...</p>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="container mx-auto py-8 px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -422,7 +419,6 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
           </Card>
-        </div>
       </div>
 
       {/* Terms Popup */}
@@ -431,7 +427,7 @@ const Dashboard = () => {
         onAccept={handleAcceptTerms}
         onDecline={handleDeclineTerms}
       />
-    </AppLayout>
+    </>
   );
 };
 

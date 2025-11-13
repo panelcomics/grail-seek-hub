@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { AppLayout } from "@/components/layout/AppLayout";
 import Hero from "@/components/Hero";
 import TrendingAuctions from "@/components/TrendingAuctions";
 import FeaturedShops from "@/components/FeaturedShops";
@@ -40,8 +39,7 @@ export default function Index() {
         />
       </Helmet>
 
-      <AppLayout>
-        <Hero />
+      <Hero />
         
         <TrendingAuctions />
         
@@ -78,12 +76,11 @@ export default function Index() {
           </div>
         </section>
 
-        <section className="py-12 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <EventsCarousel events={events} />
-          </div>
-        </section>
-      </AppLayout>
+      <section className="py-12 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <EventsCarousel events={events} />
+        </div>
+      </section>
     </>
   );
 }

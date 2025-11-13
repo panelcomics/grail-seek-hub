@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Star, Award, TrendingUp, MessageSquare, Palette, User, Loader2, Mail, Lock, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -284,11 +283,9 @@ export default function Profile() {
 
   if (authLoading || loading) {
     return (
-      <AppLayout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">Loading...</div>
-        </div>
-      </AppLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading...</div>
+      </div>
     );
   }
 
@@ -297,7 +294,7 @@ export default function Profile() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="container mx-auto px-4 py-8">
         {/* Profile Header */}
         <Card className="mb-8">
@@ -580,6 +577,6 @@ export default function Profile() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </AppLayout>
+    </>
   );
 }

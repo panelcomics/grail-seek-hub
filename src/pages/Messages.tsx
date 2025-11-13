@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toastSuccess, toastError } from "@/lib/toastUtils";
@@ -284,17 +283,14 @@ const Messages = () => {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="container mx-auto py-12 px-4">
-          <p className="text-center text-muted-foreground">Loading messages...</p>
-        </div>
-      </AppLayout>
+      <div className="container mx-auto py-12 px-4">
+        <p className="text-center text-muted-foreground">Loading messages...</p>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="container mx-auto p-0">
+    <div className="container mx-auto p-0">
         <div className="flex h-[calc(100vh-5rem)] border rounded-lg overflow-hidden bg-card">
           {/* Conversations List */}
           <div className={`${selectedConversation ? 'hidden md:block' : 'block'} w-full md:w-80 border-r`}>
@@ -485,10 +481,9 @@ const Messages = () => {
                 </p>
               </div>
             </div>
-          )}
-        </div>
+        )}
       </div>
-    </AppLayout>
+    </div>
   );
 };
 

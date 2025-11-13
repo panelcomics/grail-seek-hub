@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { UploadLogPanel } from "@/components/UploadLogPanel";
@@ -597,7 +596,7 @@ export default function Scanner() {
   const showEditingForm = scanSessionActive && status === "editing" && imageUrl;
 
   return (
-    <AppLayout>
+    <>
       {/* Hero */}
       <section className="bg-muted/30 border-b">
         <div className="container mx-auto py-6 px-4">
@@ -901,6 +900,6 @@ export default function Scanner() {
       
       {/* Upload log panel - dev/preview only */}
       <UploadLogPanel log={uploadLog} />
-    </AppLayout>
+    </>
   );
 }

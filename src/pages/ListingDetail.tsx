@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -191,11 +190,9 @@ export default function ListingDetail() {
 
   if (loading) {
     return (
-      <AppLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </AppLayout>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
@@ -232,7 +229,7 @@ export default function ListingDetail() {
   const options = clientSecret ? { clientSecret } : undefined;
 
   return (
-    <AppLayout>
+    <>
       <Helmet>
         <title>{title} | Buy Now</title>
         <meta name="description" content={description} />
@@ -472,11 +469,11 @@ export default function ListingDetail() {
                     </Elements>
                   </CardContent>
                 </Card>
-              ) : null}
-            </div>
+            ) : null}
           </div>
         </div>
-      </main>
-    </AppLayout>
+      </div>
+    </main>
+    </>
   );
 }
