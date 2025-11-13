@@ -1070,6 +1070,7 @@ export type Database = {
         Row: {
           cgc_grade: string | null
           comicvine_issue_id: string | null
+          comicvine_volume_id: string | null
           condition: string | null
           cover_date: string | null
           created_at: string
@@ -1079,13 +1080,22 @@ export type Database = {
           images: Json | null
           in_search_of: string | null
           is_for_trade: boolean | null
+          is_reprint: boolean | null
           issue_number: string | null
           listed_price: number | null
           listing_status: string | null
           owner_id: string | null
+          pricing_currency: string | null
+          pricing_high: number | null
+          pricing_last_refreshed_at: string | null
+          pricing_low: number | null
+          pricing_mid: number | null
+          pricing_source: string | null
           private_location: string | null
           private_notes: string | null
           publisher: string | null
+          scanner_confidence: number | null
+          scanner_last_scanned_at: string | null
           series: string | null
           sold_at: string | null
           storage_container_id: string | null
@@ -1093,10 +1103,13 @@ export type Database = {
           trade_notes: string | null
           updated_at: string
           user_id: string
+          variant_description: string | null
+          volume_name: string | null
         }
         Insert: {
           cgc_grade?: string | null
           comicvine_issue_id?: string | null
+          comicvine_volume_id?: string | null
           condition?: string | null
           cover_date?: string | null
           created_at?: string
@@ -1106,13 +1119,22 @@ export type Database = {
           images?: Json | null
           in_search_of?: string | null
           is_for_trade?: boolean | null
+          is_reprint?: boolean | null
           issue_number?: string | null
           listed_price?: number | null
           listing_status?: string | null
           owner_id?: string | null
+          pricing_currency?: string | null
+          pricing_high?: number | null
+          pricing_last_refreshed_at?: string | null
+          pricing_low?: number | null
+          pricing_mid?: number | null
+          pricing_source?: string | null
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null
+          scanner_confidence?: number | null
+          scanner_last_scanned_at?: string | null
           series?: string | null
           sold_at?: string | null
           storage_container_id?: string | null
@@ -1120,10 +1142,13 @@ export type Database = {
           trade_notes?: string | null
           updated_at?: string
           user_id: string
+          variant_description?: string | null
+          volume_name?: string | null
         }
         Update: {
           cgc_grade?: string | null
           comicvine_issue_id?: string | null
+          comicvine_volume_id?: string | null
           condition?: string | null
           cover_date?: string | null
           created_at?: string
@@ -1133,13 +1158,22 @@ export type Database = {
           images?: Json | null
           in_search_of?: string | null
           is_for_trade?: boolean | null
+          is_reprint?: boolean | null
           issue_number?: string | null
           listed_price?: number | null
           listing_status?: string | null
           owner_id?: string | null
+          pricing_currency?: string | null
+          pricing_high?: number | null
+          pricing_last_refreshed_at?: string | null
+          pricing_low?: number | null
+          pricing_mid?: number | null
+          pricing_source?: string | null
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null
+          scanner_confidence?: number | null
+          scanner_last_scanned_at?: string | null
           series?: string | null
           sold_at?: string | null
           storage_container_id?: string | null
@@ -1147,6 +1181,8 @@ export type Database = {
           trade_notes?: string | null
           updated_at?: string
           user_id?: string
+          variant_description?: string | null
+          volume_name?: string | null
         }
         Relationships: [
           {

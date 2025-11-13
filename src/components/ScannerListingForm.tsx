@@ -197,15 +197,28 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         grade: grade.trim() || null,
         condition: condition,
         details: notes.trim() || null,
-        comicvine_issue_id: comicvineId || null,
-        comicvine_volume_id: volumeId || null,
+        comicvine_issue_id: comicvineId ? comicvineId.toString() : null,
+        comicvine_volume_id: volumeId ? volumeId.toString() : null,
         variant_description: variantInfo || null,
+        volume_name: series.trim() || title.trim(),
+        scanner_confidence: confidence || null,
+        scanner_last_scanned_at: new Date().toISOString(),
         images: {
           front: finalImageUrl, // User's image from external Supabase
           comicvine_reference: selectedCover || null, // Store reference separately
         },
         listing_status: "not_listed",
       };
+
+      // Add pricing data if available
+      if (pricingData) {
+        inventoryData.pricing_source = 'ebay';
+        inventoryData.pricing_low = pricingData.floor || null;
+        inventoryData.pricing_mid = pricingData.median || null;
+        inventoryData.pricing_high = pricingData.high || null;
+        inventoryData.pricing_currency = pricingData.currency || 'USD';
+        inventoryData.pricing_last_refreshed_at = new Date().toISOString();
+      }
 
       const { data: inventoryItem, error: inventoryError } = await supabase
         .from("inventory_items")
