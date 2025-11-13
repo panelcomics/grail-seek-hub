@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationQueue } from "@/hooks/useNotificationQueue";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +43,7 @@ export default function Notifications() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       <Helmet>
         <title>Notifications | Grail Seeker</title>
         <meta name="description" content="View your auction alerts, winner notifications, and updates" />
@@ -148,6 +149,6 @@ export default function Notifications() {
           </div>
         )}
       </main>
-    </div>
+    </AppLayout>
   );
 }

@@ -599,31 +599,12 @@ export default function Scanner() {
   return (
     <AppLayout>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-primary/20 via-background to-accent/10 border-b-4 border-primary">
-        <div className="container mx-auto py-10 px-4 relative">
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="flex-1 space-y-4">
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">GrailSeeker AI Scanner</h1>
-              <p className="text-muted-foreground text-base md:text-lg">
-                Snap a photo, upload an image, or search by title. We'll identify your comic and prefill details. All
-                fields remain editable - you can always list manually.
-              </p>
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-primary" />
-                  <span>AI-powered identification</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-primary" />
-                  <span>Your photo = listing image</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-primary" />
-                  <span>Manual listing always available</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      <section className="bg-muted/30 border-b">
+        <div className="container mx-auto py-6 px-4">
+          <h1 className="text-2xl md:text-3xl font-bold">AI Scanner</h1>
+          <p className="text-muted-foreground text-sm md:text-base mt-1">
+            Snap, upload, or search to identify comics and prefill details
+          </p>
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { AppLayout } from "@/components/layout/AppLayout";
 import Hero from "@/components/Hero";
 import TrendingAuctions from "@/components/TrendingAuctions";
 import FeaturedShops from "@/components/FeaturedShops";
@@ -39,7 +40,7 @@ export default function Index() {
         />
       </Helmet>
 
-      <div className="min-h-screen">
+      <AppLayout>
         <Hero />
         
         <TrendingAuctions />
@@ -82,7 +83,7 @@ export default function Index() {
             <EventsCarousel events={events} />
           </div>
         </section>
-      </div>
+      </AppLayout>
     </>
   );
 }

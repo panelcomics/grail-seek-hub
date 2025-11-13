@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ItemCard from "@/components/ItemCard";
@@ -209,7 +210,7 @@ export default function SellerProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       <Helmet>
         <title>{sellerName}'s Shop | Comic Marketplace</title>
         <meta name="description" content={description} />
@@ -490,6 +491,6 @@ export default function SellerProfile() {
           </div>
         </Tabs>
       </div>
-    </div>
+    </AppLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,7 @@ export default function Sellers() {
   const totalPages = Math.ceil(filteredSellers.length / ITEMS_PER_PAGE);
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Seller Directory</h1>
@@ -220,14 +221,14 @@ export default function Sellers() {
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                 >
-                  Next
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                Next
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
+  </AppLayout>
   );
 }
 

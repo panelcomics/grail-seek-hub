@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ItemCard from "@/components/ItemCard";
@@ -150,16 +151,16 @@ export default function Watchlist() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <AppLayout>
         <div className="container mx-auto px-4 py-12 text-center">
           <p className="text-muted-foreground">Loading your watchlist...</p>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       <main className="container mx-auto px-4 py-12">
         <div className="mb-8">
           <h1 className="text-4xl font-bold flex items-center gap-3">
@@ -228,6 +229,6 @@ export default function Watchlist() {
           </div>
         )}
       </main>
-    </div>
+    </AppLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Input } from "@/components/ui/input";
 import { ScanButton } from "@/components/scanner/ScanButton";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +43,7 @@ export default function SearchPage() {
   };
   
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <AppLayout>
       <main className="flex-1">
         <div className="max-w-xl mx-auto mt-8 p-4">
           <h1 className="text-3xl font-semibold mb-4 text-foreground">Search</h1>
@@ -72,6 +73,6 @@ export default function SearchPage() {
           )}
         </div>
       </main>
-    </div>
+    </AppLayout>
   );
 }
