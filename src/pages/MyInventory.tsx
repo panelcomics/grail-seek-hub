@@ -34,6 +34,8 @@ interface InventoryItem {
   storage_container_id: string | null;
   publisher: string | null;
   series: string | null;
+  variant_type: string | null;
+  variant_details: string | null;
 }
 
 export default function MyInventory() {
@@ -375,6 +377,13 @@ export default function MyInventory() {
                                 <h3 className="font-semibold">{item.title}</h3>
                                 {item.issue_number && (
                                   <p className="text-sm text-muted-foreground">Issue #{item.issue_number}</p>
+                                )}
+                                {/* Show variant info if available */}
+                                {item.variant_type && (
+                                  <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                                    {item.variant_type}
+                                    {item.variant_details && <span className="font-normal"> — {item.variant_details}</span>}
+                                  </p>
                                 )}
                                 {/* Show grade first, then notes on the same line */}
                                 <div className="text-xs text-muted-foreground mt-1">

@@ -38,6 +38,8 @@ interface ItemCardProps {
   subcategory?: string;
   hasCoa?: boolean;
   isVerifiedArtist?: boolean;
+  variantType?: string;
+  variantDetails?: string;
 }
 
 const ItemCard = ({ 
@@ -65,7 +67,9 @@ const ItemCard = ({
   showEndingSoonBadge = false,
   subcategory,
   hasCoa = false,
-  isVerifiedArtist = false
+  isVerifiedArtist = false,
+  variantType,
+  variantDetails
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const [localPickup, setLocalPickup] = useState(true);
@@ -159,6 +163,14 @@ const ItemCard = ({
             <h3 className="font-semibold line-clamp-2 text-base mb-2 group-hover:text-primary transition-colors">
               {title}
             </h3>
+            
+            {/* Variant info */}
+            {variantType && (
+              <p className="text-xs text-muted-foreground mb-2 font-medium">
+                {variantType}
+                {variantDetails && <span className="font-normal"> — {variantDetails}</span>}
+              </p>
+            )}
             
             {/* Art subcategory and COA */}
             {category === "art" && subcategory && (

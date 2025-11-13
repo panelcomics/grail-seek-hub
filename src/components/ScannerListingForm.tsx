@@ -62,6 +62,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [comicvineId, setComicvineId] = useState<number | null>(null);
   const [volumeId, setVolumeId] = useState<number | null>(null);
   const [variantInfo, setVariantInfo] = useState<string>("");
+  const [variantType, setVariantType] = useState<string>("");
+  const [variantDetails, setVariantDetails] = useState<string>("");
 
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
@@ -207,6 +209,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         comicvine_issue_id: comicvineId ? comicvineId.toString() : null,
         comicvine_volume_id: volumeId ? volumeId.toString() : null,
         variant_description: variantInfo || null, // ComicVine story title goes here (e.g., "Invasion!")
+        variant_type: variantType || null, // User-selected variant type
+        variant_details: variantDetails.trim() || null, // Additional variant details
         volume_name: series.trim() || title.trim(),
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),
@@ -386,28 +390,64 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                 />
               </div>
 
-              <div>
-                <Label htmlFor="condition">Condition</Label>
-                <Select value={condition} onValueChange={setCondition}>
-                  <SelectTrigger id="condition">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MT">Mint (MT)</SelectItem>
-                    <SelectItem value="NM">Near Mint (NM)</SelectItem>
-                    <SelectItem value="VF">Very Fine (VF)</SelectItem>
-                    <SelectItem value="FN">Fine (FN)</SelectItem>
-                    <SelectItem value="VG">Very Good (VG)</SelectItem>
-                    <SelectItem value="GD">Good (GD)</SelectItem>
-                    <SelectItem value="FR">Fair (FR)</SelectItem>
-                    <SelectItem value="PR">Poor (PR)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="condition">Condition</Label>
+              <Select value={condition} onValueChange={setCondition}>
+                <SelectTrigger id="condition">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MT">Mint (MT)</SelectItem>
+                  <SelectItem value="NM">Near Mint (NM)</SelectItem>
+                  <SelectItem value="VF">Very Fine (VF)</SelectItem>
+                  <SelectItem value="FN">Fine (FN)</SelectItem>
+                  <SelectItem value="VG">Very Good (VG)</SelectItem>
+                  <SelectItem value="GD">Good (GD)</SelectItem>
+                  <SelectItem value="FR">Fair (FR)</SelectItem>
+                  <SelectItem value="PR">Poor (PR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Variant / Edition Section */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="variantType">Variant / Edition (Optional)</Label>
+              <Select value={variantType} onValueChange={setVariantType}>
+                <SelectTrigger id="variantType">
+                  <SelectValue placeholder="Select variant type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="Direct Edition">Direct Edition</SelectItem>
+                  <SelectItem value="Newsstand Edition">Newsstand Edition</SelectItem>
+                  <SelectItem value="Second Printing">Second Printing</SelectItem>
+                  <SelectItem value="Variant Cover">Variant Cover (A / B / C / etc.)</SelectItem>
+                  <SelectItem value="Incentive Variant">Incentive Variant (1:10, 1:25, 1:50, etc.)</SelectItem>
+                  <SelectItem value="Retailer Exclusive">Retailer Exclusive</SelectItem>
+                  <SelectItem value="Convention Exclusive">Convention Exclusive</SelectItem>
+                  <SelectItem value="Canadian Price Variant">Canadian Price Variant</SelectItem>
+                  <SelectItem value="Whitman Variant">Whitman Variant</SelectItem>
+                  <SelectItem value="Error Print">Error Print</SelectItem>
+                  <SelectItem value="Other">Other (Custom)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <Label htmlFor="notes">Notes / Description</Label>
+              <Label htmlFor="variantDetails">Variant Details (Optional)</Label>
+              <Input
+                id="variantDetails"
+                value={variantDetails}
+                onChange={(e) => setVariantDetails(e.target.value)}
+                placeholder="e.g., Cover B - Todd McFarlane, 1:25 ratio"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="notes">Notes / Description</Label>
               <Textarea
                 id="notes"
                 value={notes}
