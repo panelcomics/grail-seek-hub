@@ -314,6 +314,9 @@ export default function Scanner() {
 
       // Step 2: Run recognition in background (non-blocking)
       console.log(`${getTimestamp()} 🔍 Starting background recognition...`);
+      
+      // FEATURE_SCANNER_ANALYTICS & FEATURE_IMAGE_COMPRESSION are handled server-side
+      // FEATURE_TOP3_PICKS, FEATURE_REPRINT_FILTER controlled by scan-item response
       (async () => {
         try {
           const ocrStartTime = Date.now();

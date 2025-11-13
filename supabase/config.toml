@@ -107,3 +107,6 @@ verify_jwt = false
 [functions.save-verified]
 verify_jwt = false
 
+[functions.pricing-pipeline]
+verify_jwt = false
+

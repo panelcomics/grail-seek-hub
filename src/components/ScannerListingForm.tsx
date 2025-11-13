@@ -45,8 +45,10 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+  const [pricingData, setPricingData] = useState<any>(null);
 
-  // Form state - all editable
+  // Form state - all editable (FEATURE_MANUAL_OVERRIDE always enabled)
   const [title, setTitle] = useState("");
   const [series, setSeries] = useState("");
   const [issueNumber, setIssueNumber] = useState("");
@@ -63,9 +65,10 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const hasPicks = Boolean(comicvineResults?.length);
   const showReferenceCover = selectedCover && imageUrl;
 
-  const handleComicVineSelect = (pick: ComicVinePick) => {
+  // FEATURE_PICK_AUTOFILL: Autofill all fields when a pick is selected
+  const handleComicVineSelect = async (pick: ComicVinePick) => {
     setTitle(pick.title);
-    setSeries(pick.title);
+    setSeries(pick.volumeName || pick.title);
     setIssueNumber(pick.issue || "");
     setPublisher(pick.publisher || "");
     setYear(pick.year?.toString() || "");
@@ -74,9 +77,46 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
     setVolumeId(pick.volumeId || null);
     setVariantInfo(pick.variantDescription || "");
     setShowPicker(false);
+    
     toast.success("Match applied", {
       description: `Using ${pick.title} ${pick.issue ? `#${pick.issue}` : ''}`
     });
+
+    // FEATURE_PRICING_PIPELINE: Fetch pricing data after pick confirmation
+    // This runs in background and doesn't block the UI
+    (async () => {
+      try {
+        setLoadingPricing(true);
+        console.log('[ScannerListingForm] Fetching pricing data...');
+        
+        const { data: pricingResult, error: pricingError } = await supabase.functions.invoke('pricing-pipeline', {
+          body: {
+            title: pick.title,
+            issue: pick.issue,
+            year: pick.year,
+            publisher: pick.publisher,
+            grade: grade || null,
+            comicvineId: pick.id
+          }
+        });
+
+        if (!pricingError && pricingResult?.ok) {
+          setPricingData(pricingResult.pricing);
+          console.log('[ScannerListingForm] Pricing data received:', pricingResult.pricing);
+          
+          if (pricingResult.pricing?.median) {
+            toast.info("Pricing data loaded", {
+              description: `Market value: $${pricingResult.pricing.median}`
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[ScannerListingForm] Pricing fetch failed:', e);
+        // Don't show error toast - pricing is optional
+      } finally {
+        setLoadingPricing(false);
+      }
+    })();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -309,6 +349,28 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                 placeholder="Key issue, first appearances, condition notes, etc."
                 rows={4}
               />
+              {loadingPricing && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Loading pricing data...
+                </p>
+              )}
+              {pricingData && (
+                <Alert className="mt-2">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    <strong>Market Pricing:</strong>
+                    {pricingData.floor && ` Floor: $${pricingData.floor}`}
+                    {pricingData.median && ` • Median: $${pricingData.median}`}
+                    {pricingData.high && ` • High: $${pricingData.high}`}
+                    {pricingData.confidence && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        (Confidence: {pricingData.confidence}%)
+                      </span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </div>
 

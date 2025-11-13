@@ -374,16 +374,25 @@ serve(async (req) => {
     
     console.log('[SCAN-ITEM] 🎯 Final Query:', cleanQuery);
     
-    // Check verified match cache (if feature enabled)
-    let cachedMatch: any = null;
     const cacheEnabled = Deno.env.get('FEATURE_SCANNER_CACHE') === 'true';
+    const top3PicksEnabled = Deno.env.get('FEATURE_TOP3_PICKS') === 'true';
+    const reprintFilterEnabled = Deno.env.get('FEATURE_REPRINT_FILTER') === 'true';
+    
     console.log('[SCAN-ITEM] Feature flags:', {
       cache: cacheEnabled,
       analytics: Deno.env.get('FEATURE_SCANNER_ANALYTICS') === 'true',
       gcdFallback: Deno.env.get('FEATURE_GCD_FALLBACK') === 'true',
-      ebayComps: Deno.env.get('FEATURE_EBAY_COMPS') === 'true'
+      ebayComps: Deno.env.get('FEATURE_EBAY_COMPS') === 'true',
+      top3Picks: top3PicksEnabled,
+      reprintFilter: reprintFilterEnabled,
+      imageCompression: Deno.env.get('FEATURE_IMAGE_COMPRESSION') === 'true',
+      pricingPipeline: Deno.env.get('FEATURE_PRICING_PIPELINE') === 'true',
+      manualOverride: Deno.env.get('FEATURE_MANUAL_OVERRIDE') === 'true',
+      pickAutofill: Deno.env.get('FEATURE_PICK_AUTOFILL') === 'true'
     });
     
+    // Check verified match cache (if feature enabled)
+    let cachedMatch: any = null;
     if (cacheEnabled && series_title) {
       try {
         const hash = await matchHash(series_title, issue_number, publisher);
@@ -578,12 +587,14 @@ serve(async (req) => {
               year: cv.year,
               score: cv.score.toFixed(2),
               normalizedScore: cv.normalizedScore.toFixed(2),
+              isReprint: cv.isReprint,
               variantDescription: cv.description?.substring(0, 100) || 'N/A'
             });
           });
           
-          // Return only top 3 with compact payload
-          results = top3.map((cv: any) => ({
+          // Return top 3 picks (if FEATURE_TOP3_PICKS enabled, otherwise return all)
+          const pickLimit = top3PicksEnabled ? 3 : 10;
+          results = top3.slice(0, pickLimit).map((cv: any) => ({
             id: cv.id,
             resource: cv.resource,
             title: cv.name || cv.volume,

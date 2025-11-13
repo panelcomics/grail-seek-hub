@@ -12,6 +12,9 @@ Deno.serve(async (req) => {
 
   const startTime = Date.now();
   
+  // FEATURE_IMAGE_COMPRESSION: Client-side compression happens before this function
+  // This function receives pre-compressed images and thumbnails from uploadImage.ts
+  
   try {
     // Get external Supabase credentials
     const externalUrl = Deno.env.get('VITE_EXTERNAL_SUPABASE_URL');

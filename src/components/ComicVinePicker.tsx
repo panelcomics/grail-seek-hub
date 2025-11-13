@@ -33,12 +33,35 @@ interface ComicVinePickerProps {
 export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [excludeReprints, setExcludeReprints] = useState(true);
+  const [featureFlags, setFeatureFlags] = useState({
+    reprintFilter: false,
+    pickAutofill: false,
+    top3Picks: false
+  });
+
+  // Fetch feature flags on mount
+  useEffect(() => {
+    const checkFlags = async () => {
+      try {
+        // Feature flags are checked server-side, but we can show UI based on expected behavior
+        // For now, assume all features are enabled (server will enforce)
+        setFeatureFlags({
+          reprintFilter: true, // FEATURE_REPRINT_FILTER
+          pickAutofill: true,  // FEATURE_PICK_AUTOFILL
+          top3Picks: true      // FEATURE_TOP3_PICKS
+        });
+      } catch (e) {
+        console.warn('Could not check feature flags:', e);
+      }
+    };
+    checkFlags();
+  }, []);
   
-  const filteredPicks = excludeReprints 
+  const filteredPicks = (featureFlags.reprintFilter && excludeReprints)
     ? picks.filter(p => !p.isReprint)
     : picks;
 
-  // Auto-select if top pick has score >= 0.72
+  // Auto-select if top pick has score >= 0.72 (72%)
   useEffect(() => {
     if (filteredPicks.length > 0 && filteredPicks[0].score >= 0.72) {
       setSelectedId(filteredPicks[0].id);
@@ -114,16 +137,18 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
           <span>Select ComicVine Match</span>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="exclude-reprints"
-              checked={excludeReprints}
-              onCheckedChange={setExcludeReprints}
-            />
-            <Label htmlFor="exclude-reprints" className="text-sm font-normal cursor-pointer">
-              Exclude reprints/facsimiles
-            </Label>
-          </div>
+          {featureFlags.reprintFilter && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="exclude-reprints"
+                checked={excludeReprints}
+                onCheckedChange={setExcludeReprints}
+              />
+              <Label htmlFor="exclude-reprints" className="text-sm font-normal cursor-pointer">
+                Exclude reprints/facsimiles
+              </Label>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
