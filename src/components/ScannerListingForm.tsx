@@ -419,7 +419,6 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                   <SelectValue placeholder="Select variant type..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
                   <SelectItem value="Direct Edition">Direct Edition</SelectItem>
                   <SelectItem value="Newsstand Edition">Newsstand Edition</SelectItem>
                   <SelectItem value="Second Printing">Second Printing</SelectItem>

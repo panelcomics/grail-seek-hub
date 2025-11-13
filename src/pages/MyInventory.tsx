@@ -122,8 +122,8 @@ export default function MyInventory() {
 
       if (error) throw error;
 
-      setItems(data || []);
-      setFilteredItems(data || []);
+      setItems(data as unknown as InventoryItem[] || []);
+      setFilteredItems(data as unknown as InventoryItem[] || []);
     } catch (error) {
       console.error("Error fetching inventory:", error);
       toast.error("Failed to load inventory");
