@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -105,8 +104,7 @@ export default function Orders() {
   );
 
   return (
-    <AppLayout>
-      <main className="flex-1 container py-8">
+    <main className="flex-1 container py-8">
         <Card>
           <CardHeader>
             <CardTitle>Orders</CardTitle>
@@ -126,7 +124,6 @@ export default function Orders() {
             </Tabs>
           </CardContent>
         </Card>
-      </main>
-    </AppLayout>
+    </main>
   );
 }
