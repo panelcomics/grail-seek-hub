@@ -419,6 +419,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
           </Card>
+        </div>
       </div>
 
       {/* Terms Popup */}
