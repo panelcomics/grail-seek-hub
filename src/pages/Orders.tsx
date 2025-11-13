@@ -105,8 +105,7 @@ export default function Orders() {
   );
 
   return (
-    <AppLayout>
-      <main className="flex-1 container py-8">
+    <main className="flex-1 container py-8">
         <Card>
           <CardHeader>
             <CardTitle>Orders</CardTitle>
@@ -127,6 +126,5 @@ export default function Orders() {
           </CardContent>
         </Card>
       </main>
-    </AppLayout>
   );
 }

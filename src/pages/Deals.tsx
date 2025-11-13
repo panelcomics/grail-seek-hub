@@ -183,8 +183,7 @@ export default function Deals() {
   const newDealsCount = deals.filter(d => !d.is_viewed).length;
 
   return (
-    <AppLayout>
-      <main className="container mx-auto px-4 py-8 mt-20">
+    <main className="container mx-auto px-4 py-8 mt-20">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Deal Alerts</h1>
@@ -491,6 +490,5 @@ export default function Deals() {
           </CardContent>
         </Card>
       </main>
-    </AppLayout>
   );
 }
