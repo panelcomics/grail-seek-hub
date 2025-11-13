@@ -376,7 +376,15 @@ serve(async (req) => {
     
     // Check verified match cache (if feature enabled)
     let cachedMatch: any = null;
-    if (Deno.env.get('FEATURE_SCANNER_CACHE') === 'true' && series_title) {
+    const cacheEnabled = Deno.env.get('FEATURE_SCANNER_CACHE') === 'true';
+    console.log('[SCAN-ITEM] Feature flags:', {
+      cache: cacheEnabled,
+      analytics: Deno.env.get('FEATURE_SCANNER_ANALYTICS') === 'true',
+      gcdFallback: Deno.env.get('FEATURE_GCD_FALLBACK') === 'true',
+      ebayComps: Deno.env.get('FEATURE_EBAY_COMPS') === 'true'
+    });
+    
+    if (cacheEnabled && series_title) {
       try {
         const hash = await matchHash(series_title, issue_number, publisher);
         console.log('[SCAN-ITEM] Checking verified_matches cache, hash:', hash);
@@ -418,6 +426,8 @@ serve(async (req) => {
       } catch (e) {
         console.warn('[SCAN-ITEM] Cache lookup failed:', e);
       }
+    } else if (!cacheEnabled) {
+      console.log('[SCAN-ITEM] Scanner cache disabled by feature flag');
     }
     
     // Query ComicVine with timeout
@@ -593,6 +603,12 @@ serve(async (req) => {
     } catch (err: any) {
       console.warn('[SCAN-ITEM] ComicVine error:', err.message);
       cvTime = Date.now() - startTime;
+      
+      // GCD Fallback (if feature enabled and ComicVine failed)
+      if (Deno.env.get('FEATURE_GCD_FALLBACK') === 'true') {
+        console.log('[SCAN-ITEM] ComicVine failed, GCD fallback enabled but not yet implemented');
+        // TODO: Implement Grand Comics Database API fallback
+      }
     }
 
     const totalTime = Date.now() - startTime;
@@ -600,6 +616,12 @@ serve(async (req) => {
     // Prepend cached match if available
     if (cachedMatch) {
       results = [cachedMatch, ...results.slice(0, 2)]; // Cache + top 2 ComicVine
+    }
+    
+    // Fetch eBay comps if feature enabled and we have results
+    if (Deno.env.get('FEATURE_EBAY_COMPS') === 'true' && results.length > 0) {
+      console.log('[SCAN-ITEM] eBay comps feature enabled but integration not yet active');
+      // TODO: Call ebay-comps function to fetch market comparables
     }
     
     // Track scan success

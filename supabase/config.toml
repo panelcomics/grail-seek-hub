@@ -98,3 +98,12 @@ verify_jwt = true
 [functions.test-scan-ocr]
 verify_jwt = false
 
+[functions.ebay-comps]
+verify_jwt = false
+
+[functions.track-pick]
+verify_jwt = false
+
+[functions.save-verified]
+verify_jwt = false
+
