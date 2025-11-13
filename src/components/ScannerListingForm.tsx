@@ -66,15 +66,18 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
     if (selectedPick) {
-      setTitle(selectedPick.title);
-      setSeries(selectedPick.volumeName || selectedPick.title);
+      // Use series/volume name as the main title (not the story title)
+      const seriesName = selectedPick.volumeName || selectedPick.title;
+      setTitle(seriesName);
+      setSeries(seriesName);
       setIssueNumber(selectedPick.issue || "");
       setPublisher(selectedPick.publisher || "");
       setYear(selectedPick.year?.toString() || "");
       setSelectedCover(selectedPick.coverUrl);
       setComicvineId(selectedPick.id);
       setVolumeId(selectedPick.volumeId || null);
-      setVariantInfo(selectedPick.variantDescription || "");
+      // Store the ComicVine story title in variant info (e.g. "Invasion!", "Where Do You Plant a Thorn?")
+      setVariantInfo(selectedPick.title !== seriesName ? selectedPick.title : (selectedPick.variantDescription || ""));
 
       // Fetch pricing for the selected pick
       (async () => {
@@ -113,15 +116,18 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
 
   // FEATURE_PICK_AUTOFILL: Autofill all fields when a pick is selected (from embedded picker)
   const handleComicVineSelect = async (pick: ComicVinePick) => {
-    setTitle(pick.title);
-    setSeries(pick.volumeName || pick.title);
+    // Use series/volume name as the main title (not the story title)
+    const seriesName = pick.volumeName || pick.title;
+    setTitle(seriesName);
+    setSeries(seriesName);
     setIssueNumber(pick.issue || "");
     setPublisher(pick.publisher || "");
     setYear(pick.year?.toString() || "");
     setSelectedCover(pick.coverUrl);
     setComicvineId(pick.id);
     setVolumeId(pick.volumeId || null);
-    setVariantInfo(pick.variantDescription || "");
+    // Store the ComicVine story title in variant info (e.g. "Invasion!", "Where Do You Plant a Thorn?")
+    setVariantInfo(pick.title !== seriesName ? pick.title : (pick.variantDescription || ""));
     setShowPicker(false);
     
     toast.success("Match applied", {
@@ -187,19 +193,20 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       const finalImageUrl = imageUrl; // Already uploaded to external Supabase
 
       // Create inventory item with user's image as primary
+      // IMPORTANT: title should be the series name, not the ComicVine story title
       const inventoryData: any = {
         user_id: user.id,
-        title: title.trim(),
+        title: title.trim(), // This is the series name (e.g., "Marvel Super Heroes Secret Wars")
         series: series.trim() || title.trim(),
         issue_number: issueNumber.trim() || null,
         publisher: publisher.trim() || null,
         year: year ? parseInt(year) : null,
-        grade: grade.trim() || null,
+        grade: grade.trim() || null, // e.g., "CGC 9.8"
         condition: condition,
-        details: notes.trim() || null,
+        details: notes.trim() || null, // User's notes/description
         comicvine_issue_id: comicvineId ? comicvineId.toString() : null,
         comicvine_volume_id: volumeId ? volumeId.toString() : null,
-        variant_description: variantInfo || null,
+        variant_description: variantInfo || null, // ComicVine story title goes here (e.g., "Invasion!")
         volume_name: series.trim() || title.trim(),
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),

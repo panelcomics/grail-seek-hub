@@ -376,14 +376,14 @@ export default function MyInventory() {
                                 {item.issue_number && (
                                   <p className="text-sm text-muted-foreground">Issue #{item.issue_number}</p>
                                 )}
-                                {item.details && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {item.details.length > 60 ? `${item.details.substring(0, 60)}...` : item.details}
-                                  </p>
-                                )}
-                                {item.grade && (
-                                  <p className="text-sm text-muted-foreground">Grade: {item.grade}</p>
-                                )}
+                                {/* Show grade first, then notes on the same line */}
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {item.grade && <span className="font-medium">Grade: {item.grade}</span>}
+                                  {item.grade && item.details && <span> • </span>}
+                                  {item.details && (
+                                    <span>{item.details.length > 60 ? `${item.details.substring(0, 60)}...` : item.details}</span>
+                                  )}
+                                </div>
                                 {item.listed_price && (
                                   <p className="text-sm font-semibold text-primary">${item.listed_price}</p>
                                 )}
