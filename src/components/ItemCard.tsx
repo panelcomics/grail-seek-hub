@@ -166,9 +166,14 @@ const ItemCard = ({
             
             {/* Variant info */}
             {variantType && (
-              <p className="text-xs text-muted-foreground mb-2 font-medium">
+              <Badge variant="outline" className="text-xs mb-2">
                 {variantType}
-                {variantDetails && <span className="font-normal"> — {variantDetails}</span>}
+              </Badge>
+            )}
+            
+            {variantDetails && (
+              <p className="text-xs text-muted-foreground mb-2">
+                {variantDetails}
               </p>
             )}
             

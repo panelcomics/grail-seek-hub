@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -36,6 +37,9 @@ interface InventoryItem {
   series: string | null;
   variant_type: string | null;
   variant_details: string | null;
+  variant_notes: string | null;
+  is_key: boolean | null;
+  key_type: string | null;
 }
 
 export default function MyInventory() {
@@ -379,12 +383,26 @@ export default function MyInventory() {
                                   <p className="text-sm text-muted-foreground">Issue #{item.issue_number}</p>
                                 )}
                                 {/* Show variant info if available */}
-                                {item.variant_type && (
-                                  <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                                    {item.variant_type}
-                                    {item.variant_details && <span className="font-normal"> — {item.variant_details}</span>}
-                                  </p>
-                                )}
+                      {/* Variant and Key badges */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.variant_type && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.variant_type}
+                          </Badge>
+                        )}
+                        {item.is_key && (
+                          <Badge variant="default" className="text-xs bg-amber-500 hover:bg-amber-600">
+                            {item.key_type || "Key Issue"}
+                          </Badge>
+                        )}
+                      </div>
+                      {(item.variant_details || item.variant_notes) && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {item.variant_details && <span>{item.variant_details}</span>}
+                          {item.variant_details && item.variant_notes && <span> • </span>}
+                          {item.variant_notes && <span>{item.variant_notes}</span>}
+                        </p>
+                      )}
                                 {/* Show grade first, then notes on the same line */}
                                 <div className="text-xs text-muted-foreground mt-1">
                                   {item.grade && <span className="font-medium">Grade: {item.grade}</span>}
