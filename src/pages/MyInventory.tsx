@@ -219,7 +219,7 @@ export default function MyInventory() {
   }
 
   return (
-    <AppLayout>
+    <>
       <main className="flex-1 container py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Main Content */}
@@ -511,6 +511,6 @@ export default function MyInventory() {
           onSuccess={fetchInventory}
         />
       )}
-    </AppLayout>
+    </>
   );
 }
