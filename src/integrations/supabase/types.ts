@@ -1105,6 +1105,7 @@ export type Database = {
           user_id: string
           variant_description: string | null
           volume_name: string | null
+          year: number | null
         }
         Insert: {
           cgc_grade?: string | null
@@ -1144,6 +1145,7 @@ export type Database = {
           user_id: string
           variant_description?: string | null
           volume_name?: string | null
+          year?: number | null
         }
         Update: {
           cgc_grade?: string | null
@@ -1183,6 +1185,7 @@ export type Database = {
           user_id?: string
           variant_description?: string | null
           volume_name?: string | null
+          year?: number | null
         }
         Relationships: [
           {
