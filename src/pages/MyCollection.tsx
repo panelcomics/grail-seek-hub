@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
@@ -9,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
 import { formatComicDisplay } from "@/lib/comics/format";
 import { getComicCoverImage, getComicImageUrl } from "@/lib/comicImages";
+import { AppLayout } from "@/components/layout/AppLayout";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +47,11 @@ interface Comic {
   condition?: string | null;
   publisher?: string | null;
   grade?: string | null;
+  variant_type?: string | null;
+  variant_details?: string | null;
+  variant_notes?: string | null;
+  is_key?: boolean;
+  key_type?: string | null;
 }
 
 const MyCollection = () => {
@@ -63,6 +70,11 @@ const MyCollection = () => {
     cover_date: "",
     condition_notes: "",
     details: "",
+    variant_type: "",
+    variant_details: "",
+    variant_notes: "",
+    is_key: false,
+    key_type: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -153,6 +165,11 @@ const MyCollection = () => {
       cover_date: comic.cover_date || "",
       condition_notes: comic.condition_notes || "",
       details: comic.details || "",
+      variant_type: comic.variant_type || "",
+      variant_details: comic.variant_details || "",
+      variant_notes: comic.variant_notes || "",
+      is_key: comic.is_key || false,
+      key_type: comic.key_type || "",
     });
   };
 
@@ -210,7 +227,8 @@ const MyCollection = () => {
 
   return (
     <ProtectedRoute>
-      <div className="container py-8">
+      <AppLayout>
+        <div className="container py-8">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -384,14 +402,76 @@ const MyCollection = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="notes">Condition Notes</Label>
-              <Textarea
-                id="notes"
-                value={editForm.condition_notes}
-                onChange={(e) => setEditForm({ ...editForm, condition_notes: e.target.value })}
-                placeholder="e.g. Minor spine ticks, CGC 9.8"
-                rows={3}
+              <Label htmlFor="variant_type">Variant Type</Label>
+              <Select value={editForm.variant_type} onValueChange={(value) => setEditForm({ ...editForm, variant_type: value })}>
+                <SelectTrigger id="variant_type">
+                  <SelectValue placeholder="Select variant type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Direct">Direct</SelectItem>
+                  <SelectItem value="Newsstand">Newsstand</SelectItem>
+                  <SelectItem value="Price Variant">Price Variant</SelectItem>
+                  <SelectItem value="Canadian">Canadian</SelectItem>
+                  <SelectItem value="Mark Jewelers">Mark Jewelers</SelectItem>
+                  <SelectItem value="2nd Print">2nd Print</SelectItem>
+                  <SelectItem value="3rd Print">3rd Print</SelectItem>
+                  <SelectItem value="Facsimile">Facsimile</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="variant_details">Variant Details</Label>
+              <Input
+                id="variant_details"
+                value={editForm.variant_details}
+                onChange={(e) => setEditForm({ ...editForm, variant_details: e.target.value })}
+                placeholder="e.g., Cover B, 1:25 ratio"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="variant_notes">Variant Notes</Label>
+              <Textarea
+                id="variant_notes"
+                value={editForm.variant_notes}
+                onChange={(e) => setEditForm({ ...editForm, variant_notes: e.target.value })}
+                placeholder="e.g., Campbell Virgin Variant, Diamond Retailer Incentive"
+                rows={2}
+              />
+            </div>
+            <div className="space-y-4 pt-2 border-t">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="is_key"
+                  checked={editForm.is_key}
+                  onChange={(e) => setEditForm({ ...editForm, is_key: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="is_key" className="font-semibold cursor-pointer">
+                  Key Issue
+                </Label>
+              </div>
+
+              {editForm.is_key && (
+                <div className="space-y-2">
+                  <Label htmlFor="key_type">Key Type</Label>
+                  <Select value={editForm.key_type} onValueChange={(value) => setEditForm({ ...editForm, key_type: value })}>
+                    <SelectTrigger id="key_type">
+                      <SelectValue placeholder="Select key type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Major Key">Major Key</SelectItem>
+                      <SelectItem value="Minor Key">Minor Key</SelectItem>
+                      <SelectItem value="First Appearance">First Appearance</SelectItem>
+                      <SelectItem value="Cameo">Cameo</SelectItem>
+                      <SelectItem value="Origin">Origin</SelectItem>
+                      <SelectItem value="Death">Death</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -406,6 +486,7 @@ const MyCollection = () => {
         </DialogContent>
       </Dialog>
       </div>
+      </AppLayout>
     </ProtectedRoute>
   );
 };

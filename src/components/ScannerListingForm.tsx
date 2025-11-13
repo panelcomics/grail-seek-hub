@@ -64,6 +64,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [variantInfo, setVariantInfo] = useState<string>("");
   const [variantType, setVariantType] = useState<string>("");
   const [variantDetails, setVariantDetails] = useState<string>("");
+  const [variantNotes, setVariantNotes] = useState<string>("");
+  const [isKey, setIsKey] = useState<boolean>(false);
+  const [keyType, setKeyType] = useState<string>("");
 
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
@@ -211,6 +214,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         variant_description: variantInfo || null, // ComicVine story title goes here (e.g., "Invasion!")
         variant_type: variantType || null, // User-selected variant type
         variant_details: variantDetails.trim() || null, // Additional variant details
+        variant_notes: variantNotes.trim() || null, // Free-form variant notes
+        is_key: isKey,
+        key_type: isKey ? (keyType || null) : null,
         volume_name: series.trim() || title.trim(),
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),
@@ -410,38 +416,86 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
             </div>
           </div>
 
-          {/* Variant / Edition Section */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="variantType">Variant / Edition (Optional)</Label>
-              <Select value={variantType} onValueChange={setVariantType}>
-                <SelectTrigger id="variantType">
-                  <SelectValue placeholder="Select variant type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Direct Edition">Direct Edition</SelectItem>
-                  <SelectItem value="Newsstand Edition">Newsstand Edition</SelectItem>
-                  <SelectItem value="Second Printing">Second Printing</SelectItem>
-                  <SelectItem value="Variant Cover">Variant Cover (A / B / C / etc.)</SelectItem>
-                  <SelectItem value="Incentive Variant">Incentive Variant (1:10, 1:25, 1:50, etc.)</SelectItem>
-                  <SelectItem value="Retailer Exclusive">Retailer Exclusive</SelectItem>
-                  <SelectItem value="Convention Exclusive">Convention Exclusive</SelectItem>
-                  <SelectItem value="Canadian Price Variant">Canadian Price Variant</SelectItem>
-                  <SelectItem value="Whitman Variant">Whitman Variant</SelectItem>
-                  <SelectItem value="Error Print">Error Print</SelectItem>
-                  <SelectItem value="Other">Other (Custom)</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Variant & Key Details Section */}
+          <div className="space-y-4 pt-4 border-t">
+            <h3 className="text-lg font-semibold">Variant & Key Details (Optional)</h3>
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="variantType">Variant Type</Label>
+                <Select value={variantType} onValueChange={setVariantType}>
+                  <SelectTrigger id="variantType">
+                    <SelectValue placeholder="Select variant type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Direct">Direct</SelectItem>
+                    <SelectItem value="Newsstand">Newsstand</SelectItem>
+                    <SelectItem value="Price Variant">Price Variant</SelectItem>
+                    <SelectItem value="Canadian">Canadian</SelectItem>
+                    <SelectItem value="Mark Jewelers">Mark Jewelers</SelectItem>
+                    <SelectItem value="2nd Print">2nd Print</SelectItem>
+                    <SelectItem value="3rd Print">3rd Print</SelectItem>
+                    <SelectItem value="Facsimile">Facsimile</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="variantDetails">Variant Details</Label>
+                <Input
+                  id="variantDetails"
+                  value={variantDetails}
+                  onChange={(e) => setVariantDetails(e.target.value)}
+                  placeholder="e.g., Cover B, 1:25 ratio"
+                />
+              </div>
             </div>
 
             <div>
-              <Label htmlFor="variantDetails">Variant Details (Optional)</Label>
-              <Input
-                id="variantDetails"
-                value={variantDetails}
-                onChange={(e) => setVariantDetails(e.target.value)}
-                placeholder="e.g., Cover B - Todd McFarlane, 1:25 ratio"
+              <Label htmlFor="variantNotes">Variant Notes</Label>
+              <Textarea
+                id="variantNotes"
+                value={variantNotes}
+                onChange={(e) => setVariantNotes(e.target.value)}
+                placeholder="e.g., Campbell Virgin Variant, Diamond Retailer Incentive"
+                rows={2}
               />
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isKey"
+                  checked={isKey}
+                  onChange={(e) => setIsKey(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="isKey" className="font-semibold cursor-pointer">
+                  Key Issue
+                </Label>
+              </div>
+
+              {isKey && (
+                <div>
+                  <Label htmlFor="keyType">Key Type</Label>
+                  <Select value={keyType} onValueChange={setKeyType}>
+                    <SelectTrigger id="keyType">
+                      <SelectValue placeholder="Select key type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Major Key">Major Key</SelectItem>
+                      <SelectItem value="Minor Key">Minor Key</SelectItem>
+                      <SelectItem value="First Appearance">First Appearance</SelectItem>
+                      <SelectItem value="Cameo">Cameo</SelectItem>
+                      <SelectItem value="Origin">Origin</SelectItem>
+                      <SelectItem value="Death">Death</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </div>
 
