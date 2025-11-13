@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { CheckCircle2, AlertCircle, Loader2, Mail, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -102,9 +101,7 @@ export default function Help() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      
+    <AppLayout>
       <main className="flex-1 container max-w-4xl mx-auto py-8 px-4 sm:py-12">
         <div className="space-y-8">
           {/* Header */}
@@ -351,8 +348,6 @@ export default function Help() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </AppLayout>
   );
 }

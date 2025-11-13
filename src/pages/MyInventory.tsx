@@ -7,8 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Search, Download, Upload, Loader2, Edit2, Save, X, Filter, DollarSign, CheckSquare, Square } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { exportInventoryToCSV, downloadCSV } from "@/lib/csvUtils";
 import { CSVImportModal } from "@/components/CSVImportModal";
 import { ListItemModal } from "@/components/ListItemModal";
@@ -220,9 +219,7 @@ export default function MyInventory() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-20">
-      <Navbar />
-      
+    <AppLayout>
       <main className="flex-1 container py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Main Content */}
@@ -500,8 +497,6 @@ export default function MyInventory() {
         }}
       />
 
-      <Footer />
-
       <CSVImportModal
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
@@ -516,6 +511,6 @@ export default function MyInventory() {
           onSuccess={fetchInventory}
         />
       )}
-    </div>
+    </AppLayout>
   );
 }

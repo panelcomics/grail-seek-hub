@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3 } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
 export function AppHeader() {
   const [user, setUser] = useState<any>(null);
@@ -11,8 +10,8 @@ export function AppHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isArtist, setIsArtist] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
+  const [newDealsCount, setNewDealsCount] = useState(0);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -20,6 +19,7 @@ export function AppHeader() {
       if (data.user) {
         checkRoles(data.user.id);
         fetchDisplayName(data.user);
+        fetchNewDealsCount();
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -27,6 +27,7 @@ export function AppHeader() {
       if (session?.user) {
         checkRoles(session.user.id);
         fetchDisplayName(session.user);
+        fetchNewDealsCount();
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -69,72 +70,72 @@ export function AppHeader() {
     }
   };
 
+  const fetchNewDealsCount = async () => {
+    try {
+      const { count } = await supabase
+        .from('deal_matches')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_viewed', false);
+
+      setNewDealsCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching deals count:', error);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setIsOpen(false);
     navigate('/');
   };
 
-  // --- Actions ---
-  const goSearch = () => navigate("/search"); // or open a Command dialog
-  const goScanner = () => navigate("/scanner");
-  const goFavorites = () =>
-    user ? navigate("/favorites") : navigate("/auth?redirect=/favorites");
-  const goNotifications = () =>
-    user
-      ? navigate("/notifications")
-      : toast({ title: "Sign in to see notifications" });
-
-  const goAccount = () => {
-    if (!user) {
-      navigate("/auth?redirect=/profile");
-    } else {
-      navigate("/profile");
-    }
-  };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-screen-xl items-center justify-between px-4">
-        {/* Left: Logo */}
-        <div onClick={() => navigate("/")} className="font-bold cursor-pointer">
-          Grail <span className="text-primary">Seeker</span>
-        </div>
+        <Link to="/" className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-sm">
+            GS
+          </div>
+          <span className="font-bold hidden xs:inline">
+            Grail<span className="text-primary">Seeker</span>
+          </span>
+        </Link>
 
-        {/* Right: single row of actions — no duplicates */}
-        <div className="flex items-center gap-2">
-          {/* Scanner */}
-          <Button variant="outline" size="icon" aria-label="Scanner" onClick={goScanner}>
-            <ScanLine className="h-5 w-5" />
+        <nav className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" asChild aria-label="Scanner">
+            <Link to="/scanner">
+              <ScanLine className="h-5 w-5" />
+            </Link>
           </Button>
 
-          {/* Search: always available */}
-          <Button variant="outline" size="icon" aria-label="Search" onClick={goSearch}>
-            <Search className="h-5 w-5" />
+          <Button variant="ghost" size="icon" asChild aria-label="Search">
+            <Link to="/search">
+              <Search className="h-5 w-5" />
+            </Link>
           </Button>
 
-          {/* Favorites/Watchlist (heart) */}
-          <Button variant="outline" size="icon" aria-label="Favorites" onClick={goFavorites}>
-            <Heart className="h-5 w-5" />
+          <Button variant="ghost" size="icon" asChild aria-label="Favorites" className="relative">
+            <Link to="/watchlist">
+              <Heart className="h-5 w-5" />
+            </Link>
           </Button>
 
-          {/* Notifications — render ONCE and only when logged in */}
-          {user && (
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Notifications"
-              onClick={goNotifications}
-            >
-              <Bell className="h-5 w-5" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" asChild aria-label="Deals & Alerts" className="relative">
+            <Link to="/deals">
+              <Tag className="h-5 w-5" />
+              {newDealsCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center font-medium">
+                  {newDealsCount > 99 ? "99+" : newDealsCount}
+                </span>
+              )}
+            </Link>
+          </Button>
 
-          {/* Account */}
           {user ? (
             <div className="relative">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label="Account"
@@ -193,12 +194,16 @@ export function AppHeader() {
                       {isAdmin && (
                         <>
                           <div className="my-1 border-t" />
-                          <DropdownLink href="/admin/original-art/manage" onClick={() => setIsOpen(false)}>
-                            <Package className="mr-2 h-4 w-4" />
-                            Original Art (Admin)
-                          </DropdownLink>
-                        </>
-                      )}
+                       <DropdownLink href="/admin/original-art/manage" onClick={() => setIsOpen(false)}>
+                        <Package className="mr-2 h-4 w-4" />
+                        Original Art (Admin)
+                      </DropdownLink>
+                      <DropdownLink href="/admin/invite-artist" onClick={() => setIsOpen(false)}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Invite Artist
+                      </DropdownLink>
+                    </>
+                  )}
                       <div className="my-1 border-t" />
                       <button
                         onClick={handleSignOut}
@@ -213,11 +218,13 @@ export function AppHeader() {
               )}
             </div>
           ) : (
-            <Button variant="outline" size="icon" aria-label="Account" onClick={goAccount}>
-              <User2 className="h-5 w-5" />
+            <Button variant="ghost" size="icon" asChild aria-label="Sign In">
+              <Link to="/auth">
+                <User2 className="h-5 w-5" />
+              </Link>
             </Button>
           )}
-        </div>
+        </nav>
       </div>
     </header>
   );

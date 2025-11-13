@@ -1,15 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 export default function FeesPolicy() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      
+    <AppLayout>
       <main className="flex-1 container max-w-4xl mx-auto py-8 px-4 sm:py-12">
         <div className="space-y-8">
           {/* Header */}
@@ -273,8 +270,6 @@ export default function FeesPolicy() {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </AppLayout>
   );
 }

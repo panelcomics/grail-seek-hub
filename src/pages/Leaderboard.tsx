@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Crown, Star, Award, ArrowLeft, Trophy } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -123,9 +122,7 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      
+    <AppLayout>
       <main className="container mx-auto px-4 py-8 mt-16">
         {/* Header */}
         <div className="mb-8">
@@ -312,9 +309,7 @@ const Leaderboard = () => {
           </Button>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </AppLayout>
   );
 };
 

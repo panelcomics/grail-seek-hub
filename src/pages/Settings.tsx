@@ -1,4 +1,4 @@
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { DiscountSettings } from "@/components/DiscountSettings";
 import { AdminPanel } from "@/components/AdminPanel";
 import { PaymentSettings } from "@/components/PaymentSettings";
@@ -14,8 +14,7 @@ const Settings = () => {
   const { isAdmin, loading } = useDiscount();
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppLayout>
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -58,7 +57,7 @@ const Settings = () => {
           {!loading && isAdmin && <AdminPanel />}
         </div>
       </main>
-    </div>
+    </AppLayout>
   );
 };
 

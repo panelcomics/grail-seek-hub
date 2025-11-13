@@ -1,13 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Shield, Lock, Mail, MapPin, Bell, UserX } from "lucide-react";
 
 const Privacy = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
+    <AppLayout>
       <main className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
@@ -250,8 +248,7 @@ const Privacy = () => {
           </div>
         </div>
       </main>
-      <Footer />
-    </div>
+    </AppLayout>
   );
 };
 

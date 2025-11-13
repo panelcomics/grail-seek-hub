@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { AdminVerifiedSellers } from "@/components/AdminVerifiedSellers";
 import { Helmet } from "react-helmet-async";
 
@@ -17,12 +17,11 @@ export default function VerifiedSellersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <AppLayout>
         <div className="container mx-auto px-4 py-12">
           <p className="text-center text-muted-foreground">Loading...</p>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -31,15 +30,14 @@ export default function VerifiedSellersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       <Helmet>
         <title>Verified Sellers | Admin Dashboard</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <Navbar />
       <div className="container mx-auto px-4 py-12">
         <AdminVerifiedSellers />
       </div>
-    </div>
+    </AppLayout>
   );
 }

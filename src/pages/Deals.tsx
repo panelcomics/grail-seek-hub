@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 interface Alert {
   id: string;
@@ -183,9 +183,7 @@ export default function Deals() {
   const newDealsCount = deals.filter(d => !d.is_viewed).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      
+    <AppLayout>
       <main className="container mx-auto px-4 py-8 mt-20">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -493,6 +491,6 @@ export default function Deals() {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </AppLayout>
   );
 }

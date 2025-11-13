@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -106,9 +105,7 @@ export default function Orders() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
+    <AppLayout>
       <main className="flex-1 container py-8">
         <Card>
           <CardHeader>
@@ -130,8 +127,6 @@ export default function Orders() {
           </CardContent>
         </Card>
       </main>
-
-      <Footer />
-    </div>
+    </AppLayout>
   );
 }

@@ -1,4 +1,4 @@
-import Navbar from "@/components/Navbar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { ArtistVerificationForm } from "@/components/ArtistVerificationForm";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 
 const ArtistVerification = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppLayout>
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="mb-6">
           <Link to="/settings">
@@ -20,7 +19,7 @@ const ArtistVerification = () => {
         
         <ArtistVerificationForm />
       </main>
-    </div>
+    </AppLayout>
   );
 };
 
