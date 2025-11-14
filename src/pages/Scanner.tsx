@@ -107,21 +107,42 @@ export default function Scanner() {
 
   const startCamera = async () => {
     try {
+      console.log("Requesting camera access...");
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
 
+      console.log("Camera stream obtained:", stream);
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        await videoRef.current.play();
-        setCameraActive(true);
+        
+        // Wait for video metadata to load before playing
+        videoRef.current.onloadedmetadata = async () => {
+          try {
+            await videoRef.current?.play();
+            console.log("Video playing successfully");
+            setCameraActive(true);
+          } catch (playError) {
+            console.error("Error playing video:", playError);
+            sonnerToast.error("Failed to start camera preview. Please try uploading a photo instead.");
+            stopCamera();
+          }
+        };
       }
     } catch (error) {
       console.error("Camera error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("Camera error details:", errorMessage);
+      
+      sonnerToast.error("Camera unavailable. Please upload a photo of your comic instead.", {
+        description: "Camera access was denied or is not available on this device."
+      });
+      
       toast({
-        title: "Camera access denied",
-        description: "Please enable camera access in your browser settings.",
+        title: "Camera unavailable",
+        description: "Please upload a photo of your comic instead.",
         variant: "destructive",
       });
     }
@@ -139,17 +160,29 @@ export default function Scanner() {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
+      
+      // Ensure video has loaded and has dimensions
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.error("Video dimensions not ready");
+        sonnerToast.error("Camera not ready. Please wait a moment and try again.");
+        return;
+      }
+      
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const capturedImageData = canvas.toDataURL("image/jpeg");
+        const capturedImageData = canvas.toDataURL("image/jpeg", 0.8);
+        console.log("Photo captured successfully");
         setPreviewImage(capturedImageData);
         setStatus("previewing");
         stopCamera();
       }
+    } else {
+      console.error("Video or canvas ref not available");
+      sonnerToast.error("Failed to capture photo. Please try again or upload a photo instead.");
     }
   };
 
@@ -696,7 +729,18 @@ export default function Scanner() {
           </div>
         ) : (
           // Show scanner interface
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <>
+            {/* Hidden file input - accessible from all tabs */}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+            />
+            
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
               <TabsTrigger value="camera">
                 <Camera className="h-4 w-4 mr-2" />
@@ -715,37 +759,78 @@ export default function Scanner() {
             {/* Camera tab */}
             <TabsContent value="camera" className="mt-6 space-y-4">
               {status === "idle" && !cameraActive && !previewImage && (
-                <Card>
-                  <CardContent className="flex flex-col items-center gap-4 py-8">
-                    <Camera className="h-16 w-16 text-primary" />
-                    <h3 className="text-xl font-semibold">Use your camera</h3>
-                    <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Use your camera to capture the full front cover.
-                    </p>
-                    <Button onClick={startCamera} size="lg">
-                      <Camera className="mr-2 h-5 w-5" />
-                      Open Camera
-                    </Button>
-                  </CardContent>
-                </Card>
+                <div className="space-y-4">
+                  <Card>
+                    <CardContent className="flex flex-col items-center gap-4 py-8">
+                      <Camera className="h-16 w-16 text-primary" />
+                      <h3 className="text-xl font-semibold">Use your camera</h3>
+                      <p className="text-sm text-muted-foreground text-center max-w-md">
+                        Use your camera to capture the full front cover, or upload a photo if camera is unavailable.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                        <Button onClick={startCamera} size="lg" className="flex-1">
+                          <Camera className="mr-2 h-5 w-5" />
+                          Open Camera
+                        </Button>
+                        <Button 
+                          onClick={() => fileInputRef.current?.click()} 
+                          variant="outline" 
+                          size="lg"
+                          className="flex-1"
+                        >
+                          <Upload className="mr-2 h-5 w-5" />
+                          Upload Photo
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               )}
 
               {cameraActive && !previewImage && (
-                <Card>
-                  <CardContent className="p-4">
-                    <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg" />
-                    <canvas ref={canvasRef} className="hidden" />
-                    <div className="flex gap-2 mt-4">
-                      <Button onClick={capturePhoto} className="flex-1" size="lg">
-                        <Camera className="mr-2 h-5 w-5" />
-                        Capture Photo
+                <div className="space-y-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="relative">
+                        <video 
+                          ref={videoRef} 
+                          autoPlay 
+                          playsInline 
+                          muted
+                          className="w-full rounded-lg bg-black"
+                          style={{ minHeight: "300px" }}
+                        />
+                        <canvas ref={canvasRef} className="hidden" />
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button onClick={capturePhoto} className="flex-1" size="lg">
+                          <Camera className="mr-2 h-5 w-5" />
+                          Capture Photo
+                        </Button>
+                        <Button onClick={stopCamera} variant="outline" size="lg">
+                          <X className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="flex flex-col items-center gap-3 py-6">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Camera not working?
+                      </p>
+                      <Button 
+                        onClick={() => {
+                          stopCamera();
+                          fileInputRef.current?.click();
+                        }} 
+                        variant="outline"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Photo Instead
                       </Button>
-                      <Button onClick={stopCamera} variant="outline" size="lg">
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
               )}
 
               {status === "previewing" && previewImage && (
@@ -786,19 +871,23 @@ export default function Scanner() {
                     <Upload className="h-16 w-16 text-primary" />
                     <h3 className="text-xl font-semibold">Upload a photo</h3>
                     <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Upload a clear photo or scan of the front cover.
+                      Upload a clear photo or scan of the front cover. You can also use the camera tab for live scanning.
                     </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                    />
-                    <Button size="lg" onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="mr-2 h-5 w-5" />
-                      Choose File
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                      <Button size="lg" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                        <Upload className="mr-2 h-5 w-5" />
+                        Choose File
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        onClick={() => setActiveTab("camera")}
+                        className="flex-1"
+                      >
+                        <Camera className="mr-2 h-5 w-5" />
+                        Use Camera
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -892,6 +981,7 @@ export default function Scanner() {
               </Card>
             </TabsContent>
           </Tabs>
+          </>
         )}
       </section>
 
