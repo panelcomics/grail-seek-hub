@@ -30,6 +30,10 @@ serve(async (req) => {
 
     const { listingId, shipping, shippoRate } = await req.json();
 
+    // SECURITY: buyer_id is ALWAYS the authenticated user
+    // NEVER accept buyer_id from request body - this prevents privilege escalation
+    // Only the authenticated user can create payment intents for their own purchases
+
     // Get listing details
     const { data: listing, error: listingError } = await supabaseClient
       .from("listings")
@@ -150,9 +154,16 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error creating payment intent:", error);
+    // SECURITY: Log full details server-side only
+    console.error("Error creating payment intent:", {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Return generic error message to client
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: "Unable to process payment. Please try again later." }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,

@@ -147,9 +147,16 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Error in create-payment-intent:", error);
+    // SECURITY: Log full details server-side only
+    console.error("Error in create-payment-intent:", {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Return generic error message to client
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
+      JSON.stringify({ error: "Unable to create payment. Please try again later." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -108,10 +108,17 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error processing refund:", error);
+    // SECURITY: Log full details server-side only
+    console.error("Error processing refund:", {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Return generic error message to client
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Failed to process refund"
+        error: "Unable to process refund. Please contact support."
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
