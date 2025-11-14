@@ -1080,8 +1080,10 @@ export type Database = {
           images: Json | null
           in_search_of: string | null
           is_for_trade: boolean | null
+          is_key: boolean | null
           is_reprint: boolean | null
           issue_number: string | null
+          key_type: string | null
           listed_price: number | null
           listing_status: string | null
           owner_id: string | null
@@ -1104,6 +1106,9 @@ export type Database = {
           updated_at: string
           user_id: string
           variant_description: string | null
+          variant_details: string | null
+          variant_notes: string | null
+          variant_type: string | null
           volume_name: string | null
           year: number | null
         }
@@ -1120,8 +1125,10 @@ export type Database = {
           images?: Json | null
           in_search_of?: string | null
           is_for_trade?: boolean | null
+          is_key?: boolean | null
           is_reprint?: boolean | null
           issue_number?: string | null
+          key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
           owner_id?: string | null
@@ -1144,6 +1151,9 @@ export type Database = {
           updated_at?: string
           user_id: string
           variant_description?: string | null
+          variant_details?: string | null
+          variant_notes?: string | null
+          variant_type?: string | null
           volume_name?: string | null
           year?: number | null
         }
@@ -1160,8 +1170,10 @@ export type Database = {
           images?: Json | null
           in_search_of?: string | null
           is_for_trade?: boolean | null
+          is_key?: boolean | null
           is_reprint?: boolean | null
           issue_number?: string | null
+          key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
           owner_id?: string | null
@@ -1184,6 +1196,9 @@ export type Database = {
           updated_at?: string
           user_id?: string
           variant_description?: string | null
+          variant_details?: string | null
+          variant_notes?: string | null
+          variant_type?: string | null
           volume_name?: string | null
           year?: number | null
         }
