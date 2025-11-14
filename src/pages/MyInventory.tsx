@@ -170,20 +170,31 @@ export default function MyInventory() {
 
   const saveEdit = async (itemId: string) => {
     try {
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+
       const { error } = await supabase
         .from('inventory_items')
         .update({
           private_location: editLocation || null,
           private_notes: editNotes || null,
+          // Ensure all edited metadata is persisted
+          title: item.title,
+          series: item.series,
+          issue_number: item.issue_number,
+          publisher: item.publisher,
+          grade: item.grade,
+          details: item.details,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', itemId);
 
       if (error) throw error;
 
-      setItems(items.map(item => 
-        item.id === itemId 
-          ? { ...item, private_location: editLocation || null, private_notes: editNotes || null }
-          : item
+      setItems(items.map(i => 
+        i.id === itemId 
+          ? { ...i, private_location: editLocation || null, private_notes: editNotes || null }
+          : i
       ));
 
       toast.success("Updated!");
@@ -378,10 +389,10 @@ export default function MyInventory() {
                                 )}
                               </Button>
                               <div className="flex-1">
-                                <h3 className="font-semibold">{item.title}</h3>
-                                {item.issue_number && (
-                                  <p className="text-sm text-muted-foreground">Issue #{item.issue_number}</p>
-                                )}
+                                <h3>
+                                  <span className="font-bold">{item.series || item.title}</span>
+                                  {item.issue_number && <span className="font-bold"> #{item.issue_number}</span>}
+                                </h3>
                                 {/* Show variant info if available */}
                       {/* Variant and Key badges */}
                       <div className="flex flex-wrap gap-1 mt-1">

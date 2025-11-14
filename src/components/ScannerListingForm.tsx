@@ -337,6 +337,15 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
 
           {/* Form Fields - All Editable */}
           <div className="space-y-4 pt-4 border-t">
+            <div className="space-y-2 mb-4">
+              <Label className="text-base font-semibold">Preview</Label>
+              <div className="text-sm">
+                {series && <span className="font-bold">{series}</span>}
+                {issueNumber && <span className="font-bold"> #{issueNumber}</span>}
+                {publisher && <span className="text-muted-foreground"> • {publisher}</span>}
+                {year && <span className="text-muted-foreground"> ({year})</span>}
+              </div>
+            </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="title">Title / Series Name *</Label>

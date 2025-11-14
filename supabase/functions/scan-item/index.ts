@@ -530,11 +530,13 @@ serve(async (req) => {
           
           // Score and sort results to prefer originals
           const oldPrice = ['12¢','15¢','20¢','25¢','30¢','35¢','40¢','50¢'];
-          const variantBad = /(facsimile|true believers|reprint|anniversary|2nd print|third print|second print)/i;
+          const variantBad = /(facsimile|true believers|reprint|anniversary|2nd print|third print|second print|replica|reproduction|variant facsimile)/i;
           
           results = results.map((cv: any) => {
             let score = 0;
-            const isReprint = variantBad.test(cv.description || '');
+            // Check both name/title and description for reprint indicators
+            const textToCheck = `${cv.name || ''} ${cv.volume || ''} ${cv.description || ''}`;
+            const isReprint = variantBad.test(textToCheck);
             
             // Exact issue match
             if (cv.issue_number === hints.issue) score += 3;

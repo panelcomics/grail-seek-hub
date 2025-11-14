@@ -39,8 +39,8 @@ export function ComicResultCard({ comic, userImage, onListForSwap }: ComicResult
     <Card className="overflow-hidden border-2 border-primary/20 shadow-lg">
       {/* Comic Panel Header */}
       <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 p-4 border-b-4 border-primary">
-        <h3 className="text-xl font-bold tracking-tight">
-          {comic.title} #{comic.issue_number}
+        <h3 className="text-xl tracking-tight">
+          <span className="font-bold">{comic.title}</span> <span className="font-bold">#{comic.issue_number}</span>
         </h3>
         {comic.year && (
           <p className="text-sm text-muted-foreground font-semibold">

@@ -58,7 +58,13 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
   }, []);
   
   const filteredPicks = (featureFlags.reprintFilter && excludeReprints)
-    ? picks.filter(p => !p.isReprint)
+    ? picks.filter(p => {
+        // Check both flag and text for reprint indicators
+        const reprintKeywords = /(facsimile|true believers|reprint|anniversary|2nd print|third print|second print|replica|reproduction|variant facsimile)/i;
+        const textToCheck = `${p.title || ''} ${p.volumeName || ''} ${p.variantDescription || ''}`;
+        const hasReprintKeyword = reprintKeywords.test(textToCheck);
+        return !p.isReprint && !hasReprintKeyword;
+      })
     : picks;
 
   // Auto-select if top pick has score >= 0.72 (72%)
