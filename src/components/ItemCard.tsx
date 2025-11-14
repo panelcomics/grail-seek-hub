@@ -160,8 +160,8 @@ const ItemCard = ({
         
         <div className="p-4 space-y-3">
           <div>
-            <h3 className="font-semibold line-clamp-2 text-base mb-2 group-hover:text-primary transition-colors">
-              {title}
+            <h3 className="line-clamp-2 text-base mb-2 group-hover:text-primary transition-colors">
+              <span className="font-bold">{title}</span>
             </h3>
             
             {/* Variant info */}
