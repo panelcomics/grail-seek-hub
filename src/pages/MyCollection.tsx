@@ -45,6 +45,7 @@ interface Comic {
   images?: { front?: string };
   condition?: string | null;
   publisher?: string | null;
+  year?: number | null;
   grade?: string | null;
   variant_type?: string | null;
   variant_details?: string | null;
@@ -66,6 +67,8 @@ const MyCollection = () => {
     title: "",
     issue_number: "",
     volume_name: "",
+    publisher: "",
+    year: "",
     cover_date: "",
     condition_notes: "",
     details: "",
@@ -161,6 +164,8 @@ const MyCollection = () => {
       title: comic.title,
       issue_number: comic.issue_number || "",
       volume_name: comic.series || "",
+      publisher: comic.publisher || "",
+      year: comic.year?.toString() || "",
       cover_date: comic.cover_date || "",
       condition_notes: comic.condition_notes || "",
       details: comic.details || "",
@@ -183,9 +188,16 @@ const MyCollection = () => {
           title: editForm.title,
           issue_number: editForm.issue_number || null,
           series: editForm.volume_name || null,
+          publisher: editForm.publisher || null,
+          year: editForm.year ? parseInt(editForm.year) : null,
           cover_date: editForm.cover_date || null,
           condition: editForm.condition_notes || null,
           details: editForm.details || null,
+          variant_type: editForm.variant_type || null,
+          variant_details: editForm.variant_details || null,
+          variant_notes: editForm.variant_notes || null,
+          is_key: editForm.is_key,
+          key_type: editForm.is_key ? (editForm.key_type || null) : null,
         })
         .eq("id", editingComic.id);
 
@@ -199,7 +211,22 @@ const MyCollection = () => {
       // Update local state
       setComics(comics.map((c) => 
         c.id === editingComic.id 
-          ? { ...c, ...editForm }
+          ? { 
+              ...c, 
+              title: editForm.title,
+              issue_number: editForm.issue_number || null,
+              series: editForm.volume_name || null,
+              publisher: editForm.publisher || null,
+              year: editForm.year ? parseInt(editForm.year) : null,
+              cover_date: editForm.cover_date || null,
+              condition_notes: editForm.condition_notes || null,
+              details: editForm.details || null,
+              variant_type: editForm.variant_type || null,
+              variant_details: editForm.variant_details || null,
+              variant_notes: editForm.variant_notes || null,
+              is_key: editForm.is_key,
+              key_type: editForm.is_key ? (editForm.key_type || null) : null,
+            }
           : c
       ));
       setEditingComic(null);
@@ -258,13 +285,6 @@ const MyCollection = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredComics.map((comic) => {
-                const { mainTitle } = formatComicDisplay({
-                  volume: { name: comic.series },
-                  title: comic.title,
-                  issue_number: comic.issue_number,
-                  cover_date: comic.cover_date,
-                });
-
                 return (
                 <Card 
                   key={comic.id} 
@@ -276,13 +296,14 @@ const MyCollection = () => {
                       {comic.image_url && (
                         <img
                           src={comic.image_url}
-                          alt={mainTitle}
+                          alt={comic.title}
                           className="w-20 h-28 object-cover rounded"
                         />
                       )}
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base mb-2">
-                          <strong>{mainTitle}</strong>
+                          <span className="font-bold">{comic.title}</span>
+                          {comic.issue_number && <span className="font-bold"> #{comic.issue_number}</span>}
                         </CardTitle>
                         <p className="text-sm text-muted-foreground" style={{ marginTop: "4px" }}>
                           {comic.cover_date && new Date(comic.cover_date).toLocaleDateString()}
@@ -372,12 +393,31 @@ const MyCollection = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="volume">Series Name</Label>
+              <Label htmlFor="volume">Series Name (optional)</Label>
               <Input
                 id="volume"
                 value={editForm.volume_name}
                 onChange={(e) => setEditForm({ ...editForm, volume_name: e.target.value })}
-                placeholder="Amazing Spider-Man"
+                placeholder="Leave empty unless different from title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="publisher">Publisher</Label>
+              <Input
+                id="publisher"
+                value={editForm.publisher}
+                onChange={(e) => setEditForm({ ...editForm, publisher: e.target.value })}
+                placeholder="Marvel Comics"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="year">Year</Label>
+              <Input
+                id="year"
+                type="number"
+                value={editForm.year}
+                onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
+                placeholder="1984"
               />
             </div>
             <div className="space-y-2">

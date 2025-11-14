@@ -127,9 +127,8 @@ export default function SellComic() {
 
       // If listing for sale, create a listing in the listings table
       if (forSale) {
-        const listingTitle = comic.series 
-          ? `${comic.series}${comic.issue_number ? ' #' + comic.issue_number : ''}`
-          : (comic.title || "");
+        // Use user-edited title and issue from inventory_items
+        const listingTitle = comic.title || "";
 
         const listingData: any = {
           user_id: user.id,
@@ -138,8 +137,8 @@ export default function SellComic() {
           type: listingType,
           image_url: comic.images?.front || null,
           title: listingTitle,
-          issue_number: comic.issue_number,
-          volume_name: comic.series || comic.volume_name,
+          issue_number: comic.issue_number || null,
+          volume_name: comic.series || null, // Optional series name
           cover_date: comic.cover_date,
           condition_notes: comic.condition,
           details: comic.details,
@@ -241,7 +240,7 @@ export default function SellComic() {
                   
                   <div className="space-y-2">
                     <h3 className="text-xl">
-                      <span className="font-bold">{comic.series || comic.title}</span>
+                      <span className="font-bold">{comic.title}</span>
                       {comic.issue_number && <span className="font-bold"> #{comic.issue_number}</span>}
                     </h3>
 
