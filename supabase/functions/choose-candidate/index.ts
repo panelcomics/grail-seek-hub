@@ -6,6 +6,37 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// SECURITY: Simple in-memory rate limiting (10 requests per minute per IP)
+// For production, consider using Redis or Upstash for distributed rate limiting
+const rateLimiter = new Map<string, number[]>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const requests = rateLimiter.get(ip) || [];
+  const recentRequests = requests.filter(t => now - t < 60000); // Last minute
+  
+  if (recentRequests.length >= 10) {
+    return false; // Rate limit exceeded
+  }
+  
+  recentRequests.push(now);
+  rateLimiter.set(ip, recentRequests);
+  
+  // Cleanup old entries periodically
+  if (Math.random() < 0.01) {
+    for (const [key, times] of rateLimiter.entries()) {
+      const recent = times.filter(t => now - t < 60000);
+      if (recent.length === 0) {
+        rateLimiter.delete(key);
+      } else {
+        rateLimiter.set(key, recent);
+      }
+    }
+  }
+  
+  return true;
+}
+
 // ============= HELPER: Get Comic Details by ID =============
 async function getComicById(comicvineId: string, apiKey: string) {
   const response = await fetch(
@@ -50,6 +81,19 @@ function getPriceEstimate() {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // SECURITY: Rate limiting to prevent API abuse
+  const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+  if (!checkRateLimit(clientIP)) {
+    console.warn('Rate limit exceeded for IP:', clientIP);
+    return new Response(
+      JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+      { 
+        status: 429, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 
   try {
@@ -103,12 +147,17 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in choose-candidate function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch comic details';
+    // SECURITY: Log full details server-side only
+    console.error('Error in choose-candidate function:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
     
+    // Return generic error message to client
     return new Response(
       JSON.stringify({ 
-        error: errorMessage
+        error: 'Unable to fetch comic details. Please try again later.'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
