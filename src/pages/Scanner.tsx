@@ -734,7 +734,6 @@ export default function Scanner() {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               ref={fileInputRef}
               onChange={handleFileUpload}
@@ -767,20 +766,48 @@ export default function Scanner() {
                       <p className="text-sm text-muted-foreground text-center max-w-md">
                         Use your camera to capture the full front cover, or upload a photo if camera is unavailable.
                       </p>
-                      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                        <Button onClick={startCamera} size="lg" className="flex-1">
+                      <div className="flex flex-col gap-3 w-full max-w-md">
+                        <Button onClick={startCamera} size="lg" className="w-full">
                           <Camera className="mr-2 h-5 w-5" />
-                          Open Camera
+                          Open Camera Preview
                         </Button>
-                        <Button 
-                          onClick={() => fileInputRef.current?.click()} 
-                          variant="outline" 
-                          size="lg"
-                          className="flex-1"
-                        >
-                          <Upload className="mr-2 h-5 w-5" />
-                          Upload Photo
-                        </Button>
+                        <div className="flex gap-3">
+                          <Button 
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = 'image/*';
+                              input.capture = 'environment';
+                              input.onchange = (e: any) => {
+                                const file = e.target?.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (evt) => {
+                                    const uploadedImageData = evt.target?.result as string;
+                                    identifyFromImage(uploadedImageData, "camera");
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              };
+                              input.click();
+                            }}
+                            variant="outline" 
+                            size="lg"
+                            className="flex-1"
+                          >
+                            <Camera className="mr-2 h-5 w-5" />
+                            Take Photo
+                          </Button>
+                          <Button 
+                            onClick={() => fileInputRef.current?.click()} 
+                            variant="outline" 
+                            size="lg"
+                            className="flex-1"
+                          >
+                            <Upload className="mr-2 h-5 w-5" />
+                            Choose Photo
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -791,14 +818,13 @@ export default function Scanner() {
                 <div className="space-y-4">
                   <Card>
                     <CardContent className="p-4">
-                      <div className="relative">
+                      <div className="relative bg-black rounded-lg overflow-hidden" style={{ minHeight: "300px" }}>
                         <video 
                           ref={videoRef} 
                           autoPlay 
                           playsInline 
                           muted
-                          className="w-full rounded-lg bg-black"
-                          style={{ minHeight: "300px" }}
+                          className="w-full h-full object-cover"
                         />
                         <canvas ref={canvasRef} className="hidden" />
                       </div>
@@ -871,21 +897,21 @@ export default function Scanner() {
                     <Upload className="h-16 w-16 text-primary" />
                     <h3 className="text-xl font-semibold">Upload a photo</h3>
                     <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Upload a clear photo or scan of the front cover. You can also use the camera tab for live scanning.
+                      Select a photo from your library or use the camera tab for live preview.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                      <Button size="lg" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                    <div className="flex flex-col gap-3 w-full max-w-md">
+                      <Button size="lg" onClick={() => fileInputRef.current?.click()} className="w-full">
                         <Upload className="mr-2 h-5 w-5" />
-                        Choose File
+                        Choose from Photos
                       </Button>
                       <Button 
                         variant="outline" 
                         size="lg" 
                         onClick={() => setActiveTab("camera")}
-                        className="flex-1"
+                        className="w-full"
                       >
                         <Camera className="mr-2 h-5 w-5" />
-                        Use Camera
+                        Switch to Camera Tab
                       </Button>
                     </div>
                   </CardContent>
