@@ -74,7 +74,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       // Use series/volume name as the main title (not the story title)
       const seriesName = selectedPick.volumeName || selectedPick.title;
       setTitle(seriesName);
-      setSeries(seriesName);
+      setSeries(""); // Keep series empty - user can fill manually if needed
       setIssueNumber(selectedPick.issue || "");
       setPublisher(selectedPick.publisher || "");
       setYear(selectedPick.year?.toString() || "");
@@ -124,7 +124,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
     // Use series/volume name as the main title (not the story title)
     const seriesName = pick.volumeName || pick.title;
     setTitle(seriesName);
-    setSeries(seriesName);
+    setSeries(""); // Keep series empty - user can fill manually if needed
     setIssueNumber(pick.issue || "");
     setPublisher(pick.publisher || "");
     setYear(pick.year?.toString() || "");
@@ -201,8 +201,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       // IMPORTANT: title should be the series name, not the ComicVine story title
       const inventoryData: any = {
         user_id: user.id,
-        title: title.trim(), // This is the series name (e.g., "Marvel Super Heroes Secret Wars")
-        series: series.trim() || title.trim(),
+        title: title.trim(), // This is the main title (e.g., "Marvel Super Heroes Secret Wars")
+        series: series.trim() || null, // Optional series name - only if user fills it
         issue_number: issueNumber.trim() || null,
         publisher: publisher.trim() || null,
         year: year ? parseInt(year) : null,
@@ -217,7 +217,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         variant_notes: variantNotes.trim() || null, // Free-form variant notes
         is_key: isKey,
         key_type: isKey ? (keyType || null) : null,
-        volume_name: series.trim() || title.trim(),
+        volume_name: series.trim() || null, // Optional volume name
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),
         images: {
@@ -340,7 +340,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
             <div className="space-y-2 mb-4">
               <Label className="text-base font-semibold">Preview</Label>
               <div className="text-sm">
-                {series && <span className="font-bold">{series}</span>}
+                {title && <span className="font-bold">{title}</span>}
                 {issueNumber && <span className="font-bold"> #{issueNumber}</span>}
                 {publisher && <span className="text-muted-foreground"> • {publisher}</span>}
                 {year && <span className="text-muted-foreground"> ({year})</span>}
