@@ -110,6 +110,7 @@ function scoreTitleMatch(ocrTitle: string, cvTitle: string): number {
 
 /**
  * Score issue number match (0 or 1)
+ * CRITICAL: Issue mismatch caps final score at 0.49
  */
 function scoreIssueMatch(ocrIssue: string | null, cvIssue: string): number {
   if (!ocrIssue) return 0;
@@ -165,6 +166,7 @@ function scoreYearMatch(ocrYear: number | null, cvCoverDate?: string): number {
 
 /**
  * Score a single candidate
+ * ENFORCES: Issue mismatch caps score at 0.49
  */
 export function scoreCandidate(
   candidate: ComicVineIssue,
@@ -179,17 +181,22 @@ export function scoreCandidate(
   const yearScore = scoreYearMatch(tokens.year, candidate.cover_date);
   
   // Weighted total: 45% title, 35% issue, 10% publisher, 10% year
-  const matchScore = 
+  let matchScore = 
     titleScore * 0.45 +
     issueScore * 0.35 +
     publisherScore * 0.10 +
     yearScore * 0.10;
   
+  // CRITICAL RULE: If OCR detected an issue number but it doesn't match, cap score at 0.49
+  if (tokens.issueNumber && issueScore === 0) {
+    matchScore = Math.min(matchScore, 0.49);
+  }
+  
   // Determine confidence level
   let confidence: 'high' | 'medium' | 'low';
   if (matchScore >= 0.80) {
     confidence = 'high';
-  } else if (matchScore >= 0.60) {
+  } else if (matchScore >= 0.50) {
     confidence = 'medium';
   } else {
     confidence = 'low';
@@ -228,6 +235,6 @@ export function rankCandidates(
  */
 export function getConfidenceLabel(score: number): string {
   if (score >= 0.80) return 'Best Match';
-  if (score >= 0.60) return 'Likely Match – Please Confirm';
-  return 'Low Confidence';
+  if (score >= 0.50) return 'Possible Match';
+  return 'Low Confidence – Likely Not Your Comic';
 }

@@ -719,6 +719,38 @@ export default function Scanner() {
                           This will be your listing image. Select a match below or enter details manually.
                         </p>
                       </div>
+
+                      {/* Debug Token Display */}
+                      {debugData?.rawOcrText && (
+                        <div className="p-3 bg-muted/50 rounded text-xs space-y-1">
+                          <div className="font-semibold text-foreground mb-1">OCR Extracted:</div>
+                          {(() => {
+                            const extracted = debugData.slabData;
+                            return (
+                              <>
+                                {extracted?.title && (
+                                  <div>
+                                    <span className="text-muted-foreground">Parsed Title: </span>
+                                    <span className="text-foreground font-medium">{extracted.title}</span>
+                                  </div>
+                                )}
+                                {extracted?.issueNumber && (
+                                  <div>
+                                    <span className="text-muted-foreground">Parsed Issue: </span>
+                                    <span className="text-foreground font-medium">#{extracted.issueNumber}</span>
+                                  </div>
+                                )}
+                                {extracted?.publisher && (
+                                  <div>
+                                    <span className="text-muted-foreground">Parsed Publisher: </span>
+                                    <span className="text-foreground font-medium">{extracted.publisher}</span>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                       
                       {/* Add More Photos Button */}
                       <div>
