@@ -82,6 +82,8 @@ export default function Scanner() {
     slabData: null as any,
     ebayData: null as any,
     retryAttempt: 0,
+    extracted: null as any,
+    noMatchesFound: false as boolean,
   });
 
   const [uploadLog, setUploadLog] = useState<{
@@ -265,6 +267,8 @@ export default function Scanner() {
         slabData: null,
         ebayData: null,
         retryAttempt: retryCount,
+        extracted: null,
+        noMatchesFound: false,
       });
 
       // Check authentication
@@ -483,6 +487,8 @@ export default function Scanner() {
               slabData,
               ebayData: null,
               retryAttempt: retryCount,
+              extracted: scanResult?.extracted || null,
+              noMatchesFound: scanResult?.noMatchesFound || false,
             });
 
             console.log(`${getTimestamp()} ✅ Results ready:`, { title, issueNumber, confidence: calculatedConfidence });
@@ -810,6 +816,38 @@ export default function Scanner() {
                   <Loader2 className="h-12 w-12 animate-spin text-primary" />
                   <h3 className="text-xl font-semibold">Scanning for matches...</h3>
                   <p className="text-sm text-muted-foreground">You can choose manual entry below if you prefer</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Debug Token Display */}
+            {!loading && debugData.rawOcrText && (
+              <Card className="bg-muted/50">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-2">Debug: Parsed OCR Tokens</h3>
+                  <div className="text-sm space-y-1">
+                    <div><span className="font-medium">Parsed Title:</span> {debugData.extracted?.title || 'N/A'}</div>
+                    <div><span className="font-medium">Parsed Issue:</span> {debugData.extracted?.issueNumber || 'N/A'}</div>
+                    <div><span className="font-medium">Parsed Publisher:</span> {debugData.extracted?.publisher || 'N/A'}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* No Matches Found Banner */}
+            {!loading && debugData.noMatchesFound && debugData.extracted?.title && debugData.extracted?.issueNumber && (
+              <Card className="border-destructive">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <div className="text-destructive">⚠️</div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold mb-2">No Exact Matches Found</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        We couldn't find <strong>{debugData.extracted.title} #{debugData.extracted.issueNumber}</strong> in the database.
+                        Please use the manual search or entry below to refine your search or correct the title/issue number.
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
