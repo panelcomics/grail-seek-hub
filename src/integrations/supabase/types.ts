@@ -1212,6 +1212,51 @@ export type Database = {
           },
         ]
       }
+      listing_images: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          listing_id: string
+          sort_order: number
+          thumbnail_url: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          listing_id: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          listing_id?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_images_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_images_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           comic_id: string
