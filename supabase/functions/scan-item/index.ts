@@ -499,15 +499,73 @@ serve(async (req) => {
         
         if (cvData.status_code === 1 && cvData.results?.length > 0) {
           // Map results to structured format
+          // Helper function to calculate weighted match score
+          const calculateMatchScore = (result: any, ocrText: string): number => {
+            const title = result.volume?.name || result.name || "";
+            const issueNumber = result.issue_number || "";
+            const publisher = result.volume?.publisher?.name || "";
+            const year = result.cover_date ? parseInt(result.cover_date.slice(0, 4)) : (result.start_year ? parseInt(result.start_year) : null);
+            
+            let score = 0;
+            const normalizeText = (text: string) => text.toLowerCase().replace(/[^\w\s]/g, '').trim();
+            const ocrLower = normalizeText(ocrText);
+            const titleLower = normalizeText(title);
+            
+            // Extract tokens from OCR text
+            const ocrTokens = ocrLower.split(/\s+/);
+            const titleTokens = titleLower.split(/\s+/);
+            
+            // Title match (45% weight)
+            const titleMatchRatio = titleTokens.filter(token => ocrTokens.some(ocrToken => 
+              ocrToken.includes(token) || token.includes(ocrToken) || 
+              // Fuzzy match for partial words
+              (token.length > 3 && ocrToken.length > 3 && (
+                token.substring(0, 4) === ocrToken.substring(0, 4)
+              ))
+            )).length / Math.max(titleTokens.length, 1);
+            score += titleMatchRatio * 45;
+            
+            // Issue number match (35% weight) - exact match critical
+            if (issueNumber) {
+              const issueStr = issueNumber.toString();
+              if (ocrLower.includes(issueStr) || ocrLower.includes(`#${issueStr}`)) {
+                score += 35;
+              } else {
+                // Partial credit for similar issue numbers
+                const issueMatch = ocrLower.match(/\d+/g);
+                if (issueMatch && issueMatch.includes(issueStr)) {
+                  score += 25;
+                }
+              }
+            }
+            
+            // Publisher match (10% weight)
+            if (publisher && ocrLower.includes(normalizeText(publisher))) {
+              score += 10;
+            }
+            
+            // Year match (10% weight)
+            if (year) {
+              const yearStr = year.toString();
+              if (ocrLower.includes(yearStr)) {
+                score += 10;
+              }
+            }
+            
+            return Math.min(score, 100);
+          };
+          
           results = cvData.results
             .filter((i: any) => i.volume?.name || i.name) // Must have a name
-            .slice(0, 10)
             .map((i: any) => {
               const title = i.volume?.name || i.name || "";
               const issueNumber = i.issue_number || "";
               const publisherName = i.volume?.publisher?.name || "";
               const coverYear = i.cover_date ? parseInt(i.cover_date.slice(0, 4)) : (i.start_year ? parseInt(i.start_year) : null);
               const volumeStartYear = i.volume?.start_year ? parseInt(i.volume.start_year) : null;
+              
+              // Calculate weighted match score
+              const matchScore = calculateMatchScore(i, cleanQuery);
               const variantDescription = i.volume?.description || i.deck || "";
               
               return {

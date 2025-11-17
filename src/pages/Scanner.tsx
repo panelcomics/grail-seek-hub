@@ -56,8 +56,10 @@ export default function Scanner() {
   const [previewImage, setPreviewImage] = useState<string | null>(null); // Preview before recognition (local data URL)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null); // Fast-loading thumbnail from server
   const [imageUrl, setImageUrl] = useState<string | null>(null); // Final compressed image for listing
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]); // Additional photos
   const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("idle");
+  const [manualSearchQuery, setManualSearchQuery] = useState("");
   const [confidence, setConfidence] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
   const [searchResults, setSearchResults] = useState<ComicVinePick[]>([]);
@@ -221,6 +223,7 @@ export default function Scanner() {
     setPreviewImage(null);
     setThumbnailUrl(null);
     setImageUrl(null);
+    setAdditionalImages([]);
     setStatus("idle");
     setScanSessionActive(false);
     if (fileInputRef.current) {
@@ -524,8 +527,8 @@ export default function Scanner() {
     }
   };
 
-  const handleTextSearch = async () => {
-    const searchTerm = query.trim();
+  const handleTextSearch = async (searchQuery?: string) => {
+    const searchTerm = (searchQuery || query).trim();
     if (!searchTerm) {
       toast({
         title: "Enter a search term",
@@ -595,6 +598,48 @@ export default function Scanner() {
     setScanSessionActive(true);
   };
 
+  const handleManualSearch = async () => {
+    if (!manualSearchQuery.trim()) {
+      sonnerToast.error("Please enter a search query");
+      return;
+    }
+    setLoading(true);
+    try {
+      await handleTextSearch(manualSearchQuery);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddMorePhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const MAX_IMAGES = 8;
+    const currentTotal = 1 + additionalImages.length; // 1 primary + additional
+    
+    if (currentTotal + files.length > MAX_IMAGES) {
+      sonnerToast.error(`Max ${MAX_IMAGES} photos per book. You can add ${MAX_IMAGES - currentTotal} more.`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const newImages: string[] = [];
+      for (const file of Array.from(files)) {
+        const { publicUrl } = await uploadViaProxy(file);
+        newImages.push(publicUrl);
+      }
+      setAdditionalImages(prev => [...prev, ...newImages]);
+      sonnerToast.success(`Added ${newImages.length} photo(s)`);
+    } catch (error: any) {
+      console.error("Error uploading additional photos:", error);
+      sonnerToast.error("Failed to upload photos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReset = () => {
     setImageUrl(null);
     setPreviewImage(null);
@@ -606,6 +651,8 @@ export default function Scanner() {
     setConfidence(null);
     setQuery("");
     setTextSearchResults([]);
+    setAdditionalImages([]);
+    setManualSearchQuery("");
     setCameraActive(false);
     setScanSessionActive(false);
     stopCamera();
@@ -665,12 +712,60 @@ export default function Scanner() {
                         className="w-full h-full object-cover rounded border-2 border-primary"
                       />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-2">Your Photo</h3>
-                      <p className="text-sm text-muted-foreground">
-                        This will be your listing image. Select a match below or enter details manually.
-                      </p>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <h3 className="font-semibold mb-2">Your Photo</h3>
+                        <p className="text-sm text-muted-foreground">
+                          This will be your listing image. Select a match below or enter details manually.
+                        </p>
+                      </div>
+                      
+                      {/* Add More Photos Button */}
+                      <div>
+                        <input
+                          type="file"
+                          id="additional-photos-input"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleAddMorePhotos}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('additional-photos-input')?.click()}
+                          disabled={loading || additionalImages.length >= 7}
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Add More Photos ({1 + additionalImages.length}/8)
+                        </Button>
+                        {additionalImages.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {additionalImages.length} additional photo(s) added
+                          </p>
+                        )}
+                      </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Manual Search Box */}
+            {!loading && searchResults.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-semibold mb-3">Not the right match? Search manually:</h3>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., Batman 181"
+                      value={manualSearchQuery}
+                      onChange={(e) => setManualSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
+                    />
+                    <Button onClick={handleManualSearch} disabled={loading}>
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -965,7 +1060,7 @@ export default function Scanner() {
                       onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
                       className="flex-1"
                     />
-                    <Button onClick={handleTextSearch} disabled={loading} size="lg">
+                    <Button onClick={() => handleTextSearch()} disabled={loading} size="lg">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
