@@ -20,16 +20,43 @@ serve(async (req) => {
   }
 
   try {
-    const { secret, volumeIds, limit = 100 } = await req.json();
-    
-    // Simple secret check - set COMICVINE_SYNC_SECRET in env
-    const expectedSecret = Deno.env.get('COMICVINE_SYNC_SECRET');
-    if (!expectedSecret || secret !== expectedSecret) {
+    // Check admin access
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Check if user has admin role
+    const { data: hasRole } = await supabaseClient.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (!hasRole) {
+      return new Response(JSON.stringify({ error: 'Admin access required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { volumeIds, limit = 100 } = await req.json().catch(() => ({ limit: 100 }));
 
     const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
     if (!comicvineKey) {
