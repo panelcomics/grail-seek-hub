@@ -59,7 +59,7 @@ export default function ComicVineSync() {
     try {
       console.log(`[UI] Invoking sync-comicvine-cache function with offset ${currentOffset}...`);
       const { data, error } = await supabase.functions.invoke('sync-comicvine-cache', {
-        body: { limit: 50, offset: currentOffset },
+        body: { limit: 10, offset: currentOffset },
       });
 
       console.log('[UI] Function response:', { data, error });
