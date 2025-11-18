@@ -73,7 +73,22 @@ serve(async (req) => {
 
     console.log('[SYNC] Admin access verified');
 
-    const { volumeIds, limit = 100 } = await req.json().catch(() => ({ limit: 100 }));
+    // Parse request body with better error handling
+    let requestBody: { volumeIds?: number[], limit?: number } = {};
+    try {
+      const bodyText = await req.text();
+      console.log('[SYNC] Request body:', bodyText);
+      if (bodyText) {
+        requestBody = JSON.parse(bodyText);
+      }
+    } catch (error) {
+      console.error('[SYNC] Failed to parse request body:', error);
+      // Default to small sync if body parsing fails
+      requestBody = { limit: 5 };
+    }
+
+    const { volumeIds, limit = 5 } = requestBody; // Default to 5 volumes for safety
+    console.log('[SYNC] Sync parameters:', { volumeIds, limit });
 
     const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
     if (!comicvineKey) {
@@ -139,13 +154,21 @@ serve(async (req) => {
 
     console.log('[SYNC] Sync complete:', { volumesSynced, issuesSynced });
 
+    const result = {
+      success: true,
+      volumesSynced,
+      issuesSynced,
+      message: `Successfully synced ${volumesSynced} volumes and ${issuesSynced} issues`
+    };
+    
+    console.log('[SYNC] Returning response:', result);
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        volumesSynced,
-        issuesSynced,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(result),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   } catch (error) {
     console.error('[SYNC] Fatal error:', error);
