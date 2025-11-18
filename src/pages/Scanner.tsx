@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +60,8 @@ export default function Scanner() {
   const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [manualSearchQuery, setManualSearchQuery] = useState("");
+  const [manualSearchLoading, setManualSearchLoading] = useState(false);
+  const [refinedResults, setRefinedResults] = useState<ComicVinePick[]>([]);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
   const [searchResults, setSearchResults] = useState<ComicVinePick[]>([]);
@@ -116,6 +118,29 @@ export default function Scanner() {
   const { user } = useAuth();
 
   const isDev = import.meta.env.DEV || window.location.hostname.includes("lovableproject.com");
+
+  // Pre-fill manual search query when OCR is available and confidence is low
+  useEffect(() => {
+    if (debugData.extracted && searchResults.length > 0 && !debugData.autoSelected) {
+      const { finalCleanTitle, issueNumber } = debugData.extracted;
+      
+      // Build a reasonable search query from OCR
+      if (finalCleanTitle) {
+        // Clean up the title by removing noise words
+        const cleanedTitle = finalCleanTitle
+          .replace(/\b(PAGES?|CAD|AUTHORITY|APPROVED|CODE|COMICS)\b/gi, '')
+          .trim();
+        
+        if (cleanedTitle && cleanedTitle.length > 2) {
+          const searchQuery = issueNumber 
+            ? `${cleanedTitle} ${issueNumber}`
+            : cleanedTitle;
+          
+          setManualSearchQuery(searchQuery);
+        }
+      }
+    }
+  }, [debugData.extracted, searchResults.length, debugData.autoSelected]);
 
   const startCamera = async () => {
     try {
@@ -726,11 +751,28 @@ export default function Scanner() {
       sonnerToast.error("Please enter a search query");
       return;
     }
-    setLoading(true);
+    setManualSearchLoading(true);
     try {
-      await handleTextSearch(manualSearchQuery);
+      const { data, error } = await supabase.functions.invoke("manual-comicvine-search", {
+        body: { 
+          searchText: manualSearchQuery,
+          publisher: debugData?.extracted?.publisher || undefined
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.ok && data?.results) {
+        setRefinedResults(data.results);
+        sonnerToast.success(`Found ${data.results.length} results`);
+      } else {
+        throw new Error(data?.error || "Search failed");
+      }
+    } catch (error: any) {
+      console.error("Manual search error:", error);
+      sonnerToast.error(error.message || "Could not search ComicVine");
     } finally {
-      setLoading(false);
+      setManualSearchLoading(false);
     }
   };
 
@@ -776,6 +818,8 @@ export default function Scanner() {
     setTextSearchResults([]);
     setAdditionalImages([]);
     setManualSearchQuery("");
+    setRefinedResults([]);
+    setManualSearchLoading(false);
     setCameraActive(false);
     setScanSessionActive(false);
     stopCamera();
@@ -1041,8 +1085,95 @@ export default function Scanner() {
               </Card>
             )}
 
-            {/* Manual Search Box */}
-            {!loading && searchResults.length > 0 && (
+            {/* Manual Search Assist Box */}
+            {!loading && searchResults.length > 0 && (!debugData.autoSelected || (debugData.scoreBreakdowns && debugData.scoreBreakdowns[0]?.score < 0.8)) && (
+              <Card className="mb-6 border-primary/50">
+                <CardContent className="p-5 space-y-3">
+                  <div>
+                    <h3 className="text-base font-semibold mb-1">Didn't find the right comic?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Type a title and issue number to refine the search, e.g., "Amazing Spider-Man 129"
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Start typing a title and issue..."
+                      value={manualSearchQuery}
+                      onChange={(e) => setManualSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !manualSearchLoading) {
+                          handleManualSearch();
+                        }
+                      }}
+                      disabled={manualSearchLoading}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleManualSearch} 
+                      disabled={manualSearchLoading || !manualSearchQuery.trim()}
+                      size="default"
+                    >
+                      {manualSearchLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Search className="mr-2 h-4 w-4" />
+                          Search
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Refined Results from Manual Search */}
+            {refinedResults.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="p-5 space-y-4">
+                  <h3 className="text-lg font-semibold">Refined Results (based on your search)</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {refinedResults.map((result) => (
+                      <div
+                        key={result.id}
+                        onClick={() => handleSelectPickFromPicker(result)}
+                        className="flex gap-3 p-3 rounded-lg border-2 border-border hover:border-primary hover:bg-accent/50 cursor-pointer transition-all"
+                      >
+                        {result.thumbUrl && (
+                          <img
+                            src={result.thumbUrl}
+                            alt={result.title}
+                            className="w-16 h-24 object-cover rounded flex-shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm line-clamp-2">{result.title}</div>
+                          {result.issue && (
+                            <div className="text-sm text-muted-foreground">Issue #{result.issue}</div>
+                          )}
+                          {result.year && (
+                            <div className="text-xs text-muted-foreground">{result.year}</div>
+                          )}
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              ComicVine
+                            </span>
+                            {result.score && (
+                              <span className="text-xs text-muted-foreground">
+                                {Math.round(result.score * 100)}% match
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Manual Search Box (Old) - REMOVE THIS */}
+            {!loading && searchResults.length > 0 && false && (
               <Card className="mb-6">
                 <CardContent className="p-4">
                   <h3 className="text-sm font-semibold mb-3">Not the right match? Search manually:</h3>
