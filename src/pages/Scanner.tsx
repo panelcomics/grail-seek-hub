@@ -87,6 +87,8 @@ export default function Scanner() {
     autoSelected: false as boolean,
     autoSelectedId: null as number | null,
     autoSelectedTitle: null as string | null,
+    comicVineQuery: null as string | null,
+    scoreBreakdowns: null as Array<{id: number; title: string; issue: string; score: number; breakdown: any}> | null,
   });
 
   const [uploadLog, setUploadLog] = useState<{
@@ -275,6 +277,8 @@ export default function Scanner() {
         autoSelected: false,
         autoSelectedId: null,
         autoSelectedTitle: null,
+        comicVineQuery: null,
+        scoreBreakdowns: null,
       });
 
       // Check authentication
@@ -555,6 +559,14 @@ export default function Scanner() {
               extracted: scanResult?.extracted || null,
               noMatchesFound: scanResult?.noMatchesFound || false,
               ...autoSelectDebugInfo,
+              comicVineQuery: scanResult?.debug?.comicVineQuery || null,
+              scoreBreakdowns: (scanResult?.picks || []).slice(0, 10).map((p: any) => ({
+                id: p.id,
+                title: p.title,
+                issue: p.issue,
+                score: p.score,
+                breakdown: p.scoreBreakdown || null
+              })),
             });
 
             console.log(`${getTimestamp()} ✅ Results ready:`, { title, issueNumber, confidence: calculatedConfidence });
@@ -590,6 +602,8 @@ export default function Scanner() {
               autoSelected: false,
               autoSelectedId: null,
               autoSelectedTitle: null,
+              comicVineQuery: scanResult?.debug?.comicVineQuery || null,
+              scoreBreakdowns: null,
             });
             
             sonnerToast("No matches found", {
@@ -849,6 +863,12 @@ export default function Scanner() {
                                 </span>
                               </div>
                               <div>
+                                <span className="text-muted-foreground">seriesCandidateFromPattern = </span>
+                                <span className="text-foreground font-medium">
+                                  {debugData.extracted.seriesCandidateFromPattern || <span className="text-muted-foreground">none</span>}
+                                </span>
+                              </div>
+                              <div>
                                 <span className="text-muted-foreground">tokens.issueNumber = </span>
                                 <span className="text-foreground font-medium">
                                   {debugData.extracted.issueNumber || <span className="text-red-500">null</span>}
@@ -873,6 +893,14 @@ export default function Scanner() {
                                 </span>
                               </div>
                               
+                              {/* ComicVine Query */}
+                              <div className="mt-2 pt-2 border-t border-border/50">
+                                <div className="font-semibold text-foreground mb-1">ComicVine Query:</div>
+                                <div className="bg-background/50 p-2 rounded text-[10px] border border-border">
+                                  {debugData.comicVineQuery || <span className="text-muted-foreground">none</span>}
+                                </div>
+                              </div>
+                              
                               {/* Auto-select debug info */}
                               <div className="mt-2 pt-2 border-t border-border/50">
                                 <div className="font-semibold text-foreground mb-1">Auto-Selection:</div>
@@ -892,6 +920,32 @@ export default function Scanner() {
                                   </div>
                                 )}
                               </div>
+                              
+                              {/* Score Breakdowns */}
+                              {debugData.scoreBreakdowns && debugData.scoreBreakdowns.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-border/50">
+                                  <div className="font-semibold text-foreground mb-2">Match Scores (Top 10):</div>
+                                  <div className="space-y-2">
+                                    {debugData.scoreBreakdowns.map((item, idx) => (
+                                      <div key={idx} className="bg-background/50 p-2 rounded text-[10px] border border-border">
+                                        <div className="font-medium text-foreground">
+                                          {item.title} #{item.issue}
+                                        </div>
+                                        <div className="text-muted-foreground mt-1">
+                                          Total Score: {(item.score * 100).toFixed(0)}%
+                                        </div>
+                                        {item.breakdown && (
+                                          <div className="text-muted-foreground text-[9px] mt-1">
+                                            Title: {(item.breakdown.title * 100).toFixed(0)}% | 
+                                            Publisher: {(item.breakdown.publisher * 100).toFixed(0)}% | 
+                                            Issue: {(item.breakdown.issue * 100).toFixed(0)}%
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                               
                               {debugData.extracted.coverText && (
                                 <div className="mt-2 pt-2 border-t border-border/50">

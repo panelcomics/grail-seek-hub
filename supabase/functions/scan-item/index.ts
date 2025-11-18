@@ -74,7 +74,13 @@ const NOISE_PATTERNS = [
   /GUEST STARRING/gi,
   /FEATURING/gi,
   /SPECIAL/gi,
-  /ANNUAL/gi
+  /ANNUAL/gi,
+  /HE'S DIFFERENT/gi,
+  /HE'S DEADLY/gi,
+  /HE'S THE GREATEST/gi,
+  /SHE'S/gi,
+  /PAGE QUALITY/gi,
+  /\b[A-Z]{2,}\b(?:\s+[A-Z]{2,}){2,}/g, // All-caps marketing phrases
 ];
 
 function detectSlab(ocrText: string): boolean {
@@ -132,6 +138,68 @@ function cleanTitle(text: string): string {
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
   
   return cleaned;
+}
+
+// Extract series title from pattern like "Title #Number"
+function extractSeriesTitleFromPattern(text: string): { title: string; issue: string | null; confidence: number } | null {
+  // Look for patterns like "Amazing Spider-Man #129" or "Avengers #4"
+  const patterns = [
+    // Pattern: 2-5 words followed by #number
+    /\b([A-Z][A-Za-z\s&'-]{3,60}?)\s*#\s*(\d{1,4})\b/,
+    // Pattern: "The Title Name #Number"
+    /\b(The\s+[A-Z][A-Za-z\s&'-]{3,60}?)\s*#\s*(\d{1,4})\b/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      let seriesTitle = match[1].trim();
+      const issueNum = match[2];
+      
+      // Clean the series title
+      seriesTitle = cleanTitle(seriesTitle);
+      
+      // Verify it looks like a real title (not just junk)
+      const words = seriesTitle.split(/\s+/);
+      if (words.length >= 2 && words.length <= 6) {
+        // Check that at least one word is longer than 3 characters
+        const hasRealWord = words.some(w => w.length > 3);
+        if (hasRealWord) {
+          console.log('[SCAN-ITEM] Pattern match found:', seriesTitle, '#' + issueNum);
+          return { title: seriesTitle, issue: issueNum, confidence: 0.95 };
+        }
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Check if a title looks like junk
+function isTitleJunk(title: string): boolean {
+  if (!title || title.length < 3) return true;
+  
+  const words = title.split(/\s+/);
+  
+  // Too few words or just the publisher name
+  if (words.length <= 2) {
+    const publishers = ['DC', 'Marvel', 'Image', 'Dark Horse', 'IDW', 'Boom', 'Vertigo'];
+    if (publishers.some(pub => title.toUpperCase().includes(pub.toUpperCase()))) {
+      return true;
+    }
+  }
+  
+  // All words are very short
+  const allShort = words.every(w => w.length <= 3);
+  if (allShort) return true;
+  
+  // Check for obvious marketing blurbs
+  const junkPhrases = ['HE\'S', 'SHE\'S', 'IT\'S', 'THEY\'RE', 'CAD', 'OS MARVEL'];
+  if (junkPhrases.some(phrase => title.toUpperCase().includes(phrase))) {
+    return true;
+  }
+  
+  return false;
 }
 
 function fuzzyExtractTitle(ocrText: string): string | null {
@@ -195,37 +263,71 @@ function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
   });
   const cleanText = lines.join(' ');
   
-  // Primary title extraction - prioritize known comic titles
+  // STEP 1: Try pattern-based extraction first (highest priority)
+  const patternResult = extractSeriesTitleFromPattern(ocrText);
   let title = "";
-  const fuzzyTitle = fuzzyExtractTitle(coverText);
-  if (fuzzyTitle) {
-    title = fuzzyTitle;
-    console.log('[SCAN-ITEM] Used fuzzy title extraction:', title);
+  let issueNumber: string | null = null;
+  let seriesCandidateFromPattern = "";
+  
+  if (patternResult) {
+    title = patternResult.title;
+    issueNumber = patternResult.issue;
+    seriesCandidateFromPattern = `${title} #${issueNumber}`;
+    console.log('[SCAN-ITEM] ✅ Used pattern extraction:', seriesCandidateFromPattern);
   } else {
-    // Fallback to first capitalized line
-    const titleMatch = cleanText.match(/^[A-Z][A-Za-z\s&'-]+/m);
-    if (titleMatch) {
-      title = titleMatch[0].trim();
+    // STEP 2: Try fuzzy title extraction
+    const fuzzyTitle = fuzzyExtractTitle(coverText);
+    if (fuzzyTitle) {
+      title = fuzzyTitle;
+      console.log('[SCAN-ITEM] Used fuzzy title extraction:', title);
+    } else {
+      // STEP 3: Fallback to first capitalized line
+      const titleMatch = cleanText.match(/^[A-Z][A-Za-z\s&'-]+/m);
+      if (titleMatch) {
+        title = titleMatch[0].trim();
+      }
+    }
+    
+    // Extract issue number separately if not from pattern
+    const issuePatterns = [
+      /#\s*(\d{1,4})\b/,
+      /\bNo\.?\s*(\d{1,4})\b/i,
+      /\bIssue\s*(\d{1,4})\b/i
+    ];
+    
+    for (const pattern of issuePatterns) {
+      const match = cleanText.match(pattern);
+      if (match) {
+        issueNumber = match[1];
+        break;
+      }
     }
   }
   
   // Clean the extracted title
-  const finalCleanTitle = cleanTitle(title);
-  console.log('[SCAN-ITEM] Final clean title:', finalCleanTitle);
+  let finalCleanTitle = cleanTitle(title);
+  console.log('[SCAN-ITEM] Final clean title (before junk check):', finalCleanTitle);
   
-  // Extract issue number from cover text
-  let issueNumber = null;
-  const issuePatterns = [
-    /#\s*(\d{1,4})\b/,
-    /\bNo\.?\s*(\d{1,4})\b/i,
-    /\bIssue\s*(\d{1,4})\b/i
-  ];
-  
-  for (const pattern of issuePatterns) {
-    const match = cleanText.match(pattern);
-    if (match) {
-      issueNumber = match[1];
-      break;
+  // STEP 4: Check if finalCleanTitle looks like junk
+  if (isTitleJunk(finalCleanTitle)) {
+    console.log('[SCAN-ITEM] ⚠️ Title looks like junk, re-scanning with pattern...');
+    
+    // Try to find a better title in the full OCR text
+    const betterPattern = extractSeriesTitleFromPattern(ocrText);
+    if (betterPattern) {
+      finalCleanTitle = betterPattern.title;
+      if (!issueNumber) {
+        issueNumber = betterPattern.issue;
+      }
+      seriesCandidateFromPattern = `${finalCleanTitle} #${issueNumber}`;
+      console.log('[SCAN-ITEM] ✅ Found better title via re-scan:', seriesCandidateFromPattern);
+    } else {
+      // Last resort: try to find any known comic title in the text
+      const lastResort = fuzzyExtractTitle(ocrText);
+      if (lastResort && !isTitleJunk(lastResort)) {
+        finalCleanTitle = lastResort;
+        console.log('[SCAN-ITEM] Used last-resort fuzzy extraction:', finalCleanTitle);
+      }
     }
   }
   
@@ -252,7 +354,8 @@ function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
     isSlab,
     coverText: coverText.substring(0, 200),
     slabText: slabText.substring(0, 200),
-    finalCleanTitle
+    finalCleanTitle,
+    seriesCandidateFromPattern
   };
 }
 
@@ -406,28 +509,69 @@ serve(async (req) => {
       exactMatchMode = true;
       console.log('[SCAN-ITEM] 🎯 PRIMARY MODE: Exact title + issue matching');
       console.log('[SCAN-ITEM] Searching for:', `${tokens.title} #${tokens.issueNumber}`);
+      console.log('[SCAN-ITEM] Publisher filter:', tokens.publisher || 'none');
       
       try {
-        const volumes = await queryComicVineVolumes(COMICVINE_API_KEY, tokens.title);
-        console.log('[SCAN-ITEM] Found', volumes.length, 'volumes for title:', tokens.title);
+        // Build focused query: title + publisher if available
+        let queryString = tokens.title;
+        if (tokens.publisher) {
+          queryString = `${tokens.title} ${tokens.publisher}`;
+        }
         
-        for (const volume of volumes.slice(0, 5)) {
+        const volumes = await queryComicVineVolumes(COMICVINE_API_KEY, queryString);
+        console.log('[SCAN-ITEM] Found', volumes.length, 'volumes for query:', queryString);
+        
+        // Filter volumes by publisher if we have one
+        const filteredVolumes = tokens.publisher 
+          ? volumes.filter(vol => {
+              const volPub = vol.publisher?.name || '';
+              return volPub.toLowerCase().includes(tokens.publisher.toLowerCase());
+            })
+          : volumes;
+        
+        console.log('[SCAN-ITEM] After publisher filter:', filteredVolumes.length, 'volumes');
+        
+        for (const volume of filteredVolumes.slice(0, 5)) {
           const issues = await queryComicVineIssue(COMICVINE_API_KEY, volume.id, tokens.issueNumber);
           
           for (const issue of issues) {
-            // Calculate score based on match quality
-            let score = 0.95;
             const volumePub = volume.publisher?.name || '';
+            const volumeName = issue.volume?.name || volume.name;
             
-            // Exact match: title + issue + publisher
+            // Calculate score based on match quality
+            let score = 0.70; // Base score
+            let scoreBreakdown = { title: 0, publisher: 0, issue: 0 };
+            
+            // Title match (check if volume name contains keywords from finalCleanTitle)
+            const titleWords = tokens.finalCleanTitle.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
+            const volumeNameLower = volumeName.toLowerCase();
+            const titleMatchCount = titleWords.filter((w: string) => volumeNameLower.includes(w)).length;
+            const titleMatchRatio = titleWords.length > 0 ? titleMatchCount / titleWords.length : 0;
+            scoreBreakdown.title = titleMatchRatio * 0.40; // 40% weight for title
+            
+            // Publisher match
             if (tokens.publisher && volumePub.toLowerCase().includes(tokens.publisher.toLowerCase())) {
-              score = 0.98;
+              scoreBreakdown.publisher = 0.30; // 30% weight for publisher
             }
+            
+            // Issue number match (exact)
+            if (issue.issue_number === tokens.issueNumber) {
+              scoreBreakdown.issue = 0.30; // 30% weight for issue
+            }
+            
+            score = scoreBreakdown.title + scoreBreakdown.publisher + scoreBreakdown.issue;
+            
+            // Bonus: if all three match well
+            if (scoreBreakdown.title >= 0.30 && scoreBreakdown.publisher > 0 && scoreBreakdown.issue > 0) {
+              score = Math.min(0.98, score + 0.10); // Boost to near-perfect
+            }
+            
+            console.log(`[SCAN-ITEM] Result: ${volumeName} #${issue.issue_number} - Score: ${score.toFixed(2)} (T:${scoreBreakdown.title.toFixed(2)} P:${scoreBreakdown.publisher.toFixed(2)} I:${scoreBreakdown.issue.toFixed(2)})`);
             
             results.push({
               id: issue.id,
               resource: 'issue',
-              title: issue.volume?.name || issue.name || volume.name,
+              title: volumeName,
               issue: issue.issue_number,
               year: issue.cover_date ? parseInt(issue.cover_date.slice(0, 4)) : null,
               publisher: volumePub || tokens.publisher || "",
@@ -437,12 +581,17 @@ serve(async (req) => {
               thumbUrl: issue.image?.small_url || "",
               coverUrl: issue.image?.original_url || "",
               score: score,
-              matchMode: 'exact'
+              matchMode: 'exact',
+              scoreBreakdown
             });
           }
         }
         
+        // Sort by score descending
+        results.sort((a, b) => b.score - a.score);
+        
         console.log('[SCAN-ITEM] Found', results.length, 'exact issue matches');
+        console.log('[SCAN-ITEM] Top result:', results[0] ? `${results[0].title} #${results[0].issue} (${results[0].score.toFixed(2)})` : 'none');
         
         if (results.length === 0) {
           console.log('[SCAN-ITEM] ⚠️ No exact matches found, will try fallback search');
@@ -569,7 +718,8 @@ serve(async (req) => {
           isSlab: tokens.isSlab,
           coverText: tokens.coverText,
           slabText: tokens.slabText,
-          finalCleanTitle: tokens.finalCleanTitle
+          finalCleanTitle: tokens.finalCleanTitle,
+          seriesCandidateFromPattern: tokens.seriesCandidateFromPattern || null
         },
         picks: results,
         ocrText,
@@ -582,7 +732,11 @@ serve(async (req) => {
         debug: {
           queryMode: exactMatchMode ? 'exact' : 'fallback',
           resultCount: results.length,
-          annotationsCount: ocrAnnotations.length
+          annotationsCount: ocrAnnotations.length,
+          comicVineQuery: tokens.title && tokens.publisher 
+            ? `${tokens.title} ${tokens.publisher}` 
+            : tokens.title || 'fallback',
+          seriesCandidateFromPattern: tokens.seriesCandidateFromPattern || 'none'
         }
       }),
       {
