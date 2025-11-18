@@ -49,18 +49,115 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   ]);
 }
 
-function extractTokensFromOCR(ocrText: string): any {
-  const slabTerms = ['cgc', 'cbcs', 'universal', 'grade', 'certification', 'white pages', 'off-white'];
+// Comic title keywords for fuzzy matching
+const COMIC_TITLE_KEYWORDS = [
+  'Spider-Man', 'X-Men', 'Batman', 'Superman', 'Avengers', 'Justice League',
+  'Fantastic Four', 'Iron Man', 'Captain America', 'Thor', 'Hulk', 'Wolverine',
+  'Daredevil', 'Flash', 'Green Lantern', 'Wonder Woman', 'Spawn', 'Walking Dead',
+  'Invincible', 'Saga', 'Sandman', 'Watchmen', 'V for Vendetta', 'Hellboy',
+  'Detective Comics', 'Action Comics', 'Amazing Fantasy', 'Tales', 'Adventures'
+];
+
+function detectSlab(ocrText: string): boolean {
+  const slabIndicators = ['cgc', 'cbcs', 'universal grade', 'signature series', 'white pages', 'off-white', 'certification'];
+  const lower = ocrText.toLowerCase();
+  return slabIndicators.some(term => lower.includes(term));
+}
+
+function separateSlabFromCover(annotations: any[]): { coverText: string; slabText: string } {
+  if (!annotations || annotations.length < 2) {
+    return { coverText: annotations?.[0]?.description || '', slabText: '' };
+  }
+
+  // First annotation is full text, subsequent ones are individual words/blocks
+  const blocks = annotations.slice(1);
   
-  const lines = ocrText.split('\n').filter(line => {
+  // Slab labels are typically in top portion (y < 0.3 of image height)
+  // and contain grading terms
+  const slabTerms = ['cgc', 'cbcs', 'universal', 'grade', 'white', 'pages', 'certification'];
+  
+  const coverBlocks: string[] = [];
+  const slabBlocks: string[] = [];
+  
+  blocks.forEach(block => {
+    const text = block.description;
+    const lower = text.toLowerCase();
+    
+    // Check if this block is likely slab label text
+    const isSlabText = slabTerms.some(term => lower.includes(term)) || 
+                       /^\d\.?\d?$/.test(text) || // Grade numbers like 9.8
+                       /\b\d{8,}\b/.test(text);   // Cert numbers
+    
+    if (isSlabText) {
+      slabBlocks.push(text);
+    } else {
+      coverBlocks.push(text);
+    }
+  });
+  
+  return {
+    coverText: coverBlocks.join(' '),
+    slabText: slabBlocks.join(' ')
+  };
+}
+
+function fuzzyExtractTitle(ocrText: string): string | null {
+  const upper = ocrText.toUpperCase();
+  
+  for (const keyword of COMIC_TITLE_KEYWORDS) {
+    const keywordUpper = keyword.toUpperCase();
+    if (upper.includes(keywordUpper)) {
+      // Try to extract surrounding context
+      const regex = new RegExp(`([A-Z][A-Za-z\\s&'-]*${keyword}[A-Za-z\\s&'-]*)`, 'i');
+      const match = ocrText.match(regex);
+      if (match) {
+        return match[1].trim();
+      }
+      return keyword;
+    }
+  }
+  
+  return null;
+}
+
+function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
+  const isSlab = detectSlab(ocrText);
+  console.log('[SCAN-ITEM] Detected slab:', isSlab);
+  
+  let coverText = ocrText;
+  let slabText = '';
+  
+  // If slab detected and we have detailed annotations, separate regions
+  if (isSlab && annotations && annotations.length > 1) {
+    const separated = separateSlabFromCover(annotations);
+    coverText = separated.coverText;
+    slabText = separated.slabText;
+    console.log('[SCAN-ITEM] Separated cover text:', coverText.substring(0, 100));
+    console.log('[SCAN-ITEM] Separated slab text:', slabText.substring(0, 100));
+  }
+  
+  // Extract from cover text primarily
+  const slabTerms = ['cgc', 'cbcs', 'universal', 'grade', 'certification', 'white pages', 'off-white'];
+  const lines = coverText.split('\n').filter(line => {
     const lower = line.toLowerCase();
     return !slabTerms.some(term => lower.includes(term)) && !/\b\d{6,}\b/.test(line);
   });
   const cleanText = lines.join(' ');
   
+  // Primary title extraction
   const titleMatch = cleanText.match(/^[A-Z][A-Za-z\s&'-]+/m);
-  const title = titleMatch ? titleMatch[0].trim() : "";
+  let title = titleMatch ? titleMatch[0].trim() : "";
   
+  // Fallback: fuzzy keyword matching if title is empty
+  if (!title || title.length < 3) {
+    const fuzzyTitle = fuzzyExtractTitle(coverText);
+    if (fuzzyTitle) {
+      title = fuzzyTitle;
+      console.log('[SCAN-ITEM] Used fuzzy title extraction:', title);
+    }
+  }
+  
+  // Extract issue number from cover text
   let issueNumber = null;
   const issuePatterns = [
     /#\s*(\d{1,4})\b/,
@@ -76,19 +173,30 @@ function extractTokensFromOCR(ocrText: string): any {
     }
   }
   
+  // Extract publisher from both cover and slab text
   const publishers = ['DC', 'Marvel', 'Image', 'Dark Horse', 'IDW', 'Boom', 'Vertigo', 'Wildstorm'];
   let publisher = null;
+  const combinedText = coverText + ' ' + slabText;
   for (const pub of publishers) {
-    if (new RegExp(`\\b${pub}(?:\\s+COMICS?)?\\b`, 'i').test(cleanText)) {
+    if (new RegExp(`\\b${pub}(?:\\s+COMICS?)?\\b`, 'i').test(combinedText)) {
       publisher = pub;
       break;
     }
   }
   
-  const yearMatch = cleanText.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
+  // Extract year
+  const yearMatch = combinedText.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
   const year = yearMatch ? parseInt(yearMatch[1]) : null;
   
-  return { title, issueNumber, publisher, year };
+  return { 
+    title, 
+    issueNumber, 
+    publisher, 
+    year,
+    isSlab,
+    coverText: coverText.substring(0, 200),
+    slabText: slabText.substring(0, 200)
+  };
 }
 
 async function queryComicVineVolumes(apiKey: string, title: string): Promise<any[]> {
@@ -177,6 +285,7 @@ serve(async (req) => {
     }
 
     let ocrText = "";
+    let ocrAnnotations: any[] = [];
     let visionTime = 0;
     
     if (textQuery) {
@@ -208,22 +317,26 @@ serve(async (req) => {
         
         if (visionRes.ok) {
           const visionData = await visionRes.json();
-          const annotations = visionData.responses?.[0]?.textAnnotations;
-          ocrText = annotations?.[0]?.description || "";
+          ocrAnnotations = visionData.responses?.[0]?.textAnnotations || [];
+          ocrText = ocrAnnotations?.[0]?.description || "";
           console.log('[SCAN-ITEM] OCR extracted:', ocrText.substring(0, 200));
+          console.log('[SCAN-ITEM] OCR annotations count:', ocrAnnotations.length);
         }
       } catch (err: any) {
         console.warn('[SCAN-ITEM] Vision error:', err.message);
       }
     }
 
-    const tokens = extractTokensFromOCR(ocrText);
+    const tokens = extractTokensFromOCR(ocrText, ocrAnnotations);
     
     console.log('[SCAN-ITEM] 🔍 DEBUG: Extracted OCR Tokens:', {
       title: tokens.title,
       issueNumber: tokens.issueNumber,
       publisher: tokens.publisher,
-      year: tokens.year
+      year: tokens.year,
+      isSlab: tokens.isSlab,
+      coverTextPreview: tokens.coverText,
+      slabTextPreview: tokens.slabText
     });
 
     let results: any[] = [];
@@ -335,7 +448,10 @@ serve(async (req) => {
           title: tokens.title,
           issueNumber: tokens.issueNumber,
           publisher: tokens.publisher,
-          year: tokens.year
+          year: tokens.year,
+          isSlab: tokens.isSlab,
+          coverText: tokens.coverText,
+          slabText: tokens.slabText
         },
         picks: results,
         ocrText,
@@ -347,7 +463,8 @@ serve(async (req) => {
         },
         debug: {
           queryMode: exactMatchMode ? 'exact' : 'fallback',
-          resultCount: results.length
+          resultCount: results.length,
+          annotationsCount: ocrAnnotations.length
         }
       }),
       {
