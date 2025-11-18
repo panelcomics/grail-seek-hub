@@ -3,10 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Database, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Database, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function ComicVineSync() {
+  const { isAdmin, loading: adminLoading } = useAdminCheck();
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
   const [stats, setStats] = useState<{ volumes: number; issues: number } | null>(null);
@@ -118,6 +121,32 @@ export default function ComicVineSync() {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  if (adminLoading) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto px-4 py-8 max-w-4xl flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <AppLayout>
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+              You must be an administrator to access this page.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
