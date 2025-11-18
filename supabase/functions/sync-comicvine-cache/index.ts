@@ -92,6 +92,7 @@ serve(async (req) => {
 
     // If specific volumeIds provided, sync those volumes + their issues
     if (volumeIds && volumeIds.length > 0) {
+      console.log('[SYNC] Syncing specific volume IDs:', volumeIds);
       for (const volumeId of volumeIds) {
         const volResult = await syncVolume(volumeId, comicvineKey, supabase);
         if (volResult.success) volumesSynced++;
@@ -101,26 +102,42 @@ serve(async (req) => {
       }
     } else {
       // Sync top volumes (by popularity/usage)
-      // For now, sync a limited set - you can expand this
+      console.log('[SYNC] Fetching top volumes from ComicVine API...');
       const response = await fetch(
         `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${limit}&sort=count_of_issues:desc`,
         { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
       );
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SYNC] ComicVine API error:', response.status, errorText);
+        throw new Error(`ComicVine API error: ${response.status} - ${errorText}`);
+      }
+      
       const data = await response.json();
+      console.log('[SYNC] Received', data.results?.length || 0, 'volumes from ComicVine');
       
       if (data.results) {
+        let processedCount = 0;
         for (const vol of data.results) {
+          processedCount++;
+          console.log(`[SYNC] Processing volume ${processedCount}/${data.results.length}: ${vol.name} (${vol.id})`);
+          
           const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
           if (volResult.success) {
             volumesSynced++;
-            // Optionally sync issues for each volume
+            // Sync issues for each volume (with rate limiting)
             const issuesResult = await syncVolumeIssues(vol.id, comicvineKey, supabase);
             issuesSynced += issuesResult.count;
+            console.log(`[SYNC] Synced ${issuesResult.count} issues for volume ${vol.id}`);
+          } else {
+            console.error(`[SYNC] Failed to sync volume ${vol.id}`);
           }
         }
       }
     }
+
+    console.log('[SYNC] Sync complete:', { volumesSynced, issuesSynced });
 
     return new Response(
       JSON.stringify({

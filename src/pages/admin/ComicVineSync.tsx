@@ -56,9 +56,12 @@ export default function ComicVineSync() {
     setSyncResult(null);
 
     try {
+      console.log('[UI] Invoking sync-comicvine-cache function...');
       const { data, error } = await supabase.functions.invoke('sync-comicvine-cache', {
-        body: { limit: 100 },
+        body: { limit: 10 }, // Start with just 10 volumes to test
       });
+
+      console.log('[UI] Function response:', { data, error });
 
       // Capture full response for debugging
       const fullResponse = {
@@ -68,22 +71,25 @@ export default function ComicVineSync() {
       };
 
       if (error) {
+        console.error('[UI] Function error:', error);
         // Display full error in UI
         setSyncResult({ 
           success: false, 
           errorMessage: error.message || "Unknown error occurred",
+          errorName: error.name || "UnknownError",
           errorObject: JSON.stringify(error, null, 2),
           fullResponse: JSON.stringify(fullResponse, null, 2)
         });
         toast({
           variant: "destructive",
           title: "Sync Failed",
-          description: "Check error details below",
+          description: error.message || "Check error details below",
         });
         return;
       }
 
       if (!data || !data.success) {
+        console.error('[UI] Sync unsuccessful:', data);
         setSyncResult({ 
           success: false, 
           errorMessage: data?.error || "Sync returned unsuccessful status",
@@ -93,11 +99,12 @@ export default function ComicVineSync() {
         toast({
           variant: "destructive",
           title: "Sync Failed",
-          description: "Check error details below",
+          description: data?.error || "Check error details below",
         });
         return;
       }
 
+      console.log('[UI] Sync successful:', data);
       setSyncResult(data);
       toast({
         title: "Sync Complete",
@@ -107,10 +114,12 @@ export default function ComicVineSync() {
       // Refresh stats
       await fetchStats();
     } catch (error: any) {
+      console.error('[UI] Unexpected error:', error);
       // Catch any unexpected errors and display full details
       setSyncResult({ 
         success: false, 
         errorMessage: error.message || "Unexpected error occurred",
+        errorName: error.name || "UnknownError",
         errorObject: JSON.stringify(error, null, 2),
         errorStack: error.stack,
         fullError: JSON.stringify({
@@ -123,7 +132,7 @@ export default function ComicVineSync() {
       toast({
         variant: "destructive",
         title: "Sync Failed",
-        description: "Check error details below",
+        description: error.message || "Check error details below",
       });
     } finally {
       setSyncing(false);
@@ -251,6 +260,14 @@ export default function ComicVineSync() {
                       
                       {!syncResult.success && (
                         <div className="space-y-3">
+                          {syncResult.errorName && (
+                            <div className="space-y-1">
+                              <div className="text-sm font-semibold text-destructive">Error Type:</div>
+                              <div className="text-sm p-3 bg-background rounded border border-destructive/20">
+                                {syncResult.errorName}
+                              </div>
+                            </div>
+                          )}
                           {syncResult.errorMessage && (
                             <div className="space-y-1">
                               <div className="text-sm font-semibold text-destructive">Error Message:</div>

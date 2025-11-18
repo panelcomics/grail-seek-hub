@@ -112,6 +112,8 @@ verify_jwt = false
 
 [functions.sync-comicvine-cache]
 verify_jwt = true
+cpu_ms = 60000
+memory_mb = 512
 
 [functions.volumes-suggest]
 verify_jwt = false
