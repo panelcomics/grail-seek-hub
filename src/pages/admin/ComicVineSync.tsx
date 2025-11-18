@@ -36,11 +36,17 @@ export default function ComicVineSync() {
     setSyncResult(null);
 
     try {
+      console.log('Invoking sync-comicvine-cache...');
       const { data, error } = await supabase.functions.invoke('sync-comicvine-cache', {
         body: { limit: 100 },
       });
 
-      if (error) throw error;
+      console.log('Sync response:', { data, error });
+
+      if (error) {
+        console.error('Sync error details:', error);
+        throw error;
+      }
 
       setSyncResult(data);
       toast({
@@ -52,6 +58,11 @@ export default function ComicVineSync() {
       await fetchStats();
     } catch (error: any) {
       console.error('Sync error:', error);
+      setSyncResult({ 
+        success: false, 
+        error: error.message || "Failed to sync ComicVine cache",
+        details: error.context || error.details || JSON.stringify(error, null, 2)
+      });
       toast({
         variant: "destructive",
         title: "Sync Failed",
@@ -149,8 +160,15 @@ export default function ComicVineSync() {
                         </div>
                       )}
                       {syncResult.error && (
-                        <div className="text-sm text-destructive">
-                          {syncResult.error}
+                        <div className="text-sm space-y-2">
+                          <div className="text-destructive font-medium">
+                            {syncResult.error}
+                          </div>
+                          {syncResult.details && (
+                            <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-40">
+                              {syncResult.details}
+                            </pre>
+                          )}
                         </div>
                       )}
                     </div>

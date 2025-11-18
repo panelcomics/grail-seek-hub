@@ -20,9 +20,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[SYNC] Starting ComicVine cache sync...');
+    
     // Check admin access
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('[SYNC] Missing authorization header');
       return new Response(JSON.stringify({ error: 'Missing authorization' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -35,33 +38,50 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    console.log('[SYNC] Verifying user authentication...');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('[SYNC] Authentication failed:', userError?.message);
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: userError?.message }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log('[SYNC] Checking admin role for user:', user.id);
     // Check if user has admin role
-    const { data: hasRole } = await supabaseClient.rpc('has_role', {
+    const { data: hasRole, error: roleError } = await supabaseClient.rpc('has_role', {
       _user_id: user.id,
       _role: 'admin'
     });
 
+    if (roleError) {
+      console.error('[SYNC] Role check failed:', roleError.message);
+      return new Response(JSON.stringify({ error: 'Role check failed', details: roleError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!hasRole) {
+      console.error('[SYNC] User does not have admin role');
       return new Response(JSON.stringify({ error: 'Admin access required' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log('[SYNC] Admin access verified');
+
     const { volumeIds, limit = 100 } = await req.json().catch(() => ({ limit: 100 }));
 
     const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
     if (!comicvineKey) {
+      console.error('[SYNC] COMICVINE_API_KEY not found in environment');
       throw new Error('COMICVINE_API_KEY not configured');
     }
+    
+    console.log('[SYNC] ComicVine API key found, starting sync with limit:', limit);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -111,9 +131,12 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Sync error:', error);
+    console.error('[SYNC] Fatal error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : String(error)
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
