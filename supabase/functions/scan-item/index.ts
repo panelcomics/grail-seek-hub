@@ -51,11 +51,30 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
 
 // Comic title keywords for fuzzy matching
 const COMIC_TITLE_KEYWORDS = [
-  'Spider-Man', 'X-Men', 'Batman', 'Superman', 'Avengers', 'Justice League',
-  'Fantastic Four', 'Iron Man', 'Captain America', 'Thor', 'Hulk', 'Wolverine',
-  'Daredevil', 'Flash', 'Green Lantern', 'Wonder Woman', 'Spawn', 'Walking Dead',
+  'Amazing Spider-Man', 'Spider-Man', 'Spider Man', 'X-Men', 'Batman', 'Superman', 
+  'Avengers', 'Justice League', 'Fantastic Four', 'Iron Man', 'Captain America', 
+  'Thor', 'Hulk', 'Incredible Hulk', 'Wolverine', 'Daredevil', 'Punisher', 
+  'Flash', 'Green Lantern', 'Wonder Woman', 'Spawn', 'Walking Dead',
   'Invincible', 'Saga', 'Sandman', 'Watchmen', 'V for Vendetta', 'Hellboy',
-  'Detective Comics', 'Action Comics', 'Amazing Fantasy', 'Tales', 'Adventures'
+  'Detective Comics', 'Action Comics', 'Amazing Fantasy', 'Tales of Suspense',
+  'Journey into Mystery', 'Strange Tales', 'Uncanny X-Men', 'New Mutants'
+];
+
+// Noise patterns to remove from title extraction
+const NOISE_PATTERNS = [
+  /APPROVED BY THE COMICS CODE/gi,
+  /COMICS CODE AUTHORITY/gi,
+  /\bTM\b/g,
+  /\b©\b/g,
+  /ALL NEW/gi,
+  /BRAND NEW/gi,
+  /FIRST APPEARANCE/gi,
+  /ORIGIN OF/gi,
+  /INTRODUCING/gi,
+  /GUEST STARRING/gi,
+  /FEATURING/gi,
+  /SPECIAL/gi,
+  /ANNUAL/gi
 ];
 
 function detectSlab(ocrText: string): boolean {
@@ -101,17 +120,49 @@ function separateSlabFromCover(annotations: any[]): { coverText: string; slabTex
   };
 }
 
+function cleanTitle(text: string): string {
+  let cleaned = text;
+  
+  // Remove noise patterns
+  for (const pattern of NOISE_PATTERNS) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+  
+  // Remove extra whitespace
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  
+  return cleaned;
+}
+
 function fuzzyExtractTitle(ocrText: string): string | null {
   const upper = ocrText.toUpperCase();
+  const lines = ocrText.split('\n');
   
+  // First pass: look for exact keyword matches in individual lines
+  for (const line of lines) {
+    const cleanedLine = cleanTitle(line);
+    for (const keyword of COMIC_TITLE_KEYWORDS) {
+      const keywordUpper = keyword.toUpperCase();
+      if (cleanedLine.toUpperCase().includes(keywordUpper)) {
+        // Found a line with a known title - extract just that part
+        const regex = new RegExp(`([A-Za-z\\s&'-]*${keyword}[A-Za-z\\s&'-]*)`, 'i');
+        const match = cleanedLine.match(regex);
+        if (match) {
+          return match[1].trim();
+        }
+        return keyword;
+      }
+    }
+  }
+  
+  // Second pass: look in full text
   for (const keyword of COMIC_TITLE_KEYWORDS) {
     const keywordUpper = keyword.toUpperCase();
     if (upper.includes(keywordUpper)) {
-      // Try to extract surrounding context
-      const regex = new RegExp(`([A-Z][A-Za-z\\s&'-]*${keyword}[A-Za-z\\s&'-]*)`, 'i');
+      const regex = new RegExp(`([A-Za-z\\s&'-]*${keyword}[A-Za-z\\s&'-]*)`, 'i');
       const match = ocrText.match(regex);
       if (match) {
-        return match[1].trim();
+        return cleanTitle(match[1].trim());
       }
       return keyword;
     }
@@ -144,18 +195,23 @@ function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
   });
   const cleanText = lines.join(' ');
   
-  // Primary title extraction
-  const titleMatch = cleanText.match(/^[A-Z][A-Za-z\s&'-]+/m);
-  let title = titleMatch ? titleMatch[0].trim() : "";
-  
-  // Fallback: fuzzy keyword matching if title is empty
-  if (!title || title.length < 3) {
-    const fuzzyTitle = fuzzyExtractTitle(coverText);
-    if (fuzzyTitle) {
-      title = fuzzyTitle;
-      console.log('[SCAN-ITEM] Used fuzzy title extraction:', title);
+  // Primary title extraction - prioritize known comic titles
+  let title = "";
+  const fuzzyTitle = fuzzyExtractTitle(coverText);
+  if (fuzzyTitle) {
+    title = fuzzyTitle;
+    console.log('[SCAN-ITEM] Used fuzzy title extraction:', title);
+  } else {
+    // Fallback to first capitalized line
+    const titleMatch = cleanText.match(/^[A-Z][A-Za-z\s&'-]+/m);
+    if (titleMatch) {
+      title = titleMatch[0].trim();
     }
   }
+  
+  // Clean the extracted title
+  const finalCleanTitle = cleanTitle(title);
+  console.log('[SCAN-ITEM] Final clean title:', finalCleanTitle);
   
   // Extract issue number from cover text
   let issueNumber = null;
@@ -189,13 +245,14 @@ function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
   const year = yearMatch ? parseInt(yearMatch[1]) : null;
   
   return { 
-    title, 
+    title: finalCleanTitle || null, 
     issueNumber, 
     publisher, 
     year,
     isSlab,
     coverText: coverText.substring(0, 200),
-    slabText: slabText.substring(0, 200)
+    slabText: slabText.substring(0, 200),
+    finalCleanTitle
   };
 }
 
@@ -358,19 +415,28 @@ serve(async (req) => {
           const issues = await queryComicVineIssue(COMICVINE_API_KEY, volume.id, tokens.issueNumber);
           
           for (const issue of issues) {
+            // Calculate score based on match quality
+            let score = 0.95;
+            const volumePub = volume.publisher?.name || '';
+            
+            // Exact match: title + issue + publisher
+            if (tokens.publisher && volumePub.toLowerCase().includes(tokens.publisher.toLowerCase())) {
+              score = 0.98;
+            }
+            
             results.push({
               id: issue.id,
               resource: 'issue',
               title: issue.volume?.name || issue.name || volume.name,
               issue: issue.issue_number,
               year: issue.cover_date ? parseInt(issue.cover_date.slice(0, 4)) : null,
-              publisher: volume.publisher?.name || tokens.publisher || "",
+              publisher: volumePub || tokens.publisher || "",
               volumeName: volume.name,
               volumeId: volume.id,
               variantDescription: "",
               thumbUrl: issue.image?.small_url || "",
               coverUrl: issue.image?.original_url || "",
-              score: 0.95,
+              score: score,
               matchMode: 'exact'
             });
           }
@@ -383,6 +449,57 @@ serve(async (req) => {
         }
       } catch (err: any) {
         console.error('[SCAN-ITEM] Error in exact matching:', err.message);
+      }
+    } else if (tokens.issueNumber && tokens.publisher) {
+      // ISSUE + PUBLISHER MODE: Title unreliable but issue + publisher available
+      console.log('[SCAN-ITEM] 🔍 ISSUE + PUBLISHER MODE: Matching by issue and publisher');
+      exactMatchMode = true;
+      
+      try {
+        // Search using publisher + issue as query
+        const searchQuery = `${tokens.publisher} #${tokens.issueNumber}`;
+        const url = `https://comicvine.gamespot.com/api/search/?api_key=${COMICVINE_API_KEY}&format=json&resources=issue&query=${encodeURIComponent(searchQuery)}&field_list=id,name,issue_number,volume,cover_date,image&limit=20`;
+        
+        const response = await withTimeout(
+          fetch(url, {
+            headers: { "User-Agent": "GrailSeeker/1.0 (panelcomics.com)" }
+          }),
+          25000,
+          'ComicVine'
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          const searchResults = data.results || [];
+          
+          for (const item of searchResults) {
+            // Filter by exact issue number match
+            if (item.issue_number === tokens.issueNumber) {
+              const volumePub = item.volume?.publisher?.name || '';
+              const pubMatch = volumePub.toLowerCase().includes(tokens.publisher.toLowerCase());
+              
+              results.push({
+                id: item.id,
+                resource: 'issue',
+                title: item.volume?.name || item.name || "",
+                issue: item.issue_number,
+                year: item.cover_date ? parseInt(item.cover_date.slice(0, 4)) : null,
+                publisher: volumePub,
+                volumeName: item.volume?.name || "",
+                volumeId: item.volume?.id || null,
+                variantDescription: "",
+                thumbUrl: item.image?.small_url || "",
+                coverUrl: item.image?.original_url || "",
+                score: pubMatch ? 0.90 : 0.75,
+                matchMode: 'issue_publisher'
+              });
+            }
+          }
+          
+          console.log('[SCAN-ITEM] Found', results.length, 'issue+publisher matches');
+        }
+      } catch (err: any) {
+        console.error('[SCAN-ITEM] Error in issue+publisher matching:', err.message);
       }
     } else {
       console.log('[SCAN-ITEM] ℹ️ OCR incomplete - title or issueNumber missing, using fallback search');
@@ -451,7 +568,8 @@ serve(async (req) => {
           year: tokens.year,
           isSlab: tokens.isSlab,
           coverText: tokens.coverText,
-          slabText: tokens.slabText
+          slabText: tokens.slabText,
+          finalCleanTitle: tokens.finalCleanTitle
         },
         picks: results,
         ocrText,
