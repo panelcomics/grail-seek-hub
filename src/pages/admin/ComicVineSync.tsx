@@ -59,7 +59,7 @@ export default function ComicVineSync() {
     try {
       console.log(`[UI] Invoking sync-comicvine-cache function with offset ${currentOffset}...`);
       const { data, error } = await supabase.functions.invoke('sync-comicvine-cache', {
-        body: { limit: 10, offset: currentOffset },
+        body: { offset: currentOffset },
       });
 
       console.log('[UI] Function response:', { data, error });
@@ -109,13 +109,13 @@ export default function ComicVineSync() {
       setSyncResult(data);
       
       // Update offset for next sync
-      if (data.offset) {
-        setCurrentOffset(data.offset);
+      if (data.nextOffset) {
+        setCurrentOffset(data.nextOffset);
       }
       
       toast({
         title: "Sync Complete",
-        description: `Processed ${data.volumesProcessed} volumes (${data.volumesAdded} new), synced ${data.issuesSynced} issues`,
+        description: `Processed ${data.volumesSynced} volumes (${data.volumesAdded} new), synced ${data.issuesSynced} issues`,
       });
       
       // Refresh stats after successful sync
@@ -261,10 +261,10 @@ export default function ComicVineSync() {
                       
                       {syncResult.success && (
                         <div className="text-sm space-y-1">
-                          <div>Volumes processed: <span className="font-bold">{syncResult.volumesProcessed}</span></div>
+                          <div>Volumes processed: <span className="font-bold">{syncResult.volumesSynced}</span></div>
                           <div>New volumes added this run: <span className="font-bold text-green-600">{syncResult.volumesAdded}</span> (issues added: <span className="font-bold text-green-600">{syncResult.issuesSynced}</span>)</div>
                           <div className="text-xs text-muted-foreground mt-2">Volumes updated: {syncResult.volumesUpdated}</div>
-                          <div className="text-xs text-muted-foreground">Next offset: {syncResult.offset}</div>
+                          <div className="text-xs text-muted-foreground">Next offset: {syncResult.nextOffset}</div>
                         </div>
                       )}
                       

@@ -6,13 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const BATCH_SIZE = 50;
+const MAX_BATCHES = 10; // Prevent infinite loops
+
 /**
  * Sync ComicVine volumes and issues to local cache
- * 
- * Strategy: Sync all volumes, then sync issues for "hot" volumes on demand
- * This is idempotent - safe to re-run
- * 
- * Trigger: POST /sync-comicvine-cache with { secret: "...", volumeIds?: number[] }
+ * Implements batched syncing to handle large datasets
  */
 serve(async (req) => {
   console.log('[SYNC] Function invoked, method:', req.method);
@@ -30,7 +29,8 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false,
           error: 'Function timeout',
-          message: 'Sync took too long and was terminated to prevent hanging'
+          message: 'Sync took too long and was terminated to prevent hanging',
+          timestamp: new Date().toISOString()
         }),
         { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       ));
@@ -40,197 +40,258 @@ serve(async (req) => {
   try {
     const syncPromise = (async () => {
       console.log("ComicVine sync function started", { timestamp: new Date().toISOString() });
-      console.log('[SYNC] Starting ComicVine cache sync...');
       
-      // Check admin access
-      const authHeader = req.headers.get('Authorization');
-      console.log('[SYNC] Authorization header present:', !!authHeader);
-      
-      if (!authHeader) {
-        console.error('[SYNC] Missing authorization header');
-        return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    console.log('[SYNC] Verifying user authentication...');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      console.error('[SYNC] Authentication failed:', userError?.message);
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: userError?.message }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('[SYNC] Checking admin role for user:', user.id);
-    // Check if user has admin role
-    const { data: hasRole, error: roleError } = await supabaseClient.rpc('has_role', {
-      _user_id: user.id,
-      _role: 'admin'
-    });
-
-    if (roleError) {
-      console.error('[SYNC] Role check failed:', roleError.message);
-      return new Response(JSON.stringify({ error: 'Role check failed', details: roleError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (!hasRole) {
-      console.error('[SYNC] User does not have admin role');
-      return new Response(JSON.stringify({ error: 'Admin access required' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('[SYNC] Admin access verified');
-
-    // Parse request body with better error handling
-    let requestBody: { volumeIds?: number[], limit?: number, offset?: number } = {};
-    try {
-      const bodyText = await req.text();
-      console.log('[SYNC] Request body:', bodyText);
-      if (bodyText) {
-        requestBody = JSON.parse(bodyText);
-      }
-    } catch (error) {
-      console.error('[SYNC] Failed to parse request body:', error);
-      // Default to small sync if body parsing fails
-      requestBody = { limit: 50, offset: 0 };
-    }
-
-    // Reduce limit to prevent timeouts with high-issue-count volumes
-    const { volumeIds, limit = 10, offset = 0 } = requestBody;
-    console.log('[SYNC] Sync parameters:', { volumeIds, limit, offset });
-
-    const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
-    console.log('[SYNC] ComicVine API key present:', !!comicvineKey);
-    
-    if (!comicvineKey) {
-      console.error('[SYNC] COMICVINE_API_KEY not found in environment');
-      throw new Error('COMICVINE_API_KEY not configured');
-    }
-    
-    console.log('[SYNC] ComicVine API key found, starting sync with limit:', limit, 'offset:', offset);
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    let volumesProcessed = 0;
-    let volumesAdded = 0;
-    let volumesUpdated = 0;
-    let issuesSynced = 0;
-
-    // If specific volumeIds provided, sync those volumes + their issues
-    if (volumeIds && volumeIds.length > 0) {
-      console.log('[SYNC] Syncing specific volume IDs:', volumeIds);
-      for (const volumeId of volumeIds) {
-        const volResult = await syncVolume(volumeId, comicvineKey, supabase);
-        if (volResult.success) {
-          volumesProcessed++;
-          if (volResult.isNew) volumesAdded++;
-          else volumesUpdated++;
-        }
+      try {
+        // Check admin access
+        const authHeader = req.headers.get('Authorization');
+        console.log('[SYNC] Authorization header present:', !!authHeader);
         
-        const issuesResult = await syncVolumeIssues(volumeId, comicvineKey, supabase);
-        issuesSynced += issuesResult.count;
-      }
-    } else {
-      // Sync top volumes with pagination
-      console.log(`[SYNC] Fetching top volumes from ComicVine API (limit: ${limit}, offset: ${offset})...`);
-      console.log('[SYNC] About to call ComicVine API', { timestamp: new Date().toISOString() });
-      
-      const response = await fetch(
-        `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${limit}&offset=${offset}&sort=count_of_issues:desc`,
-        { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
-      );
-      
-      console.log('[SYNC] ComicVine API response received:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[SYNC] ComicVine API error:', response.status, errorText);
-        throw new Error(`ComicVine API error: ${response.status} - ${errorText}`);
-      }
-      
-      const data = await response.json();
-      console.log('[SYNC] Received', data.results?.length || 0, 'volumes from ComicVine');
-      
-      if (data.results) {
-        for (let i = 0; i < data.results.length; i++) {
-          const vol = data.results[i];
-          volumesProcessed++;
-          console.log(`Processed volume ${i + 1}/${data.results.length}: ${vol.name} (ID: ${vol.id})`);
-          console.log(`[SYNC] Processing volume ${volumesProcessed}/${data.results.length}: ${vol.name} (${vol.id})`);
+        if (!authHeader) {
+          console.error('[SYNC] Missing authorization header');
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: 'Missing authorization',
+            timestamp: new Date().toISOString()
+          }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_ANON_KEY')!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+
+        console.log('[SYNC] Verifying user authentication...');
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+        if (userError || !user) {
+          console.error('[SYNC] Authentication failed:', userError?.message);
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: 'Unauthorized', 
+            details: userError?.message,
+            timestamp: new Date().toISOString()
+          }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        console.log('[SYNC] Checking admin role for user:', user.id);
+        const { data: hasRole, error: roleError } = await supabaseClient.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
+
+        if (roleError) {
+          console.error('[SYNC] Role check failed:', roleError.message);
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: 'Role check failed', 
+            details: roleError.message,
+            timestamp: new Date().toISOString()
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (!hasRole) {
+          console.error('[SYNC] User does not have admin role');
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: 'Admin access required',
+            timestamp: new Date().toISOString()
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        console.log('[SYNC] Admin access verified');
+
+        // Get API key
+        const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
+        console.log('[SYNC] ComicVine API key present:', !!comicvineKey);
+        
+        if (!comicvineKey) {
+          console.error('[SYNC] COMICVINE_API_KEY not found in environment');
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: 'COMICVINE_API_KEY not configured',
+            timestamp: new Date().toISOString()
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Parse request body
+        let startOffset = 0;
+        try {
+          const bodyText = await req.text();
+          if (bodyText) {
+            const requestBody = JSON.parse(bodyText);
+            startOffset = requestBody.offset || 0;
+          }
+        } catch (error) {
+          console.error('[SYNC] Failed to parse request body:', error);
+        }
+
+        console.log('[SYNC] Starting batched sync with BATCH_SIZE:', BATCH_SIZE, 'starting offset:', startOffset);
+
+        let totalVolumesProcessed = 0;
+        let totalVolumesAdded = 0;
+        let totalVolumesUpdated = 0;
+        let totalIssuesSynced = 0;
+        let currentOffset = startOffset;
+        let batchCount = 0;
+        let hasMore = true;
+
+        // Loop through batches
+        while (hasMore && batchCount < MAX_BATCHES) {
+          batchCount++;
+          console.log(`[SYNC] Batch ${batchCount}: Fetching volumes from offset ${currentOffset}`);
           
-          const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
-          if (volResult.success) {
-            if (volResult.isNew) volumesAdded++;
-            else volumesUpdated++;
+          const response = await fetch(
+            `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${BATCH_SIZE}&offset=${currentOffset}&sort=count_of_issues:desc`,
+            { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
+          );
+          
+          console.log('[SYNC] ComicVine API response:', response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[SYNC] ComicVine API error:', response.status, errorText);
+            return new Response(JSON.stringify({ 
+              success: false,
+              error: `ComicVine API error: ${response.status}`,
+              details: errorText,
+              timestamp: new Date().toISOString()
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          const data = await response.json();
+          const volumes = data.results || [];
+          console.log(`[SYNC] Batch ${batchCount}: Received ${volumes.length} volumes`);
+          
+          if (volumes.length === 0) {
+            console.log('[SYNC] No more volumes to sync');
+            hasMore = false;
+            break;
+          }
+
+          // Process this batch
+          for (let i = 0; i < volumes.length; i++) {
+            const vol = volumes[i];
+            console.log(`[SYNC] Processing volume ${i + 1}/${volumes.length}: ${vol.name} (ID: ${vol.id})`);
             
-            // Sync issues for each volume (with rate limiting)
-            const issuesResult = await syncVolumeIssues(vol.id, comicvineKey, supabase);
-            issuesSynced += issuesResult.count;
-            console.log(`[SYNC] Synced ${issuesResult.count} issues for volume ${vol.id} (${volResult.isNew ? 'NEW' : 'UPDATED'})`);
+            const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
+            if (volResult.success) {
+              totalVolumesProcessed++;
+              if (volResult.isNew) {
+                totalVolumesAdded++;
+              } else {
+                totalVolumesUpdated++;
+              }
+              
+              // Sync issues for this volume
+              const issuesResult = await syncVolumeIssues(vol.id, comicvineKey, supabase);
+              totalIssuesSynced += issuesResult.count;
+              console.log(`[SYNC] Synced ${issuesResult.count} issues for volume ${vol.id}`);
+            } else {
+              console.error(`[SYNC] Failed to sync volume ${vol.id}`);
+            }
+          }
+
+          // If we got fewer than BATCH_SIZE, we're done
+          if (volumes.length < BATCH_SIZE) {
+            console.log('[SYNC] Last batch processed, ending sync');
+            hasMore = false;
           } else {
-            console.error(`[SYNC] Failed to sync volume ${vol.id}`);
+            currentOffset += BATCH_SIZE;
+            // Rate limiting between batches
+            await new Promise(resolve => setTimeout(resolve, 1100));
           }
         }
+
+        if (batchCount >= MAX_BATCHES) {
+          console.log(`[SYNC] Reached max batches limit (${MAX_BATCHES}), stopping sync`);
+        }
+
+        console.log('[SYNC] Sync complete:', {
+          volumesProcessed: totalVolumesProcessed,
+          volumesAdded: totalVolumesAdded,
+          volumesUpdated: totalVolumesUpdated,
+          issuesSynced: totalIssuesSynced,
+          nextOffset: currentOffset
+        });
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'ComicVine sync completed',
+            volumesSynced: totalVolumesProcessed,
+            volumesAdded: totalVolumesAdded,
+            volumesUpdated: totalVolumesUpdated,
+            issuesSynced: totalIssuesSynced,
+            totalSynced: totalVolumesProcessed + totalIssuesSynced,
+            nextOffset: currentOffset,
+            timestamp: new Date().toISOString()
+          }),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+
+      } catch (error) {
+        console.error('[SYNC] Fatal error in sync logic:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        
+        console.error('[SYNC] Error details:', errorStack);
+        
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: errorMessage,
+            details: errorStack,
+            timestamp: new Date().toISOString()
+          }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
       }
-    }
-
-    console.log('[SYNC] Sync complete:', { volumesProcessed, volumesAdded, volumesUpdated, issuesSynced });
-
-    const result = {
-      success: true,
-      volumesProcessed,
-      volumesAdded,
-      volumesUpdated,
-      issuesSynced,
-      offset: offset + volumesProcessed,
-      message: `Successfully processed ${volumesProcessed} volumes (${volumesAdded} new, ${volumesUpdated} updated) and synced ${issuesSynced} issues`
-    };
-    
-    console.log('[SYNC] Returning response:', result);
-    console.log('[SYNC] About to return success response', { timestamp: new Date().toISOString() });
-
-    return new Response(
-      JSON.stringify(result),
-      { 
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
     })();
 
     // Race between sync and timeout
     return await Promise.race([syncPromise, timeoutPromise]);
   } catch (error) {
-    console.error('[SYNC] Fatal error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorDetails = error instanceof Error ? error.stack : String(error);
-    
-    console.error('[SYNC] Error details:', errorDetails);
+    console.error('[SYNC] Outer error handler:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     
     return new Response(
       JSON.stringify({ 
         success: false,
         error: errorMessage,
-        details: errorDetails,
-        message: 'Sync failed: ' + errorMessage
+        timestamp: new Date().toISOString()
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });
