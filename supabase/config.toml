@@ -111,7 +111,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.sync-comicvine-cache]
-verify_jwt = false
+verify_jwt = true
 
 [functions.volumes-suggest]
 verify_jwt = false
