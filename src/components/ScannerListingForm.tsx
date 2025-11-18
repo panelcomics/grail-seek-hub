@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Loader2, Image as ImageIcon, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ComicVinePicker } from "./ComicVinePicker";
+import { PricingHelper } from "./scanner/PricingHelper";
+import { extractKeyNotes } from "@/lib/scanHistoryUtils";
 
 interface ComicVinePick {
   id: number;
@@ -71,6 +73,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [keyType, setKeyType] = useState<string>("");
   const [writer, setWriter] = useState<string>("");
   const [artist, setArtist] = useState<string>("");
+  const [keyNotes, setKeyNotes] = useState<string>("");
+  const [price, setPrice] = useState<string>("");
 
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
@@ -90,6 +94,12 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       // Set writer and artist from ComicVine
       setWriter(selectedPick.writer || "");
       setArtist(selectedPick.artist || "");
+      
+      // Extract key notes if available (will be passed from parent with full description)
+      const description = (selectedPick as any).description;
+      if (description) {
+        setKeyNotes(extractKeyNotes(description));
+      }
 
       // Fetch pricing for the selected pick
       (async () => {
@@ -543,6 +553,20 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
             </div>
           </div>
 
+          {/* Key Notes */}
+          {keyNotes && (
+            <div className="space-y-2">
+              <Label htmlFor="keyNotes">Key Issue Notes</Label>
+              <Textarea
+                id="keyNotes"
+                value={keyNotes}
+                onChange={(e) => setKeyNotes(e.target.value)}
+                placeholder="First appearance of..."
+                className="min-h-[60px]"
+              />
+            </div>
+          )}
+
           <div>
             <Label htmlFor="notes">Notes / Description</Label>
               <Textarea
@@ -552,29 +576,32 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                 placeholder="Key issue, first appearances, condition notes, etc."
                 rows={4}
               />
-              {loadingPricing && (
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Loading pricing data...
-                </p>
-              )}
-              {pricingData && (
-                <Alert className="mt-2">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-sm">
-                    <strong>Market Pricing:</strong>
-                    {pricingData.floor && ` Floor: $${pricingData.floor}`}
-                    {pricingData.median && ` • Median: $${pricingData.median}`}
-                    {pricingData.high && ` • High: $${pricingData.high}`}
-                    {pricingData.confidence && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (Confidence: {pricingData.confidence}%)
-                      </span>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              )}
+          </div>
+
+          {/* Price & Pricing Helper */}
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0.00"
+              />
             </div>
+            
+            {title && (
+              <PricingHelper
+                title={title}
+                issueNumber={issueNumber}
+                grade={grade}
+                onPriceSelect={(selectedPrice) => setPrice(selectedPrice.toFixed(2))}
+              />
+            )}
+          </div>
           </div>
 
           {/* Submit Button */}

@@ -32,6 +32,7 @@ import {
   filterReprints,
   isDebugMode
 } from "@/lib/scannerUtils";
+import { saveScanToHistory, loadScanHistory } from "@/lib/scanHistoryUtils";
 
 interface PrefillData {
   title?: string;
@@ -94,12 +95,26 @@ export default function Scanner() {
     comicvineQuery: ""
   });
 
-  // Load recent scans on mount
+  // Load recent scans on mount (from database if logged in)
   useEffect(() => {
-    const recent = loadRecentScans();
-    setRecentScans(recent);
+    const loadRecent = async () => {
+      if (user?.id) {
+        const dbHistory = await loadScanHistory(user.id, 10);
+        if (dbHistory.length > 0) {
+          setRecentScans(dbHistory);
+          return;
+        }
+      }
+      // Fallback to local storage
+      const recent = loadRecentScans();
+      setRecentScans(recent);
+    };
+    
+    loadRecent();
+    
+    // Check if debug mode is enabled
     setShowDebug(isDebugMode());
-  }, []);
+  }, [user]);
 
   // Auto-fill manual search from OCR extraction
   useEffect(() => {
@@ -223,6 +238,21 @@ export default function Scanner() {
             comicvineCoverUrl: topPick.coverUrl
           });
           setStatus("selected");
+          
+          // Save to recent scans
+          saveToRecentScans(topPick);
+          
+          // Save to database if user is logged in
+          if (user?.id && imageUrl) {
+            await saveScanToHistory(user.id, imageUrl, topPick);
+            const dbHistory = await loadScanHistory(user.id, 10);
+            if (dbHistory.length > 0) {
+              setRecentScans(dbHistory);
+            }
+          } else {
+            setRecentScans(loadRecentScans());
+          }
+          
           sonnerToast.success("Comic identified!", {
             description: `${topPick.volumeName || topPick.title} #${topPick.issue}`
           });
@@ -351,7 +381,7 @@ export default function Scanner() {
   };
 
   // Select comic from results
-  const handleSelectComic = (pick: ComicVinePick) => {
+  const handleSelectComic = async (pick: ComicVinePick) => {
     setSelectedPick(pick);
     setPrefillData({
       title: pick.volumeName || pick.title,
@@ -363,7 +393,18 @@ export default function Scanner() {
     });
     setStatus("selected");
     saveToRecentScans(pick);
-    setRecentScans(loadRecentScans());
+    
+    // Save to database if user is logged in
+    if (user?.id && imageUrl) {
+      await saveScanToHistory(user.id, imageUrl, pick);
+      // Reload history from database
+      const dbHistory = await loadScanHistory(user.id, 10);
+      if (dbHistory.length > 0) {
+        setRecentScans(dbHistory);
+      }
+    } else {
+      setRecentScans(loadRecentScans());
+    }
     
     sonnerToast.success("Comic selected!", {
       description: `${pick.volumeName || pick.title} #${pick.issue}`
