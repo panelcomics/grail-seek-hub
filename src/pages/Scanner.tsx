@@ -726,35 +726,51 @@ export default function Scanner() {
                         </p>
                       </div>
 
-                      {/* Debug Token Display */}
-                      {debugData?.rawOcrText && (
-                        <div className="p-3 bg-muted/50 rounded text-xs space-y-1">
-                          <div className="font-semibold text-foreground mb-1">OCR Extracted:</div>
-                          {(() => {
-                            const extracted = debugData.slabData;
-                            return (
-                              <>
-                                {extracted?.title && (
-                                  <div>
-                                    <span className="text-muted-foreground">Parsed Title: </span>
-                                    <span className="text-foreground font-medium">{extracted.title}</span>
-                                  </div>
-                                )}
-                                {extracted?.issueNumber && (
-                                  <div>
-                                    <span className="text-muted-foreground">Parsed Issue: </span>
-                                    <span className="text-foreground font-medium">#{extracted.issueNumber}</span>
-                                  </div>
-                                )}
-                                {extracted?.publisher && (
-                                  <div>
-                                    <span className="text-muted-foreground">Parsed Publisher: </span>
-                                    <span className="text-foreground font-medium">{extracted.publisher}</span>
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
+                      {/* OCR Debug Display */}
+                      {debugData && (debugData.rawOcrText || debugData.extracted) && (
+                        <div className="p-4 bg-muted/50 rounded text-xs space-y-3 font-mono">
+                          <div className="font-bold text-foreground text-sm mb-2">🔍 OCR Extraction Debug</div>
+                          
+                          {/* Raw OCR Text */}
+                          {debugData.rawOcrText && (
+                            <div className="space-y-1">
+                              <div className="font-semibold text-foreground">Raw OCR Text:</div>
+                              <div className="bg-background/50 p-2 rounded text-[10px] max-h-24 overflow-y-auto whitespace-pre-wrap border border-border">
+                                {debugData.rawOcrText}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Parsed Tokens */}
+                          {debugData.extracted && (
+                            <div className="space-y-1.5 pt-2 border-t border-border">
+                              <div className="font-semibold text-foreground mb-1">Parsed Tokens:</div>
+                              <div>
+                                <span className="text-muted-foreground">tokens.title = </span>
+                                <span className="text-foreground font-medium">
+                                  {debugData.extracted.title || <span className="text-red-500">null</span>}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">tokens.issueNumber = </span>
+                                <span className="text-foreground font-medium">
+                                  {debugData.extracted.issueNumber || <span className="text-red-500">null</span>}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">tokens.publisher = </span>
+                                <span className="text-foreground font-medium">
+                                  {debugData.extracted.publisher || <span className="text-red-500">null</span>}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">tokens.year = </span>
+                                <span className="text-foreground font-medium">
+                                  {debugData.extracted.year || <span className="text-red-500">null</span>}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       
