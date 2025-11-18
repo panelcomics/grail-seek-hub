@@ -74,7 +74,7 @@ serve(async (req) => {
     console.log('[SYNC] Admin access verified');
 
     // Parse request body with better error handling
-    let requestBody: { volumeIds?: number[], limit?: number } = {};
+    let requestBody: { volumeIds?: number[], limit?: number, offset?: number } = {};
     try {
       const bodyText = await req.text();
       console.log('[SYNC] Request body:', bodyText);
@@ -84,11 +84,11 @@ serve(async (req) => {
     } catch (error) {
       console.error('[SYNC] Failed to parse request body:', error);
       // Default to small sync if body parsing fails
-      requestBody = { limit: 5 };
+      requestBody = { limit: 50, offset: 0 };
     }
 
-    const { volumeIds, limit = 5 } = requestBody; // Default to 5 volumes for safety
-    console.log('[SYNC] Sync parameters:', { volumeIds, limit });
+    const { volumeIds, limit = 50, offset = 0 } = requestBody;
+    console.log('[SYNC] Sync parameters:', { volumeIds, limit, offset });
 
     const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
     if (!comicvineKey) {
@@ -102,7 +102,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let volumesSynced = 0;
+    let volumesProcessed = 0;
+    let volumesAdded = 0;
+    let volumesUpdated = 0;
     let issuesSynced = 0;
 
     // If specific volumeIds provided, sync those volumes + their issues
@@ -110,16 +112,20 @@ serve(async (req) => {
       console.log('[SYNC] Syncing specific volume IDs:', volumeIds);
       for (const volumeId of volumeIds) {
         const volResult = await syncVolume(volumeId, comicvineKey, supabase);
-        if (volResult.success) volumesSynced++;
+        if (volResult.success) {
+          volumesProcessed++;
+          if (volResult.isNew) volumesAdded++;
+          else volumesUpdated++;
+        }
         
         const issuesResult = await syncVolumeIssues(volumeId, comicvineKey, supabase);
         issuesSynced += issuesResult.count;
       }
     } else {
-      // Sync top volumes (by popularity/usage)
-      console.log('[SYNC] Fetching top volumes from ComicVine API...');
+      // Sync top volumes with pagination
+      console.log(`[SYNC] Fetching top volumes from ComicVine API (limit: ${limit}, offset: ${offset})...`);
       const response = await fetch(
-        `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${limit}&sort=count_of_issues:desc`,
+        `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${limit}&offset=${offset}&sort=count_of_issues:desc`,
         { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
       );
       
@@ -133,18 +139,19 @@ serve(async (req) => {
       console.log('[SYNC] Received', data.results?.length || 0, 'volumes from ComicVine');
       
       if (data.results) {
-        let processedCount = 0;
         for (const vol of data.results) {
-          processedCount++;
-          console.log(`[SYNC] Processing volume ${processedCount}/${data.results.length}: ${vol.name} (${vol.id})`);
+          volumesProcessed++;
+          console.log(`[SYNC] Processing volume ${volumesProcessed}/${data.results.length}: ${vol.name} (${vol.id})`);
           
           const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
           if (volResult.success) {
-            volumesSynced++;
+            if (volResult.isNew) volumesAdded++;
+            else volumesUpdated++;
+            
             // Sync issues for each volume (with rate limiting)
             const issuesResult = await syncVolumeIssues(vol.id, comicvineKey, supabase);
             issuesSynced += issuesResult.count;
-            console.log(`[SYNC] Synced ${issuesResult.count} issues for volume ${vol.id}`);
+            console.log(`[SYNC] Synced ${issuesResult.count} issues for volume ${vol.id} (${volResult.isNew ? 'NEW' : 'UPDATED'})`);
           } else {
             console.error(`[SYNC] Failed to sync volume ${vol.id}`);
           }
@@ -152,13 +159,16 @@ serve(async (req) => {
       }
     }
 
-    console.log('[SYNC] Sync complete:', { volumesSynced, issuesSynced });
+    console.log('[SYNC] Sync complete:', { volumesProcessed, volumesAdded, volumesUpdated, issuesSynced });
 
     const result = {
       success: true,
-      volumesSynced,
+      volumesProcessed,
+      volumesAdded,
+      volumesUpdated,
       issuesSynced,
-      message: `Successfully synced ${volumesSynced} volumes and ${issuesSynced} issues`
+      offset: offset + volumesProcessed,
+      message: `Successfully processed ${volumesProcessed} volumes (${volumesAdded} new, ${volumesUpdated} updated) and synced ${issuesSynced} issues`
     };
     
     console.log('[SYNC] Returning response:', result);
@@ -195,7 +205,16 @@ async function syncVolume(volumeId: number, apiKey: string, supabase: any, volum
       volume = data.results;
     }
 
-    if (!volume) return { success: false };
+    if (!volume) return { success: false, isNew: false };
+
+    // Check if volume already exists
+    const { data: existing } = await supabase
+      .from('comicvine_volumes')
+      .select('id')
+      .eq('id', volume.id)
+      .single();
+
+    const isNew = !existing;
 
     const slug = volume.name
       .toLowerCase()
@@ -216,10 +235,10 @@ async function syncVolume(volumeId: number, apiKey: string, supabase: any, volum
         last_synced_at: new Date().toISOString(),
       });
 
-    return { success: !error };
+    return { success: !error, isNew };
   } catch (error) {
     console.error(`Failed to sync volume ${volumeId}:`, error);
-    return { success: false };
+    return { success: false, isNew: false };
   }
 }
 

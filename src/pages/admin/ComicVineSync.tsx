@@ -14,6 +14,7 @@ export default function ComicVineSync() {
   const [syncResult, setSyncResult] = useState<any>(null);
   const [stats, setStats] = useState<{ volumes: number; issues: number } | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [currentOffset, setCurrentOffset] = useState(0);
   const { toast } = useToast();
 
   // Environment info for debugging
@@ -56,9 +57,9 @@ export default function ComicVineSync() {
     setSyncResult(null);
 
     try {
-      console.log('[UI] Invoking sync-comicvine-cache function...');
+      console.log(`[UI] Invoking sync-comicvine-cache function with offset ${currentOffset}...`);
       const { data, error } = await supabase.functions.invoke('sync-comicvine-cache', {
-        body: { limit: 5 }, // Start with just 5 volumes to test
+        body: { limit: 50, offset: currentOffset },
       });
 
       console.log('[UI] Function response:', { data, error });
@@ -106,12 +107,18 @@ export default function ComicVineSync() {
 
       console.log('[UI] Sync successful:', data);
       setSyncResult(data);
+      
+      // Update offset for next sync
+      if (data.offset) {
+        setCurrentOffset(data.offset);
+      }
+      
       toast({
         title: "Sync Complete",
-        description: `Synced ${data.volumesSynced} volumes and ${data.issuesSynced} issues`,
+        description: `Processed ${data.volumesProcessed} volumes (${data.volumesAdded} new), synced ${data.issuesSynced} issues`,
       });
       
-      // Refresh stats
+      // Refresh stats after successful sync
       await fetchStats();
     } catch (error: any) {
       console.error('[UI] Unexpected error:', error);
@@ -215,7 +222,8 @@ export default function ComicVineSync() {
             <CardHeader>
               <CardTitle>Sync ComicVine Data</CardTitle>
               <CardDescription>
-                Populate the local cache with ComicVine volumes and issues. This will sync the top 100 volumes by issue count.
+                This will fetch the top volumes from ComicVine and cache them locally for faster scanner performance.
+                Each sync processes 50 volumes with pagination (current offset: {currentOffset}). Run multiple times to build the cache.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -253,8 +261,10 @@ export default function ComicVineSync() {
                       
                       {syncResult.success && (
                         <div className="text-sm space-y-1">
-                          <div>Volumes synced: <span className="font-bold">{syncResult.volumesSynced}</span></div>
-                          <div>Issues synced: <span className="font-bold">{syncResult.issuesSynced}</span></div>
+                          <div>Volumes processed: <span className="font-bold">{syncResult.volumesProcessed}</span></div>
+                          <div>New volumes added this run: <span className="font-bold text-green-600">{syncResult.volumesAdded}</span> (issues added: <span className="font-bold text-green-600">{syncResult.issuesSynced}</span>)</div>
+                          <div className="text-xs text-muted-foreground mt-2">Volumes updated: {syncResult.volumesUpdated}</div>
+                          <div className="text-xs text-muted-foreground">Next offset: {syncResult.offset}</div>
                         </div>
                       )}
                       
