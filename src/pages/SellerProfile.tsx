@@ -32,9 +32,9 @@ interface SellerProfile {
   display_name: string | null;
   avatar_url: string | null;
   profile_image_url: string | null;
-  completed_sales_count: number;
+  seller_level: string; // Changed from completed_sales_count
   seller_tier: string | null;
-  favorites_total: number;
+  favorites_total?: number; // Made optional since not in public_profiles
   verified_artist: boolean;
   is_verified_seller: boolean;
   is_featured_seller: boolean;
@@ -90,8 +90,8 @@ export default function SellerProfile() {
       const username = slug.replace(/-/g, " ");
       
       const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, favorites_total, verified_artist, is_verified_seller, is_featured_seller, bio, joined_at")
+        .from("public_profiles")
+        .select("*")
         .ilike("username", username)
         .maybeSingle();
 
@@ -194,7 +194,7 @@ export default function SellerProfile() {
   const canonicalUrl = `${window.location.origin}/seller/${slug}`;
   const sellerName = profile.display_name || profile.username?.split('@')[0] || "Seller";
   const sellerImageUrl = profile.profile_image_url || profile.avatar_url;
-  const description = `${sellerName}'s shop - ${profile.completed_sales_count} sales completed. Browse their collection of comics and collectibles.`;
+  const description = `${sellerName}'s shop - ${profile.seller_level} seller. Browse their collection of comics and collectibles.`;
 
   // JSON-LD structured data for Person/Seller
   const structuredData = {
@@ -278,8 +278,8 @@ export default function SellerProfile() {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <SellerStats
                       rating={4.9}
-                      salesCount={profile.completed_sales_count || 0}
-                      favoritesTotal={profile.favorites_total || 0}
+                      salesCount={0} // Hidden for privacy - use seller_level instead
+                      favoritesTotal={followerCount}
                     />
                     <SellerBadge tier={profile.seller_tier} />
                   </div>

@@ -23,7 +23,7 @@ interface Seller {
   display_name: string | null;
   avatar_url: string | null;
   profile_image_url: string | null;
-  completed_sales_count: number;
+  seller_level: string; // Changed from completed_sales_count
   seller_tier: string | null;
   is_verified_seller: boolean;
   is_featured_seller: boolean;
@@ -51,9 +51,9 @@ export default function Sellers() {
   const fetchSellers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, is_verified_seller, is_featured_seller")
+      const { data, error} = await supabase
+        .from("public_profiles")
+        .select("*")
         .not("username", "is", null);
 
       if (error) throw error;
@@ -88,11 +88,18 @@ export default function Sellers() {
     // Sort
     switch (sortBy) {
       case "most-active":
-        filtered.sort((a, b) => (b.completed_sales_count || 0) - (a.completed_sales_count || 0));
+        // Sort by seller_level priority: 50+ > 10+ > New
+        filtered.sort((a, b) => {
+          const levelOrder: Record<string, number> = { "50+": 3, "10+": 2, "New": 1 };
+          return (levelOrder[b.seller_level] || 0) - (levelOrder[a.seller_level] || 0);
+        });
         break;
       case "highest-rated":
-        // TODO: Add rating field when available
-        filtered.sort((a, b) => (b.completed_sales_count || 0) - (a.completed_sales_count || 0));
+        // Sort by seller_level
+        filtered.sort((a, b) => {
+          const levelOrder: Record<string, number> = { "50+": 3, "10+": 2, "New": 1 };
+          return (levelOrder[b.seller_level] || 0) - (levelOrder[a.seller_level] || 0);
+        });
         break;
       case "newest":
         // TODO: Add created_at sort when needed
@@ -293,7 +300,7 @@ function SellerCard({ seller }: { seller: Seller }) {
               <span className="text-muted-foreground">4.9</span>
             </div>
             <div className="text-muted-foreground">
-              {seller.completed_sales_count || 0} sales
+              {seller.seller_level || 'New'} seller
             </div>
           </div>
 

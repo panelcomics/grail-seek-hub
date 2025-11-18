@@ -11,7 +11,7 @@ interface Seller {
   display_name: string | null;
   avatar_url: string | null;
   profile_image_url: string | null;
-  completed_sales_count: number;
+  seller_level: string; // Changed from completed_sales_count
 }
 
 export default function SellerChips() {
@@ -26,10 +26,10 @@ export default function SellerChips() {
   const fetchTopSellers = async () => {
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count")
+        .from("public_profiles")
+        .select("*")
         .not("username", "is", null)
-        .order("completed_sales_count", { ascending: false })
+        .order("seller_level", { ascending: false })
         .limit(12);
 
       if (error) throw error;
