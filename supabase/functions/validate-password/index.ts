@@ -13,9 +13,18 @@ serve(async (req) => {
   try {
     const { password } = await req.json();
 
-    if (!password) {
+    // Validate input type and presence
+    if (!password || typeof password !== 'string') {
       return new Response(
         JSON.stringify({ valid: false, message: "Password is required" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Prevent DoS attacks with extremely long passwords
+    if (password.length > 128) {
+      return new Response(
+        JSON.stringify({ valid: false, message: "Password too long (max 128 characters)" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
