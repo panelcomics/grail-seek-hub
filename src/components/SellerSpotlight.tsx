@@ -21,7 +21,7 @@ interface Seller {
   display_name: string | null;
   avatar_url: string | null;
   profile_image_url: string | null;
-  completed_sales_count: number;
+  seller_level: string; // Changed from completed_sales_count
   seller_tier?: string;
   favorites_total?: number;
 }
@@ -37,10 +37,10 @@ export default function SellerSpotlight() {
   const fetchFeaturedSellers = async () => {
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, username, display_name, avatar_url, profile_image_url, completed_sales_count, seller_tier, favorites_total")
+        .from("public_profiles")
+        .select("*")
         .not("username", "is", null)
-        .order("completed_sales_count", { ascending: false })
+        .order("seller_level", { ascending: false })
         .limit(4);
 
       if (error) throw error;
@@ -141,10 +141,9 @@ function SellerCard({ seller, getSellerSlug }: SellerCardProps) {
         
         <div className="flex flex-col items-center gap-2 mb-6">
           <SellerStats
-            rating={parseFloat(rating)}
-            salesCount={seller.completed_sales_count}
+            rating={5.0}
+            salesCount={0} // Hidden for privacy - use seller_level instead
             favoritesTotal={followerCount}
-            className="justify-center"
           />
           <SellerBadge tier={seller.seller_tier || null} />
         </div>

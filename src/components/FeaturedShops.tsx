@@ -101,7 +101,7 @@ export default function FeaturedShops() {
 
       const sellerIds = featuredData.map(f => f.seller_id);
       const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
+        .from("public_profiles")
         .select("user_id, username, avatar_url")
         .in("user_id", sellerIds);
 

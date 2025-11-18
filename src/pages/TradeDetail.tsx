@@ -67,7 +67,7 @@ export default function TradeDetail() {
 
       // Fetch username separately
       const { data: profile } = await supabase
-        .from("profiles")
+        .from("public_profiles")
         .select("username")
         .eq("user_id", data.user_id)
         .single();

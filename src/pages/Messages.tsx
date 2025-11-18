@@ -137,7 +137,7 @@ const Messages = () => {
           const otherUserId = isBuyer ? conv.seller_id : conv.buyer_id;
           
           const { data: profileData } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("username")
             .eq("user_id", otherUserId)
             .single();

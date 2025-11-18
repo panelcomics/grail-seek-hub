@@ -60,7 +60,7 @@ export default function TradingPost() {
       if (data && data.length > 0) {
         const userIds = [...new Set(data.map(item => item.user_id))];
         const { data: profiles } = await supabase
-          .from("profiles")
+          .from("public_profiles")
           .select("user_id, username")
           .in("user_id", userIds);
 

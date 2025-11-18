@@ -2909,6 +2909,51 @@ export type Database = {
         }
         Relationships: []
       }
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          display_name: string | null
+          is_featured_seller: boolean | null
+          is_verified_seller: boolean | null
+          joined_at: string | null
+          profile_image_url: string | null
+          seller_level: string | null
+          seller_tier: string | null
+          user_id: string | null
+          username: string | null
+          verified_artist: boolean | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          display_name?: string | null
+          is_featured_seller?: boolean | null
+          is_verified_seller?: boolean | null
+          joined_at?: string | null
+          profile_image_url?: string | null
+          seller_level?: never
+          seller_tier?: string | null
+          user_id?: string | null
+          username?: string | null
+          verified_artist?: boolean | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          display_name?: string | null
+          is_featured_seller?: boolean | null
+          is_verified_seller?: boolean | null
+          joined_at?: string | null
+          profile_image_url?: string | null
+          seller_level?: never
+          seller_tier?: string | null
+          user_id?: string | null
+          username?: string | null
+          verified_artist?: boolean | null
+        }
+        Relationships: []
+      }
       seller_stats: {
         Row: {
           active_listings: number | null

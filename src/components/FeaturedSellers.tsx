@@ -28,8 +28,8 @@ export function FeaturedSellers() {
   const fetchFeaturedSellers = async () => {
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, username, profile_image_url, bio, is_verified_seller")
+        .from("public_profiles")
+        .select("*")
         .eq("is_featured_seller", true)
         .limit(10);
 
