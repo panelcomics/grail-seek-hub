@@ -132,3 +132,82 @@ export function getScanningTips(): string[] {
     'Use a steady hand or surface',
   ];
 }
+
+/**
+ * Compress an image data URL for listing storage
+ * @param imageData Base64 data URL of the image
+ * @param maxWidth Maximum width (default: 2000px)
+ * @param quality Quality for compression (default: 0.85)
+ * @returns Promise<string> Compressed image as base64 data URL
+ */
+export async function compressImageDataUrl(
+  imageData: string,
+  maxWidth = 2000,
+  quality = 0.85
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions maintaining aspect ratio
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        // Use better image rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to JPEG with quality setting
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.src = imageData;
+  });
+}
+
+/**
+ * Create a thumbnail version of an image
+ * @param imageData Base64 data URL of the image
+ * @param maxSize Maximum width/height (default: 400px)
+ * @returns Promise<string> Thumbnail as base64 data URL
+ */
+export async function createThumbnail(
+  imageData: string,
+  maxSize = 400
+): Promise<string> {
+  return compressImageDataUrl(imageData, maxSize, 0.75);
+}
+
+/**
+ * Get the size of a base64 image in KB
+ * @param base64String Base64 data URL
+ * @returns Size in kilobytes
+ */
+export function getBase64Size(base64String: string): number {
+  const base64Length = base64String.length - (base64String.indexOf(',') + 1);
+  const sizeInBytes = (base64Length * 3) / 4;
+  return sizeInBytes / 1024; // Convert to KB
+}
