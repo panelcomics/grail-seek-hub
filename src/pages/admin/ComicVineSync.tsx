@@ -13,6 +13,7 @@ export default function ComicVineSync() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
   const [stats, setStats] = useState<{ volumes: number; issues: number } | null>(null);
+  const [lastSync, setLastSync] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Environment info for debugging
@@ -21,18 +22,30 @@ export default function ComicVineSync() {
 
   const fetchStats = async () => {
     try {
-      const { data: volumeData } = await supabase
+      const { count: volumeCount } = await supabase
         .from('comicvine_volumes')
-        .select('id', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true });
       
-      const { data: issueData } = await supabase
+      const { count: issueCount } = await supabase
         .from('comicvine_issues')
-        .select('id', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true });
+
+      // Get last sync timestamp
+      const { data: lastSyncData } = await supabase
+        .from('comicvine_volumes')
+        .select('last_synced_at')
+        .order('last_synced_at', { ascending: false })
+        .limit(1)
+        .single();
 
       setStats({
-        volumes: volumeData?.length || 0,
-        issues: issueData?.length || 0,
+        volumes: volumeCount || 0,
+        issues: issueCount || 0,
       });
+      
+      if (lastSyncData?.last_synced_at) {
+        setLastSync(lastSyncData.last_synced_at);
+      }
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -165,7 +178,12 @@ export default function ComicVineSync() {
                 Current state of the local ComicVine cache
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {lastSync && (
+                <div className="text-sm text-muted-foreground border-b pb-3">
+                  <strong>Last successful sync:</strong> {new Date(lastSync).toLocaleString()}
+                </div>
+              )}
               {stats ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-muted rounded-lg">
