@@ -504,6 +504,28 @@ export default function Scanner() {
             }
           } else {
             console.log(`${getTimestamp()} ℹ️ No metadata found`);
+            
+            // Still update debug data to show OCR extraction even with no matches
+            setDebugData({
+              status: "success",
+              method,
+              apiHit: "ComicVine",
+              confidenceScore: null,
+              responseTimeMs: ocrTime,
+              ocrTimeMs: ocrTime,
+              errorMessage: null,
+              rawOcrText,
+              cvQuery,
+              slabData: null,
+              ebayData: null,
+              retryAttempt: retryCount,
+              extracted: scanResult?.extracted || null,
+              noMatchesFound: scanResult?.noMatchesFound || false,
+            });
+            
+            sonnerToast("No matches found", {
+              description: "Please enter details manually or try again."
+            });
           }
         } catch (bgError: any) {
           console.warn("[Scanner] background scan failed:", bgError?.message ?? bgError);
