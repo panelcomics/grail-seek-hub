@@ -25,6 +25,8 @@ interface ComicVinePick {
   variantDescription?: string | null;
   thumbUrl: string;
   coverUrl: string;
+  writer?: string | null;
+  artist?: string | null;
   score: number;
   isReprint: boolean;
 }
@@ -67,6 +69,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [variantNotes, setVariantNotes] = useState<string>("");
   const [isKey, setIsKey] = useState<boolean>(false);
   const [keyType, setKeyType] = useState<string>("");
+  const [writer, setWriter] = useState<string>("");
+  const [artist, setArtist] = useState<string>("");
 
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
@@ -83,6 +87,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       setVolumeId(selectedPick.volumeId || null);
       // Store the ComicVine story title in variant info (e.g. "Invasion!", "Where Do You Plant a Thorn?")
       setVariantInfo(selectedPick.title !== seriesName ? selectedPick.title : (selectedPick.variantDescription || ""));
+      // Set writer and artist from ComicVine
+      setWriter(selectedPick.writer || "");
+      setArtist(selectedPick.artist || "");
 
       // Fetch pricing for the selected pick
       (async () => {
@@ -133,6 +140,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
     setVolumeId(pick.volumeId || null);
     // Store the ComicVine story title in variant info (e.g. "Invasion!", "Where Do You Plant a Thorn?")
     setVariantInfo(pick.title !== seriesName ? pick.title : (pick.variantDescription || ""));
+    // Set writer and artist from ComicVine
+    setWriter(pick.writer || "");
+    setArtist(pick.artist || "");
     setShowPicker(false);
     
     toast.success("Match applied", {
@@ -391,6 +401,31 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                   min="1900"
                   max={new Date().getFullYear()}
                 />
+              </div>
+            </div>
+
+            {/* Credits Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="text-sm font-medium text-muted-foreground">Credits (Optional)</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="writer">Writer</Label>
+                  <Input
+                    id="writer"
+                    value={writer}
+                    onChange={(e) => setWriter(e.target.value)}
+                    placeholder="e.g., Stan Lee"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="artist">Artist</Label>
+                  <Input
+                    id="artist"
+                    value={artist}
+                    onChange={(e) => setArtist(e.target.value)}
+                    placeholder="e.g., Jack Kirby"
+                  />
+                </div>
               </div>
             </div>
 
