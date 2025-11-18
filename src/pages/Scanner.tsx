@@ -89,6 +89,9 @@ export default function Scanner() {
     autoSelectedTitle: null as string | null,
     comicVineQuery: null as string | null,
     scoreBreakdowns: null as Array<{id: number; title: string; issue: string; score: number; breakdown: any}> | null,
+    detectedTitles: null as string[] | null,
+    chosenTitle: null as string | null,
+    confidenceScoreTitle: null as number | null,
   });
 
   const [uploadLog, setUploadLog] = useState<{
@@ -279,6 +282,9 @@ export default function Scanner() {
         autoSelectedTitle: null,
         comicVineQuery: null,
         scoreBreakdowns: null,
+        detectedTitles: null,
+        chosenTitle: null,
+        confidenceScoreTitle: null,
       });
 
       // Check authentication
@@ -567,6 +573,9 @@ export default function Scanner() {
                 score: p.score,
                 breakdown: p.scoreBreakdown || null
               })),
+              detectedTitles: scanResult?.extracted?.detectedTitles || null,
+              chosenTitle: scanResult?.extracted?.chosenTitle || null,
+              confidenceScoreTitle: scanResult?.extracted?.confidenceScoreTitle || null,
             });
 
             console.log(`${getTimestamp()} ✅ Results ready:`, { title, issueNumber, confidence: calculatedConfidence });
@@ -604,6 +613,9 @@ export default function Scanner() {
               autoSelectedTitle: null,
               comicVineQuery: scanResult?.debug?.comicVineQuery || null,
               scoreBreakdowns: null,
+              detectedTitles: scanResult?.extracted?.detectedTitles || null,
+              chosenTitle: scanResult?.extracted?.chosenTitle || null,
+              confidenceScoreTitle: scanResult?.extracted?.confidenceScoreTitle || null,
             });
             
             sonnerToast("No matches found", {
@@ -868,7 +880,37 @@ export default function Scanner() {
                                   {debugData.extracted.seriesCandidateFromPattern || <span className="text-muted-foreground">none</span>}
                                 </span>
                               </div>
-                              <div>
+                              
+                              {/* New Extraction Debug */}
+                              <div className="mt-2 pt-2 border-t border-border/50">
+                                <div className="font-semibold text-foreground mb-1">Title Extraction Pipeline:</div>
+                                <div>
+                                  <span className="text-muted-foreground">detectedTitles = </span>
+                                  <span className="text-foreground font-medium text-[10px]">
+                                    {debugData.extracted.detectedTitles?.length > 0 
+                                      ? `[${debugData.extracted.detectedTitles.join(', ')}]`
+                                      : <span className="text-muted-foreground">[]</span>
+                                    }
+                                  </span>
+                                </div>
+                                <div className="mt-1">
+                                  <span className="text-muted-foreground">chosenTitle = </span>
+                                  <span className="text-foreground font-medium">
+                                    {debugData.extracted.chosenTitle || <span className="text-muted-foreground">none</span>}
+                                  </span>
+                                </div>
+                                <div className="mt-1">
+                                  <span className="text-muted-foreground">confidenceScoreTitle = </span>
+                                  <span className="text-foreground font-medium">
+                                    {debugData.extracted.confidenceScoreTitle 
+                                      ? (debugData.extracted.confidenceScoreTitle * 100).toFixed(0) + '%'
+                                      : '0%'
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="mt-2 pt-2 border-t border-border/50">
                                 <span className="text-muted-foreground">tokens.issueNumber = </span>
                                 <span className="text-foreground font-medium">
                                   {debugData.extracted.issueNumber || <span className="text-red-500">null</span>}
