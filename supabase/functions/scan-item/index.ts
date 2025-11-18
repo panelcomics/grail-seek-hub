@@ -230,9 +230,12 @@ serve(async (req) => {
     let exactMatchMode = false;
     let noMatchesFound = false;
 
-    if (tokens.title && tokens.issueNumber) {
+    // PRIMARY MODE: Only if BOTH title AND issueNumber are non-empty strings
+    if (tokens.title && typeof tokens.title === 'string' && tokens.title.trim() !== '' &&
+        tokens.issueNumber && typeof tokens.issueNumber === 'string' && tokens.issueNumber.trim() !== '') {
       exactMatchMode = true;
       console.log('[SCAN-ITEM] 🎯 PRIMARY MODE: Exact title + issue matching');
+      console.log('[SCAN-ITEM] Searching for:', `${tokens.title} #${tokens.issueNumber}`);
       
       try {
         const volumes = await queryComicVineVolumes(COMICVINE_API_KEY, tokens.title);
@@ -263,14 +266,16 @@ serve(async (req) => {
         console.log('[SCAN-ITEM] Found', results.length, 'exact issue matches');
         
         if (results.length === 0) {
-          noMatchesFound = true;
-          console.log('[SCAN-ITEM] ⚠️ No exact matches found for', `${tokens.title} #${tokens.issueNumber}`);
+          console.log('[SCAN-ITEM] ⚠️ No exact matches found, will try fallback search');
         }
       } catch (err: any) {
         console.error('[SCAN-ITEM] Error in exact matching:', err.message);
       }
+    } else {
+      console.log('[SCAN-ITEM] ℹ️ OCR incomplete - title or issueNumber missing, using fallback search');
     }
     
+    // FALLBACK MODE: Run if not in exact mode OR if exact mode found nothing
     if (!exactMatchMode || results.length === 0) {
       console.log('[SCAN-ITEM] 🔄 FALLBACK MODE: Loose search');
       
@@ -307,10 +312,18 @@ serve(async (req) => {
             score: 0.40,
             matchMode: 'fallback'
           })));
+          
+          console.log('[SCAN-ITEM] Fallback found', results.length, 'results');
         }
       } catch (err: any) {
         console.warn('[SCAN-ITEM] Fallback search error:', err.message);
       }
+    }
+    
+    // Only set noMatchesFound if we tried exact matching AND fallback returned nothing
+    if (exactMatchMode && results.length === 0) {
+      noMatchesFound = true;
+      console.log('[SCAN-ITEM] ⚠️ No matches found after exact + fallback search');
     }
 
     const totalTime = Date.now() - startTime;
@@ -324,7 +337,7 @@ serve(async (req) => {
           publisher: tokens.publisher,
           year: tokens.year
         },
-        comicvineResults: results,
+        picks: results,
         ocrText,
         exactMatchMode,
         noMatchesFound,
