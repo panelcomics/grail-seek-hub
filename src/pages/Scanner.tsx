@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Search, Camera, Zap, Upload, X } from "lucide-react";
+import { Loader2, Search, Camera, Zap, Upload, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
 import { UploadLogPanel } from "@/components/UploadLogPanel";
 import { ScannerListingForm } from "@/components/ScannerListingForm";
 import { ComicVinePicker } from "@/components/ComicVinePicker";
+import { Badge } from "@/components/ui/badge";
 import { uploadViaProxy } from "@/lib/uploadImage";
 import { withTimeout } from "@/lib/withTimeout";
 import { toast as sonnerToast } from "sonner";
@@ -72,6 +73,18 @@ export default function Scanner() {
   // Sticky session: once a scan is active, keep it active until explicit user action
   const [scanSessionActive, setScanSessionActive] = useState(false);
   const [selectedPick, setSelectedPick] = useState<ComicVinePick | null>(null);
+  
+  // Manual refine search state
+  const [filterNotReprint, setFilterNotReprint] = useState(false);
+  const [filterWrongYear, setFilterWrongYear] = useState(false);
+  const [filterSlabbed, setFilterSlabbed] = useState(false);
+  const [recentSelections, setRecentSelections] = useState<ComicVinePick[]>([]);
+  const [extractedTokens, setExtractedTokens] = useState<{
+    title?: string;
+    issueNumber?: string;
+    publisher?: string;
+    year?: number;
+  } | null>(null);
 
   const [debugData, setDebugData] = useState({
     status: "idle" as "idle" | "processing" | "success" | "error",
@@ -121,10 +134,22 @@ export default function Scanner() {
 
   const isDev = import.meta.env.DEV || window.location.hostname.includes("lovableproject.com");
 
+  // Load recent selections from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('recentComicSelections');
+    if (stored) {
+      try {
+        setRecentSelections(JSON.parse(stored));
+      } catch (e) {
+        console.warn('Failed to parse recent selections:', e);
+      }
+    }
+  }, []);
+
   // Pre-fill manual search query when OCR is available and confidence is low
   useEffect(() => {
     if (debugData.extracted && searchResults.length > 0 && !debugData.autoSelected) {
-      const { finalCleanTitle, issueNumber } = debugData.extracted;
+      const { finalCleanTitle, issueNumber, publisher, year } = debugData.extracted;
       
       // Build a reasonable search query from OCR
       if (finalCleanTitle) {
@@ -139,10 +164,151 @@ export default function Scanner() {
             : cleanedTitle;
           
           setManualSearchQuery(searchQuery);
+          
+          // Store extracted tokens for manual search
+          setExtractedTokens({
+            title: cleanedTitle,
+            issueNumber: issueNumber || undefined,
+            publisher: publisher || undefined,
+            year: year || undefined
+          });
         }
       }
     }
   }, [debugData.extracted, searchResults.length, debugData.autoSelected]);
+
+  // Build pre-filled search query from extracted tokens
+  const buildPrefilledQuery = () => {
+    if (!extractedTokens) return "";
+    
+    const parts: string[] = [];
+    
+    if (extractedTokens.title) {
+      parts.push(extractedTokens.title);
+    }
+    
+    if (extractedTokens.issueNumber) {
+      parts.push(`#${extractedTokens.issueNumber}`);
+    }
+    
+    if (extractedTokens.year) {
+      parts.push(`(${extractedTokens.year})`);
+    }
+    
+    if (extractedTokens.publisher) {
+      parts.push(extractedTokens.publisher);
+    }
+    
+    return parts.join(' ');
+  };
+
+  // Handle manual search with filters
+  const handleManualSearch = async () => {
+    if (!manualSearchQuery.trim()) {
+      toast({
+        title: "Enter a search term",
+        description: "Type a comic title and issue number to search.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setManualSearchLoading(true);
+    setRefinedResults([]);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
+        body: {
+          searchText: manualSearchQuery,
+          publisher: extractedTokens?.publisher || undefined
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.ok && data?.results) {
+        let results = data.results as ComicVinePick[];
+        
+        // Apply filters
+        if (filterNotReprint) {
+          const reprintKeywords = /(facsimile|true believers|reprint|anniversary edition|2nd print|third print|second print|replica|reproduction|marvel tales|omnibus|tpb|trade paperback)/i;
+          results = results.filter(r => {
+            const textToCheck = `${r.title || ''} ${r.volumeName || ''} ${r.variantDescription || ''}`;
+            return !reprintKeywords.test(textToCheck) && !r.isReprint;
+          });
+        }
+        
+        if (filterWrongYear && extractedTokens?.year) {
+          const targetYear = extractedTokens.year;
+          results = results.filter(r => {
+            if (!r.year) return true;
+            return Math.abs(r.year - targetYear) <= 10;
+          });
+        }
+        
+        if (filterSlabbed) {
+          // Prioritize direct edition, newsstand, first print
+          results.sort((a, b) => {
+            const aIsDirect = /direct|newsstand|1st print|first print/i.test(`${a.variantDescription || ''}`);
+            const bIsDirect = /direct|newsstand|1st print|first print/i.test(`${b.variantDescription || ''}`);
+            if (aIsDirect && !bIsDirect) return -1;
+            if (!aIsDirect && bIsDirect) return 1;
+            return b.score - a.score;
+          });
+        }
+        
+        setRefinedResults(results);
+        
+        if (results.length === 0) {
+          toast({
+            title: "No results found",
+            description: "Try a simpler search like 'Amazing Spider-Man' or just the title without the issue number.",
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error('Manual search error:', error);
+      toast({
+        title: "Search failed",
+        description: error.message || "Could not search ComicVine",
+        variant: "destructive"
+      });
+    } finally {
+      setManualSearchLoading(false);
+    }
+  };
+
+  // Save selection to recent history
+  const saveToRecentSelections = (pick: ComicVinePick) => {
+    const updated = [pick, ...recentSelections.filter(r => r.id !== pick.id)].slice(0, 5);
+    setRecentSelections(updated);
+    localStorage.setItem('recentComicSelections', JSON.stringify(updated));
+  };
+
+  // Handle ComicVine selection from manual search
+  const handleManualSelectComic = (pick: ComicVinePick) => {
+    setSelectedPick(pick);
+    saveToRecentSelections(pick);
+    
+    // Auto-fill form fields without replacing user's image
+    setPrefillData({
+      title: pick.title,
+      series: pick.volumeName || pick.title,
+      issueNumber: pick.issue || undefined,
+      publisher: pick.publisher || undefined,
+      year: pick.year || undefined,
+      comicvineId: pick.id,
+      // Don't set comicvineCoverUrl to preserve user's uploaded photo
+    });
+    
+    setStatus("editing");
+    setRefinedResults([]);
+    
+    toast({
+      title: "Comic selected",
+      description: `${pick.title} ${pick.issue ? '#' + pick.issue : ''}`,
+    });
+  };
 
   const startCamera = async () => {
     try {
@@ -748,36 +914,6 @@ export default function Scanner() {
     setScanSessionActive(true);
   };
 
-  const handleManualSearch = async () => {
-    if (!manualSearchQuery.trim()) {
-      sonnerToast.error("Please enter a search query");
-      return;
-    }
-    setManualSearchLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("manual-comicvine-search", {
-        body: { 
-          searchText: manualSearchQuery,
-          publisher: debugData?.extracted?.publisher || undefined
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.ok && data?.results) {
-        setRefinedResults(data.results);
-        sonnerToast.success(`Found ${data.results.length} results`);
-      } else {
-        throw new Error(data?.error || "Search failed");
-      }
-    } catch (error: any) {
-      console.error("Manual search error:", error);
-      sonnerToast.error(error.message || "Could not search ComicVine");
-    } finally {
-      setManualSearchLoading(false);
-    }
-  };
-
   const handleAddMorePhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -1246,6 +1382,156 @@ export default function Scanner() {
                   onSelect={handleSelectPickFromPicker}
                 />
               </div>
+            )}
+
+            {/* Recent Selections Carousel */}
+            {recentSelections.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Recent Selections</h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {recentSelections.map((pick) => (
+                      <button
+                        key={pick.id}
+                        onClick={() => handleManualSelectComic(pick)}
+                        className="flex-shrink-0 w-24 text-center hover:opacity-80 transition-opacity"
+                      >
+                        <div className="w-24 h-32 mb-2 border-2 border-border rounded overflow-hidden">
+                          <img 
+                            src={pick.thumbUrl || pick.coverUrl} 
+                            alt={pick.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="text-xs line-clamp-2">{pick.title} {pick.issue ? `#${pick.issue}` : ''}</div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Manual Refine Search */}
+            <Card className="mb-6">
+              <CardContent className="p-6 space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">Didn't find the right comic?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Refine the search below using title and issue number
+                  </p>
+                </div>
+
+                {/* Search Input */}
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="e.g., Amazing Spider-Man #129 (1974) Marvel"
+                    value={manualSearchQuery}
+                    onChange={(e) => setManualSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleManualSearch();
+                    }}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={handleManualSearch}
+                    disabled={manualSearchLoading}
+                  >
+                    {manualSearchLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Search
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Smart Filter Chips */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={filterNotReprint ? "default" : "outline"}
+                    onClick={() => setFilterNotReprint(!filterNotReprint)}
+                  >
+                    {filterNotReprint && <Check className="h-3 w-3 mr-1" />}
+                    Not a Reprint
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={filterWrongYear ? "default" : "outline"}
+                    onClick={() => setFilterWrongYear(!filterWrongYear)}
+                    disabled={!extractedTokens?.year}
+                  >
+                    {filterWrongYear && <Check className="h-3 w-3 mr-1" />}
+                    Wrong Year
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={filterSlabbed ? "default" : "outline"}
+                    onClick={() => setFilterSlabbed(!filterSlabbed)}
+                  >
+                    {filterSlabbed && <Check className="h-3 w-3 mr-1" />}
+                    Slabbed Version
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Manual Search Results */}
+            {refinedResults.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Search Results ({refinedResults.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {refinedResults.map((result) => (
+                      <div
+                        key={result.id}
+                        className="flex gap-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="w-20 h-28 flex-shrink-0">
+                          <img
+                            src={result.thumbUrl || result.coverUrl}
+                            alt={result.title}
+                            className="w-full h-full object-cover rounded border border-border"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div>
+                            <h4 className="font-semibold">{result.title}</h4>
+                            {result.issue && (
+                              <p className="text-sm text-muted-foreground">Issue #{result.issue}</p>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            {result.year && (
+                              <Badge variant="secondary">{result.year}</Badge>
+                            )}
+                            {result.publisher && (
+                              <Badge variant="secondary">{result.publisher}</Badge>
+                            )}
+                            {result.writer && (
+                              <Badge variant="outline">Writer: {result.writer}</Badge>
+                            )}
+                            {result.artist && (
+                              <Badge variant="outline">Artist: {result.artist}</Badge>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleManualSelectComic(result)}
+                          >
+                            Use this comic
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Manual Entry Button - Always Available */}
