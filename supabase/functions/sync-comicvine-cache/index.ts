@@ -32,7 +32,7 @@ serve(async (req) => {
           message: 'Sync took too long and was terminated to prevent hanging',
           timestamp: new Date().toISOString()
         }),
-        { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       ));
     }, 55000)
   );
@@ -53,7 +53,7 @@ serve(async (req) => {
             error: 'Missing authorization',
             timestamp: new Date().toISOString()
           }), {
-            status: 401,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -74,7 +74,7 @@ serve(async (req) => {
             details: userError?.message,
             timestamp: new Date().toISOString()
           }), {
-            status: 401,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -93,7 +93,7 @@ serve(async (req) => {
             details: roleError.message,
             timestamp: new Date().toISOString()
           }), {
-            status: 500,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -105,7 +105,7 @@ serve(async (req) => {
             error: 'Admin access required',
             timestamp: new Date().toISOString()
           }), {
-            status: 403,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -123,7 +123,7 @@ serve(async (req) => {
             error: 'COMICVINE_API_KEY not configured',
             timestamp: new Date().toISOString()
           }), {
-            status: 500,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -175,7 +175,7 @@ serve(async (req) => {
               details: errorText,
               timestamp: new Date().toISOString()
             }), {
-              status: 500,
+              status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
           }
@@ -269,7 +269,7 @@ serve(async (req) => {
             timestamp: new Date().toISOString()
           }),
           { 
-            status: 500, 
+            status: 200, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
@@ -289,7 +289,7 @@ serve(async (req) => {
         timestamp: new Date().toISOString()
       }),
       { 
-        status: 500, 
+        status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

@@ -72,8 +72,7 @@ export default function ComicVineSync() {
       };
 
       if (error) {
-        console.error('[UI] Function error:', error);
-        // Display full error in UI
+        console.error('[UI] Function invocation error:', error);
         setSyncResult({ 
           success: false, 
           errorMessage: error.message || "Unknown error occurred",
@@ -89,18 +88,19 @@ export default function ComicVineSync() {
         return;
       }
 
-      if (!data || !data.success) {
-        console.error('[UI] Sync unsuccessful:', data);
+      // Check success flag (function always returns 200, so we check the flag)
+      if (!data?.success) {
+        console.error('[UI] Sync failed (success=false):', data);
         setSyncResult({ 
           success: false, 
-          errorMessage: data?.error || "Sync returned unsuccessful status",
+          errorMessage: data?.error || data?.message || "Sync returned unsuccessful status",
           errorObject: JSON.stringify(data, null, 2),
           fullResponse: JSON.stringify(fullResponse, null, 2)
         });
         toast({
           variant: "destructive",
           title: "Sync Failed",
-          description: data?.error || "Check error details below",
+          description: data?.error || data?.message || "Check error details below",
         });
         return;
       }
