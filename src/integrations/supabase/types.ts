@@ -2680,6 +2680,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_scan_history: {
+        Row: {
+          artist: string | null
+          comicvine_cover_url: string | null
+          comicvine_issue_id: number | null
+          created_at: string
+          id: string
+          image_url: string
+          issue_number: string | null
+          key_notes: string | null
+          publisher: string | null
+          title: string
+          user_id: string
+          writer: string | null
+          year: number | null
+        }
+        Insert: {
+          artist?: string | null
+          comicvine_cover_url?: string | null
+          comicvine_issue_id?: number | null
+          created_at?: string
+          id?: string
+          image_url: string
+          issue_number?: string | null
+          key_notes?: string | null
+          publisher?: string | null
+          title: string
+          user_id: string
+          writer?: string | null
+          year?: number | null
+        }
+        Update: {
+          artist?: string | null
+          comicvine_cover_url?: string | null
+          comicvine_issue_id?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          issue_number?: string | null
+          key_notes?: string | null
+          publisher?: string | null
+          title?: string
+          user_id?: string
+          writer?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
       verified_matches: {
         Row: {
           cover_url: string | null
