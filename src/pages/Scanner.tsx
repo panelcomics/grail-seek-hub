@@ -774,6 +774,12 @@ export default function Scanner() {
                                 </span>
                               </div>
                               <div>
+                                <span className="text-muted-foreground">tokens.finalCleanTitle = </span>
+                                <span className="text-foreground font-medium">
+                                  {debugData.extracted.finalCleanTitle || <span className="text-red-500">null</span>}
+                                </span>
+                              </div>
+                              <div>
                                 <span className="text-muted-foreground">tokens.issueNumber = </span>
                                 <span className="text-foreground font-medium">
                                   {debugData.extracted.issueNumber || <span className="text-red-500">null</span>}
