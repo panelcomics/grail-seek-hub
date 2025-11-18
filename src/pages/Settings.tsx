@@ -5,7 +5,7 @@ import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { TrustSettings } from "@/components/TrustSettings";
 import { useDiscount } from "@/hooks/useDiscount";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings as SettingsIcon, Paintbrush } from "lucide-react";
+import { Settings as SettingsIcon, Paintbrush, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -52,7 +52,29 @@ const Settings = () => {
           
           <DiscountSettings />
           
-          {!loading && isAdmin && <AdminPanel />}
+          {!loading && isAdmin && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    ComicVine Cache Sync
+                  </CardTitle>
+                  <CardDescription>
+                    Manage the local ComicVine database cache for faster comic lookups
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link to="/admin/comicvine-sync">
+                    <Button variant="outline" className="w-full">
+                      Open ComicVine Sync Manager
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+              <AdminPanel />
+            </>
+          )}
         </div>
     </main>
   );
