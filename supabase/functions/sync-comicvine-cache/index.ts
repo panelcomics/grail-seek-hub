@@ -39,10 +39,13 @@ serve(async (req) => {
 
   try {
     const syncPromise = (async () => {
+      console.log("ComicVine sync function started", { timestamp: new Date().toISOString() });
       console.log('[SYNC] Starting ComicVine cache sync...');
       
       // Check admin access
       const authHeader = req.headers.get('Authorization');
+      console.log('[SYNC] Authorization header present:', !!authHeader);
+      
       if (!authHeader) {
         console.error('[SYNC] Missing authorization header');
         return new Response(JSON.stringify({ error: 'Missing authorization' }), {
@@ -111,12 +114,14 @@ serve(async (req) => {
     console.log('[SYNC] Sync parameters:', { volumeIds, limit, offset });
 
     const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
+    console.log('[SYNC] ComicVine API key present:', !!comicvineKey);
+    
     if (!comicvineKey) {
       console.error('[SYNC] COMICVINE_API_KEY not found in environment');
       throw new Error('COMICVINE_API_KEY not configured');
     }
     
-    console.log('[SYNC] ComicVine API key found, starting sync with limit:', limit);
+    console.log('[SYNC] ComicVine API key found, starting sync with limit:', limit, 'offset:', offset);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -144,10 +149,14 @@ serve(async (req) => {
     } else {
       // Sync top volumes with pagination
       console.log(`[SYNC] Fetching top volumes from ComicVine API (limit: ${limit}, offset: ${offset})...`);
+      console.log('[SYNC] About to call ComicVine API', { timestamp: new Date().toISOString() });
+      
       const response = await fetch(
         `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${limit}&offset=${offset}&sort=count_of_issues:desc`,
         { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
       );
+      
+      console.log('[SYNC] ComicVine API response received:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -159,8 +168,10 @@ serve(async (req) => {
       console.log('[SYNC] Received', data.results?.length || 0, 'volumes from ComicVine');
       
       if (data.results) {
-        for (const vol of data.results) {
+        for (let i = 0; i < data.results.length; i++) {
+          const vol = data.results[i];
           volumesProcessed++;
+          console.log(`Processed volume ${i + 1}/${data.results.length}: ${vol.name} (ID: ${vol.id})`);
           console.log(`[SYNC] Processing volume ${volumesProcessed}/${data.results.length}: ${vol.name} (${vol.id})`);
           
           const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
@@ -192,6 +203,7 @@ serve(async (req) => {
     };
     
     console.log('[SYNC] Returning response:', result);
+    console.log('[SYNC] About to return success response', { timestamp: new Date().toISOString() });
 
     return new Response(
       JSON.stringify(result),
