@@ -21,6 +21,7 @@ import { DebugPanel } from "@/components/scanner/DebugPanel";
 import { CoverZoomModal } from "@/components/scanner/CoverZoomModal";
 import { QuickFilterChips } from "@/components/scanner/QuickFilterChips";
 import { ScannerActions } from "@/components/scanner/ScannerActions";
+import { VolumeIssuePicker } from "@/components/scanner/VolumeIssuePicker";
 
 // Utils
 import { compressImageDataUrl, createThumbnail } from "@/lib/imageCompression";
@@ -69,6 +70,8 @@ export default function Scanner() {
   const [manualSearchQuery, setManualSearchQuery] = useState("");
   const [manualSearchLoading, setManualSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ComicVinePick[]>([]);
+  const [volumeResults, setVolumeResults] = useState<any[]>([]);
+  const [searchSource, setSearchSource] = useState<'local' | 'live' | null>(null);
   
   // Selected state
   const [selectedPick, setSelectedPick] = useState<ComicVinePick | null>(null);
@@ -293,7 +296,7 @@ export default function Scanner() {
     }
   };
 
-  // Manual search
+  // Manual search - tries local cache first, then fallback to live ComicVine
   const handleManualSearch = async () => {
     if (!manualSearchQuery.trim()) {
       toast({
@@ -306,8 +309,49 @@ export default function Scanner() {
 
     setManualSearchLoading(true);
     setError(null);
+    setVolumeResults([]);
+    setSearchResults([]);
 
     try {
+      // Try local volume cache first
+      const localParams = new URLSearchParams({
+        q: manualSearchQuery,
+      });
+      
+      if (debugData.extracted?.publisher) {
+        localParams.append('publisher', debugData.extracted.publisher);
+      }
+      if (debugData.extracted?.year) {
+        localParams.append('year', debugData.extracted.year.toString());
+      }
+
+      const { data: localData, error: localError } = await supabase.functions.invoke('volumes-suggest', {
+        body: {
+          q: manualSearchQuery,
+          publisher: debugData.extracted?.publisher,
+          year: debugData.extracted?.year,
+          limit: 20
+        }
+      });
+
+      if (!localError && localData?.results && localData.results.length > 0) {
+        // Found results in local cache
+        setVolumeResults(localData.results);
+        setSearchSource('local');
+        setStatus("results");
+        
+        setDebugData(prev => ({
+          ...prev,
+          status: "success",
+          comicvineQuery: manualSearchQuery,
+          queryParams: { source: 'local', ...localData.filters }
+        }));
+        
+        sonnerToast.success(`Found ${localData.results.length} volumes in local cache`);
+        return;
+      }
+
+      // Fallback to live ComicVine search
       const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
         body: {
           searchText: manualSearchQuery,
@@ -330,13 +374,14 @@ export default function Scanner() {
       }
 
       setSearchResults(results);
+      setSearchSource('live');
       setStatus("results");
       
       setDebugData(prev => ({
         ...prev,
         status: "success",
         comicvineQuery: manualSearchQuery,
-        queryParams: { searchText: manualSearchQuery, filters: { filterNotReprint, filterWrongYear, filterSlabbed } }
+        queryParams: { source: 'live', searchText: manualSearchQuery, filters: { filterNotReprint, filterWrongYear, filterSlabbed } }
       }));
 
       if (results.length === 0) {
@@ -344,7 +389,7 @@ export default function Scanner() {
           description: "Try a simpler search like just the title"
         });
       } else {
-        sonnerToast.success(`Found ${results.length} results`);
+        sonnerToast.info(`Found ${results.length} results from live ComicVine search`);
       }
     } catch (err: any) {
       console.error('Manual search error:', err);
@@ -380,7 +425,60 @@ export default function Scanner() {
     }
   };
 
-  // Select comic from results
+  // Select comic from volume/issue picker (local cache)
+  const handleSelectIssue = async (issue: any, volume: any) => {
+    const year = issue.cover_date ? new Date(issue.cover_date).getFullYear() : volume.start_year;
+    
+    // Convert to ComicVinePick format for consistency
+    const pick: ComicVinePick = {
+      id: issue.id,
+      resource: 'issue' as const,
+      title: volume.name,
+      issue: issue.issue_number,
+      year: year || null,
+      publisher: volume.publisher || null,
+      volumeName: volume.name,
+      volumeId: volume.id,
+      variantDescription: issue.name || null,
+      thumbUrl: issue.image_url || '',
+      coverUrl: issue.image_url || '',
+      writer: issue.writer || null,
+      artist: issue.artist || null,
+      score: 1.0,
+      isReprint: false,
+      source: 'cache' as const
+    };
+    
+    setSelectedPick(pick);
+    setPrefillData({
+      title: volume.name,
+      issueNumber: issue.issue_number || undefined,
+      publisher: volume.publisher || undefined,
+      year: year || undefined,
+      comicvineId: issue.id,
+      comicvineCoverUrl: issue.image_url,
+      description: issue.key_notes || undefined
+    });
+    setStatus("selected");
+    saveToRecentScans(pick);
+    
+    // Save to database if user is logged in
+    if (user?.id && imageUrl) {
+      await saveScanToHistory(user.id, imageUrl, pick);
+      const dbHistory = await loadScanHistory(user.id, 10);
+      if (dbHistory.length > 0) {
+        setRecentScans(dbHistory);
+      }
+    } else {
+      setRecentScans(loadRecentScans());
+    }
+    
+    sonnerToast.success("Comic selected!", {
+      description: `${volume.name} #${issue.issue_number}`
+    });
+  };
+
+  // Select comic from results (live ComicVine)
   const handleSelectComic = async (pick: ComicVinePick) => {
     setSelectedPick(pick);
     setPrefillData({
@@ -397,7 +495,6 @@ export default function Scanner() {
     // Save to database if user is logged in
     if (user?.id && imageUrl) {
       await saveScanToHistory(user.id, imageUrl, pick);
-      // Reload history from database
       const dbHistory = await loadScanHistory(user.id, 10);
       if (dbHistory.length > 0) {
         setRecentScans(dbHistory);
@@ -612,8 +709,11 @@ export default function Scanner() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Didn't find the right comic?</CardTitle>
-            <CardDescription>
-              Refine the search below. Try "Amazing Spider-Man 129" or just the title.
+            <CardDescription className="space-y-1">
+              <span className="block">Refine the search below. Try "Amazing Spider-Man 129" or just the title.</span>
+              <span className="block text-xs text-muted-foreground">
+                Searching local ComicVine index first for speed & accuracy
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -651,6 +751,16 @@ export default function Scanner() {
         </Card>
       )}
 
+      {/* Volume/Issue Picker - Local Cache Results */}
+      {volumeResults.length > 0 && searchSource === 'local' && (
+        <VolumeIssuePicker
+          volumes={volumeResults}
+          loading={manualSearchLoading}
+          onSelectIssue={handleSelectIssue}
+          onClose={() => setVolumeResults([])}
+        />
+      )}
+
       {/* Error State */}
       {error && (
         <Alert variant="destructive">
@@ -659,12 +769,16 @@ export default function Scanner() {
         </Alert>
       )}
 
-      {/* Search Results */}
-      {status === "results" && searchResults.length > 0 && !selectedPick && (
+      {/* Search Results - Live ComicVine (fallback) */}
+      {searchResults.length > 0 && searchSource === 'live' && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Search Results</h2>
+          <Alert>
+            <AlertDescription className="text-sm">
+              These results are from live ComicVine search. Local cache had no matches.
+            </AlertDescription>
+          </Alert>
           <VolumeGroupedResults
-            groupedResults={groupedResults}
+            groupedResults={groupResultsByVolume(searchResults)}
             onSelectComic={handleSelectComic}
             onCoverClick={(url, title) => setZoomImage({ url, title })}
           />

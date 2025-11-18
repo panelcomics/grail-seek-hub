@@ -110,3 +110,33 @@ verify_jwt = false
 [functions.pricing-pipeline]
 verify_jwt = false
 
+[functions.sync-comicvine-cache]
+verify_jwt = false
+
+[functions.volumes-suggest]
+verify_jwt = false
+
+[functions.volumes-issues]
+verify_jwt = false
+
+[functions.manual-comicvine-search]
+verify_jwt = false
+
+[functions.test-upload]
+verify_jwt = false
+
+[functions.upload-scanner-image]
+verify_jwt = false
+
+[functions.update-seller-favorites]
+verify_jwt = true
+
+[functions.get-shipping-rates]
+verify_jwt = true
+
+[functions.purchase-shipping-label]
+verify_jwt = true
+
+[functions.process-refund]
+verify_jwt = true
+
