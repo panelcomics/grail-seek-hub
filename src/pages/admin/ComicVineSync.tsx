@@ -110,14 +110,15 @@ export default function ComicVineSync() {
       setSyncResult(data);
       
       // Update offset for next sync
-      if (data.nextOffset) {
-        setCurrentOffset(data.nextOffset);
-      }
+      const nextOffset = data.offset + data.processed;
+      setCurrentOffset(nextOffset);
       
-    toast({
-      title: data.done ? "Batch Complete" : "Batch Synced",
-      description: `Processed ${data.volumesProcessed} volumes (${data.newVolumes} new, ${data.updatedVolumes} updated), synced ${data.issuesSynced} issues. Next offset: ${data.nextOffset}.`,
-    });
+      toast({
+        title: data.done ? "Sync Complete" : "Batch Synced",
+        description: data.done 
+          ? `Synced ${data.processed} volumes. All done!`
+          : `Synced ${data.processed} volumes. Click "Start Sync" again to continue (offset: ${nextOffset}).`,
+      });
       
       // Refresh stats after successful sync
       await fetchStats();
@@ -223,11 +224,36 @@ export default function ComicVineSync() {
             <CardHeader>
               <CardTitle>Sync ComicVine Data</CardTitle>
               <CardDescription>
-                This will fetch the top volumes from ComicVine and cache them locally for faster scanner performance.
-                Each sync processes 50 volumes with pagination (current offset: {currentOffset}). Run multiple times to build the cache.
+                This will fetch volumes from ComicVine in small batches. 
+                Each sync processes up to {limit} volumes starting at offset {currentOffset}. 
+                Click "Start Sync" multiple times to build the cache gradually.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Limit (per batch)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={limit}
+                    onChange={(e) => setLimit(Math.min(100, Math.max(1, parseInt(e.target.value) || 10)))}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Offset (start position)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentOffset}
+                    onChange={(e) => setCurrentOffset(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+              </div>
+              
               <Button
                 onClick={handleSync}
                 disabled={syncing}
@@ -262,10 +288,15 @@ export default function ComicVineSync() {
                       
                       {syncResult.success && (
                         <div className="text-sm space-y-1">
-                          <div>Volumes processed: <span className="font-bold">{syncResult.volumesSynced}</span></div>
-                          <div>New volumes added this run: <span className="font-bold text-green-600">{syncResult.volumesAdded}</span> (issues added: <span className="font-bold text-green-600">{syncResult.issuesSynced}</span>)</div>
-                          <div className="text-xs text-muted-foreground mt-2">Volumes updated: {syncResult.volumesUpdated}</div>
-                          <div className="text-xs text-muted-foreground">Next offset: {syncResult.nextOffset}</div>
+                          <div>Batch: <span className="font-bold">limit={syncResult.limit}, offset={syncResult.offset}</span></div>
+                          <div>Volumes processed: <span className="font-bold text-green-600">{syncResult.processed}</span></div>
+                          <div className="text-xs text-muted-foreground mt-2">Done: {syncResult.done ? 'Yes' : 'No (run again)'}</div>
+                          {!syncResult.done && (
+                            <div className="text-xs text-muted-foreground">Next offset: {syncResult.offset + syncResult.processed}</div>
+                          )}
+                          {syncResult.message && (
+                            <div className="text-xs text-muted-foreground mt-2">{syncResult.message}</div>
+                          )}
                         </div>
                       )}
                       
