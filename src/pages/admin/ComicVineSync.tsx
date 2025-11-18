@@ -15,6 +15,7 @@ export default function ComicVineSync() {
   const [stats, setStats] = useState<{ volumes: number; issues: number } | null>(null);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [currentOffset, setCurrentOffset] = useState(0);
+  const [limit, setLimit] = useState(50);
   const { toast } = useToast();
 
   // Environment info for debugging
@@ -57,9 +58,9 @@ export default function ComicVineSync() {
     setSyncResult(null);
 
     try {
-      console.log(`[UI] Invoking sync-comicvine-cache function with offset ${currentOffset}...`);
+      console.log(`[UI] Invoking sync-comicvine-cache function with limit ${limit}, offset ${currentOffset}...`);
       const { data, error } = await supabase.functions.invoke('sync-comicvine-cache', {
-        body: { offset: currentOffset },
+        body: { limit, offset: currentOffset },
       });
 
       console.log('[UI] Function response:', { data, error });
@@ -113,10 +114,10 @@ export default function ComicVineSync() {
         setCurrentOffset(data.nextOffset);
       }
       
-      toast({
-        title: "Sync Complete",
-        description: `Processed ${data.volumesSynced} volumes (${data.volumesAdded} new), synced ${data.issuesSynced} issues`,
-      });
+    toast({
+      title: data.done ? "Batch Complete" : "Batch Synced",
+      description: `Processed ${data.volumesProcessed} volumes (${data.newVolumes} new, ${data.updatedVolumes} updated), synced ${data.issuesSynced} issues. Next offset: ${data.nextOffset}.`,
+    });
       
       // Refresh stats after successful sync
       await fetchStats();

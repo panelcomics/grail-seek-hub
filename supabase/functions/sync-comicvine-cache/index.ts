@@ -132,125 +132,122 @@ serve(async (req) => {
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Parse request body
-        let startOffset = 0;
+        // Parse request body for limit and offset (single batch per call)
+        let limit = 50;
+        let offset = 0;
         try {
           const bodyText = await req.text();
           if (bodyText) {
             const requestBody = JSON.parse(bodyText);
-            startOffset = requestBody.offset || 0;
+            if (typeof requestBody.limit === 'number') {
+              limit = requestBody.limit;
+            }
+            if (typeof requestBody.offset === 'number') {
+              offset = requestBody.offset;
+            }
           }
         } catch (error) {
           console.error('[SYNC] Failed to parse request body:', error);
         }
 
-        console.log('[SYNC] Starting batched sync with BATCH_SIZE:', BATCH_SIZE, 'starting offset:', startOffset);
+        console.log('[SYNC] Starting single-batch sync with limit:', limit, 'offset:', offset);
 
-        let totalVolumesProcessed = 0;
-        let totalVolumesAdded = 0;
-        let totalVolumesUpdated = 0;
-        let totalIssuesSynced = 0;
-        let currentOffset = startOffset;
-        let batchCount = 0;
-        let hasMore = true;
+        // Fetch a single batch of volumes from ComicVine
+        const response = await fetch(
+          `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${limit}&offset=${offset}&sort=count_of_issues:desc`,
+          { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
+        );
 
-        // Loop through batches
-        while (hasMore && batchCount < MAX_BATCHES) {
-          batchCount++;
-          console.log(`[SYNC] Batch ${batchCount}: Fetching volumes from offset ${currentOffset}`);
-          
-          const response = await fetch(
-            `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${BATCH_SIZE}&offset=${currentOffset}&sort=count_of_issues:desc`,
-            { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
-          );
-          
-          console.log('[SYNC] ComicVine API response:', response.status);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('[SYNC] ComicVine API error:', response.status, errorText);
-            return new Response(JSON.stringify({ 
-              success: false,
-              error: `ComicVine API error: ${response.status}`,
-              details: errorText,
-              timestamp: new Date().toISOString()
-            }), {
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          
-          const data = await response.json();
-          const volumes = data.results || [];
-          console.log(`[SYNC] Batch ${batchCount}: Received ${volumes.length} volumes`);
-          
-          if (volumes.length === 0) {
-            console.log('[SYNC] No more volumes to sync');
-            hasMore = false;
-            break;
-          }
+        console.log('[SYNC] ComicVine API response:', response.status);
 
-          // Process this batch
-          for (let i = 0; i < volumes.length; i++) {
-            const vol = volumes[i];
-            console.log(`[SYNC] Processing volume ${i + 1}/${volumes.length}: ${vol.name} (ID: ${vol.id})`);
-            
-            const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
-            if (volResult.success) {
-              totalVolumesProcessed++;
-              if (volResult.isNew) {
-                totalVolumesAdded++;
-              } else {
-                totalVolumesUpdated++;
-              }
-              
-              // Sync issues for this volume
-              const issuesResult = await syncVolumeIssues(vol.id, comicvineKey, supabase);
-              totalIssuesSynced += issuesResult.count;
-              console.log(`[SYNC] Synced ${issuesResult.count} issues for volume ${vol.id}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[SYNC] ComicVine API error:', response.status, errorText);
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: `ComicVine API error: ${response.status}`,
+            details: errorText,
+            batch: { limit, offset },
+            timestamp: new Date().toISOString()
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const data = await response.json();
+        const volumes = data.results || [];
+        const volumesProcessed = volumes.length;
+        console.log('[SYNC] Received volumes for single batch:', volumesProcessed);
+
+        let newVolumes = 0;
+        let updatedVolumes = 0;
+        let issuesSynced = 0;
+
+        // Process this batch (upsert only, never deleting existing cache)
+        for (let i = 0; i < volumes.length; i++) {
+          const vol = volumes[i];
+          console.log(`[SYNC] Processing volume ${i + 1}/${volumes.length}: ${vol.name} (ID: ${vol.id})`);
+          
+          const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
+          if (volResult.success) {
+            if (volResult.isNew) {
+              newVolumes++;
             } else {
-              console.error(`[SYNC] Failed to sync volume ${vol.id}`);
+              updatedVolumes++;
             }
-          }
 
-          // If we got fewer than BATCH_SIZE, we're done
-          if (volumes.length < BATCH_SIZE) {
-            console.log('[SYNC] Last batch processed, ending sync');
-            hasMore = false;
+            // Sync issues for this volume (also via upsert)
+            const issuesResult = await syncVolumeIssues(vol.id, comicvineKey, supabase);
+            issuesSynced += issuesResult.count;
+            console.log(`[SYNC] Synced ${issuesResult.count} issues for volume ${vol.id}`);
           } else {
-            currentOffset += BATCH_SIZE;
-            // Rate limiting between batches
-            await new Promise(resolve => setTimeout(resolve, 1100));
+            console.error(`[SYNC] Failed to sync volume ${vol.id}`);
           }
         }
 
-        if (batchCount >= MAX_BATCHES) {
-          console.log(`[SYNC] Reached max batches limit (${MAX_BATCHES}), stopping sync`);
-        }
+        // Calculate cache totals after this batch
+        const { count: totalVolumes } = await supabase
+          .from('comicvine_volumes')
+          .select('*', { count: 'exact', head: true });
 
-        console.log('[SYNC] Sync complete:', {
-          volumesProcessed: totalVolumesProcessed,
-          volumesAdded: totalVolumesAdded,
-          volumesUpdated: totalVolumesUpdated,
-          issuesSynced: totalIssuesSynced,
-          nextOffset: currentOffset
+        const { count: totalIssues } = await supabase
+          .from('comicvine_issues')
+          .select('*', { count: 'exact', head: true });
+
+        const nextOffset = offset + volumesProcessed;
+        const done = volumesProcessed < limit;
+
+        console.log('[SYNC] Single-batch sync complete:', {
+          batch: { limit, offset },
+          volumesProcessed,
+          newVolumes,
+          updatedVolumes,
+          issuesSynced,
+          nextOffset,
+          done,
+          totalVolumes,
+          totalIssues,
         });
 
         return new Response(
           JSON.stringify({
             success: true,
-            message: 'ComicVine sync completed',
-            volumesSynced: totalVolumesProcessed,
-            volumesAdded: totalVolumesAdded,
-            volumesUpdated: totalVolumesUpdated,
-            issuesSynced: totalIssuesSynced,
-            totalSynced: totalVolumesProcessed + totalIssuesSynced,
-            nextOffset: currentOffset,
-            timestamp: new Date().toISOString()
+            message: 'ComicVine batch sync completed',
+            batch: { limit, offset },
+            volumesProcessed,
+            newVolumes,
+            updatedVolumes,
+            issuesSynced,
+            nextOffset,
+            done,
+            totalVolumes: totalVolumes || 0,
+            totalIssues: totalIssues || 0,
+            timestamp: new Date().toISOString(),
           }),
-          { 
+          {
             status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
 
