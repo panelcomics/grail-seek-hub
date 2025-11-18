@@ -791,6 +791,28 @@ export default function Scanner() {
                                   {debugData.extracted.year || <span className="text-red-500">null</span>}
                                 </span>
                               </div>
+                              <div>
+                                <span className="text-muted-foreground">isSlab = </span>
+                                <span className="text-foreground font-medium">
+                                  {debugData.extracted.isSlab ? 'true' : 'false'}
+                                </span>
+                              </div>
+                              {debugData.extracted.coverText && (
+                                <div className="mt-2 pt-2 border-t border-border/50">
+                                  <div className="font-semibold text-foreground mb-1">Cover Text (extracted):</div>
+                                  <div className="bg-background/50 p-2 rounded text-[10px] max-h-16 overflow-y-auto whitespace-pre-wrap border border-border">
+                                    {debugData.extracted.coverText}
+                                  </div>
+                                </div>
+                              )}
+                              {debugData.extracted.slabText && (
+                                <div className="mt-2 pt-2 border-t border-border/50">
+                                  <div className="font-semibold text-foreground mb-1">Slab Label Text (extracted):</div>
+                                  <div className="bg-background/50 p-2 rounded text-[10px] max-h-16 overflow-y-auto whitespace-pre-wrap border border-border">
+                                    {debugData.extracted.slabText}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -867,6 +889,7 @@ export default function Scanner() {
                     <div><span className="font-medium">Parsed Title:</span> {debugData.extracted?.title || 'N/A'}</div>
                     <div><span className="font-medium">Parsed Issue:</span> {debugData.extracted?.issueNumber || 'N/A'}</div>
                     <div><span className="font-medium">Parsed Publisher:</span> {debugData.extracted?.publisher || 'N/A'}</div>
+                    <div><span className="font-medium">Is Slab:</span> {debugData.extracted?.isSlab ? 'Yes' : 'No'}</div>
                   </div>
                 </CardContent>
               </Card>
