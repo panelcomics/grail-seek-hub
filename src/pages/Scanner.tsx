@@ -1,22 +1,37 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Search, Camera, Zap, Upload, X, Check } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, Search, Camera, Upload, X, AlertCircle, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RecognitionDebugOverlay } from "@/components/RecognitionDebugOverlay";
-import { UploadLogPanel } from "@/components/UploadLogPanel";
-import { ScannerListingForm } from "@/components/ScannerListingForm";
-import { ComicVinePicker } from "@/components/ComicVinePicker";
-import { Badge } from "@/components/ui/badge";
-import { uploadViaProxy } from "@/lib/uploadImage";
-import { withTimeout } from "@/lib/withTimeout";
 import { toast as sonnerToast } from "sonner";
-import { getSessionId } from "@/lib/session";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+// Types
+import { ComicVinePick } from "@/types/comicvine";
+
+// Components
+import { ScannerListingForm } from "@/components/ScannerListingForm";
+import { VolumeGroupedResults } from "@/components/scanner/VolumeGroupedResults";
+import { RecentScans } from "@/components/scanner/RecentScans";
+import { DebugPanel } from "@/components/scanner/DebugPanel";
+import { CoverZoomModal } from "@/components/scanner/CoverZoomModal";
+import { QuickFilterChips } from "@/components/scanner/QuickFilterChips";
+import { ScannerActions } from "@/components/scanner/ScannerActions";
+
+// Utils
+import { compressImageDataUrl, createThumbnail } from "@/lib/imageCompression";
+import { 
+  groupResultsByVolume, 
+  saveToRecentScans, 
+  loadRecentScans,
+  buildPrefilledQuery,
+  filterReprints,
+  isDebugMode
+} from "@/lib/scannerUtils";
 
 interface PrefillData {
   title?: string;
@@ -29,325 +44,90 @@ interface PrefillData {
   description?: string;
 }
 
-interface ComicVinePick {
-  id: number;
-  resource: 'issue' | 'volume';
-  title: string;
-  issue: string | null;
-  year: number | null;
-  publisher?: string | null;
-  volumeName?: string | null;
-  volumeId?: number | null;
-  variantDescription?: string | null;
-  thumbUrl: string;
-  coverUrl: string;
-  writer?: string | null;
-  artist?: string | null;
-  score: number;
-  isReprint: boolean;
-  source?: 'comicvine' | 'cache' | 'gcd';
-}
-
-// Explicit state machine: idle → previewing → uploading → picks → editing
-// Once in 'picks' or 'editing', only user actions change state
-type ScannerStatus = "idle" | "previewing" | "uploading" | "picks" | "editing";
+type ScannerStatus = "idle" | "scanning" | "processing" | "results" | "selected";
 
 export default function Scanner() {
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null); // Preview before recognition (local data URL)
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null); // Fast-loading thumbnail from server
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // Final compressed image for listing
-  const [additionalImages, setAdditionalImages] = useState<string[]>([]); // Additional photos
-  const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Core state
   const [status, setStatus] = useState<ScannerStatus>("idle");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Image state
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  
+  // Search state
   const [manualSearchQuery, setManualSearchQuery] = useState("");
   const [manualSearchLoading, setManualSearchLoading] = useState(false);
-  const [refinedResults, setRefinedResults] = useState<ComicVinePick[]>([]);
-  const [confidence, setConfidence] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"camera" | "upload" | "search">("camera");
   const [searchResults, setSearchResults] = useState<ComicVinePick[]>([]);
-  const [textSearchResults, setTextSearchResults] = useState<any[]>([]);
   
-  // Sticky session: once a scan is active, keep it active until explicit user action
-  const [scanSessionActive, setScanSessionActive] = useState(false);
+  // Selected state
   const [selectedPick, setSelectedPick] = useState<ComicVinePick | null>(null);
+  const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
+  const [confidence, setConfidence] = useState<number | null>(null);
   
-  // Manual refine search state
+  // Filter state
   const [filterNotReprint, setFilterNotReprint] = useState(false);
   const [filterWrongYear, setFilterWrongYear] = useState(false);
   const [filterSlabbed, setFilterSlabbed] = useState(false);
-  const [recentSelections, setRecentSelections] = useState<ComicVinePick[]>([]);
-  const [extractedTokens, setExtractedTokens] = useState<{
-    title?: string;
-    issueNumber?: string;
-    publisher?: string;
-    year?: number;
-  } | null>(null);
-
+  
+  // UI state
+  const [recentScans, setRecentScans] = useState<ComicVinePick[]>([]);
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
+  
+  // Debug state
   const [debugData, setDebugData] = useState({
-    status: "idle" as "idle" | "processing" | "success" | "error",
-    method: null as "camera" | "upload" | "search" | null,
-    apiHit: null as "ComicVine" | "scan-item" | null,
-    confidenceScore: null as number | null,
-    responseTimeMs: null as number | null,
-    ocrTimeMs: null as number | null,
-    errorMessage: null as string | null,
-    rawOcrText: null as string | null,
-    cvQuery: null as string | null,
-    slabData: null as any,
-    ebayData: null as any,
-    retryAttempt: 0,
+    status: "idle",
+    raw_ocr: "",
     extracted: null as any,
-    noMatchesFound: false as boolean,
-    autoSelected: false as boolean,
-    autoSelectedId: null as number | null,
-    autoSelectedTitle: null as string | null,
-    comicVineQuery: null as string | null,
-    scoreBreakdowns: null as Array<{id: number; title: string; issue: string; score: number; breakdown: any}> | null,
-    detectedTitles: null as string[] | null,
-    chosenTitle: null as string | null,
-    confidenceScoreTitle: null as number | null,
+    confidence: null as number | null,
+    queryParams: null as any,
+    comicvineQuery: ""
   });
 
-  const [uploadLog, setUploadLog] = useState<{
-    timestamp: string;
-    fieldName: string;
-    size: string;
-    type: string;
-    status: number;
-    path?: string;
-    publicUrl?: string;
-    elapsed: string;
-    error?: string;
-  } | null>(null);
-
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  const isDev = import.meta.env.DEV || window.location.hostname.includes("lovableproject.com");
-
-  // Load recent selections from localStorage
+  // Load recent scans on mount
   useEffect(() => {
-    const stored = localStorage.getItem('recentComicSelections');
-    if (stored) {
-      try {
-        setRecentSelections(JSON.parse(stored));
-      } catch (e) {
-        console.warn('Failed to parse recent selections:', e);
-      }
-    }
+    const recent = loadRecentScans();
+    setRecentScans(recent);
+    setShowDebug(isDebugMode());
   }, []);
 
-  // Pre-fill manual search query when OCR is available and confidence is low
+  // Auto-fill manual search from OCR extraction
   useEffect(() => {
-    if (debugData.extracted && searchResults.length > 0 && !debugData.autoSelected) {
-      const { finalCleanTitle, issueNumber, publisher, year } = debugData.extracted;
-      
-      // Build a reasonable search query from OCR
-      if (finalCleanTitle) {
-        // Clean up the title by removing noise words
-        const cleanedTitle = finalCleanTitle
-          .replace(/\b(PAGES?|CAD|AUTHORITY|APPROVED|CODE|COMICS)\b/gi, '')
-          .trim();
-        
-        if (cleanedTitle && cleanedTitle.length > 2) {
-          const searchQuery = issueNumber 
-            ? `${cleanedTitle} ${issueNumber}`
-            : cleanedTitle;
-          
-          setManualSearchQuery(searchQuery);
-          
-          // Store extracted tokens for manual search
-          setExtractedTokens({
-            title: cleanedTitle,
-            issueNumber: issueNumber || undefined,
-            publisher: publisher || undefined,
-            year: year || undefined
-          });
-        }
+    if (debugData.extracted && confidence && confidence < 0.8) {
+      const query = buildPrefilledQuery(debugData.extracted);
+      if (query && !manualSearchQuery) {
+        setManualSearchQuery(query);
       }
     }
-  }, [debugData.extracted, searchResults.length, debugData.autoSelected]);
+  }, [debugData.extracted, confidence]);
 
-  // Build pre-filled search query from extracted tokens
-  const buildPrefilledQuery = () => {
-    if (!extractedTokens) return "";
-    
-    const parts: string[] = [];
-    
-    if (extractedTokens.title) {
-      parts.push(extractedTokens.title);
-    }
-    
-    if (extractedTokens.issueNumber) {
-      parts.push(`#${extractedTokens.issueNumber}`);
-    }
-    
-    if (extractedTokens.year) {
-      parts.push(`(${extractedTokens.year})`);
-    }
-    
-    if (extractedTokens.publisher) {
-      parts.push(extractedTokens.publisher);
-    }
-    
-    return parts.join(' ');
-  };
-
-  // Handle manual search with filters
-  const handleManualSearch = async () => {
-    if (!manualSearchQuery.trim()) {
-      toast({
-        title: "Enter a search term",
-        description: "Type a comic title and issue number to search.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setManualSearchLoading(true);
-    setRefinedResults([]);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
-        body: {
-          searchText: manualSearchQuery,
-          publisher: extractedTokens?.publisher || undefined
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.ok && data?.results) {
-        let results = data.results as ComicVinePick[];
-        
-        // Apply filters
-        if (filterNotReprint) {
-          const reprintKeywords = /(facsimile|true believers|reprint|anniversary edition|2nd print|third print|second print|replica|reproduction|marvel tales|omnibus|tpb|trade paperback)/i;
-          results = results.filter(r => {
-            const textToCheck = `${r.title || ''} ${r.volumeName || ''} ${r.variantDescription || ''}`;
-            return !reprintKeywords.test(textToCheck) && !r.isReprint;
-          });
-        }
-        
-        if (filterWrongYear && extractedTokens?.year) {
-          const targetYear = extractedTokens.year;
-          results = results.filter(r => {
-            if (!r.year) return true;
-            return Math.abs(r.year - targetYear) <= 10;
-          });
-        }
-        
-        if (filterSlabbed) {
-          // Prioritize direct edition, newsstand, first print
-          results.sort((a, b) => {
-            const aIsDirect = /direct|newsstand|1st print|first print/i.test(`${a.variantDescription || ''}`);
-            const bIsDirect = /direct|newsstand|1st print|first print/i.test(`${b.variantDescription || ''}`);
-            if (aIsDirect && !bIsDirect) return -1;
-            if (!aIsDirect && bIsDirect) return 1;
-            return b.score - a.score;
-          });
-        }
-        
-        setRefinedResults(results);
-        
-        if (results.length === 0) {
-          toast({
-            title: "No results found",
-            description: "Try a simpler search like 'Amazing Spider-Man' or just the title without the issue number.",
-          });
-        }
-      }
-    } catch (error: any) {
-      console.error('Manual search error:', error);
-      toast({
-        title: "Search failed",
-        description: error.message || "Could not search ComicVine",
-        variant: "destructive"
-      });
-    } finally {
-      setManualSearchLoading(false);
-    }
-  };
-
-  // Save selection to recent history
-  const saveToRecentSelections = (pick: ComicVinePick) => {
-    const updated = [pick, ...recentSelections.filter(r => r.id !== pick.id)].slice(0, 5);
-    setRecentSelections(updated);
-    localStorage.setItem('recentComicSelections', JSON.stringify(updated));
-  };
-
-  // Handle ComicVine selection from manual search
-  const handleManualSelectComic = (pick: ComicVinePick) => {
-    setSelectedPick(pick);
-    saveToRecentSelections(pick);
-    
-    // Auto-fill form fields without replacing user's image
-    setPrefillData({
-      title: pick.title,
-      series: pick.volumeName || pick.title,
-      issueNumber: pick.issue || undefined,
-      publisher: pick.publisher || undefined,
-      year: pick.year || undefined,
-      comicvineId: pick.id,
-      // Don't set comicvineCoverUrl to preserve user's uploaded photo
-    });
-    
-    setStatus("editing");
-    setRefinedResults([]);
-    
-    toast({
-      title: "Comic selected",
-      description: `${pick.title} ${pick.issue ? '#' + pick.issue : ''}`,
-    });
-  };
-
+  // Camera functions
   const startCamera = async () => {
     try {
-      console.log("Requesting camera access...");
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
       });
-
-      console.log("Camera stream obtained:", stream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        
-        // Wait for video metadata to load before playing
-        videoRef.current.onloadedmetadata = async () => {
-          try {
-            await videoRef.current?.play();
-            console.log("Video playing successfully");
-            setCameraActive(true);
-          } catch (playError) {
-            console.error("Error playing video:", playError);
-            sonnerToast.error("Failed to start camera preview. Please try uploading a photo instead.");
-            stopCamera();
-          }
-        };
+        setCameraActive(true);
       }
     } catch (error) {
       console.error("Camera error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      console.error("Camera error details:", errorMessage);
-      
-      sonnerToast.error("Camera unavailable. Please upload a photo of your comic instead.", {
-        description: "Camera access was denied or is not available on this device."
-      });
-      
       toast({
-        title: "Camera unavailable",
-        description: "Please upload a photo of your comic instead.",
+        title: "Camera access denied",
+        description: "Please allow camera access to scan comics",
         variant: "destructive",
       });
     }
@@ -361,1498 +141,525 @@ export default function Scanner() {
     setCameraActive(false);
   };
 
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      
-      // Ensure video has loaded and has dimensions
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.error("Video dimensions not ready");
-        sonnerToast.error("Camera not ready. Please wait a moment and try again.");
-        return;
-      }
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+  const capturePhoto = async () => {
+    if (!videoRef.current) return;
 
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const capturedImageData = canvas.toDataURL("image/jpeg", 0.8);
-        console.log("Photo captured successfully");
-        setPreviewImage(capturedImageData);
-        setStatus("previewing");
-        stopCamera();
-      }
-    } else {
-      console.error("Video or canvas ref not available");
-      sonnerToast.error("Failed to capture photo. Please try again or upload a photo instead.");
-    }
-  };
-
-  const handleRetake = () => {
-    setPreviewImage(null);
-    setThumbnailUrl(null);
-    setImageUrl(null);
-    setStatus("idle");
-    setScanSessionActive(false);
-    startCamera();
-  };
-
-  const handleUsePhoto = () => {
-    if (!previewImage) return;
-    setImageUrl(previewImage);
-    identifyFromImage(previewImage, "camera");
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('UPLOAD_CLICK');
-    const file = event.target.files?.[0];
-    console.log('FILE_SELECTED', file?.name, file?.size, file?.type);
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
     
+    if (!ctx) return;
+    
+    ctx.drawImage(video, 0, 0);
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+    
+    stopCamera();
+    setPreviewImage(imageData);
+    processImage(imageData);
+  };
+
+  // Upload handler
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const uploadedImageData = e.target?.result as string;
-      // Skip preview, immediately upload
-      identifyFromImage(uploadedImageData, "upload");
+      const imageData = e.target?.result as string;
+      setPreviewImage(imageData);
+      processImage(imageData);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleChooseDifferent = () => {
-    setPreviewImage(null);
-    setThumbnailUrl(null);
-    setImageUrl(null);
-    setAdditionalImages([]);
-    setStatus("idle");
-    setScanSessionActive(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleContinue = () => {
-    if (!previewImage) return;
-    setImageUrl(previewImage);
-    identifyFromImage(previewImage, "upload");
-  };
-
-  // Server-side OCR with storage, retry, and eBay pricing
-  const identifyFromImage = async (imageData: string, method: "camera" | "upload", retryCount = 0) => {
-    if (!imageData) return;
-
-    const getTimestamp = () => `[Scanner ${new Date().toISOString()}]`;
-    
-    console.log(`${getTimestamp()} 📸 Starting scanner flow...`, { method, retryCount });
-
-    try {
-      setLoading(true);
-      setStatus("uploading");
-      setScanSessionActive(true); // Activate sticky session
-      setPrefillData(null);
-      setConfidence(null);
-
-      setDebugData({
-        status: "processing",
-        method,
-        apiHit: null,
-        confidenceScore: null,
-        responseTimeMs: null,
-        ocrTimeMs: null,
-        errorMessage: null,
-        rawOcrText: null,
-        cvQuery: null,
-        slabData: null,
-        ebayData: null,
-        retryAttempt: retryCount,
-        extracted: null,
-        noMatchesFound: false,
-        autoSelected: false,
-        autoSelectedId: null,
-        autoSelectedTitle: null,
-        comicVineQuery: null,
-        scoreBreakdowns: null,
-        detectedTitles: null,
-        chosenTitle: null,
-        confidenceScoreTitle: null,
-      });
-
-      // Check authentication
-      console.log(`${getTimestamp()} Checking authentication...`);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error(`${getTimestamp()} ERROR: Not authenticated`);
-        throw new Error("Please sign in to use the scanner");
-      }
-      console.log(`${getTimestamp()} User authenticated`);
-
-      // Step 1: Upload via proxy with 20s timeout
-      const base64Data = imageData.split(",")[1];
-      const binaryData = atob(base64Data);
-      const bytes = new Uint8Array(binaryData.length);
-      for (let i = 0; i < binaryData.length; i++) {
-        bytes[i] = binaryData.charCodeAt(i);
-      }
-      const file = new File([bytes], `comic-scan-${Date.now()}.jpg`, { type: "image/jpeg" });
-      
-      console.log(`${getTimestamp()} ⏫ Uploading via proxy...`, {
-        fileSize: file.size,
-        fileType: file.type
-      });
-
-      const uploadStartTime = Date.now();
-      let uploadResult;
-      try {
-        uploadResult = await withTimeout(
-          uploadViaProxy(file),
-          30000,
-          "upload"
-        );
-        console.log('UPLOAD_RESPONSE', uploadResult);
-        
-        if (!uploadResult?.publicUrl) {
-          console.warn('NO_PUBLIC_URL_FROM_UPLOAD');
-          throw new Error("Upload succeeded but returned no public URL");
-        }
-      } catch (e: any) {
-        console.error('UPLOAD_FAILED', e?.message ?? e);
-        sonnerToast.error("Upload failed", {
-          description: e?.message ?? "Unknown error during upload"
-        });
-        throw e;
-      }
-      
-      const { path: uploadPath, publicUrl, previewUrl, stats } = uploadResult;
-      const uploadElapsed = Date.now() - uploadStartTime;
-
-      console.log(`${getTimestamp()} ✅ Photo uploaded successfully:`, { 
-        path: uploadPath, 
-        publicUrl,
-        previewUrl,
-        stats
-      });
-
-      // Log upload details with compression stats
-      setUploadLog({
-        timestamp: new Date().toLocaleTimeString(),
-        fieldName: "image",
-        size: stats ? `${stats.originalKB}KB → ${stats.compressedKB}KB (preview: ${stats.previewKB}KB)` : `${(file.size / 1024).toFixed(1)} KB`,
-        type: file.type,
-        status: 200,
-        path: uploadPath,
-        publicUrl,
-        elapsed: stats ? `${stats.elapsedMs}ms (compression + upload)` : `${uploadElapsed}ms`
-      });
-
-      // Show thumbnail immediately, then swap to full compressed image
-      if (previewUrl) {
-        setThumbnailUrl(previewUrl);
-        setImageUrl(previewUrl); // Show thumbnail first
-        
-        // Swap to full compressed image after a brief moment
-        setTimeout(() => {
-          setImageUrl(publicUrl);
-        }, 100);
-      } else {
-        setImageUrl(publicUrl);
-      }
-      
-      setPrefillData({ comicvineCoverUrl: publicUrl });
-      // Start in 'picks' state - will show picks when they arrive, manual entry always available
-      setStatus("picks");
-
-      toast({
-        title: "✅ Photo uploaded",
-        description: stats 
-          ? `Compressed ${stats.originalKB}KB → ${stats.compressedKB}KB. Scanning for details...`
-          : "Scanning for details...",
-      });
-
-      // Step 2: Run recognition in background (non-blocking)
-      console.log(`${getTimestamp()} 🔍 Starting background recognition...`);
-      
-      // FEATURE_SCANNER_ANALYTICS & FEATURE_IMAGE_COMPRESSION are handled server-side
-      // FEATURE_TOP3_PICKS, FEATURE_REPRINT_FILTER controlled by scan-item response
-      (async () => {
-        try {
-          const ocrStartTime = Date.now();
-          
-          // Get session ID for analytics
-          const sessionId = getSessionId();
-          
-          const { data: scanResult, error: scanError } = await withTimeout(
-            supabase.functions.invoke("scan-item", {
-              body: { 
-                imageBase64: base64Data,
-                sessionId 
-              },
-              headers: { Authorization: `Bearer ${session.access_token}` }
-            }),
-            45000,
-            "scan-item"
-          );
-
-          const ocrTime = Date.now() - ocrStartTime;
-
-          if (scanError) {
-            console.warn(`${getTimestamp()} ⚠️ Background scan failed:`, scanError.message);
-            setDebugData(prev => ({ ...prev, status: "error", errorMessage: scanError.message }));
-            return;
-          }
-
-          if (scanResult?.ok === false) {
-            console.warn(`${getTimestamp()} ⚠️ scan-item returned ok=false:`, scanResult.error);
-            return;
-          }
-
-          const results = scanResult?.picks || [];
-          const rawOcrText = scanResult?.ocrText || "";
-          const cvQuery = scanResult?.cvQuery || "";
-          const extracted = scanResult?.extracted || {};
-
-          console.log(`${getTimestamp()} ✅ OCR/vision result:`, {
-            ocrTime: `${ocrTime}ms`,
-            rawOcrText: rawOcrText.substring(0, 100) + (rawOcrText.length > 100 ? "..." : ""),
-            cvQuery,
-            extracted,
-            matchesFound: results.length
-          });
-
-          console.log(`${getTimestamp()} 📚 ComicVine top 3 results:`, results);
-
-          // Store results for picker - but DON'T change status automatically
-          // User must explicitly select a pick or choose manual entry
-          setSearchResults(results);
-
-          // Auto-select logic: single high-confidence match with publisher + title validation
-          let autoSelectedPick: ComicVinePick | null = null;
-          let autoSelectDebugInfo = {
-            autoSelected: false,
-            autoSelectedId: null as number | null,
-            autoSelectedTitle: null as string | null,
-          };
-
-          if (results.length > 0 && extracted?.finalCleanTitle && extracted?.publisher) {
-            // High confidence tier: score >= 0.80
-            const HIGH_CONFIDENCE_THRESHOLD = 0.80;
-            
-            // Filter eligible results: high confidence + publisher match + title match
-            const eligibleResults = results.filter((result: ComicVinePick) => {
-              if (result.score < HIGH_CONFIDENCE_THRESHOLD) return false;
-              
-              // Publisher match check
-              const resultPublisher = (result.publisher || '').toLowerCase();
-              const extractedPublisher = (extracted.publisher || '').toLowerCase();
-              const publisherMatch = resultPublisher.includes(extractedPublisher) || 
-                                     extractedPublisher.includes(resultPublisher);
-              
-              if (!publisherMatch) return false;
-              
-              // Title match check: series title must contain finalCleanTitle keywords
-              const resultTitle = (result.title || result.volumeName || '').toLowerCase();
-              const cleanTitle = (extracted.finalCleanTitle || '').toLowerCase();
-              const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 2); // Filter out short words
-              const titleMatch = titleWords.some(word => resultTitle.includes(word));
-              
-              return titleMatch;
-            });
-            
-            // Auto-select if exactly one eligible result
-            if (eligibleResults.length === 1) {
-              autoSelectedPick = eligibleResults[0];
-              setSelectedPick(autoSelectedPick);
-              
-              autoSelectDebugInfo = {
-                autoSelected: true,
-                autoSelectedId: autoSelectedPick.id,
-                autoSelectedTitle: `${autoSelectedPick.title} #${autoSelectedPick.issue}`,
-              };
-              
-              console.log(`${getTimestamp()} ✅ Auto-selected single high-confidence match:`, {
-                id: autoSelectedPick.id,
-                title: autoSelectedPick.title,
-                issue: autoSelectedPick.issue,
-                publisher: autoSelectedPick.publisher,
-                score: autoSelectedPick.score,
-              });
-            } else {
-              console.log(`${getTimestamp()} ℹ️ Auto-select skipped:`, {
-                eligibleCount: eligibleResults.length,
-                reason: eligibleResults.length === 0 ? 'No high-confidence matches with publisher+title validation' : 'Multiple eligible matches found',
-              });
-            }
-          }
-
-          // Merge results if found
-          if (results.length > 0) {
-            const topResult = results[0];
-            const calculatedConfidence = Math.min(95, 70 + (5 - Math.min(results.length, 5)) * 5);
-            const slabData = {
-              title: extracted.series_title || topResult.volume || "",
-              issueNumber: extracted.issue_number || topResult.issue_number || "",
-              grade: extracted.grade || "",
-              certNumber: rawOcrText.match(/\d{8}-\d{3}/)?.[0] || "",
-              gradingCompany: extracted.gradingCompany || "",
-              publisher: extracted.publisher || topResult.publisher || "",
-              year: extracted.year || topResult.year || "",
-            };
-
-            const title = topResult.volume || topResult.volumeName || "";
-            const issueNumber = topResult.issue_number || "";
-
-            const prefill: PrefillData = {
-              title: title,
-              series: title,
-              issueNumber: issueNumber,
-              publisher: slabData.publisher,
-              year: slabData.year,
-              comicvineId: topResult.id || "",
-              comicvineCoverUrl: topResult.image || topResult.cover_image || topResult.coverUrl || publicUrl,
-              description: topResult.description || "",
-            };
-
-            setPrefillData(prefill);
-            setConfidence(calculatedConfidence);
-
-            // Fetch eBay pricing if grade detected
-            if (title && issueNumber && slabData.grade) {
-              try {
-                console.log(`${getTimestamp()} 💰 Fetching eBay pricing...`);
-                const { data: pricingData, error: pricingError } = await supabase.functions.invoke("ebay-pricing", {
-                  body: { title, issueNumber, grade: slabData.grade },
-                });
-
-                if (!pricingError && pricingData?.ok && pricingData.avgPrice) {
-                  const avgPrice = pricingData.avgPrice.toFixed(0);
-                  const comp = pricingData.items?.[0];
-                  const compLink = comp?.url ? `[View listing](${comp.url})` : "";
-                  const pricingText = `\n\n💰 **eBay Sold Avg: $${avgPrice}** (CGC ${slabData.grade})${comp ? `\nRecent: ${comp.title.slice(0, 60)}... - $${comp.price} ${compLink}` : ""}`;
-                  prefill.description = (prefill.description || "") + pricingText;
-                  setPrefillData(prefill);
-
-                  console.log(`${getTimestamp()} ✅ eBay pricing: $${avgPrice}`);
-                }
-              } catch (err) {
-                console.warn(`${getTimestamp()} eBay fetch failed:`, err);
-              }
-            }
-
-            // Update debug data but DON'T change status automatically
-            // User stays in 'picks' state until they explicitly choose
-            setDebugData({
-              status: "success",
-              method,
-              apiHit: "ComicVine",
-              confidenceScore: calculatedConfidence,
-              responseTimeMs: ocrTime,
-              ocrTimeMs: ocrTime,
-              errorMessage: null,
-              rawOcrText,
-              cvQuery,
-              slabData,
-              ebayData: null,
-              retryAttempt: retryCount,
-              extracted: scanResult?.extracted || null,
-              noMatchesFound: scanResult?.noMatchesFound || false,
-              ...autoSelectDebugInfo,
-              comicVineQuery: scanResult?.debug?.comicVineQuery || null,
-              scoreBreakdowns: (scanResult?.picks || []).slice(0, 10).map((p: any) => ({
-                id: p.id,
-                title: p.title,
-                issue: p.issue,
-                score: p.score,
-                breakdown: p.scoreBreakdown || null
-              })),
-              detectedTitles: scanResult?.extracted?.detectedTitles || null,
-              chosenTitle: scanResult?.extracted?.chosenTitle || null,
-              confidenceScoreTitle: scanResult?.extracted?.confidenceScoreTitle || null,
-            });
-
-            console.log(`${getTimestamp()} ✅ Results ready:`, { title, issueNumber, confidence: calculatedConfidence });
-            
-            if (calculatedConfidence >= 65) {
-              sonnerToast("Matches found", {
-                description: "Select a match or enter details manually."
-              });
-            } else {
-              sonnerToast("Results ready", {
-                description: "You can select a match or enter details manually."
-              });
-            }
-          } else {
-            console.log(`${getTimestamp()} ℹ️ No metadata found`);
-            
-            // Still update debug data to show OCR extraction even with no matches
-            setDebugData({
-              status: "success",
-              method,
-              apiHit: "ComicVine",
-              confidenceScore: null,
-              responseTimeMs: ocrTime,
-              ocrTimeMs: ocrTime,
-              errorMessage: null,
-              rawOcrText,
-              cvQuery,
-              slabData: null,
-              ebayData: null,
-              retryAttempt: retryCount,
-              extracted: scanResult?.extracted || null,
-              noMatchesFound: scanResult?.noMatchesFound || false,
-              autoSelected: false,
-              autoSelectedId: null,
-              autoSelectedTitle: null,
-              comicVineQuery: scanResult?.debug?.comicVineQuery || null,
-              scoreBreakdowns: null,
-              detectedTitles: scanResult?.extracted?.detectedTitles || null,
-              chosenTitle: scanResult?.extracted?.chosenTitle || null,
-              confidenceScoreTitle: scanResult?.extracted?.confidenceScoreTitle || null,
-            });
-            
-            sonnerToast("No matches found", {
-              description: "Please enter details manually or try again."
-            });
-          }
-        } catch (bgError: any) {
-          console.warn("[Scanner] background scan failed:", bgError?.message ?? bgError);
-        }
-      })();
-
-    } catch (error: any) {
-      console.error("[Scanner]", error);
-      
-      // Log upload error
-      setUploadLog(prev => prev ? {
-        ...prev,
-        status: 500,
-        error: error?.message || String(error)
-      } : null);
-
-      sonnerToast("Scan failed", {
-        description: error?.message ?? "Unknown error",
-      });
-      setStatus("idle");
-      setScanSessionActive(false);
-    } finally {
-      setLoading(false);
-      setCameraActive(false);
-      stopCamera();
-      console.log(`${getTimestamp()} Scanner flow complete`);
-    }
-  };
-
-  const handleTextSearch = async (searchQuery?: string) => {
-    const searchTerm = (searchQuery || query).trim();
-    if (!searchTerm) {
-      toast({
-        title: "Enter a search term",
-        description: "Example: 'Uncanny X-Men 268'",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Main image processing
+  const processImage = async (imageData: string) => {
+    setStatus("processing");
     setLoading(true);
-    setTextSearchResults([]);
-
+    setError(null);
+    
     try {
-      const { data, error } = await supabase.functions.invoke("comic-scanner", {
-        body: { query: searchTerm },
+      // Compress image
+      const compressed = await compressImageDataUrl(imageData, 2000, 0.85);
+      const thumbnail = await createThumbnail(imageData, 400);
+      
+      setImageUrl(compressed);
+      
+      // Call scan-item edge function for OCR + ComicVine matching
+      const { data, error } = await supabase.functions.invoke('scan-item', {
+        body: { imageData: compressed }
       });
 
       if (error) throw error;
 
-      const results = data?.results || [];
-
-      if (results.length === 0) {
-        toast({
-          title: "No results found",
-          description: "Try a different search term.",
-          variant: "destructive",
+      if (data.ok && data.picks && data.picks.length > 0) {
+        const topPick = data.picks[0];
+        const pickConfidence = topPick.score || 0;
+        
+        setConfidence(pickConfidence);
+        setSearchResults(data.picks);
+        
+        // Update debug data
+        setDebugData({
+          status: "success",
+          raw_ocr: data.ocr || "",
+          extracted: data.extracted || null,
+          confidence: pickConfidence,
+          queryParams: null,
+          comicvineQuery: ""
         });
-        return;
+        
+        // Auto-select only if high confidence
+        if (pickConfidence >= 0.8) {
+          setSelectedPick(topPick);
+          setPrefillData({
+            title: topPick.volumeName || topPick.title,
+            issueNumber: topPick.issue || undefined,
+            publisher: topPick.publisher || undefined,
+            year: topPick.year || undefined,
+            comicvineId: topPick.id,
+            comicvineCoverUrl: topPick.coverUrl
+          });
+          setStatus("selected");
+          sonnerToast.success("Comic identified!", {
+            description: `${topPick.volumeName || topPick.title} #${topPick.issue}`
+          });
+        } else {
+          setStatus("results");
+          sonnerToast.info("Found possible matches", {
+            description: "Review results or refine your search below"
+          });
+        }
+      } else {
+        setStatus("results");
+        setSearchResults([]);
+        sonnerToast.info("No automatic match found", {
+          description: "Try the manual search below"
+        });
+        
+        setDebugData({
+          status: "no_match",
+          raw_ocr: data.ocr || "",
+          extracted: data.extracted || null,
+          confidence: 0,
+          queryParams: null,
+          comicvineQuery: ""
+        });
       }
-
-      setTextSearchResults(results);
-      toast({
-        title: "Results found",
-        description: `Found ${results.length} result(s)`,
-      });
     } catch (err: any) {
-      console.error("Search error:", err);
+      console.error('Scan error:', err);
+      setError(err.message || 'Failed to process image');
+      setStatus("results");
+      setDebugData(prev => ({ ...prev, status: "error" }));
       toast({
-        title: "Search failed",
-        description: err.message || "Please try again.",
-        variant: "destructive",
+        title: "Scan failed",
+        description: err.message || "Please try again",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUseSearchResult = (result: any) => {
-    // Set the searchResults to pass to form as picks
-    setSearchResults([{
-      id: result.id || 0,
-      resource: 'issue',
-      title: result.title || result.volume || result.volumeName || "",
-      issue: result.issue_number || null,
-      year: result.year ? parseInt(result.year) : null,
-      publisher: result.publisher || null,
-      volumeName: result.volumeName || result.volume || null,
-      volumeId: result.volumeId || null,
-      variantDescription: result.description || null,
-      thumbUrl: result.thumbnail || result.image || result.cover_image || result.coverUrl || "",
-      coverUrl: result.image || result.cover_image || result.coverUrl || "",
-      score: 1,
-      isReprint: false,
-    }]);
-    setImageUrl("");
-    setStatus("picks");
-    setScanSessionActive(true);
-  };
-
-  const handleAddMorePhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const MAX_IMAGES = 8;
-    const currentTotal = 1 + additionalImages.length; // 1 primary + additional
-    
-    if (currentTotal + files.length > MAX_IMAGES) {
-      sonnerToast.error(`Max ${MAX_IMAGES} photos per book. You can add ${MAX_IMAGES - currentTotal} more.`);
+  // Manual search
+  const handleManualSearch = async () => {
+    if (!manualSearchQuery.trim()) {
+      toast({
+        title: "Enter a search term",
+        description: "Try something like 'Amazing Spider-Man 129' or just the title",
+        variant: "destructive"
+      });
       return;
     }
 
-    setLoading(true);
+    setManualSearchLoading(true);
+    setError(null);
+
     try {
-      const newImages: string[] = [];
-      for (const file of Array.from(files)) {
-        const { publicUrl } = await uploadViaProxy(file);
-        newImages.push(publicUrl);
+      const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
+        body: {
+          searchText: manualSearchQuery,
+          publisher: debugData.extracted?.publisher,
+          filters: {
+            notReprint: filterNotReprint,
+            wrongYear: filterWrongYear,
+            slabbed: filterSlabbed
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      let results = data.results || [];
+      
+      // Apply client-side reprint filter
+      if (filterNotReprint) {
+        results = filterReprints(results);
       }
-      setAdditionalImages(prev => [...prev, ...newImages]);
-      sonnerToast.success(`Added ${newImages.length} photo(s)`);
-    } catch (error: any) {
-      console.error("Error uploading additional photos:", error);
-      sonnerToast.error("Failed to upload photos");
+
+      setSearchResults(results);
+      setStatus("results");
+      
+      setDebugData(prev => ({
+        ...prev,
+        status: "success",
+        comicvineQuery: manualSearchQuery,
+        queryParams: { searchText: manualSearchQuery, filters: { filterNotReprint, filterWrongYear, filterSlabbed } }
+      }));
+
+      if (results.length === 0) {
+        sonnerToast.info("No results found", {
+          description: "Try a simpler search like just the title"
+        });
+      } else {
+        sonnerToast.success(`Found ${results.length} results`);
+      }
+    } catch (err: any) {
+      console.error('Manual search error:', err);
+      setError(err.message || 'Search failed');
+      toast({
+        title: "Search failed",
+        description: err.message || "Please try again",
+        variant: "destructive"
+      });
     } finally {
-      setLoading(false);
+      setManualSearchLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setImageUrl(null);
+  // Filter chip handlers
+  const handleFilterToggle = (filter: 'reprint' | 'year' | 'slabbed') => {
+    switch (filter) {
+      case 'reprint':
+        setFilterNotReprint(!filterNotReprint);
+        break;
+      case 'year':
+        setFilterWrongYear(!filterWrongYear);
+        break;
+      case 'slabbed':
+        setFilterSlabbed(!filterSlabbed);
+        break;
+    }
+  };
+
+  const applyFilters = () => {
+    if (manualSearchQuery.trim()) {
+      handleManualSearch();
+    }
+  };
+
+  // Select comic from results
+  const handleSelectComic = (pick: ComicVinePick) => {
+    setSelectedPick(pick);
+    setPrefillData({
+      title: pick.volumeName || pick.title,
+      issueNumber: pick.issue || undefined,
+      publisher: pick.publisher || undefined,
+      year: pick.year || undefined,
+      comicvineId: pick.id,
+      comicvineCoverUrl: pick.coverUrl
+    });
+    setStatus("selected");
+    saveToRecentScans(pick);
+    setRecentScans(loadRecentScans());
+    
+    sonnerToast.success("Comic selected!", {
+      description: `${pick.volumeName || pick.title} #${pick.issue}`
+    });
+  };
+
+  // Recent scan selection
+  const handleRecentScanSelect = (scan: ComicVinePick) => {
+    setManualSearchQuery(
+      `${scan.volumeName || scan.title}${scan.issue ? ` #${scan.issue}` : ''}`
+    );
+    handleManualSearch();
+  };
+
+  // Reset scanner
+  const resetScanner = () => {
+    setStatus("idle");
     setPreviewImage(null);
-    setThumbnailUrl(null);
+    setImageUrl(null);
+    setSelectedPick(null);
     setPrefillData(null);
     setSearchResults([]);
-    setSelectedPick(null);
-    setStatus("idle");
     setConfidence(null);
-    setQuery("");
-    setTextSearchResults([]);
-    setAdditionalImages([]);
+    setError(null);
     setManualSearchQuery("");
-    setRefinedResults([]);
-    setManualSearchLoading(false);
-    setCameraActive(false);
-    setScanSessionActive(false);
-    stopCamera();
+    setFilterNotReprint(false);
+    setFilterWrongYear(false);
+    setFilterSlabbed(false);
   };
 
-  // Explicit user actions to move from 'picks' to 'editing'
-  const handleSelectPickFromPicker = (pick: ComicVinePick) => {
-    setSelectedPick(pick);
-    setStatus("editing");
+  // Action handlers
+  const handleSellNow = () => {
+    // Navigate to sell flow (to be implemented)
+    sonnerToast.info("Sell flow coming soon!");
   };
 
-  const handleManualEntry = () => {
-    setSelectedPick(null); // Clear any selected pick
-    setStatus("editing");
+  const handleAddToCollection = () => {
+    // Navigate to collection (to be implemented)
+    sonnerToast.info("Collection feature coming soon!");
   };
 
-  // Show picker/manual entry choice when in 'picks' state with results
-  const showPickerScreen = scanSessionActive && status === "picks" && imageUrl;
-  
-  // Show editing form when user explicitly chooses editing or when in 'editing' state
-  const showEditingForm = scanSessionActive && status === "editing" && imageUrl;
+  // Group results by volume
+  const groupedResults = groupResultsByVolume(searchResults);
 
   return (
-    <>
-      {/* Hero */}
-      <section className="bg-muted/30 border-b">
-        <div className="container mx-auto py-6 px-4">
-          <h1 className="text-2xl md:text-3xl font-bold">AI Scanner</h1>
-          <p className="text-muted-foreground text-sm md:text-base mt-1">
-            Snap, upload, or search to identify comics and prefill details
-          </p>
-        </div>
-      </section>
+    <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold">Comic Scanner</h1>
+        <p className="text-muted-foreground">
+          Snap a photo or upload an image to identify your comic
+        </p>
+      </div>
 
-      {/* Main Content */}
-      <section className="container mx-auto px-4 py-8 flex-1">
-        {showPickerScreen ? (
-          // Show picker screen: user must choose a pick or manual entry
-          <div className="space-y-4 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Select a Match or Enter Manually</h2>
-              <Button variant="outline" onClick={handleReset}>
-                <X className="mr-2 h-4 w-4" />
-                Cancel Scan
-              </Button>
-            </div>
+      {/* Recent Scans */}
+      {recentScans.length > 0 && status === "idle" && (
+        <RecentScans 
+          recentScans={recentScans}
+          onSelectScan={handleRecentScanSelect}
+        />
+      )}
 
-            {/* User's Photo */}
-            {imageUrl && (
-              <Card className="mb-6">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-32 h-48 flex-shrink-0">
-                      <img
-                        src={imageUrl}
-                        alt="Your comic photo"
-                        className="w-full h-full object-cover rounded border-2 border-primary"
-                      />
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <h3 className="font-semibold mb-2">Your Photo</h3>
-                        <p className="text-sm text-muted-foreground">
-                          This will be your listing image. Select a match below or enter details manually.
-                        </p>
-                      </div>
-
-                      {/* OCR Debug Display */}
-                      {debugData && (debugData.rawOcrText || debugData.extracted) && (
-                        <div className="p-4 bg-muted/50 rounded text-xs space-y-3 font-mono">
-                          <div className="font-bold text-foreground text-sm mb-2">🔍 OCR Extraction Debug</div>
-                          
-                          {/* Raw OCR Text */}
-                          {debugData.rawOcrText && (
-                            <div className="space-y-1">
-                              <div className="font-semibold text-foreground">Raw OCR Text:</div>
-                              <div className="bg-background/50 p-2 rounded text-[10px] max-h-24 overflow-y-auto whitespace-pre-wrap border border-border">
-                                {debugData.rawOcrText}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Parsed Tokens */}
-                          {debugData.extracted && (
-                            <div className="space-y-1.5 pt-2 border-t border-border">
-                              <div className="font-semibold text-foreground mb-1">Parsed Tokens:</div>
-                              <div>
-                                <span className="text-muted-foreground">tokens.title = </span>
-                                <span className="text-foreground font-medium">
-                                  {debugData.extracted.title || <span className="text-red-500">null</span>}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">tokens.finalCleanTitle = </span>
-                                <span className="text-foreground font-medium">
-                                  {debugData.extracted.finalCleanTitle || <span className="text-red-500">null</span>}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">seriesCandidateFromPattern = </span>
-                                <span className="text-foreground font-medium">
-                                  {debugData.extracted.seriesCandidateFromPattern || <span className="text-muted-foreground">none</span>}
-                                </span>
-                              </div>
-                              
-                              {/* New Extraction Debug */}
-                              <div className="mt-2 pt-2 border-t border-border/50">
-                                <div className="font-semibold text-foreground mb-1">Title Extraction Pipeline:</div>
-                                <div>
-                                  <span className="text-muted-foreground">detectedTitles = </span>
-                                  <span className="text-foreground font-medium text-[10px]">
-                                    {debugData.extracted.detectedTitles?.length > 0 
-                                      ? `[${debugData.extracted.detectedTitles.join(', ')}]`
-                                      : <span className="text-muted-foreground">[]</span>
-                                    }
-                                  </span>
-                                </div>
-                                <div className="mt-1">
-                                  <span className="text-muted-foreground">chosenTitle = </span>
-                                  <span className="text-foreground font-medium">
-                                    {debugData.extracted.chosenTitle || <span className="text-muted-foreground">none</span>}
-                                  </span>
-                                </div>
-                                <div className="mt-1">
-                                  <span className="text-muted-foreground">confidenceScoreTitle = </span>
-                                  <span className="text-foreground font-medium">
-                                    {debugData.extracted.confidenceScoreTitle 
-                                      ? (debugData.extracted.confidenceScoreTitle * 100).toFixed(0) + '%'
-                                      : '0%'
-                                    }
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              <div className="mt-2 pt-2 border-t border-border/50">
-                                <span className="text-muted-foreground">tokens.issueNumber = </span>
-                                <span className="text-foreground font-medium">
-                                  {debugData.extracted.issueNumber || <span className="text-red-500">null</span>}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">tokens.publisher = </span>
-                                <span className="text-foreground font-medium">
-                                  {debugData.extracted.publisher || <span className="text-red-500">null</span>}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">tokens.year = </span>
-                                <span className="text-foreground font-medium">
-                                  {debugData.extracted.year || <span className="text-red-500">null</span>}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">isSlab = </span>
-                                <span className="text-foreground font-medium">
-                                  {debugData.extracted.isSlab ? 'true' : 'false'}
-                                </span>
-                              </div>
-                              
-                              {/* ComicVine Query */}
-                              <div className="mt-2 pt-2 border-t border-border/50">
-                                <div className="font-semibold text-foreground mb-1">ComicVine Query:</div>
-                                <div className="bg-background/50 p-2 rounded text-[10px] border border-border">
-                                  {debugData.comicVineQuery || <span className="text-muted-foreground">none</span>}
-                                </div>
-                              </div>
-                              
-                              {/* Auto-select debug info */}
-                              <div className="mt-2 pt-2 border-t border-border/50">
-                                <div className="font-semibold text-foreground mb-1">Auto-Selection:</div>
-                                <div>
-                                  <span className="text-muted-foreground">Auto-selected: </span>
-                                  <span className={`font-medium ${debugData.autoSelected ? 'text-green-500' : 'text-foreground'}`}>
-                                    {debugData.autoSelected ? 'yes' : 'no'}
-                                  </span>
-                                </div>
-                                {debugData.autoSelected && debugData.autoSelectedTitle && (
-                                  <div className="mt-1">
-                                    <span className="text-muted-foreground">Selected: </span>
-                                    <span className="text-foreground font-medium">
-                                      {debugData.autoSelectedTitle}
-                                    </span>
-                                    <span className="text-muted-foreground text-[10px]"> (id: {debugData.autoSelectedId})</span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Score Breakdowns */}
-                              {debugData.scoreBreakdowns && debugData.scoreBreakdowns.length > 0 && (
-                                <div className="mt-2 pt-2 border-t border-border/50">
-                                  <div className="font-semibold text-foreground mb-2">Match Scores (Top 10):</div>
-                                  <div className="space-y-2">
-                                    {debugData.scoreBreakdowns.map((item, idx) => (
-                                      <div key={idx} className="bg-background/50 p-2 rounded text-[10px] border border-border">
-                                        <div className="font-medium text-foreground">
-                                          {item.title} #{item.issue}
-                                        </div>
-                                        <div className="text-muted-foreground mt-1">
-                                          Total Score: {(item.score * 100).toFixed(0)}%
-                                        </div>
-                                        {item.breakdown && (
-                                          <div className="text-muted-foreground text-[9px] mt-1">
-                                            Title: {(item.breakdown.title * 100).toFixed(0)}% | 
-                                            Publisher: {(item.breakdown.publisher * 100).toFixed(0)}% | 
-                                            Issue: {(item.breakdown.issue * 100).toFixed(0)}%
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {debugData.extracted.coverText && (
-                                <div className="mt-2 pt-2 border-t border-border/50">
-                                  <div className="font-semibold text-foreground mb-1">Cover Text (extracted):</div>
-                                  <div className="bg-background/50 p-2 rounded text-[10px] max-h-16 overflow-y-auto whitespace-pre-wrap border border-border">
-                                    {debugData.extracted.coverText}
-                                  </div>
-                                </div>
-                              )}
-                              {debugData.extracted.slabText && (
-                                <div className="mt-2 pt-2 border-t border-border/50">
-                                  <div className="font-semibold text-foreground mb-1">Slab Label Text (extracted):</div>
-                                  <div className="bg-background/50 p-2 rounded text-[10px] max-h-16 overflow-y-auto whitespace-pre-wrap border border-border">
-                                    {debugData.extracted.slabText}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Add More Photos Button */}
-                      <div>
-                        <input
-                          type="file"
-                          id="additional-photos-input"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={handleAddMorePhotos}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => document.getElementById('additional-photos-input')?.click()}
-                          disabled={loading || additionalImages.length >= 7}
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          Add More Photos ({1 + additionalImages.length}/8)
-                        </Button>
-                        {additionalImages.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {additionalImages.length} additional photo(s) added
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Manual Search Assist Box */}
-            {!loading && searchResults.length > 0 && (!debugData.autoSelected || (debugData.scoreBreakdowns && debugData.scoreBreakdowns[0]?.score < 0.8)) && (
-              <Card className="mb-6 border-primary/50">
-                <CardContent className="p-5 space-y-3">
-                  <div>
-                    <h3 className="text-base font-semibold mb-1">Didn't find the right comic?</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Type a title and issue number to refine the search, e.g., "Amazing Spider-Man 129"
-                    </p>
+      {/* Camera/Upload Section */}
+      {status === "idle" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Capture Image</CardTitle>
+            <CardDescription>
+              Take a photo or upload an image of your comic book cover
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {!cameraActive ? (
+                <>
+                  <Button
+                    size="lg"
+                    onClick={startCamera}
+                    className="w-full"
+                  >
+                    <Camera className="h-5 w-5 mr-2" />
+                    Use Camera
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-5 w-5 mr-2" />
+                    Upload Image
+                  </Button>
+                </>
+              ) : (
+                <div className="col-span-2 space-y-3">
+                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex gap-2">
-                    <Input
-                      placeholder="Start typing a title and issue..."
-                      value={manualSearchQuery}
-                      onChange={(e) => setManualSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !manualSearchLoading) {
-                          handleManualSearch();
-                        }
-                      }}
-                      disabled={manualSearchLoading}
+                    <Button
+                      onClick={capturePhoto}
                       className="flex-1"
-                    />
-                    <Button 
-                      onClick={handleManualSearch} 
-                      disabled={manualSearchLoading || !manualSearchQuery.trim()}
-                      size="default"
+                      size="lg"
                     >
-                      {manualSearchLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Search className="mr-2 h-4 w-4" />
-                          Search
-                        </>
-                      )}
+                      <Camera className="h-5 w-5 mr-2" />
+                      Capture
+                    </Button>
+                    <Button
+                      onClick={stopCamera}
+                      variant="outline"
+                      size="lg"
+                    >
+                      <X className="h-5 w-5" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Refined Results from Manual Search */}
-            {refinedResults.length > 0 && (
-              <Card className="mb-6">
-                <CardContent className="p-5 space-y-4">
-                  <h3 className="text-lg font-semibold">Refined Results (based on your search)</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {refinedResults.map((result) => (
-                      <div
-                        key={result.id}
-                        onClick={() => handleSelectPickFromPicker(result)}
-                        className="flex gap-3 p-3 rounded-lg border-2 border-border hover:border-primary hover:bg-accent/50 cursor-pointer transition-all"
-                      >
-                        {result.thumbUrl && (
-                          <img
-                            src={result.thumbUrl}
-                            alt={result.title}
-                            className="w-16 h-24 object-cover rounded flex-shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm line-clamp-2">{result.title}</div>
-                          {result.issue && (
-                            <div className="text-sm text-muted-foreground">Issue #{result.issue}</div>
-                          )}
-                          {result.year && (
-                            <div className="text-xs text-muted-foreground">{result.year}</div>
-                          )}
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                              ComicVine
-                            </span>
-                            {result.score && (
-                              <span className="text-xs text-muted-foreground">
-                                {Math.round(result.score * 100)}% match
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Manual Search Box (Old) - REMOVE THIS */}
-            {!loading && searchResults.length > 0 && false && (
-              <Card className="mb-6">
-                <CardContent className="p-4">
-                  <h3 className="text-sm font-semibold mb-3">Not the right match? Search manually:</h3>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g., Batman 181"
-                      value={manualSearchQuery}
-                      onChange={(e) => setManualSearchQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
-                    />
-                    <Button onClick={handleManualSearch} disabled={loading}>
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Loading state while scanning */}
-            {loading && (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                  <h3 className="text-xl font-semibold">Scanning for matches...</h3>
-                  <p className="text-sm text-muted-foreground">You can choose manual entry below if you prefer</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Debug Token Display */}
-            {!loading && debugData.rawOcrText && (
-              <Card className="bg-muted/50">
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold mb-2">Debug: Parsed OCR Tokens</h3>
-                  <div className="text-sm space-y-1">
-                    <div><span className="font-medium">Parsed Title:</span> {debugData.extracted?.title || 'N/A'}</div>
-                    <div><span className="font-medium">Parsed Issue:</span> {debugData.extracted?.issueNumber || 'N/A'}</div>
-                    <div><span className="font-medium">Parsed Publisher:</span> {debugData.extracted?.publisher || 'N/A'}</div>
-                    <div><span className="font-medium">Is Slab:</span> {debugData.extracted?.isSlab ? 'Yes' : 'No'}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* No Matches Found Banner */}
-            {!loading && debugData.noMatchesFound && debugData.extracted?.title && debugData.extracted?.issueNumber && (
-              <Card className="border-destructive">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-3">
-                    <div className="text-destructive">⚠️</div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-2">No Exact Matches Found</h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        We couldn't find <strong>{debugData.extracted.title} #{debugData.extracted.issueNumber}</strong> in the database.
-                        Please use the manual search or entry below to refine your search or correct the title/issue number.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* ComicVine Picker */}
-            {searchResults.length > 0 && (
-              <div className="mb-6">
-                <ComicVinePicker
-                  picks={searchResults}
-                  onSelect={handleSelectPickFromPicker}
-                />
-              </div>
-            )}
-
-            {/* Recent Selections Carousel */}
-            {recentSelections.length > 0 && (
-              <Card className="mb-6">
-                <CardContent className="p-4">
-                  <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Recent Selections</h3>
-                  <div className="flex gap-3 overflow-x-auto pb-2">
-                    {recentSelections.map((pick) => (
-                      <button
-                        key={pick.id}
-                        onClick={() => handleManualSelectComic(pick)}
-                        className="flex-shrink-0 w-24 text-center hover:opacity-80 transition-opacity"
-                      >
-                        <div className="w-24 h-32 mb-2 border-2 border-border rounded overflow-hidden">
-                          <img 
-                            src={pick.thumbUrl || pick.coverUrl} 
-                            alt={pick.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="text-xs line-clamp-2">{pick.title} {pick.issue ? `#${pick.issue}` : ''}</div>
-                      </button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Manual Refine Search */}
-            <Card className="mb-6">
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-1">Didn't find the right comic?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Refine the search below using title and issue number
-                  </p>
                 </div>
-
-                {/* Search Input */}
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="e.g., Amazing Spider-Man #129 (1974) Marvel"
-                    value={manualSearchQuery}
-                    onChange={(e) => setManualSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleManualSearch();
-                    }}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={handleManualSearch}
-                    disabled={manualSearchLoading}
-                  >
-                    {manualSearchLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Search className="h-4 w-4 mr-2" />
-                        Search
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Smart Filter Chips */}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant={filterNotReprint ? "default" : "outline"}
-                    onClick={() => setFilterNotReprint(!filterNotReprint)}
-                  >
-                    {filterNotReprint && <Check className="h-3 w-3 mr-1" />}
-                    Not a Reprint
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={filterWrongYear ? "default" : "outline"}
-                    onClick={() => setFilterWrongYear(!filterWrongYear)}
-                    disabled={!extractedTokens?.year}
-                  >
-                    {filterWrongYear && <Check className="h-3 w-3 mr-1" />}
-                    Wrong Year
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={filterSlabbed ? "default" : "outline"}
-                    onClick={() => setFilterSlabbed(!filterSlabbed)}
-                  >
-                    {filterSlabbed && <Check className="h-3 w-3 mr-1" />}
-                    Slabbed Version
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Manual Search Results */}
-            {refinedResults.length > 0 && (
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Search Results ({refinedResults.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {refinedResults.map((result) => (
-                      <div
-                        key={result.id}
-                        className="flex gap-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="w-20 h-28 flex-shrink-0">
-                          <img
-                            src={result.thumbUrl || result.coverUrl}
-                            alt={result.title}
-                            className="w-full h-full object-cover rounded border border-border"
-                          />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <div>
-                            <h4 className="font-semibold">{result.title}</h4>
-                            {result.issue && (
-                              <p className="text-sm text-muted-foreground">Issue #{result.issue}</p>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            {result.year && (
-                              <Badge variant="secondary">{result.year}</Badge>
-                            )}
-                            {result.publisher && (
-                              <Badge variant="secondary">{result.publisher}</Badge>
-                            )}
-                            {result.writer && (
-                              <Badge variant="outline">Writer: {result.writer}</Badge>
-                            )}
-                            {result.artist && (
-                              <Badge variant="outline">Artist: {result.artist}</Badge>
-                            )}
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleManualSelectComic(result)}
-                          >
-                            Use this comic
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Manual Entry Button - Always Available */}
-            <Card>
-              <CardContent className="p-6 text-center">
-                <h3 className="text-lg font-semibold mb-2">
-                  {searchResults.length > 0 ? "Or enter details manually" : "No matches found - Enter details manually"}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  All fields will be editable. Your photo is already saved.
-                </p>
-                <Button onClick={handleManualEntry} size="lg" variant="outline" className="w-full max-w-md">
-                  Enter Details Manually
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        ) : showEditingForm ? (
-          // Show editing form when user explicitly entered editing mode
-          <div className="space-y-4">
-            <Button variant="outline" onClick={handleReset} className="mb-4">
-              <X className="mr-2 h-4 w-4" />
-              Cancel & Scan Another Comic
-            </Button>
-            <ScannerListingForm 
-              imageUrl={imageUrl || ""} 
-              initialData={{}}
-              confidence={confidence}
-              comicvineResults={searchResults}
-              selectedPick={selectedPick}
-            />
-          </div>
-        ) : (
-          // Show scanner interface
-          <>
-            {/* Hidden file input - accessible from all tabs */}
+              )}
+            </div>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
-              className="hidden"
-              ref={fileInputRef}
               onChange={handleFileUpload}
+              className="hidden"
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Processing State */}
+      {status === "processing" && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="text-lg font-medium">Processing image...</p>
+              <p className="text-sm text-muted-foreground">
+                Running OCR and searching ComicVine
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Preview Image */}
+      {previewImage && status !== "idle" && status !== "processing" && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <img
+                src={previewImage}
+                alt="Scanned comic"
+                className="w-32 h-48 object-cover rounded-lg border"
+              />
+              <div className="flex-1 space-y-2">
+                <p className="text-sm font-medium">Your Image</p>
+                {confidence !== null && (
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-sm">
+                      Match confidence: {(confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={resetScanner}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Start Over
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Auto-match warning + Quick filters */}
+      {confidence !== null && confidence < 0.8 && searchResults.length > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-3">
+              <p>The automatic match confidence is low. Use quick filters or manual search to find the exact comic.</p>
+              <QuickFilterChips
+                filterNotReprint={filterNotReprint}
+                filterWrongYear={filterWrongYear}
+                filterSlabbed={filterSlabbed}
+                onFilterToggle={handleFilterToggle}
+                onApplyFilters={applyFilters}
+                isLoading={manualSearchLoading}
+              />
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Manual Refine Search - Always visible when processing/results */}
+      {(status === "results" || status === "selected") && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Didn't find the right comic?</CardTitle>
+            <CardDescription>
+              Refine the search below. Try "Amazing Spider-Man 129" or just the title.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g., Amazing Spider-Man #129 (1974) Marvel"
+                value={manualSearchQuery}
+                onChange={(e) => setManualSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
+                disabled={manualSearchLoading}
+              />
+              <Button
+                onClick={handleManualSearch}
+                disabled={manualSearchLoading || !manualSearchQuery.trim()}
+              >
+                {manualSearchLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="grid grid-cols-3 max-w-xl mx-auto">
-              <TabsTrigger value="camera">
-                <Camera className="h-4 w-4 mr-2" />
-                Camera
-              </TabsTrigger>
-              <TabsTrigger value="upload">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </TabsTrigger>
-              <TabsTrigger value="search">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </TabsTrigger>
-            </TabsList>
+            {(filterNotReprint || filterWrongYear || filterSlabbed) && (
+              <QuickFilterChips
+                filterNotReprint={filterNotReprint}
+                filterWrongYear={filterWrongYear}
+                filterSlabbed={filterSlabbed}
+                onFilterToggle={handleFilterToggle}
+                onApplyFilters={applyFilters}
+                isLoading={manualSearchLoading}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-            {/* Camera tab */}
-            <TabsContent value="camera" className="mt-6 space-y-4">
-              {status === "idle" && !cameraActive && !previewImage && (
-                <div className="space-y-4">
-                  <Card>
-                    <CardContent className="flex flex-col items-center gap-4 py-8">
-                      <Camera className="h-16 w-16 text-primary" />
-                      <h3 className="text-xl font-semibold">Use your camera</h3>
-                      <p className="text-sm text-muted-foreground text-center max-w-md">
-                        Use your camera to capture the full front cover, or upload a photo if camera is unavailable.
-                      </p>
-                      <div className="flex flex-col gap-3 w-full max-w-md">
-                        <Button onClick={startCamera} size="lg" className="w-full">
-                          <Camera className="mr-2 h-5 w-5" />
-                          Open Camera Preview
-                        </Button>
-                        <div className="flex gap-3">
-                          <Button 
-                            onClick={() => {
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = 'image/*';
-                              input.capture = 'environment';
-                              input.onchange = (e: any) => {
-                                const file = e.target?.files?.[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onload = (evt) => {
-                                    const uploadedImageData = evt.target?.result as string;
-                                    identifyFromImage(uploadedImageData, "camera");
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
-                              };
-                              input.click();
-                            }}
-                            variant="outline" 
-                            size="lg"
-                            className="flex-1"
-                          >
-                            <Camera className="mr-2 h-5 w-5" />
-                            Take Photo
-                          </Button>
-                          <Button 
-                            onClick={() => fileInputRef.current?.click()} 
-                            variant="outline" 
-                            size="lg"
-                            className="flex-1"
-                          >
-                            <Upload className="mr-2 h-5 w-5" />
-                            Choose Photo
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+      {/* Error State */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-              {cameraActive && !previewImage && (
-                <div className="space-y-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="relative bg-black rounded-lg overflow-hidden" style={{ minHeight: "300px" }}>
-                        <video 
-                          ref={videoRef} 
-                          autoPlay 
-                          playsInline 
-                          muted
-                          className="w-full h-full object-cover"
-                        />
-                        <canvas ref={canvasRef} className="hidden" />
-                      </div>
-                      <div className="flex gap-2 mt-4">
-                        <Button onClick={capturePhoto} className="flex-1" size="lg">
-                          <Camera className="mr-2 h-5 w-5" />
-                          Capture Photo
-                        </Button>
-                        <Button onClick={stopCamera} variant="outline" size="lg">
-                          <X className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="flex flex-col items-center gap-3 py-6">
-                      <p className="text-sm text-muted-foreground text-center">
-                        Camera not working?
-                      </p>
-                      <Button 
-                        onClick={() => {
-                          stopCamera();
-                          fileInputRef.current?.click();
-                        }} 
-                        variant="outline"
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload Photo Instead
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+      {/* Search Results */}
+      {status === "results" && searchResults.length > 0 && !selectedPick && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Search Results</h2>
+          <VolumeGroupedResults
+            groupedResults={groupedResults}
+            onSelectComic={handleSelectComic}
+            onCoverClick={(url, title) => setZoomImage({ url, title })}
+          />
+        </div>
+      )}
 
-              {status === "previewing" && previewImage && (
-                <Card>
-                  <CardContent className="p-6 space-y-4">
-                    <h3 className="text-xl font-semibold text-center">Preview</h3>
-                    <div className="max-w-md mx-auto">
-                      <img src={previewImage} alt="Preview" className="w-full rounded-lg border-2 border-border" />
-                    </div>
-                    <div className="flex gap-3">
-                      <Button variant="outline" onClick={handleRetake} className="flex-1">
-                        Retake
-                      </Button>
-                      <Button onClick={handleUsePhoto} className="flex-1">
-                        Use This Photo
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+      {/* Selected Comic - Listing Form */}
+      {status === "selected" && selectedPick && imageUrl && (
+        <div className="space-y-6">
+          <ScannerListingForm
+            imageUrl={imageUrl}
+            selectedPick={selectedPick}
+            confidence={confidence}
+          />
+          
+          <ScannerActions
+            onSellNow={handleSellNow}
+            onAddToCollection={handleAddToCollection}
+          />
+        </div>
+      )}
 
-              {status === "uploading" && (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <h3 className="text-xl font-semibold">Uploading & Scanning...</h3>
-                    <p className="text-sm text-muted-foreground">This will only take a moment</p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
+      {/* Debug Panel */}
+      {showDebug && (
+        <DebugPanel debugData={debugData} />
+      )}
 
-            {/* Upload tab */}
-            <TabsContent value="upload" className="mt-6 space-y-4">
-              {status === "idle" && !previewImage && (
-                <Card>
-                  <CardContent className="flex flex-col items-center gap-4 py-8">
-                    <Upload className="h-16 w-16 text-primary" />
-                    <h3 className="text-xl font-semibold">Upload a photo</h3>
-                    <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Select a photo from your library or use the camera tab for live preview.
-                    </p>
-                    <div className="flex flex-col gap-3 w-full max-w-md">
-                      <Button size="lg" onClick={() => fileInputRef.current?.click()} className="w-full">
-                        <Upload className="mr-2 h-5 w-5" />
-                        Choose from Photos
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="lg" 
-                        onClick={() => setActiveTab("camera")}
-                        className="w-full"
-                      >
-                        <Camera className="mr-2 h-5 w-5" />
-                        Switch to Camera Tab
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {status === "previewing" && previewImage && (
-                <Card>
-                  <CardContent className="p-6 space-y-4">
-                    <h3 className="text-xl font-semibold text-center">Preview</h3>
-                    <div className="max-w-md mx-auto">
-                      <img src={previewImage} alt="Preview" className="w-full rounded-lg border-2 border-border" />
-                    </div>
-                    <div className="flex gap-3">
-                      <Button variant="outline" onClick={handleChooseDifferent} className="flex-1">
-                        Choose Different Image
-                      </Button>
-                      <Button onClick={handleContinue} className="flex-1">
-                        Continue
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {status === "uploading" && (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    <h3 className="text-xl font-semibold">Uploading & Scanning...</h3>
-                    <p className="text-sm text-muted-foreground">This will only take a moment</p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            {/* Search tab */}
-            <TabsContent value="search" className="mt-6 space-y-4">
-              <Card>
-                <CardContent className="flex flex-col gap-4 py-6">
-                  <div className="text-center space-y-2">
-                    <Search className="h-16 w-16 mx-auto text-primary" />
-                    <h3 className="text-xl font-semibold">Search for a comic</h3>
-                    <p className="text-sm text-muted-foreground">Find your comic by title, series, or issue number.</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g., 'Amazing Spider-Man 300'"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
-                      className="flex-1"
-                    />
-                    <Button onClick={() => handleTextSearch()} disabled={loading} size="lg">
-                      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    </Button>
-                  </div>
-
-                  {textSearchResults.length > 0 && (
-                    <div className="space-y-3 max-h-[600px] overflow-y-auto mt-4">
-                      {textSearchResults.map((result, index) => {
-                        const title = result.title || result.volume || result.volumeName || "";
-                        const coverUrl = result.image || result.cover_image || result.coverUrl;
-
-                        return (
-                          <Card key={index} className="hover:border-primary/50 transition-colors">
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-4">
-                                {coverUrl && (
-                                  <img src={coverUrl} alt={title} className="w-16 h-24 object-cover rounded" />
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold truncate">
-                                    {title}
-                                    {result.issue_number && ` #${result.issue_number}`}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {result.publisher}
-                                    {result.year && ` • ${result.year}`}
-                                  </p>
-                                </div>
-                                <Button variant="outline" size="sm" onClick={() => handleUseSearchResult(result)}>
-                                  Use This Issue
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-          </>
-        )}
-      </section>
-
-      {/* Debug overlay - enabled in dev and preview */}
-      {isDev && <RecognitionDebugOverlay debugData={debugData} />}
-      
-      {/* Upload log panel - dev/preview only */}
-      <UploadLogPanel log={uploadLog} />
-    </>
+      {/* Cover Zoom Modal */}
+      {zoomImage && (
+        <CoverZoomModal
+          isOpen={!!zoomImage}
+          onClose={() => setZoomImage(null)}
+          imageUrl={zoomImage.url}
+          title={zoomImage.title}
+        />
+      )}
+    </div>
   );
 }
