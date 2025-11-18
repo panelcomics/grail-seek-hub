@@ -1,0 +1,225 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+/**
+ * Sync ComicVine volumes and issues to local cache
+ * 
+ * Strategy: Sync all volumes, then sync issues for "hot" volumes on demand
+ * This is idempotent - safe to re-run
+ * 
+ * Trigger: POST /sync-comicvine-cache with { secret: "...", volumeIds?: number[] }
+ */
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { secret, volumeIds, limit = 100 } = await req.json();
+    
+    // Simple secret check - set COMICVINE_SYNC_SECRET in env
+    const expectedSecret = Deno.env.get('COMICVINE_SYNC_SECRET');
+    if (!expectedSecret || secret !== expectedSecret) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
+    if (!comicvineKey) {
+      throw new Error('COMICVINE_API_KEY not configured');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let volumesSynced = 0;
+    let issuesSynced = 0;
+
+    // If specific volumeIds provided, sync those volumes + their issues
+    if (volumeIds && volumeIds.length > 0) {
+      for (const volumeId of volumeIds) {
+        const volResult = await syncVolume(volumeId, comicvineKey, supabase);
+        if (volResult.success) volumesSynced++;
+        
+        const issuesResult = await syncVolumeIssues(volumeId, comicvineKey, supabase);
+        issuesSynced += issuesResult.count;
+      }
+    } else {
+      // Sync top volumes (by popularity/usage)
+      // For now, sync a limited set - you can expand this
+      const response = await fetch(
+        `https://comicvine.gamespot.com/api/volumes/?api_key=${comicvineKey}&format=json&limit=${limit}&sort=count_of_issues:desc`,
+        { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
+      );
+      
+      const data = await response.json();
+      
+      if (data.results) {
+        for (const vol of data.results) {
+          const volResult = await syncVolume(vol.id, comicvineKey, supabase, vol);
+          if (volResult.success) {
+            volumesSynced++;
+            // Optionally sync issues for each volume
+            const issuesResult = await syncVolumeIssues(vol.id, comicvineKey, supabase);
+            issuesSynced += issuesResult.count;
+          }
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        volumesSynced,
+        issuesSynced,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Sync error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
+
+async function syncVolume(volumeId: number, apiKey: string, supabase: any, volumeData?: any) {
+  try {
+    let volume = volumeData;
+    
+    if (!volume) {
+      const response = await fetch(
+        `https://comicvine.gamespot.com/api/volume/4050-${volumeId}/?api_key=${apiKey}&format=json`,
+        { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
+      );
+      const data = await response.json();
+      volume = data.results;
+    }
+
+    if (!volume) return { success: false };
+
+    const slug = volume.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    const { error } = await supabase
+      .from('comicvine_volumes')
+      .upsert({
+        id: volume.id,
+        name: volume.name,
+        slug,
+        publisher: volume.publisher?.name || null,
+        start_year: volume.start_year || null,
+        issue_count: volume.count_of_issues || 0,
+        deck: volume.deck || null,
+        image_url: volume.image?.medium_url || null,
+        last_synced_at: new Date().toISOString(),
+      });
+
+    return { success: !error };
+  } catch (error) {
+    console.error(`Failed to sync volume ${volumeId}:`, error);
+    return { success: false };
+  }
+}
+
+async function syncVolumeIssues(volumeId: number, apiKey: string, supabase: any) {
+  try {
+    let offset = 0;
+    const limit = 100;
+    let totalSynced = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await fetch(
+        `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${volumeId}&limit=${limit}&offset=${offset}&sort=issue_number:asc`,
+        { headers: { 'User-Agent': 'GrailSeeker Scanner' } }
+      );
+      
+      const data = await response.json();
+      
+      if (!data.results || data.results.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      const issues = data.results.map((issue: any) => {
+        // Extract key notes from description
+        let keyNotes = null;
+        if (issue.description) {
+          const desc = issue.description.replace(/<[^>]*>/g, '');
+          const keyPhrases = [
+            '1st appearance', 'first appearance', 'origin of', 'death of',
+            'cameo', 'full appearance', 'last appearance', 'key issue'
+          ];
+          const matches = keyPhrases.filter(phrase => 
+            desc.toLowerCase().includes(phrase)
+          );
+          if (matches.length > 0) {
+            keyNotes = desc.substring(0, 300);
+          }
+        }
+
+        // Extract writer and artist
+        const writers = issue.person_credits
+          ?.filter((p: any) => p.role?.toLowerCase().includes('writer'))
+          .map((p: any) => p.name)
+          .join(', ') || null;
+        
+        const artists = issue.person_credits
+          ?.filter((p: any) => 
+            p.role?.toLowerCase().includes('artist') || 
+            p.role?.toLowerCase().includes('penciler')
+          )
+          .map((p: any) => p.name)
+          .join(', ') || null;
+
+        return {
+          id: issue.id,
+          volume_id: volumeId,
+          issue_number: issue.issue_number || null,
+          name: issue.name || null,
+          cover_date: issue.cover_date || null,
+          image_url: issue.image?.medium_url || null,
+          writer: writers,
+          artist: artists,
+          key_notes: keyNotes,
+          last_synced_at: new Date().toISOString(),
+        };
+      });
+
+      const { error } = await supabase
+        .from('comicvine_issues')
+        .upsert(issues);
+
+      if (error) {
+        console.error(`Error syncing issues for volume ${volumeId}:`, error);
+      }
+
+      totalSynced += issues.length;
+      offset += limit;
+      
+      if (data.results.length < limit) {
+        hasMore = false;
+      }
+
+      // Rate limiting - ComicVine allows 1 request per second
+      await new Promise(resolve => setTimeout(resolve, 1100));
+    }
+
+    return { count: totalSynced };
+  } catch (error) {
+    console.error(`Failed to sync issues for volume ${volumeId}:`, error);
+    return { count: 0 };
+  }
+}

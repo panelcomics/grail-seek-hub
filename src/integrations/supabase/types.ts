@@ -578,6 +578,89 @@ export type Database = {
         }
         Relationships: []
       }
+      comicvine_issues: {
+        Row: {
+          artist: string | null
+          cover_date: string | null
+          id: number
+          image_url: string | null
+          issue_number: string | null
+          key_notes: string | null
+          last_synced_at: string | null
+          name: string | null
+          volume_id: number
+          writer: string | null
+        }
+        Insert: {
+          artist?: string | null
+          cover_date?: string | null
+          id: number
+          image_url?: string | null
+          issue_number?: string | null
+          key_notes?: string | null
+          last_synced_at?: string | null
+          name?: string | null
+          volume_id: number
+          writer?: string | null
+        }
+        Update: {
+          artist?: string | null
+          cover_date?: string | null
+          id?: number
+          image_url?: string | null
+          issue_number?: string | null
+          key_notes?: string | null
+          last_synced_at?: string | null
+          name?: string | null
+          volume_id?: number
+          writer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comicvine_issues_volume_id_fkey"
+            columns: ["volume_id"]
+            isOneToOne: false
+            referencedRelation: "comicvine_volumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comicvine_volumes: {
+        Row: {
+          deck: string | null
+          id: number
+          image_url: string | null
+          issue_count: number | null
+          last_synced_at: string | null
+          name: string
+          publisher: string | null
+          slug: string
+          start_year: number | null
+        }
+        Insert: {
+          deck?: string | null
+          id: number
+          image_url?: string | null
+          issue_count?: number | null
+          last_synced_at?: string | null
+          name: string
+          publisher?: string | null
+          slug: string
+          start_year?: number | null
+        }
+        Update: {
+          deck?: string | null
+          id?: number
+          image_url?: string | null
+          issue_count?: number | null
+          last_synced_at?: string | null
+          name?: string
+          publisher?: string | null
+          slug?: string
+          start_year?: number | null
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           buyer_id: string
@@ -2913,6 +2996,8 @@ export type Database = {
         Args: { seller_user_id: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_seller_favorites_total: { Args: never; Returns: undefined }
     }
     Enums: {
