@@ -84,6 +84,9 @@ export default function Scanner() {
     retryAttempt: 0,
     extracted: null as any,
     noMatchesFound: false as boolean,
+    autoSelected: false as boolean,
+    autoSelectedId: null as number | null,
+    autoSelectedTitle: null as string | null,
   });
 
   const [uploadLog, setUploadLog] = useState<{
@@ -269,6 +272,9 @@ export default function Scanner() {
         retryAttempt: retryCount,
         extracted: null,
         noMatchesFound: false,
+        autoSelected: false,
+        autoSelectedId: null,
+        autoSelectedTitle: null,
       });
 
       // Check authentication
@@ -418,6 +424,65 @@ export default function Scanner() {
           // User must explicitly select a pick or choose manual entry
           setSearchResults(results);
 
+          // Auto-select logic: single high-confidence match with publisher + title validation
+          let autoSelectedPick: ComicVinePick | null = null;
+          let autoSelectDebugInfo = {
+            autoSelected: false,
+            autoSelectedId: null as number | null,
+            autoSelectedTitle: null as string | null,
+          };
+
+          if (results.length > 0 && extracted?.finalCleanTitle && extracted?.publisher) {
+            // High confidence tier: score >= 0.80
+            const HIGH_CONFIDENCE_THRESHOLD = 0.80;
+            
+            // Filter eligible results: high confidence + publisher match + title match
+            const eligibleResults = results.filter((result: ComicVinePick) => {
+              if (result.score < HIGH_CONFIDENCE_THRESHOLD) return false;
+              
+              // Publisher match check
+              const resultPublisher = (result.publisher || '').toLowerCase();
+              const extractedPublisher = (extracted.publisher || '').toLowerCase();
+              const publisherMatch = resultPublisher.includes(extractedPublisher) || 
+                                     extractedPublisher.includes(resultPublisher);
+              
+              if (!publisherMatch) return false;
+              
+              // Title match check: series title must contain finalCleanTitle keywords
+              const resultTitle = (result.title || result.volumeName || '').toLowerCase();
+              const cleanTitle = (extracted.finalCleanTitle || '').toLowerCase();
+              const titleWords = cleanTitle.split(/\s+/).filter(w => w.length > 2); // Filter out short words
+              const titleMatch = titleWords.some(word => resultTitle.includes(word));
+              
+              return titleMatch;
+            });
+            
+            // Auto-select if exactly one eligible result
+            if (eligibleResults.length === 1) {
+              autoSelectedPick = eligibleResults[0];
+              setSelectedPick(autoSelectedPick);
+              
+              autoSelectDebugInfo = {
+                autoSelected: true,
+                autoSelectedId: autoSelectedPick.id,
+                autoSelectedTitle: `${autoSelectedPick.title} #${autoSelectedPick.issue}`,
+              };
+              
+              console.log(`${getTimestamp()} ✅ Auto-selected single high-confidence match:`, {
+                id: autoSelectedPick.id,
+                title: autoSelectedPick.title,
+                issue: autoSelectedPick.issue,
+                publisher: autoSelectedPick.publisher,
+                score: autoSelectedPick.score,
+              });
+            } else {
+              console.log(`${getTimestamp()} ℹ️ Auto-select skipped:`, {
+                eligibleCount: eligibleResults.length,
+                reason: eligibleResults.length === 0 ? 'No high-confidence matches with publisher+title validation' : 'Multiple eligible matches found',
+              });
+            }
+          }
+
           // Merge results if found
           if (results.length > 0) {
             const topResult = results[0];
@@ -489,6 +554,7 @@ export default function Scanner() {
               retryAttempt: retryCount,
               extracted: scanResult?.extracted || null,
               noMatchesFound: scanResult?.noMatchesFound || false,
+              ...autoSelectDebugInfo,
             });
 
             console.log(`${getTimestamp()} ✅ Results ready:`, { title, issueNumber, confidence: calculatedConfidence });
@@ -521,6 +587,9 @@ export default function Scanner() {
               retryAttempt: retryCount,
               extracted: scanResult?.extracted || null,
               noMatchesFound: scanResult?.noMatchesFound || false,
+              autoSelected: false,
+              autoSelectedId: null,
+              autoSelectedTitle: null,
             });
             
             sonnerToast("No matches found", {
@@ -803,6 +872,27 @@ export default function Scanner() {
                                   {debugData.extracted.isSlab ? 'true' : 'false'}
                                 </span>
                               </div>
+                              
+                              {/* Auto-select debug info */}
+                              <div className="mt-2 pt-2 border-t border-border/50">
+                                <div className="font-semibold text-foreground mb-1">Auto-Selection:</div>
+                                <div>
+                                  <span className="text-muted-foreground">Auto-selected: </span>
+                                  <span className={`font-medium ${debugData.autoSelected ? 'text-green-500' : 'text-foreground'}`}>
+                                    {debugData.autoSelected ? 'yes' : 'no'}
+                                  </span>
+                                </div>
+                                {debugData.autoSelected && debugData.autoSelectedTitle && (
+                                  <div className="mt-1">
+                                    <span className="text-muted-foreground">Selected: </span>
+                                    <span className="text-foreground font-medium">
+                                      {debugData.autoSelectedTitle}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]"> (id: {debugData.autoSelectedId})</span>
+                                  </div>
+                                )}
+                              </div>
+                              
                               {debugData.extracted.coverText && (
                                 <div className="mt-2 pt-2 border-t border-border/50">
                                   <div className="font-semibold text-foreground mb-1">Cover Text (extracted):</div>
