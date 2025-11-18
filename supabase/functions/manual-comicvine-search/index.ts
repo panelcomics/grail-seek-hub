@@ -106,7 +106,7 @@ async function queryComicVineVolumes(apiKey: string, query: string): Promise<any
 }
 
 async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber: string): Promise<any[]> {
-  const url = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${volumeId},issue_number:${issueNumber}&field_list=id,name,issue_number,volume,cover_date,image&limit=10`;
+  const url = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${volumeId},issue_number:${issueNumber}&field_list=id,name,issue_number,volume,cover_date,image,person_credits&limit=10`;
   
   console.log('[MANUAL-SEARCH] 🔍 ComicVine Issue Query for volume', volumeId, 'issue', issueNumber);
   
@@ -120,6 +120,39 @@ async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber
   
   const data = await response.json();
   return data.results || [];
+}
+
+function extractCreatorCredits(personCredits: any[]): { writer: string | null; artist: string | null } {
+  let writer: string | null = null;
+  let artist: string | null = null;
+  
+  if (!personCredits || !Array.isArray(personCredits)) {
+    return { writer, artist };
+  }
+  
+  // Find primary writer
+  const writerCredit = personCredits.find((credit: any) => 
+    credit.role?.toLowerCase().includes('writer') || 
+    credit.role?.toLowerCase().includes('script')
+  );
+  if (writerCredit) {
+    writer = writerCredit.name;
+  }
+  
+  // Find primary artist (prefer penciler/interior artist over cover artist)
+  const artistCredit = personCredits.find((credit: any) => {
+    const role = credit.role?.toLowerCase() || '';
+    return role.includes('penciler') || role.includes('pencils') || 
+           role.includes('artist') && !role.includes('cover');
+  }) || personCredits.find((credit: any) => 
+    credit.role?.toLowerCase().includes('cover')
+  );
+  
+  if (artistCredit) {
+    artist = artistCredit.name;
+  }
+  
+  return { writer, artist };
 }
 
 serve(async (req) => {
@@ -193,6 +226,7 @@ serve(async (req) => {
               for (const issue of issues) {
                 const volumePub = volume.publisher?.name || publisher || "";
                 const volumeName = issue.volume?.name || volume.name;
+                const credits = extractCreatorCredits(issue.person_credits);
                 
                 // Calculate score based on match quality
                 let score = 0.70; // Base score
@@ -233,6 +267,8 @@ serve(async (req) => {
                   volumeId: volume.id,
                   thumbUrl: issue.image?.small_url || "",
                   coverUrl: issue.image?.original_url || "",
+                  writer: credits.writer,
+                  artist: credits.artist,
                   score: score,
                   scoreBreakdown,
                   source: 'comicvine' as const,

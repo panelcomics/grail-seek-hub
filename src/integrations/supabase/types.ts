@@ -1068,6 +1068,7 @@ export type Database = {
       }
       inventory_items: {
         Row: {
+          artist: string | null
           cgc_grade: string | null
           comicvine_issue_id: string | null
           comicvine_volume_id: string | null
@@ -1110,9 +1111,11 @@ export type Database = {
           variant_notes: string | null
           variant_type: string | null
           volume_name: string | null
+          writer: string | null
           year: number | null
         }
         Insert: {
+          artist?: string | null
           cgc_grade?: string | null
           comicvine_issue_id?: string | null
           comicvine_volume_id?: string | null
@@ -1155,9 +1158,11 @@ export type Database = {
           variant_notes?: string | null
           variant_type?: string | null
           volume_name?: string | null
+          writer?: string | null
           year?: number | null
         }
         Update: {
+          artist?: string | null
           cgc_grade?: string | null
           comicvine_issue_id?: string | null
           comicvine_volume_id?: string | null
@@ -1200,6 +1205,7 @@ export type Database = {
           variant_notes?: string | null
           variant_type?: string | null
           volume_name?: string | null
+          writer?: string | null
           year?: number | null
         }
         Relationships: [

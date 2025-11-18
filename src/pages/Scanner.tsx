@@ -40,6 +40,8 @@ interface ComicVinePick {
   variantDescription?: string | null;
   thumbUrl: string;
   coverUrl: string;
+  writer?: string | null;
+  artist?: string | null;
   score: number;
   isReprint: boolean;
   source?: 'comicvine' | 'cache' | 'gcd';
