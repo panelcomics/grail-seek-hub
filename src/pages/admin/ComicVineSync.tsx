@@ -24,13 +24,21 @@ export default function ComicVineSync() {
 
   const fetchStats = async () => {
     try {
-      const { count: volumeCount } = await supabase
+      const { count: volumeCount, error: volumeError } = await supabase
         .from('comicvine_volumes')
         .select('*', { count: 'exact', head: true });
       
-      const { count: issueCount } = await supabase
+      if (volumeError) {
+        console.error('Error fetching volume count:', volumeError);
+      }
+
+      const { count: issueCount, error: issueError } = await supabase
         .from('comicvine_issues')
         .select('*', { count: 'exact', head: true });
+
+      if (issueError) {
+        console.error('Error fetching issue count:', issueError);
+      }
 
       // Get last sync timestamp
       const { data: lastSyncData } = await supabase
@@ -38,7 +46,7 @@ export default function ComicVineSync() {
         .select('last_synced_at')
         .order('last_synced_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       setStats({
         volumes: volumeCount || 0,
@@ -113,15 +121,15 @@ export default function ComicVineSync() {
       const nextOffset = data.offset + data.processed;
       setCurrentOffset(nextOffset);
       
+      // Refresh stats immediately after successful sync
+      await fetchStats();
+      
       toast({
         title: data.done ? "Sync Complete" : "Batch Synced",
         description: data.done 
           ? `Synced ${data.processed} volumes. All done!`
           : `Synced ${data.processed} volumes. Click "Start Sync" again to continue (offset: ${nextOffset}).`,
       });
-      
-      // Refresh stats after successful sync
-      await fetchStats();
     } catch (error: any) {
       console.error('[UI] Unexpected error:', error);
       // Catch any unexpected errors and display full details
