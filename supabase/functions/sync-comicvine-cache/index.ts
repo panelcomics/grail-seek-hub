@@ -15,22 +15,41 @@ const corsHeaders = {
  * Trigger: POST /sync-comicvine-cache with { secret: "...", volumeIds?: number[] }
  */
 serve(async (req) => {
+  console.log('[SYNC] Function invoked, method:', req.method);
+  
   if (req.method === 'OPTIONS') {
+    console.log('[SYNC] Handling OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Wrap everything in a timeout to ensure we always return a response
+  const timeoutPromise = new Promise<Response>((resolve) => 
+    setTimeout(() => {
+      console.error('[SYNC] Function timeout - sync took too long');
+      resolve(new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Function timeout',
+          message: 'Sync took too long and was terminated to prevent hanging'
+        }),
+        { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      ));
+    }, 55000)
+  );
+
   try {
-    console.log('[SYNC] Starting ComicVine cache sync...');
-    
-    // Check admin access
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('[SYNC] Missing authorization header');
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const syncPromise = (async () => {
+      console.log('[SYNC] Starting ComicVine cache sync...');
+      
+      // Check admin access
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        console.error('[SYNC] Missing authorization header');
+        return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -87,7 +106,8 @@ serve(async (req) => {
       requestBody = { limit: 50, offset: 0 };
     }
 
-    const { volumeIds, limit = 50, offset = 0 } = requestBody;
+    // Reduce limit to prevent timeouts with high-issue-count volumes
+    const { volumeIds, limit = 10, offset = 0 } = requestBody;
     console.log('[SYNC] Sync parameters:', { volumeIds, limit, offset });
 
     const comicvineKey = Deno.env.get('COMICVINE_API_KEY');
@@ -180,12 +200,23 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
+    })();
+
+    // Race between sync and timeout
+    return await Promise.race([syncPromise, timeoutPromise]);
   } catch (error) {
     console.error('[SYNC] Fatal error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = error instanceof Error ? error.stack : String(error);
+    
+    console.error('[SYNC] Error details:', errorDetails);
+    
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        details: error instanceof Error ? error.stack : String(error)
+        success: false,
+        error: errorMessage,
+        details: errorDetails,
+        message: 'Sync failed: ' + errorMessage
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
