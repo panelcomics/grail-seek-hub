@@ -58,7 +58,7 @@ export default function ComicVineSync() {
     try {
       console.log('[UI] Invoking sync-comicvine-cache function...');
       const { data, error } = await supabase.functions.invoke('sync-comicvine-cache', {
-        body: { limit: 10 }, // Start with just 10 volumes to test
+        body: { limit: 5 }, // Start with just 5 volumes to test
       });
 
       console.log('[UI] Function response:', { data, error });
