@@ -49,15 +49,24 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   ]);
 }
 
-// Comic title keywords for fuzzy matching
-const COMIC_TITLE_KEYWORDS = [
-  'Amazing Spider-Man', 'Spider-Man', 'Spider Man', 'X-Men', 'Batman', 'Superman', 
-  'Avengers', 'Justice League', 'Fantastic Four', 'Iron Man', 'Captain America', 
-  'Thor', 'Hulk', 'Incredible Hulk', 'Wolverine', 'Daredevil', 'Punisher', 
-  'Flash', 'Green Lantern', 'Wonder Woman', 'Spawn', 'Walking Dead',
-  'Invincible', 'Saga', 'Sandman', 'Watchmen', 'V for Vendetta', 'Hellboy',
-  'Detective Comics', 'Action Comics', 'Amazing Fantasy', 'Tales of Suspense',
-  'Journey into Mystery', 'Strange Tales', 'Uncanny X-Men', 'New Mutants'
+// Known comic series titles for fuzzy matching (expanded list)
+const KNOWN_COMIC_TITLES = [
+  'Amazing Spider-Man', 'Spider-Man', 'Spider Man', 'Peter Parker Spider-Man',
+  'Spectacular Spider-Man', 'Web of Spider-Man', 'Sensational Spider-Man',
+  'X-Men', 'Uncanny X-Men', 'Astonishing X-Men', 'New X-Men', 'X-Force',
+  'Batman', 'Detective Comics', 'Batman Dark Knight', 'Batman Incorporated',
+  'Superman', 'Action Comics', 'Superman Man of Steel', 'Adventures of Superman',
+  'Avengers', 'New Avengers', 'Mighty Avengers', 'Young Avengers',
+  'Justice League', 'Justice League of America', 'Justice League International',
+  'Fantastic Four', 'Iron Man', 'Invincible Iron Man', 'Captain America',
+  'Thor', 'Mighty Thor', 'Journey into Mystery', 'Hulk', 'Incredible Hulk',
+  'Wolverine', 'Daredevil', 'Punisher', 'Ghost Rider', 'Silver Surfer',
+  'Flash', 'Green Lantern', 'Green Lantern Corps', 'Wonder Woman',
+  'Spawn', 'Walking Dead', 'Invincible', 'Saga', 'Sandman', 'Watchmen',
+  'V for Vendetta', 'Hellboy', 'Amazing Fantasy', 'Tales of Suspense',
+  'Strange Tales', 'New Mutants', 'Teen Titans', 'Aquaman', 'Hawkman',
+  'Green Arrow', 'Black Panther', 'Doctor Strange', 'Ant-Man', 'Wasp',
+  'Captain Marvel', 'Ms Marvel', 'Deadpool', 'Cable', 'Venom', 'Carnage'
 ];
 
 // Noise patterns to remove from title extraction
@@ -124,6 +133,104 @@ function separateSlabFromCover(annotations: any[]): { coverText: string; slabTex
     coverText: coverBlocks.join(' '),
     slabText: slabBlocks.join(' ')
   };
+}
+
+// Levenshtein distance for fuzzy string matching
+function levenshteinDistance(str1: string, str2: string): number {
+  const s1 = str1.toLowerCase();
+  const s2 = str2.toLowerCase();
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= s2.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= s1.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= s2.length; i++) {
+    for (let j = 1; j <= s1.length; j++) {
+      if (s2[i - 1] === s1[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+
+  return matrix[s2.length][s1.length];
+}
+
+// Calculate similarity score (0-1) between two strings
+function calculateSimilarity(str1: string, str2: string): number {
+  const distance = levenshteinDistance(str1, str2);
+  const maxLength = Math.max(str1.length, str2.length);
+  if (maxLength === 0) return 1;
+  return 1 - (distance / maxLength);
+}
+
+// Extract all potential title candidates from OCR text
+function extractTitleCandidates(text: string): string[] {
+  const candidates: string[] = [];
+  
+  // Exclude these terms from title detection
+  const excludeTerms = [
+    'cgc', 'cbcs', 'universal grade', 'signature series', 'white pages', 
+    'off-white', 'page quality', 'certification', 'approved by', 
+    'comics code', 'cad authority', "he's", "she's", "it's", "they're",
+    'different', 'deadly', 'greatest', 'page', 'quality'
+  ];
+  
+  // Split into lines and filter out label/grading text
+  const lines = text.split('\n').filter(line => {
+    const lower = line.toLowerCase();
+    return !excludeTerms.some(term => lower.includes(term)) &&
+           !/\b\d{6,}\b/.test(line) && // Cert numbers
+           !/^\d\.?\d?$/.test(line.trim()); // Grade numbers like 9.8
+  });
+  
+  // Look for capitalized phrases (2-5 words)
+  const phrasePattern = /\b([A-Z][A-Za-z]*(?:\s+[A-Z][A-Za-z]*){1,4})\b/g;
+  
+  for (const line of lines) {
+    let match;
+    while ((match = phrasePattern.exec(line)) !== null) {
+      const candidate = match[1].trim();
+      // Must be at least 5 characters and not just "THE" or similar
+      if (candidate.length >= 5 && !excludeTerms.some(term => candidate.toLowerCase().includes(term))) {
+        candidates.push(candidate);
+      }
+    }
+  }
+  
+  return [...new Set(candidates)]; // Remove duplicates
+}
+
+// Fuzzy match a candidate against known comic titles
+function fuzzyMatchTitle(candidate: string): { title: string; score: number } | null {
+  let bestMatch: { title: string; score: number } | null = null;
+  
+  for (const knownTitle of KNOWN_COMIC_TITLES) {
+    const score = calculateSimilarity(candidate, knownTitle);
+    
+    // Also check if candidate contains the known title
+    const candidateLower = candidate.toLowerCase();
+    const knownLower = knownTitle.toLowerCase();
+    const containsMatch = candidateLower.includes(knownLower) || knownLower.includes(candidateLower);
+    
+    // Boost score if there's a substring match
+    const finalScore = containsMatch ? Math.max(score, 0.85) : score;
+    
+    if (finalScore >= 0.70 && (!bestMatch || finalScore > bestMatch.score)) {
+      bestMatch = { title: knownTitle, score: finalScore };
+    }
+  }
+  
+  return bestMatch;
 }
 
 function cleanTitle(text: string): string {
@@ -202,43 +309,6 @@ function isTitleJunk(title: string): boolean {
   return false;
 }
 
-function fuzzyExtractTitle(ocrText: string): string | null {
-  const upper = ocrText.toUpperCase();
-  const lines = ocrText.split('\n');
-  
-  // First pass: look for exact keyword matches in individual lines
-  for (const line of lines) {
-    const cleanedLine = cleanTitle(line);
-    for (const keyword of COMIC_TITLE_KEYWORDS) {
-      const keywordUpper = keyword.toUpperCase();
-      if (cleanedLine.toUpperCase().includes(keywordUpper)) {
-        // Found a line with a known title - extract just that part
-        const regex = new RegExp(`([A-Za-z\\s&'-]*${keyword}[A-Za-z\\s&'-]*)`, 'i');
-        const match = cleanedLine.match(regex);
-        if (match) {
-          return match[1].trim();
-        }
-        return keyword;
-      }
-    }
-  }
-  
-  // Second pass: look in full text
-  for (const keyword of COMIC_TITLE_KEYWORDS) {
-    const keywordUpper = keyword.toUpperCase();
-    if (upper.includes(keywordUpper)) {
-      const regex = new RegExp(`([A-Za-z\\s&'-]*${keyword}[A-Za-z\\s&'-]*)`, 'i');
-      const match = ocrText.match(regex);
-      if (match) {
-        return cleanTitle(match[1].trim());
-      }
-      return keyword;
-    }
-  }
-  
-  return null;
-}
-
 function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
   const isSlab = detectSlab(ocrText);
   console.log('[SCAN-ITEM] Detected slab:', isSlab);
@@ -255,79 +325,69 @@ function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
     console.log('[SCAN-ITEM] Separated slab text:', slabText.substring(0, 100));
   }
   
-  // Extract from cover text primarily
-  const slabTerms = ['cgc', 'cbcs', 'universal', 'grade', 'certification', 'white pages', 'off-white'];
-  const lines = coverText.split('\n').filter(line => {
-    const lower = line.toLowerCase();
-    return !slabTerms.some(term => lower.includes(term)) && !/\b\d{6,}\b/.test(line);
-  });
-  const cleanText = lines.join(' ');
+  // NEW ALGORITHM: Region-based extraction with fuzzy matching
+  console.log('[SCAN-ITEM] 🔍 Starting title extraction pipeline...');
   
-  // STEP 1: Try pattern-based extraction first (highest priority)
-  const patternResult = extractSeriesTitleFromPattern(ocrText);
-  let title = "";
-  let issueNumber: string | null = null;
-  let seriesCandidateFromPattern = "";
+  // STEP 1: Extract all potential title candidates from COVER TEXT ONLY
+  const detectedTitles = extractTitleCandidates(coverText);
+  console.log('[SCAN-ITEM] Detected title candidates:', detectedTitles);
   
-  if (patternResult) {
-    title = patternResult.title;
-    issueNumber = patternResult.issue;
-    seriesCandidateFromPattern = `${title} #${issueNumber}`;
-    console.log('[SCAN-ITEM] ✅ Used pattern extraction:', seriesCandidateFromPattern);
+  // STEP 2: Fuzzy match each candidate against known comic titles
+  const matchedTitles = detectedTitles.map(candidate => {
+    const match = fuzzyMatchTitle(candidate);
+    return {
+      candidate,
+      matchedTitle: match?.title || null,
+      score: match?.score || 0
+    };
+  }).filter(m => m.matchedTitle !== null);
+  
+  console.log('[SCAN-ITEM] Fuzzy matched titles:', matchedTitles);
+  
+  // STEP 3: Choose the best match
+  let chosenTitle = "";
+  let confidenceScoreTitle = 0;
+  
+  if (matchedTitles.length > 0) {
+    // Sort by score and pick the best
+    matchedTitles.sort((a, b) => b.score - a.score);
+    const best = matchedTitles[0];
+    chosenTitle = best.matchedTitle!;
+    confidenceScoreTitle = best.score;
+    console.log('[SCAN-ITEM] ✅ Chosen title:', chosenTitle, 'with confidence:', confidenceScoreTitle);
   } else {
-    // STEP 2: Try fuzzy title extraction
-    const fuzzyTitle = fuzzyExtractTitle(coverText);
-    if (fuzzyTitle) {
-      title = fuzzyTitle;
-      console.log('[SCAN-ITEM] Used fuzzy title extraction:', title);
+    // FALLBACK: Try pattern-based extraction
+    const patternResult = extractSeriesTitleFromPattern(ocrText);
+    if (patternResult) {
+      chosenTitle = patternResult.title;
+      confidenceScoreTitle = patternResult.confidence;
+      console.log('[SCAN-ITEM] ✅ Used pattern extraction fallback:', chosenTitle);
     } else {
-      // STEP 3: Fallback to first capitalized line
-      const titleMatch = cleanText.match(/^[A-Z][A-Za-z\s&'-]+/m);
-      if (titleMatch) {
-        title = titleMatch[0].trim();
-      }
-    }
-    
-    // Extract issue number separately if not from pattern
-    const issuePatterns = [
-      /#\s*(\d{1,4})\b/,
-      /\bNo\.?\s*(\d{1,4})\b/i,
-      /\bIssue\s*(\d{1,4})\b/i
-    ];
-    
-    for (const pattern of issuePatterns) {
-      const match = cleanText.match(pattern);
-      if (match) {
-        issueNumber = match[1];
-        break;
-      }
+      console.log('[SCAN-ITEM] ⚠️ No title match found');
     }
   }
   
-  // Clean the extracted title
-  let finalCleanTitle = cleanTitle(title);
-  console.log('[SCAN-ITEM] Final clean title (before junk check):', finalCleanTitle);
+  // STEP 4: Clean the chosen title
+  const finalCleanTitle = chosenTitle ? cleanTitle(chosenTitle) : "";
   
-  // STEP 4: Check if finalCleanTitle looks like junk
-  if (isTitleJunk(finalCleanTitle)) {
-    console.log('[SCAN-ITEM] ⚠️ Title looks like junk, re-scanning with pattern...');
-    
-    // Try to find a better title in the full OCR text
-    const betterPattern = extractSeriesTitleFromPattern(ocrText);
-    if (betterPattern) {
-      finalCleanTitle = betterPattern.title;
-      if (!issueNumber) {
-        issueNumber = betterPattern.issue;
-      }
-      seriesCandidateFromPattern = `${finalCleanTitle} #${issueNumber}`;
-      console.log('[SCAN-ITEM] ✅ Found better title via re-scan:', seriesCandidateFromPattern);
-    } else {
-      // Last resort: try to find any known comic title in the text
-      const lastResort = fuzzyExtractTitle(ocrText);
-      if (lastResort && !isTitleJunk(lastResort)) {
-        finalCleanTitle = lastResort;
-        console.log('[SCAN-ITEM] Used last-resort fuzzy extraction:', finalCleanTitle);
-      }
+  // Extract issue number from cover text (separate from title)
+  let issueNumber: string | null = null;
+  const issuePatterns = [
+    /#\s*(\d{1,4})\b/,
+    /\bNo\.?\s*(\d{1,4})\b/i,
+    /\bIssue\s*(\d{1,4})\b/i
+  ];
+  
+  const cleanCoverText = coverText.split('\n').filter(line => {
+    const lower = line.toLowerCase();
+    return !['cgc', 'cbcs', 'universal', 'grade'].some(term => lower.includes(term));
+  }).join(' ');
+  
+  for (const pattern of issuePatterns) {
+    const match = cleanCoverText.match(pattern);
+    if (match) {
+      issueNumber = match[1];
+      break;
     }
   }
   
@@ -346,6 +406,13 @@ function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
   const yearMatch = combinedText.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
   const year = yearMatch ? parseInt(yearMatch[1]) : null;
   
+  // Build series candidate from pattern if available
+  let seriesCandidateFromPattern = "";
+  const patternFinal = extractSeriesTitleFromPattern(ocrText);
+  if (patternFinal) {
+    seriesCandidateFromPattern = `${patternFinal.title} #${patternFinal.issue}`;
+  }
+  
   return { 
     title: finalCleanTitle || null, 
     issueNumber, 
@@ -355,7 +422,11 @@ function extractTokensFromOCR(ocrText: string, annotations?: any[]): any {
     coverText: coverText.substring(0, 200),
     slabText: slabText.substring(0, 200),
     finalCleanTitle,
-    seriesCandidateFromPattern
+    seriesCandidateFromPattern,
+    // New debug fields
+    detectedTitles,
+    chosenTitle,
+    confidenceScoreTitle
   };
 }
 
@@ -719,7 +790,10 @@ serve(async (req) => {
           coverText: tokens.coverText,
           slabText: tokens.slabText,
           finalCleanTitle: tokens.finalCleanTitle,
-          seriesCandidateFromPattern: tokens.seriesCandidateFromPattern || null
+          seriesCandidateFromPattern: tokens.seriesCandidateFromPattern || null,
+          detectedTitles: tokens.detectedTitles || [],
+          chosenTitle: tokens.chosenTitle || null,
+          confidenceScoreTitle: tokens.confidenceScoreTitle || 0
         },
         picks: results,
         ocrText,
