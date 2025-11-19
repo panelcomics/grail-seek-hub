@@ -631,6 +631,22 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
           </div>
           </div>
 
+          {/* Multi-image upload - Available immediately after first save */}
+          {savedItemId && (
+            <div className="space-y-3 pt-6 border-t">
+              <Label className="text-base font-semibold">Additional Photos (Optional)</Label>
+              <p className="text-sm text-muted-foreground">
+                Add up to 8 photos: front, back, spine, defects, etc.
+              </p>
+              <ImageManagement
+                listingId={savedItemId}
+                images={listingImages}
+                onImagesChange={() => fetchListingImages(savedItemId)}
+                maxImages={8}
+              />
+            </div>
+          )}
+
           {/* Submit Button */}
           <div className="flex gap-3 pt-4 border-t">
             <Button
@@ -648,25 +664,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
               className="flex-1"
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {savedItemId ? "Update" : "Save to Inventory"}
+              {savedItemId ? "Update Item" : "Save to Inventory"}
             </Button>
           </div>
-
-          {/* Multi-image upload after initial save */}
-          {savedItemId && (
-            <div className="space-y-3 pt-6 border-t">
-              <Label className="text-base font-semibold">Additional Photos (Optional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Add up to 8 photos: front, back, spine, defects, etc.
-              </p>
-              <ImageManagement
-                listingId={savedItemId}
-                images={listingImages}
-                onImagesChange={() => fetchListingImages(savedItemId)}
-                maxImages={8}
-              />
-            </div>
-          )}
         </form>
       </CardContent>
     </Card>

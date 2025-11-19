@@ -26,13 +26,14 @@ export function RecentScans({ recentScans, onSelectScan }: RecentScansProps) {
               <button
                 key={scan.id}
                 onClick={() => onSelectScan(scan)}
-                className="flex-shrink-0 w-20 sm:w-24 group cursor-pointer"
+                className="flex-shrink-0 w-[80px] sm:w-[100px] group cursor-pointer"
               >
-                <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-border group-hover:border-primary transition-colors bg-muted">
+                <div className="relative w-full h-[120px] sm:h-[150px] rounded-lg overflow-hidden border-2 border-border group-hover:border-primary transition-colors bg-muted">
                   <img
                     src={scan.coverUrl || scan.thumbUrl}
                     alt={scan.title}
                     className="w-full h-full object-cover"
+                    style={{ objectFit: 'cover' }}
                     loading="lazy"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
