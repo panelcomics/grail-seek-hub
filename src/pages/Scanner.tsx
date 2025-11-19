@@ -290,9 +290,9 @@ export default function Scanner() {
       } else {
         setStatus("results");
         setSearchResults([]);
-        sonnerToast.info("No automatic match found", {
-          description: "Try the manual search below"
-        });
+        
+        // Show loading message briefly before "no match"
+        sonnerToast.info("Searching local ComicVine index...");
         
         setDebugData({
           status: "no_match",
@@ -302,6 +302,13 @@ export default function Scanner() {
           queryParams: null,
           comicvineQuery: ""
         });
+        
+        // After a brief moment, show the "no match" message
+        setTimeout(() => {
+          sonnerToast.info("No automatic match found", {
+            description: "Try the manual search below"
+          });
+        }, 500);
       }
     } catch (err: any) {
       console.error('Scan error:', err);
