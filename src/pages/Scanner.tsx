@@ -320,14 +320,18 @@ export default function Scanner() {
               },
             });
 
-            if (!volumeError && volumeData?.results?.length) {
-              hasResults = true;
-              setVolumeResults(volumeData.results);
+            const results = volumeData?.results || [];
+            const bestScore = results[0]?.score ?? 1000;
+            const hasGoodMatch = results.length > 0 && bestScore < 100;
+
+            if (!volumeError && results.length) {
+              hasResults = hasGoodMatch;
+              setVolumeResults(results);
               setSearchSource(volumeData.source || "local");
               setDebugData((prev) => ({
                 ...prev,
-                status: "success",
-                queryParams: { source: volumeData.source || "local", ...volumeData.filters },
+                status: hasGoodMatch ? "success" : "weak_matches",
+                queryParams: { source: volumeData.source || "local", bestScore, ...volumeData.filters },
               }));
             }
           } catch (searchErr) {
