@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Crown, Star, Award, ArrowLeft, Trophy } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -122,8 +122,7 @@ const Leaderboard = () => {
   };
 
   return (
-    <AppLayout>
-      <main className="container mx-auto px-4 py-8 mt-16">
+    <main className="container mx-auto px-4 py-8 mt-16">
         {/* Header */}
         <div className="mb-8">
           <Button
@@ -307,9 +306,8 @@ const Leaderboard = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Marketplace
           </Button>
-        </div>
-      </main>
-    </AppLayout>
+      </div>
+    </main>
   );
 };
 

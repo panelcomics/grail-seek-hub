@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Search, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AppLayout } from "@/components/layout/AppLayout";
+
 
 interface EbayItem {
   itemId: string;
@@ -67,8 +67,7 @@ export default function EbaySearch() {
   };
 
   return (
-    <AppLayout>
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-2">eBay Book Search</h1>
           <p className="text-muted-foreground mb-6">
@@ -151,8 +150,7 @@ export default function EbaySearch() {
               </Card>
             ))}
           </div>
-        </div>
-      </main>
-    </AppLayout>
+      </div>
+    </main>
   );
 }

@@ -11,7 +11,7 @@ import { ArrowLeft, Loader2, DollarSign, Gavel, Repeat2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { AppLayout } from "@/components/layout/AppLayout";
+
 import { formatComicDisplay } from "@/lib/comics/format";
 import { ComicImageCarousel } from "@/components/ComicImageCarousel";
 import { ImageManagement } from "@/components/ImageManagement";
