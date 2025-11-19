@@ -75,6 +75,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [artist, setArtist] = useState<string>("");
   const [keyNotes, setKeyNotes] = useState<string>("");
   const [price, setPrice] = useState<string>("");
+  const [cgcCert, setCgcCert] = useState<string>(""); // CGC/barcode/cert number
 
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
@@ -227,6 +228,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         publisher: publisher.trim() || null,
         year: year ? parseInt(year) : null,
         grade: grade.trim() || null, // e.g., "CGC 9.8"
+        cgc_grade: cgcCert.trim() || null, // Store CGC cert/barcode number
         condition: condition,
         details: notes.trim() || null, // User's notes/description
         comicvine_issue_id: comicvineId ? comicvineId.toString() : null,
@@ -449,6 +451,17 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                   placeholder="e.g., CGC 9.8, CBCS 9.6"
                 />
               </div>
+              
+              <div>
+                <Label htmlFor="cgcCert">CGC / Barcode / Cert # (Optional)</Label>
+                <Input
+                  id="cgcCert"
+                  value={cgcCert}
+                  onChange={(e) => setCgcCert(e.target.value)}
+                  placeholder="e.g., 1234567890"
+                />
+              </div>
+            </div>
 
             <div>
               <Label htmlFor="condition">Condition</Label>
@@ -468,7 +481,6 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
           {/* Variant & Key Details Section */}
           <div className="space-y-4 pt-4 border-t">

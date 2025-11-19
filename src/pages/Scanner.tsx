@@ -711,9 +711,55 @@ export default function Scanner() {
   };
 
   // Action handlers
-  const handleSellNow = () => {
-    // Navigate to sell flow (to be implemented)
-    sonnerToast.info("Sell flow coming soon!");
+  const handleSellNow = async () => {
+    if (!selectedPick || !user) {
+      sonnerToast.error("Please select a comic and sign in");
+      return;
+    }
+
+    // Save to inventory first if not already saved
+    setLoading(true);
+    try {
+      const finalImageUrl = imageUrl;
+      
+      const inventoryData: any = {
+        user_id: user.id,
+        title: selectedPick.volumeName || selectedPick.title,
+        series: selectedPick.volumeName || null,
+        issue_number: selectedPick.issue || null,
+        publisher: selectedPick.publisher || null,
+        year: selectedPick.year || null,
+        condition: "NM",
+        comicvine_issue_id: selectedPick.id ? selectedPick.id.toString() : null,
+        comicvine_volume_id: selectedPick.volumeId ? selectedPick.volumeId.toString() : null,
+        variant_description: selectedPick.variantDescription || null,
+        writer: selectedPick.writer || null,
+        artist: selectedPick.artist || null,
+        scanner_confidence: confidence || null,
+        scanner_last_scanned_at: new Date().toISOString(),
+        images: {
+          front: finalImageUrl,
+          comicvine_reference: selectedPick.coverUrl || null,
+        },
+        listing_status: "not_listed",
+      };
+
+      const { data: inventoryItem, error } = await supabase
+        .from("inventory_items")
+        .insert(inventoryData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Navigate to sell page with the new inventory item
+      navigate(`/sell/${inventoryItem.id}`);
+    } catch (error: any) {
+      console.error("Error saving comic:", error);
+      sonnerToast.error("Failed to save comic");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddToCollection = () => {
