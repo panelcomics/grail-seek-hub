@@ -240,6 +240,28 @@ export default function Scanner() {
             comicvineId: topPick.id,
             comicvineCoverUrl: topPick.coverUrl
           });
+          
+          // Fetch detailed issue info from ComicVine for high-confidence matches
+          const issueDetails = await fetchIssueDetails(topPick);
+          if (issueDetails) {
+            topPick.title = issueDetails.title || topPick.title;
+            topPick.coverUrl = issueDetails.cover_url || topPick.coverUrl;
+            topPick.writer = issueDetails.writer;
+            topPick.artist = issueDetails.artist;
+            topPick.description = issueDetails.description;
+            topPick.coverDate = issueDetails.cover_date;
+            
+            setPrefillData({
+              title: issueDetails.volume_name || topPick.volumeName || topPick.title,
+              issueNumber: topPick.issue || undefined,
+              publisher: topPick.publisher || issueDetails.publisher,
+              year: topPick.year || undefined,
+              comicvineId: topPick.id,
+              comicvineCoverUrl: issueDetails.cover_url || topPick.coverUrl,
+              description: issueDetails.description
+            });
+          }
+
           setStatus("selected");
           
           // Save to recent scans
@@ -293,6 +315,26 @@ export default function Scanner() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch detailed issue info from ComicVine
+  const fetchIssueDetails = async (pick: any) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-comicvine-issue', {
+        body: {
+          issue_id: pick.id,
+          volume_id: pick.volumeId,
+          issue_number: pick.issue
+        }
+      });
+
+      if (error) throw error;
+      
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch issue details:', err);
+      return null;
     }
   };
 
@@ -459,6 +501,29 @@ export default function Scanner() {
       comicvineCoverUrl: issue.image_url,
       description: issue.key_notes || undefined
     });
+    
+    // Fetch detailed issue info from ComicVine on-demand
+    const issueDetails = await fetchIssueDetails(pick);
+    if (issueDetails) {
+      // Update pick with detailed info
+      pick.title = issueDetails.title || pick.title;
+      pick.coverUrl = issueDetails.cover_url || pick.coverUrl;
+      pick.writer = issueDetails.writer;
+      pick.artist = issueDetails.artist;
+      pick.variantDescription = issueDetails.title;
+      
+      // Update prefill data with detailed info
+      setPrefillData({
+        title: issueDetails.volume_name || volume.name,
+        issueNumber: issue.issue_number || undefined,
+        publisher: issueDetails.publisher || volume.publisher,
+        year: year || undefined,
+        comicvineId: issue.id,
+        comicvineCoverUrl: issueDetails.cover_url || issue.image_url,
+        description: issueDetails.description || issue.key_notes
+      });
+    }
+    
     setStatus("selected");
     saveToRecentScans(pick);
     
@@ -489,6 +554,29 @@ export default function Scanner() {
       comicvineId: pick.id,
       comicvineCoverUrl: pick.coverUrl
     });
+    
+    // Fetch detailed issue info from ComicVine on-demand
+    const issueDetails = await fetchIssueDetails(pick);
+    if (issueDetails) {
+      // Update pick with detailed info
+      pick.title = issueDetails.title || pick.title;
+      pick.coverUrl = issueDetails.cover_url || pick.coverUrl;
+      pick.writer = issueDetails.writer;
+      pick.artist = issueDetails.artist;
+      pick.variantDescription = issueDetails.title;
+      
+      // Update prefill data with detailed info
+      setPrefillData({
+        title: issueDetails.volume_name || pick.volumeName || pick.title,
+        issueNumber: pick.issue || undefined,
+        publisher: issueDetails.publisher || pick.publisher,
+        year: pick.year || undefined,
+        comicvineId: pick.id,
+        comicvineCoverUrl: issueDetails.cover_url || pick.coverUrl,
+        description: issueDetails.description
+      });
+    }
+    
     setStatus("selected");
     saveToRecentScans(pick);
     
@@ -550,8 +638,11 @@ export default function Scanner() {
     <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Comic Scanner</h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-1">
           Snap a photo or upload an image to identify your comic
+        </p>
+        <p className="text-xs text-muted-foreground/70">
+          Using local cache of 8,560+ series (updated daily)
         </p>
       </div>
 
