@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
 import { formatComicDisplay } from "@/lib/comics/format";
 import { getComicCoverImage, getComicImageUrl } from "@/lib/comicImages";
+import { ImageManagement } from "@/components/ImageManagement";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,7 @@ const MyCollection = () => {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingComic, setEditingComic] = useState<Comic | null>(null);
+  const [listingImages, setListingImages] = useState<any[]>([]);
   const [editForm, setEditForm] = useState({
     title: "",
     issue_number: "",
@@ -77,6 +79,9 @@ const MyCollection = () => {
     variant_notes: "",
     is_key: false,
     key_type: "",
+    writer: "",
+    artist: "",
+    cgc_grade: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -98,6 +103,21 @@ const MyCollection = () => {
       setFilteredComics(comics);
     }
   }, [search, comics]);
+
+  const fetchListingImages = async (listingId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("listing_images")
+        .select("*")
+        .eq("listing_id", listingId)
+        .order("sort_order");
+      
+      if (error) throw error;
+      setListingImages(data || []);
+    } catch (error) {
+      console.error("Error fetching images:", error);
+    }
+  };
 
   const fetchComics = async () => {
     try {
@@ -160,6 +180,7 @@ const MyCollection = () => {
   const handleEditClick = (comic: Comic, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingComic(comic);
+    fetchListingImages(comic.id); // Load images for this listing
     setEditForm({
       title: comic.title,
       issue_number: comic.issue_number || "",
@@ -174,6 +195,9 @@ const MyCollection = () => {
       variant_notes: comic.variant_notes || "",
       is_key: comic.is_key || false,
       key_type: comic.key_type || "",
+      writer: (comic as any).writer || "",
+      artist: (comic as any).artist || "",
+      cgc_grade: (comic as any).cgc_grade || "",
     });
   };
 
@@ -198,6 +222,9 @@ const MyCollection = () => {
           variant_notes: editForm.variant_notes || null,
           is_key: editForm.is_key,
           key_type: editForm.is_key ? (editForm.key_type || null) : null,
+          writer: editForm.writer || null,
+          artist: editForm.artist || null,
+          cgc_grade: editForm.cgc_grade || null,
         })
         .eq("id", editingComic.id);
 
@@ -430,6 +457,33 @@ const MyCollection = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="writer">Writer</Label>
+              <Input
+                id="writer"
+                value={editForm.writer}
+                onChange={(e) => setEditForm({ ...editForm, writer: e.target.value })}
+                placeholder="e.g., Stan Lee"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="artist">Artist</Label>
+              <Input
+                id="artist"
+                value={editForm.artist}
+                onChange={(e) => setEditForm({ ...editForm, artist: e.target.value })}
+                placeholder="e.g., Jack Kirby"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cgc_grade">CGC / Barcode / Cert # (Optional)</Label>
+              <Input
+                id="cgc_grade"
+                value={editForm.cgc_grade}
+                onChange={(e) => setEditForm({ ...editForm, cgc_grade: e.target.value })}
+                placeholder="e.g., CGC cert number or barcode"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="details">Details / Significance</Label>
               <Textarea
                 id="details"
@@ -511,6 +565,22 @@ const MyCollection = () => {
                 </div>
               )}
             </div>
+
+            {/* Multi-Photo Management */}
+            {editingComic && (
+              <div className="space-y-3 pt-6 border-t">
+                <Label className="text-base font-semibold">Photos</Label>
+                <p className="text-sm text-muted-foreground">
+                  Manage photos for this comic (up to 8 images)
+                </p>
+                <ImageManagement
+                  listingId={editingComic.id}
+                  images={listingImages}
+                  onImagesChange={() => fetchListingImages(editingComic.id)}
+                  maxImages={8}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setEditingComic(null)} disabled={saving}>
