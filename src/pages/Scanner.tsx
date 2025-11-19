@@ -290,25 +290,63 @@ export default function Scanner() {
       } else {
         setStatus("results");
         setSearchResults([]);
-        
-        // Show loading message briefly before "no match"
+
+        const searchText =
+          buildPrefilledQuery(data.extracted) ||
+          data.extracted?.title ||
+          (typeof data.ocr === "string" ? data.ocr : "");
+
         sonnerToast.info("Searching local ComicVine index...");
-        
+
         setDebugData({
-          status: "no_match",
+          status: "searching",
           raw_ocr: data.ocr || "",
           extracted: data.extracted || null,
           confidence: 0,
           queryParams: null,
-          comicvineQuery: ""
+          comicvineQuery: searchText,
         });
-        
-        // After a brief moment, show the "no match" message
-        setTimeout(() => {
-          sonnerToast.info("No automatic match found", {
-            description: "Try the manual search below"
-          });
-        }, 500);
+
+        let hasResults = false;
+
+        if (searchText && searchText.trim().length > 0) {
+          try {
+            const { data: volumeData, error: volumeError } = await supabase.functions.invoke("volumes-suggest", {
+              body: {
+                q: searchText,
+                publisher: data.extracted?.publisher,
+                year: data.extracted?.year,
+                limit: 20,
+              },
+            });
+
+            if (!volumeError && volumeData?.results?.length) {
+              hasResults = true;
+              setVolumeResults(volumeData.results);
+              setSearchSource(volumeData.source || "local");
+              setDebugData((prev) => ({
+                ...prev,
+                status: "success",
+                queryParams: { source: volumeData.source || "local", ...volumeData.filters },
+              }));
+            }
+          } catch (searchErr) {
+            console.error("Auto-match search error:", searchErr);
+          }
+        }
+
+        if (!hasResults) {
+          setDebugData((prev) => ({
+            ...prev,
+            status: "no_match",
+          }));
+
+          setTimeout(() => {
+            sonnerToast.info("No automatic match found", {
+              description: "Try the manual search below",
+            });
+          }, 500);
+        }
       }
     } catch (err: any) {
       console.error('Scan error:', err);
