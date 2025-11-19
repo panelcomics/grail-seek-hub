@@ -71,6 +71,7 @@ serve(async (req) => {
 
     let results: any[] = [];
     let source: "local" | "live" = "local";
+    let bestScore = Infinity;
 
     if (normalizedQuery) {
       // --- Local cache search ---
@@ -97,80 +98,112 @@ serve(async (req) => {
       if (volumes && volumes.length > 0) {
         // Score and sort by relevance to normalizedQuery
         const scoredResults = volumes.map((vol: any) => {
-          const nameLower = (vol.name || "").toLowerCase();
+          const normalizedTitle = normalizeTitle(vol.name || "");
 
-          let score = 1000;
+          let score = 100;
 
-          if (nameLower === normalizedQuery) {
-            // Exact match
+          if (normalizedTitle === normalizedQuery) {
+            // Exact match of full title
             score = 0;
-          } else if (nameLower.startsWith(normalizedQuery)) {
-            // Starts with
+          } else if (normalizedTitle.startsWith(normalizedQuery)) {
+            // Title starts with query
             score = 10;
           } else if (
-            nameLower.split(/\s+/).includes(normalizedQuery) ||
-            nameLower.startsWith(`${normalizedQuery} `) ||
-            nameLower.endsWith(` ${normalizedQuery}`)
+            normalizedTitle.split(/\s+/).includes(normalizedQuery) ||
+            normalizedTitle.startsWith(`${normalizedQuery} `) ||
+            normalizedTitle.endsWith(` ${normalizedQuery}`)
           ) {
-            // Appears as a whole word
+            // Query appears as a whole word
             score = 20;
-          } else if (nameLower.includes(normalizedQuery)) {
-            // Appears anywhere
+          } else if (normalizedTitle.includes(normalizedQuery)) {
+            // Query appears anywhere in title
             score = 30;
           }
 
-          // Length penalty: prefer shorter titles
-          score += (vol.name?.length || 0) / 10;
-
-          // Year tie-breaker: prefer older series when year is known
+          // Year tie-breaker: prefer closer to requested year, older series slightly preferred
           if (year && vol.start_year) {
-            score += Math.abs(vol.start_year - year);
+            score += Math.min(50, Math.abs(vol.start_year - year));
           } else if (vol.start_year) {
-            score += Math.max(0, 2024 - vol.start_year) / 100;
+            score += Math.max(0, 2024 - vol.start_year) / 200;
           }
 
-          // Issue count bonus as final tiebreaker
-          score -= (vol.issue_count || 0) / 1000;
+          // Issue count bonus as final tiebreaker (more issues very slightly preferred)
+          score -= (vol.issue_count || 0) / 2000;
 
           return { ...vol, score };
         });
 
-        scoredResults.sort((a, b) => a.score - b.score);
-        results = scoredResults.map(({ score, ...vol }) => vol).slice(0, limit);
+        scoredResults.sort((a: any, b: any) => a.score - b.score);
+        const topResults = scoredResults.slice(0, limit);
+        results = topResults;
+        bestScore = topResults[0]?.score ?? Infinity;
       }
 
-      // --- Live ComicVine fallback when local cache has no matches ---
-      if (results.length === 0) {
-        const apiKey = Deno.env.get("COMICVINE_API_KEY");
-        if (apiKey) {
-          const params = new URLSearchParams({
-            api_key: apiKey,
-            format: "json",
-            filter: `name:${normalizedQuery}`,
-            sort: "start_year:asc",
-            limit: String(limit),
-          });
+       // --- Live ComicVine fallback when local cache has no strong matches ---
+       if (results.length === 0 || bestScore > 30) {
+         const apiKey = Deno.env.get("COMICVINE_API_KEY");
+         if (apiKey) {
+           const params = new URLSearchParams({
+             api_key: apiKey,
+             format: "json",
+             filter: `name:${query}`,
+             sort: "start_year:asc",
+             limit: String(limit),
+           });
 
-          const resp = await fetch(`https://comicvine.gamespot.com/api/volumes/?${params.toString()}`);
-          if (resp.ok) {
-            const json = await resp.json();
-            const apiResults = json.results || [];
+           const resp = await fetch(`https://comicvine.gamespot.com/api/volumes/?${params.toString()}`);
+           if (resp.ok) {
+             const json = await resp.json();
+             const apiResults = json.results || [];
 
-            results = apiResults.map((v: any) => ({
-              id: v.id,
-              name: v.name,
-              slug: v.slug || v.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "",
-              publisher: v.publisher?.name || null,
-              start_year: v.start_year || null,
-              issue_count: v.count_of_issues || null,
-              image_url: v.image?.small_url || v.image?.super_url || null,
-              deck: v.deck || null,
-            }));
+             const scoredResults = apiResults.map((v: any) => {
+               const normalizedTitle = normalizeTitle(v.name || "");
 
-            source = "live";
-          }
-        }
-      }
+               let score = 100;
+               if (normalizedTitle === normalizedQuery) {
+                 score = 0;
+               } else if (normalizedTitle.startsWith(normalizedQuery)) {
+                 score = 10;
+               } else if (
+                 normalizedTitle.split(/\s+/).includes(normalizedQuery) ||
+                 normalizedTitle.startsWith(`${normalizedQuery} `) ||
+                 normalizedTitle.endsWith(` ${normalizedQuery}`)
+               ) {
+                 score = 20;
+               } else if (normalizedTitle.includes(normalizedQuery)) {
+                 score = 30;
+               }
+
+               if (v.start_year) {
+                 if (year) {
+                   score += Math.min(50, Math.abs(v.start_year - year));
+                 } else {
+                   score += Math.max(0, 2024 - v.start_year) / 200;
+                 }
+               }
+
+               score -= (v.count_of_issues || 0) / 2000;
+
+               return {
+                 id: v.id,
+                 name: v.name,
+                 slug: v.slug || v.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "",
+                 publisher: v.publisher?.name || null,
+                 start_year: v.start_year || null,
+                 issue_count: v.count_of_issues || null,
+                 image_url: v.image?.small_url || v.image?.super_url || null,
+                 deck: v.deck || null,
+                 score,
+               };
+             });
+
+             scoredResults.sort((a: any, b: any) => a.score - b.score);
+             results = scoredResults.slice(0, limit);
+             bestScore = results[0]?.score ?? Infinity;
+             source = "live";
+           }
+         }
+       }
     }
 
     return new Response(
