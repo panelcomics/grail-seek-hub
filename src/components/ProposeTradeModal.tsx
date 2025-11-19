@@ -6,115 +6,106 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface MakeOfferModalProps {
-  isOpen: boolean;
+interface ProposeTradeModalProps {
+  open: boolean;
   onClose: () => void;
-  itemId: string;
-  itemTitle: string;
-  ownerId: string;
-  currentUserId: string;
+  listingId: string;
+  listingTitle: string;
+  sellerId: string;
 }
 
-export const MakeOfferModal = ({
-  isOpen,
+export function ProposeTradeModal({
+  open,
   onClose,
-  itemId,
-  itemTitle,
-  ownerId,
-  currentUserId,
-}: MakeOfferModalProps) => {
+  listingId,
+  listingTitle,
+  sellerId,
+}: ProposeTradeModalProps) {
+  const { user } = useAuth();
   const [message, setMessage] = useState("");
-  const [cashOffer, setCashOffer] = useState("");
-  const [itemsOffered, setItemsOffered] = useState("");
+  const [cashExtra, setCashExtra] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!user) {
+      toast.error("Please sign in to propose a trade");
+      return;
+    }
+
     if (!message.trim()) {
-      toast.error("Please add a message");
+      toast.error("Please add a message describing your trade offer");
       return;
     }
 
     setLoading(true);
     try {
       const { error } = await supabase.from("trade_offers").insert({
-        buyer_id: currentUserId,
-        seller_id: ownerId,
-        listing_id: itemId,
+        buyer_id: user.id,
+        seller_id: sellerId,
+        listing_id: listingId,
         message: message.trim(),
-        cash_extra: cashOffer ? parseFloat(cashOffer) : 0,
+        cash_extra: cashExtra ? parseFloat(cashExtra) : 0,
       });
 
       if (error) throw error;
 
-      // Create notification for owner
+      // Create notification for seller
       await supabase.from("notifications").insert({
-        user_id: ownerId,
+        user_id: sellerId,
         type: "trade_offer",
-        message: `New trade offer on ${itemTitle}`,
-        link: `/trade/${itemId}`,
+        message: `New trade offer on ${listingTitle}`,
+        link: `/trade-offers`,
       });
 
-      toast.success("Offer sent successfully!");
-      onClose();
+      toast.success("Trade offer sent successfully!");
       setMessage("");
-      setCashOffer("");
-      setItemsOffered("");
+      setCashExtra("");
+      onClose();
     } catch (error: any) {
-      console.error("Error sending offer:", error);
-      toast.error(error.message || "Failed to send offer");
+      console.error("Error sending trade offer:", error);
+      toast.error(error.message || "Failed to send trade offer");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Make Trade Offer</DialogTitle>
+          <DialogTitle>Propose a Trade</DialogTitle>
           <DialogDescription>
-            Send an offer for {itemTitle}
+            Send a trade offer for {listingTitle}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="message">Message to Seller *</Label>
+            <Label htmlFor="message">Describe your trade offer *</Label>
             <Textarea
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Hi, I'm interested in your trade listing..."
+              placeholder="I have Amazing Spider-Man #300 NM and would like to trade for..."
               required
-              rows={4}
-              className="mt-1"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="cashOffer">Cash Offer (optional)</Label>
-            <Input
-              id="cashOffer"
-              type="number"
-              min="0"
-              step="0.01"
-              value={cashOffer}
-              onChange={(e) => setCashOffer(e.target.value)}
-              placeholder="0.00"
+              rows={5}
               className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="itemsOffered">Items You're Offering (optional)</Label>
-            <Textarea
-              id="itemsOffered"
-              value={itemsOffered}
-              onChange={(e) => setItemsOffered(e.target.value)}
-              placeholder="Example: ASM #300 NM, Hulk #181 VG+, or link to your collection"
-              rows={3}
+            <Label htmlFor="cashExtra">Cash on top? (optional)</Label>
+            <Input
+              id="cashExtra"
+              type="number"
+              min="0"
+              step="0.01"
+              value={cashExtra}
+              onChange={(e) => setCashExtra(e.target.value)}
+              placeholder="0.00"
               className="mt-1"
             />
           </div>
@@ -131,4 +122,4 @@ export const MakeOfferModal = ({
       </DialogContent>
     </Dialog>
   );
-};
+}

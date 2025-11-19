@@ -132,6 +132,12 @@ export function AppHeader() {
             </Link>
           </Button>
 
+          <Button variant="ghost" asChild className="hidden md:inline-flex" aria-label="Sell">
+            <Link to="/sell">
+              Sell on GrailSeeker
+            </Link>
+          </Button>
+
           {user ? (
             <div className="relative">
               <Button

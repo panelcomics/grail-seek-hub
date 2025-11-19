@@ -40,6 +40,7 @@ interface ItemCardProps {
   isVerifiedArtist?: boolean;
   variantType?: string;
   variantDetails?: string;
+  showTradeBadge?: boolean;
 }
 
 const ItemCard = ({ 
@@ -69,7 +70,8 @@ const ItemCard = ({
   hasCoa = false,
   isVerifiedArtist = false,
   variantType,
-  variantDetails
+  variantDetails,
+  showTradeBadge = false,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const [localPickup, setLocalPickup] = useState(true);
@@ -122,6 +124,12 @@ const ItemCard = ({
             )}
           </div>
           <div className="absolute top-3 left-3 flex flex-col gap-2">
+            {showTradeBadge && (
+              <Badge className="font-semibold bg-green-600 hover:bg-green-700 text-white flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                TRADE
+              </Badge>
+            )}
             {category === "art" && (
               <Badge className={`font-semibold ${isVerifiedArtist ? "bg-purple-600 hover:bg-purple-700" : "bg-purple-500 hover:bg-purple-600"} text-white flex items-center gap-1`}>
                 <Palette className="h-3 w-3" />

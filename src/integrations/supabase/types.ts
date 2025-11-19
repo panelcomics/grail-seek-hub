@@ -1159,10 +1159,13 @@ export type Database = {
           cover_date: string | null
           created_at: string
           details: string | null
+          for_auction: boolean | null
+          for_sale: boolean | null
           grade: string | null
           id: string
           images: Json | null
           in_search_of: string | null
+          is_featured: boolean | null
           is_for_trade: boolean | null
           is_key: boolean | null
           is_reprint: boolean | null
@@ -1170,6 +1173,7 @@ export type Database = {
           key_type: string | null
           listed_price: number | null
           listing_status: string | null
+          offers_enabled: boolean | null
           owner_id: string | null
           pricing_currency: string | null
           pricing_high: number | null
@@ -1206,10 +1210,13 @@ export type Database = {
           cover_date?: string | null
           created_at?: string
           details?: string | null
+          for_auction?: boolean | null
+          for_sale?: boolean | null
           grade?: string | null
           id?: string
           images?: Json | null
           in_search_of?: string | null
+          is_featured?: boolean | null
           is_for_trade?: boolean | null
           is_key?: boolean | null
           is_reprint?: boolean | null
@@ -1217,6 +1224,7 @@ export type Database = {
           key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
+          offers_enabled?: boolean | null
           owner_id?: string | null
           pricing_currency?: string | null
           pricing_high?: number | null
@@ -1253,10 +1261,13 @@ export type Database = {
           cover_date?: string | null
           created_at?: string
           details?: string | null
+          for_auction?: boolean | null
+          for_sale?: boolean | null
           grade?: string | null
           id?: string
           images?: Json | null
           in_search_of?: string | null
+          is_featured?: boolean | null
           is_for_trade?: boolean | null
           is_key?: boolean | null
           is_reprint?: boolean | null
@@ -1264,6 +1275,7 @@ export type Database = {
           key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
+          offers_enabled?: boolean | null
           owner_id?: string | null
           pricing_currency?: string | null
           pricing_high?: number | null
@@ -2410,52 +2422,46 @@ export type Database = {
       }
       trade_offers: {
         Row: {
-          cash_offer: number | null
+          buyer_id: string
+          cash_extra: number | null
           created_at: string
-          from_user_id: string
           id: string
-          item_id: string
-          items_offered: string | null
-          message: string
+          listing_id: string
+          message: string | null
+          seller_id: string
           status: string
-          to_user_id: string
-          updated_at: string
         }
         Insert: {
-          cash_offer?: number | null
+          buyer_id: string
+          cash_extra?: number | null
           created_at?: string
-          from_user_id: string
           id?: string
-          item_id: string
-          items_offered?: string | null
-          message: string
+          listing_id: string
+          message?: string | null
+          seller_id: string
           status?: string
-          to_user_id: string
-          updated_at?: string
         }
         Update: {
-          cash_offer?: number | null
+          buyer_id?: string
+          cash_extra?: number | null
           created_at?: string
-          from_user_id?: string
           id?: string
-          item_id?: string
-          items_offered?: string | null
-          message?: string
+          listing_id?: string
+          message?: string | null
+          seller_id?: string
           status?: string
-          to_user_id?: string
-          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "trade_offers_item_id_fkey"
-            columns: ["item_id"]
+            foreignKeyName: "trade_offers_listing_id_fkey"
+            columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "trade_offers_item_id_fkey"
-            columns: ["item_id"]
+            foreignKeyName: "trade_offers_listing_id_fkey"
+            columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "inventory_items_public"
             referencedColumns: ["id"]
@@ -2855,6 +2861,63 @@ export type Database = {
           year?: number | null
         }
         Relationships: []
+      }
+      waitlist_handles: {
+        Row: {
+          created_at: string
+          email: string
+          handle: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          handle: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          handle?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      watchlist: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watchlist_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
