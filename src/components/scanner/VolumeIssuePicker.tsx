@@ -45,11 +45,26 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose }: 
     setLoadingIssues(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('volumes-issues', {
-        body: { volumeId: volume.id }
-      });
+      // volumes-issues expects volumeId as a query parameter, not body
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/volumes-issues?volumeId=${volume.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey,
+          },
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load issues');
+      }
+
+      const data = await response.json();
       setIssues(data.issues || []);
     } catch (error) {
       console.error('Failed to load issues:', error);
