@@ -31,7 +31,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch issues for this volume
+    // Fetch issues from local cache first
     const { data: issues, error } = await supabase
       .from('comicvine_issues')
       .select('*')
@@ -41,8 +41,63 @@ serve(async (req) => {
       throw error;
     }
 
+    let finalIssues = issues || [];
+
+    // If no local issues, fall back to ComicVine API
+    if (finalIssues.length === 0) {
+      console.log(`No local issues for volume ${volumeId}, fetching from ComicVine API`);
+      
+      const comicVineKey = Deno.env.get('COMICVINE_API_KEY');
+      if (!comicVineKey) {
+        console.error('COMICVINE_API_KEY not configured');
+      } else {
+        try {
+          const cvUrl = `https://comicvine.gamespot.com/api/issues/?api_key=${comicVineKey}&format=json&filter=volume:${volumeId}&field_list=id,volume,issue_number,name,cover_date,image,person_credits&limit=100`;
+          const cvResponse = await fetch(cvUrl, {
+            headers: { 'User-Agent': 'Lovable-Scanner/1.0' }
+          });
+
+          if (cvResponse.ok) {
+            const cvData = await cvResponse.json();
+            if (cvData.error === 'OK' && cvData.results) {
+              finalIssues = cvData.results.map((issue: any) => {
+                // Extract writer and artist from person_credits
+                let writer = null;
+                let artist = null;
+                if (issue.person_credits && Array.isArray(issue.person_credits)) {
+                  const writers = issue.person_credits.filter((p: any) => 
+                    p.role && p.role.toLowerCase().includes('writer')
+                  );
+                  const artists = issue.person_credits.filter((p: any) => 
+                    p.role && (p.role.toLowerCase().includes('artist') || p.role.toLowerCase().includes('penciler'))
+                  );
+                  if (writers.length > 0) writer = writers.map((w: any) => w.name).join(', ');
+                  if (artists.length > 0) artist = artists.map((a: any) => a.name).join(', ');
+                }
+
+                return {
+                  id: issue.id,
+                  volume_id: issue.volume?.id || parseInt(volumeId),
+                  issue_number: issue.issue_number,
+                  name: issue.name,
+                  cover_date: issue.cover_date,
+                  image_url: issue.image?.medium_url || issue.image?.small_url,
+                  writer,
+                  artist,
+                  key_notes: null,
+                  last_synced_at: null
+                };
+              });
+            }
+          }
+        } catch (cvError) {
+          console.error('ComicVine API error:', cvError);
+        }
+      }
+    }
+
     // Sort issues by issue_number (try numeric sorting)
-    const sortedIssues = (issues || []).sort((a, b) => {
+    const sortedIssues = finalIssues.sort((a, b) => {
       const aNum = parseFloat(a.issue_number || '0');
       const bNum = parseFloat(b.issue_number || '0');
       return aNum - bNum;
@@ -52,6 +107,7 @@ serve(async (req) => {
       JSON.stringify({
         volumeId: parseInt(volumeId),
         issues: sortedIssues,
+        source: issues && issues.length > 0 ? 'cache' : 'live'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
