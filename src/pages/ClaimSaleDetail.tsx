@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Clock, MapPin, Tag, Package, TrendingUp } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
+
 import { ShareButton } from "@/components/ShareButton";
 
 interface ClaimSale {
@@ -296,25 +296,21 @@ const ClaimSaleDetail = () => {
 
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="container mx-auto py-12 px-4">
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Loading claim sale...</p>
-          </div>
+      <div className="container mx-auto py-12 px-4">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading claim sale...</p>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   if (!sale) {
     return (
-      <AppLayout>
-        <div className="container mx-auto py-12 px-4">
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Claim sale not found</p>
-          </div>
+      <div className="container mx-auto py-12 px-4">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Claim sale not found</p>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
@@ -327,7 +323,7 @@ const ClaimSaleDetail = () => {
   const ogImage = items[0]?.image_url || "";
 
   return (
-    <AppLayout>
+    <>
       <Helmet>
         <title>{sale.title} - Grail Seeker</title>
 ...
@@ -624,7 +620,7 @@ const ClaimSaleDetail = () => {
         onAccept={handleAcceptTerms}
         onDecline={handleDeclineTerms}
       />
-    </AppLayout>
+    </>
   );
 };
 

@@ -50,7 +50,6 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
     setIssueError(null);
     
     try {
-      // volumes-issues expects volumeId as a query parameter, not body
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
@@ -73,10 +72,11 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
       const issuesList = data.issues || [];
       
       if (issuesList.length === 0) {
-        setIssueError('No issues found for this volume. The data may still be syncing.');
+        setIssueError('No issues found for this volume. Please try searching manually or check back later.');
       }
       
       setIssues(issuesList);
+      console.log(`Loaded ${issuesList.length} issues for volume ${volume.id} from ${data.source}`);
     } catch (error) {
       console.error('Failed to load issues:', error);
       setIssueError(error instanceof Error ? error.message : 'Failed to load issues. Please try again.');

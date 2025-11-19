@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AppLayout } from "@/components/layout/AppLayout";
+
 import { CheckCircle2, AlertCircle, Loader2, Mail, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -101,8 +101,7 @@ export default function Help() {
   };
 
   return (
-    <AppLayout>
-      <main className="flex-1 container max-w-4xl mx-auto py-8 px-4 sm:py-12">
+    <main className="flex-1 container max-w-4xl mx-auto py-8 px-4 sm:py-12">
         <div className="space-y-8">
           {/* Header */}
           <div className="text-center space-y-4">
@@ -346,8 +345,7 @@ export default function Help() {
               Grail Seeker is powered by <strong>Stripe</strong> for secure payments and trade protection.
             </p>
           </div>
-        </div>
-      </main>
-    </AppLayout>
+      </div>
+    </main>
   );
 }

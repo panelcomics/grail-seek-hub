@@ -30,19 +30,25 @@ export function RecentScans({ recentScans, onSelectScan }: RecentScansProps) {
               >
                 <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-border group-hover:border-primary transition-colors bg-muted">
                   <img
-                    src={scan.thumbUrl}
+                    src={scan.coverUrl || scan.thumbUrl}
                     alt={scan.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
                     loading="lazy"
-                    style={{ objectFit: 'cover' }}
+                    style={{ 
+                      objectFit: 'cover',
+                      width: '100%',
+                      height: '100%'
+                    }}
                     onError={(e) => {
-                      // Fallback to coverUrl if thumbUrl fails
                       const target = e.target as HTMLImageElement;
+                      // First try the other URL
                       if (scan.coverUrl && target.src !== scan.coverUrl) {
                         target.src = scan.coverUrl;
-                      } else if (!scan.coverUrl) {
-                        // Show a placeholder if no cover available
-                        target.style.display = 'none';
+                      } else if (scan.thumbUrl && target.src !== scan.thumbUrl) {
+                        target.src = scan.thumbUrl;
+                      } else {
+                        // Show placeholder background instead of hiding
+                        target.style.opacity = '0';
                       }
                     }}
                   />
