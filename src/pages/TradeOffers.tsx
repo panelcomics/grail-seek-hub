@@ -16,13 +16,12 @@ import { Helmet } from "react-helmet-async";
 interface TradeOffer {
   id: string;
   message: string;
-  cash_offer: number | null;
-  items_offered: string | null;
+  cash_extra: number;
   status: string;
   created_at: string;
-  from_user_id: string;
-  to_user_id: string;
-  item_id: string;
+  buyer_id: string;
+  seller_id: string;
+  listing_id: string;
   from_user?: { username: string };
   to_user?: { username: string };
   item?: { title: string; series: string; issue_number: string };
@@ -51,7 +50,7 @@ export default function TradeOffers() {
       const { data: received, error: recError } = await supabase
         .from("trade_offers")
         .select("*")
-        .eq("to_user_id", user.id)
+        .eq("seller_id", user.id)
         .order("created_at", { ascending: false });
 
       if (recError) throw recError;
@@ -60,7 +59,7 @@ export default function TradeOffers() {
       const { data: sent, error: sentError } = await supabase
         .from("trade_offers")
         .select("*")
-        .eq("from_user_id", user.id)
+        .eq("buyer_id", user.id)
         .order("created_at", { ascending: false });
 
       if (sentError) throw sentError;
@@ -69,13 +68,13 @@ export default function TradeOffers() {
       const allOffers = [...(received || []), ...(sent || [])];
       if (allOffers.length > 0) {
         const userIds = [...new Set([
-          ...allOffers.map(o => o.from_user_id),
-          ...allOffers.map(o => o.to_user_id),
+          ...allOffers.map(o => o.buyer_id),
+          ...allOffers.map(o => o.seller_id),
         ])];
-        const itemIds = [...new Set(allOffers.map(o => o.item_id))];
+        const itemIds = [...new Set(allOffers.map(o => o.listing_id))];
 
         const [{ data: profiles }, { data: items }] = await Promise.all([
-          supabase.from("public_profiles").select("user_id, username").in("user_id", userIds),
+          supabase.from("profiles").select("user_id, username").in("user_id", userIds),
           supabase.from("inventory_items").select("id, title, series, issue_number").in("id", itemIds),
         ]);
 
@@ -85,9 +84,9 @@ export default function TradeOffers() {
         const enrichOffers = (offers: any[]) =>
           offers.map(offer => ({
             ...offer,
-            from_user: profileMap.get(offer.from_user_id),
-            to_user: profileMap.get(offer.to_user_id),
-            item: itemMap.get(offer.item_id),
+            from_user: profileMap.get(offer.buyer_id),
+            to_user: profileMap.get(offer.seller_id),
+            item: itemMap.get(offer.listing_id),
           }));
 
         setReceivedOffers(enrichOffers(received || []));
@@ -189,19 +188,11 @@ export default function TradeOffers() {
                           {offer.message}
                         </p>
                       </div>
-                      {offer.cash_offer && (
+                      {offer.cash_extra > 0 && (
                         <div>
                           <p className="text-sm font-medium">Cash Offer:</p>
                           <p className="text-lg font-semibold text-primary">
-                            ${offer.cash_offer.toFixed(2)}
-                          </p>
-                        </div>
-                      )}
-                      {offer.items_offered && (
-                        <div>
-                          <p className="text-sm font-medium">Items Offered:</p>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {offer.items_offered}
+                            ${offer.cash_extra.toFixed(2)}
                           </p>
                         </div>
                       )}
@@ -223,7 +214,7 @@ export default function TradeOffers() {
                             Decline
                           </Button>
                           <BlockUserButton
-                            userId={offer.from_user_id}
+                            userId={offer.buyer_id}
                             userName={offer.from_user?.username}
                             onBlock={() => {
                               updateOfferStatus(offer.id, "declined");
@@ -235,7 +226,7 @@ export default function TradeOffers() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/trade/${offer.item_id}`)}
+                        onClick={() => navigate(`/trade/${offer.listing_id}`)}
                         className="w-full"
                       >
                         <Eye className="mr-2 h-4 w-4" />
@@ -278,26 +269,18 @@ export default function TradeOffers() {
                           {offer.message}
                         </p>
                       </div>
-                      {offer.cash_offer && (
+                      {offer.cash_extra > 0 && (
                         <div>
                           <p className="text-sm font-medium">Cash Offer:</p>
                           <p className="text-lg font-semibold text-primary">
-                            ${offer.cash_offer.toFixed(2)}
-                          </p>
-                        </div>
-                      )}
-                      {offer.items_offered && (
-                        <div>
-                          <p className="text-sm font-medium">Items Offered:</p>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {offer.items_offered}
+                            ${offer.cash_extra.toFixed(2)}
                           </p>
                         </div>
                       )}
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/trade/${offer.item_id}`)}
+                        onClick={() => navigate(`/trade/${offer.listing_id}`)}
                         className="w-full"
                       >
                         <Eye className="mr-2 h-4 w-4" />
