@@ -34,11 +34,15 @@ export function RecentScans({ recentScans, onSelectScan }: RecentScansProps) {
                     alt={scan.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    style={{ objectFit: 'cover' }}
                     onError={(e) => {
                       // Fallback to coverUrl if thumbUrl fails
                       const target = e.target as HTMLImageElement;
                       if (scan.coverUrl && target.src !== scan.coverUrl) {
                         target.src = scan.coverUrl;
+                      } else if (!scan.coverUrl) {
+                        // Show a placeholder if no cover available
+                        target.style.display = 'none';
                       }
                     }}
                   />

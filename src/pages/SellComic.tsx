@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { formatComicDisplay } from "@/lib/comics/format";
 import { ComicImageCarousel } from "@/components/ComicImageCarousel";
+import { ImageManagement } from "@/components/ImageManagement";
 
 export default function SellComic() {
   const { comicId } = useParams();
@@ -23,6 +24,7 @@ export default function SellComic() {
   const [submitting, setSubmitting] = useState(false);
   
   const [comic, setComic] = useState<any>(null);
+  const [listingImages, setListingImages] = useState<any[]>([]);
   const [listingType, setListingType] = useState<"fixed" | "auction">("fixed");
   const [price, setPrice] = useState("");
   const [startBid, setStartBid] = useState("");
@@ -69,6 +71,9 @@ export default function SellComic() {
 
       setComic(data);
       
+      // Load existing listing images
+      await fetchListingImages(comicId);
+      
       // Load existing values
       setForSale(data.listing_status === "listed");
       setForTrade(data.is_for_trade || false);
@@ -88,6 +93,21 @@ export default function SellComic() {
       toast.error("Failed to load item");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchListingImages(itemId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("listing_images")
+        .select("*")
+        .eq("listing_id", itemId)
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      setListingImages(data || []);
+    } catch (error) {
+      console.error("Error fetching listing images:", error);
     }
   }
 
@@ -182,35 +202,29 @@ export default function SellComic() {
 
   if (loading || authLoading) {
     return (
-      <AppLayout>
-        <main className="flex-1 container py-8 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </main>
-      </AppLayout>
+      <main className="flex-1 container py-8 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </main>
     );
   }
 
   if (!comic) {
     return (
-      <AppLayout>
-        <main className="flex-1 container py-8">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-2xl font-bold mb-4">Comic not found</h1>
-            <Button onClick={() => navigate("/my-inventory")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Inventory
-            </Button>
-          </div>
-        </main>
-      </AppLayout>
+      <main className="flex-1 container py-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl font-bold mb-4">Comic not found</h1>
+          <Button onClick={() => navigate("/my-inventory")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Inventory
+          </Button>
+        </div>
+      </main>
     );
   }
 
   return (
-    <AppLayout>
-      
-      <main className="flex-1 container py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+    <main className="flex-1 container py-8">
+      <div className="max-w-4xl mx-auto space-y-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/my-inventory")}
@@ -228,15 +242,21 @@ export default function SellComic() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Comic Preview */}
                 <div className="space-y-4">
-                  <div className="w-full max-w-md mx-auto">
-                    {comic.images?.front ? (
-                      <img src={comic.images.front} alt={comic.title || comic.series} className="w-full rounded-lg" />
-                    ) : (
-                      <div className="aspect-[2/3] bg-muted rounded-lg flex items-center justify-center">
-                        <p className="text-muted-foreground">No image</p>
-                      </div>
-                    )}
-                  </div>
+                  {/* Image Management Section */}
+                  {comicId && (
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold">Item Photos (up to 8)</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add multiple photos: front, back, spine, defects, etc.
+                      </p>
+                      <ImageManagement
+                        listingId={comicId}
+                        images={listingImages}
+                        onImagesChange={() => fetchListingImages(comicId)}
+                        maxImages={8}
+                      />
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <h3 className="text-xl">
@@ -461,6 +481,5 @@ export default function SellComic() {
           </Card>
         </div>
       </main>
-    </AppLayout>
   );
 }
