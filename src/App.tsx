@@ -41,6 +41,7 @@ import UploadOriginalArt from "./pages/admin/UploadOriginalArt";
 import ManageOriginalArt from "./pages/admin/ManageOriginalArt";
 import InviteArtist from "./pages/admin/InviteArtist";
 import ComicVineSync from "./pages/admin/ComicVineSync";
+import ComicVineIssuesSync from "./pages/admin/ComicVineIssuesSync";
 import MyOriginalArt from "./pages/artist/MyOriginalArt";
 import MyCollection from "./pages/MyCollection";
 import MyInventory from "./pages/MyInventory";
@@ -110,6 +111,7 @@ const AppContent = () => {
             <Route path="/admin/original-art/manage" element={<ManageOriginalArt />} />
             <Route path="/admin/invite-artist" element={<InviteArtist />} />
             <Route path="/admin/comicvine-sync" element={<ComicVineSync />} />
+            <Route path="/admin/comicvine-issues-sync" element={<ComicVineIssuesSync />} />
             <Route path="/artist/my-art" element={<MyOriginalArt />} />
             <Route path="/my-collection" element={<MyCollection />} />
             <Route path="/my-inventory" element={<MyInventory />} />
