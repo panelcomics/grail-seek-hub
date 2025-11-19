@@ -53,6 +53,7 @@ export default function Scanner() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -651,12 +652,46 @@ export default function Scanner() {
     });
   };
 
-  // Recent scan selection
-  const handleRecentScanSelect = (scan: ComicVinePick) => {
-    setManualSearchQuery(
-      `${scan.volumeName || scan.title}${scan.issue ? ` #${scan.issue}` : ''}`
-    );
-    handleManualSearch();
+  // Recent scan selection - restore the full scan state
+  const handleRecentScanSelect = async (scan: ComicVinePick) => {
+    // Restore the scan state as if user just clicked "Use this comic"
+    setSelectedPick(scan);
+    setPreviewImage(scan.thumbUrl); // Use the user's uploaded image
+    setImageUrl(scan.thumbUrl);
+    
+    // Set prefill data
+    setPrefillData({
+      title: scan.volumeName || scan.title,
+      issueNumber: scan.issue || undefined,
+      publisher: scan.publisher || undefined,
+      year: scan.year || undefined,
+      comicvineId: scan.id,
+      comicvineCoverUrl: scan.coverUrl
+    });
+    
+    // Fetch fresh details from ComicVine if available
+    const issueDetails = await fetchIssueDetails(scan);
+    if (issueDetails) {
+      scan.writer = issueDetails.writer;
+      scan.artist = issueDetails.artist;
+      scan.variantDescription = issueDetails.title;
+      
+      setPrefillData({
+        title: issueDetails.volume_name || scan.volumeName || scan.title,
+        issueNumber: scan.issue || undefined,
+        publisher: issueDetails.publisher || scan.publisher,
+        year: scan.year || undefined,
+        comicvineId: scan.id,
+        comicvineCoverUrl: issueDetails.cover_url || scan.coverUrl,
+        description: issueDetails.description
+      });
+    }
+    
+    setStatus("selected");
+    
+    sonnerToast.success("Recent scan restored!", {
+      description: `${scan.volumeName || scan.title}${scan.issue ? ` #${scan.issue}` : ''}`
+    });
   };
 
   // Reset scanner
@@ -724,7 +759,7 @@ export default function Scanner() {
                 <>
                   <Button
                     size="lg"
-                    onClick={startCamera}
+                    onClick={() => cameraInputRef.current?.click()}
                     className="w-full"
                   >
                     <Camera className="h-5 w-5 mr-2" />
@@ -774,6 +809,14 @@ export default function Scanner() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
               onChange={handleFileUpload}
               className="hidden"
             />

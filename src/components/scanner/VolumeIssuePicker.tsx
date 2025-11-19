@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Loader2, ChevronRight, X, Search } from "lucide-react";
+import { Loader2, ChevronRight, X, Search, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Volume {
@@ -42,10 +42,12 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(false);
   const [issueFilter, setIssueFilter] = useState(initialIssueNumber || "");
+  const [issueError, setIssueError] = useState<string | null>(null);
 
   const handleVolumeClick = async (volume: Volume) => {
     setSelectedVolume(volume);
     setLoadingIssues(true);
+    setIssueError(null);
     
     try {
       // volumes-issues expects volumeId as a query parameter, not body
@@ -68,9 +70,16 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
       }
 
       const data = await response.json();
-      setIssues(data.issues || []);
+      const issuesList = data.issues || [];
+      
+      if (issuesList.length === 0) {
+        setIssueError('No issues found for this volume. The data may still be syncing.');
+      }
+      
+      setIssues(issuesList);
     } catch (error) {
       console.error('Failed to load issues:', error);
+      setIssueError(error instanceof Error ? error.message : 'Failed to load issues. Please try again.');
       setIssues([]);
     } finally {
       setLoadingIssues(false);
@@ -202,6 +211,23 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
             // Loading Issues
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : issueError ? (
+            // Error State
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground mb-4">{issueError}</p>
+              <Button
+                variant="outline"
+                onClick={() => handleVolumeClick(selectedVolume)}
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : issues.length === 0 ? (
+            // No Issues Found
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <p className="text-sm text-muted-foreground">No issues found for this volume.</p>
             </div>
           ) : (
             // Issue List
