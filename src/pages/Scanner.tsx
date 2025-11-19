@@ -1021,6 +1021,45 @@ export default function Scanner() {
         </div>
       )}
 
+      {/* No Results - Show Manual Entry */}
+      {status === "results" && searchResults.length === 0 && !selectedPick && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              No Match Found
+            </CardTitle>
+            <CardDescription>
+              We couldn't find a match in our database. You can enter the details manually.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => {
+                setSelectedPick({
+                  id: 0,
+                  resource: 'issue',
+                  title: '',
+                  issue: '',
+                  year: null,
+                  publisher: '',
+                  volumeName: '',
+                  thumbUrl: '',
+                  coverUrl: '',
+                  score: 0,
+                  isReprint: false
+                });
+                setStatus("selected");
+              }}
+              size="lg"
+              className="w-full"
+            >
+              Enter Manually
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Selected Comic - Listing Form */}
       {status === "selected" && selectedPick && imageUrl && (
         <div className="space-y-6">

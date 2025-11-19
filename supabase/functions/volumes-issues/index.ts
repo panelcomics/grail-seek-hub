@@ -52,7 +52,7 @@ serve(async (req) => {
         console.error('COMICVINE_API_KEY not configured');
       } else {
         try {
-          const cvUrl = `https://comicvine.gamespot.com/api/issues/?api_key=${comicVineKey}&format=json&filter=volume:${volumeId}&field_list=id,volume,issue_number,name,cover_date,image,person_credits&limit=100`;
+          const cvUrl = `https://comicvine.gamespot.com/api/issues/?api_key=${comicVineKey}&format=json&filter=volume:${volumeId}&field_list=id,volume,issue_number,name,cover_date,image,person_credits&limit=500`;
           const cvResponse = await fetch(cvUrl, {
             headers: { 'User-Agent': 'Lovable-Scanner/1.0' }
           });
