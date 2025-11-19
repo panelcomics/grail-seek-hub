@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, ChevronRight, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, ChevronRight, X, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Volume {
@@ -33,12 +34,14 @@ interface VolumeIssuePickerProps {
   loading: boolean;
   onSelectIssue: (issue: Issue, volume: Volume) => void;
   onClose?: () => void;
+  initialIssueNumber?: string;
 }
 
-export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose }: VolumeIssuePickerProps) {
+export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, initialIssueNumber }: VolumeIssuePickerProps) {
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(false);
+  const [issueFilter, setIssueFilter] = useState(initialIssueNumber || "");
 
   const handleVolumeClick = async (volume: Volume) => {
     setSelectedVolume(volume);
@@ -120,6 +123,29 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose }: 
         </div>
       </CardHeader>
       <CardContent>
+        {selectedVolume && (
+          <div className="mb-4 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Issue # (e.g. 1, 11, 129)"
+                value={issueFilter}
+                onChange={(e) => setIssueFilter(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {issueFilter && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIssueFilter("")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
         <ScrollArea className="h-[400px] pr-4">
           {!selectedVolume ? (
             // Volume List
@@ -180,7 +206,14 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose }: 
           ) : (
             // Issue List
             <div className="space-y-2">
-              {issues.map((issue) => {
+              {issues
+                .filter((issue) => {
+                  if (!issueFilter.trim()) return true;
+                  const filterNum = issueFilter.trim().toLowerCase();
+                  const issueNum = (issue.issue_number || "").toLowerCase();
+                  return issueNum.includes(filterNum);
+                })
+                .map((issue) => {
                 const year = issue.cover_date ? new Date(issue.cover_date).getFullYear() : null;
                 
                 return (

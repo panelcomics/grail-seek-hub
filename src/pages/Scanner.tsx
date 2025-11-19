@@ -495,6 +495,12 @@ export default function Scanner() {
     }
   };
 
+  // Extract issue number from search query (e.g. "Avengers #1" -> "1")
+  const extractIssueNumber = (query: string): string => {
+    const match = query.match(/#?\s*(\d+(?:\.\d+)?)\s*$/);
+    return match ? match[1] : "";
+  };
+
   // Filter chip handlers
   const handleFilterToggle = (filter: 'reprint' | 'year' | 'slabbed') => {
     switch (filter) {
@@ -898,6 +904,7 @@ export default function Scanner() {
           loading={manualSearchLoading}
           onSelectIssue={handleSelectIssue}
           onClose={() => setVolumeResults([])}
+          initialIssueNumber={extractIssueNumber(manualSearchQuery)}
         />
       )}
 
