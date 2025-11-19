@@ -28,11 +28,19 @@ export function RecentScans({ recentScans, onSelectScan }: RecentScansProps) {
                 onClick={() => onSelectScan(scan)}
                 className="flex-shrink-0 w-24 group cursor-pointer"
               >
-                <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-border group-hover:border-primary transition-colors">
+                <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-border group-hover:border-primary transition-colors bg-muted">
                   <img
                     src={scan.thumbUrl}
                     alt={scan.title}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      // Fallback to coverUrl if thumbUrl fails
+                      const target = e.target as HTMLImageElement;
+                      if (scan.coverUrl && target.src !== scan.coverUrl) {
+                        target.src = scan.coverUrl;
+                      }
+                    }}
                   />
                 </div>
                 <p className="text-xs mt-1 truncate font-medium">
