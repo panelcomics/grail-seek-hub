@@ -39,6 +39,7 @@ export default function SellComic() {
   const [forTrade, setForTrade] = useState(false);
   const [inSearchOf, setInSearchOf] = useState("");
   const [tradeNotes, setTradeNotes] = useState("");
+  const [cgcCert, setCgcCert] = useState(""); // CGC/barcode/cert number
 
   useEffect(() => {
     // Wait for auth to finish loading before checking user
@@ -79,6 +80,7 @@ export default function SellComic() {
       setForTrade(data.is_for_trade || false);
       setInSearchOf(data.in_search_of || "");
       setTradeNotes(data.trade_notes || "");
+      setCgcCert(data.cgc_grade || ""); // Load CGC cert
       
       if (data.listed_price) {
         setPrice(data.listed_price.toString());
@@ -136,6 +138,7 @@ export default function SellComic() {
         is_for_trade: forTrade,
         in_search_of: forTrade ? inSearchOf.trim() : null,
         trade_notes: forTrade ? tradeNotes.trim() : null,
+        cgc_grade: cgcCert.trim() || null, // Update CGC cert
       };
 
       const { error: updateError } = await supabase
@@ -152,7 +155,6 @@ export default function SellComic() {
 
         const listingData: any = {
           user_id: user.id,
-          comic_id: comic.id,
           inventory_item_id: comic.id,
           type: listingType,
           image_url: comic.images?.front || null,
@@ -271,12 +273,32 @@ export default function SellComic() {
                       {comic.publisher && (
                         <div>Publisher: {comic.publisher}</div>
                       )}
-                      {comic.grade && (
-                        <div>Grade: {comic.grade}</div>
-                      )}
-                    </div>
+                  {comic.grade && (
+                    <div>Grade: {comic.grade}</div>
+                  )}
+                  {comic.cgc_grade && (
+                    <div>CGC/Cert: {comic.cgc_grade}</div>
+                  )}
+                </div>
 
-                    {comic.details && (
+                {/* CGC / Barcode / Cert Number Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="cgc-cert">
+                    CGC / Barcode / Cert # (Optional)
+                  </Label>
+                  <Input
+                    id="cgc-cert"
+                    type="text"
+                    value={cgcCert}
+                    onChange={(e) => setCgcCert(e.target.value)}
+                    placeholder="e.g., CGC 12345678 or barcode"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter CGC certification number, barcode, or any identifying cert info
+                  </p>
+                </div>
+
+                {comic.details && (
                       <p className="text-sm pt-2">
                         <span className="font-medium">Details:</span> {comic.details}
                       </p>

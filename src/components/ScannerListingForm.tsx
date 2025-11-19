@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ComicVinePicker } from "./ComicVinePicker";
 import { PricingHelper } from "./scanner/PricingHelper";
 import { extractKeyNotes } from "@/lib/scanHistoryUtils";
+import { ImageManagement } from "./ImageManagement";
 
 interface ComicVinePick {
   id: number;
@@ -76,6 +77,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [keyNotes, setKeyNotes] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [cgcCert, setCgcCert] = useState<string>(""); // CGC/barcode/cert number
+  const [savedItemId, setSavedItemId] = useState<string | null>(null); // Track saved item for multi-image
+  const [listingImages, setListingImages] = useState<any[]>([]);
 
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
@@ -267,16 +270,13 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
 
       if (inventoryError) throw inventoryError;
 
-      toast.success("Comic added to your inventory!", {
-        description: "You can now list it for sale or trade",
-        action: {
-          label: "View Inventory",
-          onClick: () => navigate("/my-inventory"),
-        },
-      });
+      // Save the item ID for multi-image upload
+      setSavedItemId(inventoryItem.id);
+      await fetchListingImages(inventoryItem.id);
 
-      // Navigate to the new inventory item
-      navigate(`/my-inventory`);
+      toast.success("Comic added to your inventory!", {
+        description: "You can add more photos below or finish"
+      });
 
     } catch (error: any) {
       console.error("Error creating listing:", error);
@@ -287,6 +287,21 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       setSubmitting(false);
     }
   };
+
+  async function fetchListingImages(itemId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("listing_images")
+        .select("*")
+        .eq("listing_id", itemId)
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      setListingImages(data || []);
+    } catch (error) {
+      console.error("Error fetching listing images:", error);
+    }
+  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -621,11 +636,11 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/scanner")}
+              onClick={() => savedItemId ? navigate("/my-inventory") : navigate("/scanner")}
               disabled={submitting}
               className="flex-1"
             >
-              Cancel
+              {savedItemId ? "Done" : "Cancel"}
             </Button>
             <Button
               type="submit"
@@ -633,9 +648,25 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
               className="flex-1"
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save to Inventory
+              {savedItemId ? "Update" : "Save to Inventory"}
             </Button>
           </div>
+
+          {/* Multi-image upload after initial save */}
+          {savedItemId && (
+            <div className="space-y-3 pt-6 border-t">
+              <Label className="text-base font-semibold">Additional Photos (Optional)</Label>
+              <p className="text-sm text-muted-foreground">
+                Add up to 8 photos: front, back, spine, defects, etc.
+              </p>
+              <ImageManagement
+                listingId={savedItemId}
+                images={listingImages}
+                onImagesChange={() => fetchListingImages(savedItemId)}
+                maxImages={8}
+              />
+            </div>
+          )}
         </form>
       </CardContent>
     </Card>
