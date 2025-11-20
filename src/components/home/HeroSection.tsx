@@ -1,14 +1,70 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
 import { HotAuctionsCarousel } from "./HotAuctionsCarousel";
+import { supabase } from "@/integrations/supabase/client";
+import { getListingImageUrl } from "@/lib/sellerUtils";
+
+// Fallback comic cover images
+const FALLBACK_COVERS = [
+  "/covers/sample-asm.jpg",
+  "/covers/sample-batman.jpg",
+  "/covers/sample-spawn.jpg",
+  "/covers/sample-xmen.jpg",
+  "/covers/sample-hulk.jpg",
+  "/covers/sample-ff.jpg",
+];
 
 export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [collageImages, setCollageImages] = useState<string[]>(FALLBACK_COVERS);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchPanelComicsListings();
+  }, []);
+
+  const fetchPanelComicsListings = async () => {
+    try {
+      // Find Panel Comics seller
+      const { data: sellerData } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .or("username.ilike.%Panel Comics%,display_name.ilike.%Panel Comics%")
+        .maybeSingle();
+
+      if (!sellerData) {
+        return; // Use fallback covers
+      }
+
+      // Fetch their active listings
+      const { data: listingsData } = await supabase
+        .from("inventory_items")
+        .select("*")
+        .eq("user_id", sellerData.user_id)
+        .in("listing_status", ["active", "listed"])
+        .or("for_sale.eq.true,for_auction.eq.true")
+        .limit(6);
+
+      if (listingsData && listingsData.length > 0) {
+        const images = listingsData
+          .map(listing => getListingImageUrl(listing))
+          .filter(url => url && url !== "/placeholder.svg")
+          .slice(0, 6);
+
+        // Only use live images if we have at least 4
+        if (images.length >= 4) {
+          setCollageImages(images);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching Panel Comics listings:", error);
+      // Continue with fallback covers
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,15 +80,15 @@ export function HeroSection() {
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <div className="absolute top-0 right-0 w-1/3 h-full hidden lg:flex flex-col gap-4 p-8">
             <div className="grid grid-cols-2 gap-4">
-              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg rotate-3" />
-              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg -rotate-2" />
-              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg -rotate-3" />
-              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg rotate-2" />
+              <img src={collageImages[0]} alt="" className="w-full h-48 object-cover rounded-lg shadow-lg rotate-3" />
+              <img src={collageImages[1]} alt="" className="w-full h-48 object-cover rounded-lg shadow-lg -rotate-2" />
+              <img src={collageImages[2]} alt="" className="w-full h-48 object-cover rounded-lg shadow-lg -rotate-3" />
+              <img src={collageImages[3]} alt="" className="w-full h-48 object-cover rounded-lg shadow-lg rotate-2" />
             </div>
           </div>
           <div className="absolute top-0 left-0 w-1/4 h-full hidden xl:flex flex-col gap-4 p-8 opacity-70">
-            <img src="/placeholder.svg" alt="" className="w-full h-40 object-cover rounded-lg shadow-lg -rotate-6" />
-            <img src="/placeholder.svg" alt="" className="w-full h-40 object-cover rounded-lg shadow-lg rotate-3" />
+            <img src={collageImages[4] || collageImages[0]} alt="" className="w-full h-40 object-cover rounded-lg shadow-lg -rotate-6" />
+            <img src={collageImages[5] || collageImages[1]} alt="" className="w-full h-40 object-cover rounded-lg shadow-lg rotate-3" />
           </div>
         </div>
         
