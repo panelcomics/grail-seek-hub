@@ -8,19 +8,21 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Retro comic beige background */
+    --background: 38 45% 90%;
     --foreground: 0 0% 10%;
 
-    --card: 0 0% 100%;
+    /* Warm beige cards */
+    --card: 38 40% 95%;
     --card-foreground: 0 0% 10%;
 
-    --popover: 0 0% 100%;
+    --popover: 38 40% 95%;
     --popover-foreground: 0 0% 10%;
 
-    /* Bold comic red #FF0000 */
-    --primary: 0 100% 50%;
+    /* Bold comic red #D32F2F */
+    --primary: 4 79% 51%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 0 100% 60%;
+    --primary-glow: 4 85% 60%;
 
     /* Slab black */
     --secondary: 0 0% 12%;
@@ -30,10 +32,11 @@ All colors MUST be HSL.
     --accent: 15 100% 55%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 45%;
+    /* Lighter beige for muted areas */
+    --muted: 38 35% 88%;
+    --muted-foreground: 0 0% 40%;
 
-    --destructive: 0 100% 50%;
+    --destructive: 4 79% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 142 76% 36%;
@@ -42,9 +45,9 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 100% 50%;
+    --border: 0 0% 20%;
+    --input: 38 40% 95%;
+    --ring: 4 79% 51%;
 
     --radius: 0.75rem;
     
