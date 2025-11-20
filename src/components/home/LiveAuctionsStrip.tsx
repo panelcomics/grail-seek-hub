@@ -17,7 +17,8 @@ export function LiveAuctionsStrip() {
 
   const fetchLiveAuctions = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch active auctions
+      const { data: auctionData, error: auctionError } = await supabase
         .from("listings")
         .select("*")
         .eq("type", "auction")
@@ -26,8 +27,33 @@ export function LiveAuctionsStrip() {
         .order("ends_at", { ascending: true })
         .limit(5);
 
-      if (error) throw error;
-      setAuctions(data || []);
+      if (auctionError) throw auctionError;
+
+      if (!auctionData || auctionData.length === 0) {
+        setAuctions([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch highest bid for each auction
+      const auctionsWithBids = await Promise.all(
+        auctionData.map(async (auction) => {
+          const { data: bidData } = await supabase
+            .from("bids")
+            .select("bid_amount")
+            .eq("listing_id", auction.id)
+            .order("bid_amount", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          return {
+            ...auction,
+            highest_bid_amount: bidData?.bid_amount || null,
+          };
+        })
+      );
+
+      setAuctions(auctionsWithBids);
     } catch (error) {
       console.error("Error fetching live auctions:", error);
     } finally {
@@ -103,7 +129,9 @@ export function LiveAuctionsStrip() {
                     <div className="flex items-baseline justify-between">
                       <span className="text-xs text-muted-foreground">Current Bid</span>
                       <span className="text-lg font-black text-primary">
-                        ${resolvePrice(auction).toFixed(2)}
+                        ${auction.highest_bid_amount && auction.highest_bid_amount > 0
+                          ? auction.highest_bid_amount.toFixed(2)
+                          : resolvePrice(auction).toFixed(2)}
                       </span>
                     </div>
                     <Button size="sm" className="w-full font-bold" variant="default">
