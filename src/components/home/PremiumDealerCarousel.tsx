@@ -69,15 +69,15 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
 
   if (loading) {
     return (
-      <section className="py-8 px-4 bg-background/30 border-y border-red-500/20">
+      <section className="py-6 md:py-8 px-4 bg-gradient-to-b from-red-950/10 to-background border-y border-red-500/20">
         <div className="container mx-auto">
           <div className="flex items-center gap-3 mb-6">
-            <Skeleton className="h-8 w-48" />
+            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
           </div>
-          <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="overflow-x-auto overflow-y-visible pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
             <div className="flex gap-4 min-w-min">
               {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="w-64 h-80 rounded-lg flex-shrink-0" />
+                <div key={i} className="w-56 sm:w-64 h-96 rounded-lg flex-shrink-0 bg-muted animate-pulse" />
               ))}
             </div>
           </div>
@@ -107,7 +107,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
             View Shop <ChevronRight className="h-5 w-5" />
           </a>
         </div>
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x snap-mandatory">
+        <div className="overflow-x-auto overflow-y-visible pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x snap-mandatory">
           <div className="flex gap-3 md:gap-4 min-w-min">
             {listings.slice(0, 6).map((listing) => {
               const price = resolvePrice(listing);

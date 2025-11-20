@@ -303,6 +303,13 @@ All colors MUST be HSL.
     button, a {
       min-height: 44px;
     }
+    
+    /* Ensure carousels are visible and scrollable on mobile */
+    .overflow-x-auto {
+      overflow-x: auto !important;
+      overflow-y: visible !important;
+      -webkit-overflow-scrolling: touch;
+    }
   }
 
   /* Snap scroll for carousels */

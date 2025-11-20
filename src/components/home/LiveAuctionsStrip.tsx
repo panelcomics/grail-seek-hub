@@ -106,16 +106,17 @@ export function LiveAuctionsStrip() {
             </h2>
           </div>
         </div>
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex gap-4 min-w-min">
+        <div className="overflow-x-auto overflow-y-visible pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x snap-mandatory">
+          <div className="flex gap-3 md:gap-4 min-w-min">
             {auctions.map((auction) => (
-              <Link key={auction.id} to={`/item/${auction.id}`}>
-                <Card className="w-48 flex-shrink-0 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 border-primary/20">
+              <Link key={auction.id} to={`/item/${auction.id}`} className="flex-shrink-0 snap-center">
+                <Card className="w-48 sm:w-56 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 border-primary/20">
                   <div className="relative aspect-[2/3] overflow-hidden bg-muted">
                     <img
                       src={getImageUrl(auction)}
                       alt={auction.title}
                       className="h-full w-full object-cover"
+                      loading="lazy"
                     />
                     <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-pulse">
                       <Clock className="h-3 w-3" />
@@ -123,12 +124,12 @@ export function LiveAuctionsStrip() {
                     </div>
                   </div>
                   <div className="p-3 space-y-2">
-                    <h3 className="font-bold text-sm line-clamp-2 min-h-[2.5rem]">
+                    <h3 className="font-bold text-sm line-clamp-2 min-h-[2.5rem] leading-snug">
                       {auction.title}
                     </h3>
                     <div className="flex items-baseline justify-between">
                       <span className="text-xs text-muted-foreground">Current Bid</span>
-                      <span className="text-lg font-black text-primary">
+                      <span className="text-base sm:text-lg font-black text-[#E60000]">
                         {(() => {
                           const price = resolvePrice(auction);
                           const currentBid = auction.highest_bid_amount || (price !== null ? price : 0);
@@ -136,7 +137,7 @@ export function LiveAuctionsStrip() {
                         })()}
                       </span>
                     </div>
-                    <Button size="sm" className="w-full font-bold" variant="default">
+                    <Button size="sm" className="w-full font-bold text-xs" variant="default">
                       <Eye className="h-3 w-3 mr-1" />
                       View
                     </Button>

@@ -94,12 +94,12 @@ export function HeroSection() {
         </div>
       )}
 
-      <section className="relative py-12 sm:py-16 md:py-24 px-4 overflow-hidden bg-gradient-to-b from-background via-background/95 to-background hero-with-halftone">
+      <section className="relative py-10 sm:py-14 md:py-24 px-4 overflow-hidden bg-gradient-to-b from-background via-background/95 to-background hero-with-halftone">
         {/* Vignette overlay */}
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.3)_100%)]" />
         
         {/* Enhanced comic collage background */}
-        <div className="absolute inset-0 opacity-20 md:opacity-10 pointer-events-none">
+        <div className="absolute inset-0 opacity-25 sm:opacity-20 md:opacity-10 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(230,0,0,0.15),transparent_50%)]" />
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4 p-3 md:p-4 h-full scale-110 md:scale-100">
             {collageImages.map((img, i) => (
