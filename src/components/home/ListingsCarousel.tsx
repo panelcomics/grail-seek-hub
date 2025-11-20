@@ -55,31 +55,43 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         <div className="flex justify-between items-center mb-5 md:mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold">{title}</h2>
           {showViewAll && (
-            <Button variant="ghost" className="font-bold text-sm md:text-base">
+            <Button variant="ghost" className="hidden md:flex font-bold text-sm md:text-base">
               SORT <ChevronRight className="h-4 w-4 md:h-5 md:w-5 ml-1" />
             </Button>
           )}
         </div>
-        <div className="overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+        <div className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
           <div className="flex gap-3 md:gap-4 min-w-min">
-            {listings.map((listing) => {
-              const price = resolvePrice(listing);
-              return (
-                <div key={listing.id} className="w-56 sm:w-64 flex-shrink-0 snap-center">
-                  <ItemCard
-                    id={listing.id}
-                    title={listing.title || listing.series || "Untitled"}
-                    price={price === null ? undefined : price}
-                    condition={listing.condition || "Unknown"}
-                    image={getListingImageUrl(listing)}
-                    category="comic"
-                    isAuction={listing.for_auction}
-                    showMakeOffer={listing.offers_enabled}
-                    showTradeBadge={listing.is_for_trade}
-                  />
-                </div>
-              );
-            })}
+            {loading ? (
+              <>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="w-56 sm:w-64 h-96 flex-shrink-0 snap-center bg-muted animate-pulse rounded-lg" />
+                ))}
+              </>
+            ) : listings.length > 0 ? (
+              listings.map((listing) => {
+                const price = resolvePrice(listing);
+                return (
+                  <div key={listing.id} className="w-56 sm:w-64 flex-shrink-0 snap-center">
+                    <ItemCard
+                      id={listing.id}
+                      title={listing.title || listing.series || "Untitled"}
+                      price={price === null ? undefined : price}
+                      condition={listing.condition || "Unknown"}
+                      image={getListingImageUrl(listing)}
+                      category="comic"
+                      isAuction={listing.for_auction}
+                      showMakeOffer={listing.offers_enabled}
+                      showTradeBadge={listing.is_for_trade}
+                    />
+                  </div>
+                );
+              })
+            ) : (
+              <div className="w-full text-center py-8 text-muted-foreground">
+                No listings available at this time
+              </div>
+            )}
           </div>
         </div>
       </div>

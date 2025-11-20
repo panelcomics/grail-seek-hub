@@ -41,53 +41,74 @@ export function HotAuctionsCarousel() {
     return null;
   };
 
-  if (loading || listings.length === 0) {
-    return null;
+  if (loading) {
+    return (
+      <div className="relative h-48 sm:h-56 md:h-64 bg-muted animate-pulse rounded-lg border-2 border-border mb-4 md:mb-6" />
+    );
+  }
+
+  if (listings.length === 0) {
+    return (
+      <div className="relative h-48 sm:h-56 md:h-64 bg-secondary/10 rounded-lg overflow-hidden border-2 border-border mb-4 md:mb-6">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+          <p className="text-lg font-bold mb-2">Sample Live Auction</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            ASM #300 (CGC 9.6) — Live auctions launching soon. Be one of the first to list!
+          </p>
+          <Button onClick={() => window.location.href = '/marketplace'}>
+            See Marketplace
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const currentListing = listings[currentIndex];
 
   return (
-    <div className="relative h-64 bg-secondary/10 rounded-lg overflow-hidden border-2 border-border mb-6">
-      <div className="absolute inset-0 flex items-center justify-between px-4 z-10">
+    <div className="relative h-48 sm:h-56 md:h-64 bg-secondary/10 rounded-lg overflow-hidden border-2 border-border mb-4 md:mb-6">
+      <div className="absolute inset-0 flex items-center justify-between px-3 md:px-4 z-10">
         <Button
           variant="secondary"
           size="icon"
+          className="h-8 w-8 md:h-10 md:w-10"
           onClick={() => setCurrentIndex((prev) => (prev - 1 + listings.length) % listings.length)}
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
         </Button>
         <Button
           variant="secondary"
           size="icon"
+          className="h-8 w-8 md:h-10 md:w-10"
           onClick={() => setCurrentIndex((prev) => (prev + 1) % listings.length)}
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
         </Button>
       </div>
       
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center p-4">
         {getImageUrl(currentListing) && (
           <img
             src={getImageUrl(currentListing)}
             alt={currentListing.title || "Hot Auction"}
             className="max-h-full max-w-full object-contain"
+            loading="lazy"
           />
         )}
       </div>
       
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-        <p className="text-white font-bold">{currentListing.title}</p>
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 md:p-4">
+        <p className="text-white font-bold text-sm md:text-base line-clamp-1">{currentListing.title}</p>
         {currentListing.listed_price && (
-          <p className="text-white/90">${(currentListing.listed_price / 100).toFixed(2)}</p>
+          <p className="text-white/90 text-sm md:text-base">${currentListing.listed_price}</p>
         )}
       </div>
       
-      <div className="absolute top-4 right-4 flex gap-1">
+      <div className="absolute top-3 md:top-4 right-3 md:right-4 flex gap-1">
         {listings.map((_, i) => (
           <div
             key={i}
-            className={`w-2 h-2 rounded-full ${i === currentIndex ? "bg-primary" : "bg-white/50"}`}
+            className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${i === currentIndex ? "bg-primary" : "bg-white/50"}`}
           />
         ))}
       </div>
