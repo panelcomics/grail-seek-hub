@@ -61,6 +61,7 @@ import TradingPost from "./pages/TradingPost";
 import TradeDetail from "./pages/TradeDetail";
 import TradeOffers from "./pages/TradeOffers";
 import Sell from "./pages/Sell";
+import About from "./pages/About";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -125,6 +126,7 @@ const AppContent = () => {
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/fees" element={<FeesPolicy />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/about" element={<About />} />
             <Route path="/sell" element={<Sell />} />
             <Route path="/dev/scan-test" element={<DevScanTest />} />
             <Route path="/market" element={<Marketplace />} />

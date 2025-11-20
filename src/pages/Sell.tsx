@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Zap, Camera, TrendingUp } from "lucide-react";
+import { Camera, TrendingUp } from "lucide-react";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { FeeBreakdown } from "@/components/home/FeeBreakdown";
 
@@ -25,15 +25,35 @@ export default function Sell() {
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Start Selling Your Grails
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join GrailSeeker and connect with collectors who appreciate your comics as much as you do.
             </p>
+            
+            {/* Key Benefits */}
+            <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-3xl mx-auto text-left">
+              <div className="bg-card border border-border rounded-lg p-4">
+                <div className="text-2xl font-bold text-primary mb-2">0%</div>
+                <div className="text-sm font-semibold mb-1">Listing Fees</div>
+                <div className="text-xs text-muted-foreground">No upfront costs to list</div>
+              </div>
+              <div className="bg-card border border-border rounded-lg p-4">
+                <div className="text-2xl font-bold text-primary mb-2">3.75%</div>
+                <div className="text-sm font-semibold mb-1">Marketplace Fee</div>
+                <div className="text-xs text-muted-foreground">Lower than eBay, Mercari, etc.</div>
+              </div>
+              <div className="bg-card border border-border rounded-lg p-4">
+                <div className="text-2xl font-bold text-primary mb-2">&lt;60s</div>
+                <div className="text-sm font-semibold mb-1">List a Comic</div>
+                <div className="text-xs text-muted-foreground">AI scanner auto-fills details</div>
+              </div>
+            </div>
+
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6"
+              className="text-xl px-10 py-7 font-black shadow-lg hover:shadow-xl transition-all"
               onClick={() => navigate("/scanner")}
             >
-              Start Your First Listing
+              Start Listing – Open Scanner
             </Button>
           </div>
         </section>
