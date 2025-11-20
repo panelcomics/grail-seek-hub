@@ -28,7 +28,7 @@ export function HeroSection() {
 
   return (
     <>
-      <section className="relative py-4 sm:py-6 md:py-8 px-4 overflow-hidden bg-background">
+      <section className="relative py-2 sm:py-3 md:py-4 px-4 overflow-hidden bg-background">
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="flex flex-col lg:flex-row gap-8 md:gap-12 items-center">
             {/* Left side - Text content */}

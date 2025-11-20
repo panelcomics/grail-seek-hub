@@ -46,9 +46,6 @@ export default function Index() {
           </div>
         </section>
         
-        {/* Live Auctions Strip */}
-        <LiveAuctionsStrip />
-        
         {/* Category Filter */}
         <CategoryFilter 
           activeCategory={activeCategory} 
