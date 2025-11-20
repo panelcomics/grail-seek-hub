@@ -41,7 +41,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
         .from("inventory_items")
         .select("*")
         .eq("user_id", profileData.user_id)
-        .eq("listing_status", "active")
+        .in("listing_status", ["active", "listed"])
         .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
         .limit(10)
         .order("created_at", { ascending: false });

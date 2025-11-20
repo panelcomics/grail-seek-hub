@@ -25,7 +25,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         .from("inventory_items")
         .select("*")
         .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
-        .eq("listing_status", "active")
+        .in("listing_status", ["active", "listed"])
         .limit(10);
 
       if (filterType === "newly-listed") {
