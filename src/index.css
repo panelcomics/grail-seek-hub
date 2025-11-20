@@ -250,4 +250,14 @@ All colors MUST be HSL.
   [class*="animate-"] {
     animation-duration: 0.334s; /* Minimum duration for 3Hz compliance */
   }
+  
+  /* Hide scrollbar for horizontal carousels */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
+  }
 }
