@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
-import { HotAuctionsCarousel } from "./HotAuctionsCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 
@@ -124,8 +123,6 @@ export function HeroSection() {
             >
               Claim Your GrailSeeker Handle
             </Button>
-
-            <HotAuctionsCarousel />
           </div>
 
           {/* Sticky Search Bar */}
