@@ -36,7 +36,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/scanner" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/sell" className="text-muted-foreground hover:text-foreground transition-colors">
                   Sell &amp; Trade
                 </Link>
               </li>
@@ -53,8 +53,8 @@ export default function Footer() {
             <h3 className="font-semibold">Support &amp; Legal</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/help" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Contact Us
+                <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+                  About Us
                 </Link>
               </li>
               <li>
