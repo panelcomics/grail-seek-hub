@@ -84,10 +84,12 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
           <div className="flex items-center gap-3 mb-6">
             <Skeleton className="h-8 w-48" />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-80 rounded-lg" />
-            ))}
+          <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex gap-4 min-w-min">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="w-64 h-80 rounded-lg flex-shrink-0" />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -103,7 +105,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
             <SellerBadge tier="premium" />
           </div>
           <a 
-            href={`/seller/${sellerProfile?.username || sellerName.toLowerCase().replace(/\s+/g, '-')}`}
+            href={`/seller/${encodeURIComponent(sellerProfile?.username || sellerName.toLowerCase().replace(/\s+/g, '-'))}`}
             className="flex items-center gap-1 text-primary hover:text-primary/80 font-bold whitespace-nowrap"
           >
             View Shop <ChevronRight className="h-5 w-5" />
