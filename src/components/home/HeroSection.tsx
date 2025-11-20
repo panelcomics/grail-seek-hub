@@ -98,37 +98,9 @@ export function HeroSection() {
         </div>
       )}
 
-      <section className="relative py-8 sm:py-12 md:py-24 px-4 overflow-hidden bg-gradient-to-b from-background via-background/95 to-background hero-with-halftone">
-        {/* Vignette overlay */}
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.2)_100%)]" />
-        
-        {/* Enhanced comic collage background */}
-        <div className="absolute inset-0 opacity-40 sm:opacity-30 md:opacity-10 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(230,0,0,0.15),transparent_50%)]" />
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4 p-2 md:p-4 h-full scale-125 sm:scale-110 md:scale-100">
-            {collageImages.map((img, i) => (
-              <div
-                key={i}
-                className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-primary/30 shadow-lg"
-                style={{
-                  transform: `rotate(${i % 2 === 0 ? '-' : ''}${2 + (i % 3)}deg)`,
-                  opacity: 0.9 - (i * 0.05),
-                  filter: 'saturate(1.5) contrast(1.2)'
-                }}
-              >
-                <img
-                  src={img}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <section className="relative py-8 sm:py-12 md:py-16 px-4 overflow-hidden bg-background">
         <div className="container mx-auto max-w-7xl relative z-10">
-          <div className="grid lg:grid-cols-2 gap-6 md:gap-12 items-center">
+          <div className="flex flex-col lg:flex-row gap-8 md:gap-12 items-center">
             <div className="space-y-4 md:space-y-6">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.2] sm:leading-[1.15]">
                 The Trusted Marketplace for{" "}
@@ -178,10 +150,10 @@ export function HeroSection() {
               </div>
             </div>
 
-            {/* Featured slabs grid - desktop 2x2, mobile 2 columns */}
-            <div className="relative">
-              {featuredListings.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3 md:gap-4">
+            {/* Featured slabs grid - shows on both mobile and desktop */}
+            {featuredListings.length > 0 && (
+              <div className="w-full lg:w-auto lg:flex-1">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto lg:mx-0">
                   {featuredListings.slice(0, 4).map((listing) => {
                     const price = resolvePrice(listing);
                     return (
@@ -200,29 +172,8 @@ export function HeroSection() {
                     );
                   })}
                 </div>
-              ) : (
-                <div className="hidden lg:block relative aspect-[3/4] max-w-md mx-auto">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl transform rotate-3" />
-                  <div className="relative grid grid-cols-2 gap-3 p-4">
-                    {collageImages.slice(0, 4).map((img, i) => (
-                      <div
-                        key={i}
-                        className="aspect-[2/3] rounded-lg overflow-hidden border-4 border-background shadow-xl"
-                      >
-                        <img
-                          src={img}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="absolute -bottom-4 -right-4 bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold shadow-lg">
-                    CGC • CBCS • Raw
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-8 md:mt-12">
