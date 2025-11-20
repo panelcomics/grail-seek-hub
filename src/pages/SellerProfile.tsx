@@ -86,13 +86,16 @@ export default function SellerProfile() {
     
     setLoading(true);
     try {
-      // Convert slug back to username
-      const username = slug.replace(/-/g, " ");
+      // Decode the slug and try to find by username or display name
+      const decodedSlug = decodeURIComponent(slug);
+      
+      // Try exact username match first (for emails), then try with dashes converted to spaces
+      const usernameVariant = decodedSlug.replace(/-/g, " ");
       
       const { data: profileData, error: profileError } = await supabase
         .from("public_profiles")
         .select("*")
-        .ilike("username", username)
+        .or(`username.ilike.${decodedSlug},username.ilike.${usernameVariant},display_name.ilike.${usernameVariant}`)
         .maybeSingle();
 
       if (profileError) throw profileError;
