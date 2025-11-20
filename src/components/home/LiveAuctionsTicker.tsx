@@ -21,15 +21,17 @@ export function LiveAuctionsTicker() {
   }, []);
 
   return (
-    <div className="bg-[#E60000] text-white py-1.5 md:py-2 px-3 md:px-4 overflow-hidden border-y border-red-700/30">
+    <div className="bg-[#E60000] text-white py-2 md:py-2.5 px-3 md:px-4 overflow-hidden border-y border-red-700/30">
       <div className="container mx-auto">
-        <div className="flex items-center justify-center gap-2 md:gap-3 animate-in fade-in-0 duration-500" key={currentIndex}>
-          <span className="text-xs md:text-sm lg:text-base font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-full ticker-scroll">
-            {TICKER_MESSAGES[currentIndex]}
-          </span>
-          <span className="hidden md:inline text-xs lg:text-sm opacity-80 whitespace-nowrap">
-            • +12 more ending today
-          </span>
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex items-center justify-start md:justify-center gap-2 md:gap-3 animate-in fade-in-0 duration-500 min-w-max" key={currentIndex}>
+            <span className="text-xs sm:text-sm md:text-base font-bold whitespace-nowrap">
+              {TICKER_MESSAGES[currentIndex]}
+            </span>
+            <span className="hidden sm:inline text-xs md:text-sm opacity-80 whitespace-nowrap">
+              • +12 more ending today
+            </span>
+          </div>
         </div>
       </div>
     </div>

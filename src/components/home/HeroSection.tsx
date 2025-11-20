@@ -94,22 +94,22 @@ export function HeroSection() {
         </div>
       )}
 
-      <section className="relative py-10 sm:py-14 md:py-24 px-4 overflow-hidden bg-gradient-to-b from-background via-background/95 to-background hero-with-halftone">
+      <section className="relative py-8 sm:py-12 md:py-24 px-4 overflow-hidden bg-gradient-to-b from-background via-background/95 to-background hero-with-halftone">
         {/* Vignette overlay */}
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.3)_100%)]" />
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.2)_100%)]" />
         
         {/* Enhanced comic collage background */}
-        <div className="absolute inset-0 opacity-25 sm:opacity-20 md:opacity-10 pointer-events-none">
+        <div className="absolute inset-0 opacity-40 sm:opacity-30 md:opacity-10 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(230,0,0,0.15),transparent_50%)]" />
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4 p-3 md:p-4 h-full scale-110 md:scale-100">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4 p-2 md:p-4 h-full scale-125 sm:scale-110 md:scale-100">
             {collageImages.map((img, i) => (
               <div
                 key={i}
                 className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-primary/30 shadow-lg"
                 style={{
                   transform: `rotate(${i % 2 === 0 ? '-' : ''}${2 + (i % 3)}deg)`,
-                  opacity: 0.8 - (i * 0.08),
-                  filter: 'saturate(1.4) contrast(1.15)'
+                  opacity: 0.9 - (i * 0.05),
+                  filter: 'saturate(1.5) contrast(1.2)'
                 }}
               >
                 <img
@@ -124,33 +124,33 @@ export function HeroSection() {
         </div>
 
         <div className="container mx-auto max-w-7xl relative z-10">
-          <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
-            <div className="space-y-5 md:space-y-6">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-[1.15] sm:leading-tight">
+          <div className="grid lg:grid-cols-2 gap-6 md:gap-12 items-center">
+            <div className="space-y-4 md:space-y-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.2] sm:leading-[1.15]">
                 The Trusted Marketplace for{" "}
                 <span className="text-primary drop-shadow-lg">Comic Grails & Keys</span>
               </h1>
               
-              <p className="text-base sm:text-lg md:text-xl text-foreground/80 leading-relaxed">
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-foreground/80 leading-relaxed">
                 Buy, sell, and trade slabs, keys, and runs from verified collectors.
               </p>
 
-              <div className="flex flex-wrap gap-3 md:gap-4 py-3 md:py-4">
+              <div className="flex flex-wrap gap-3 md:gap-4 py-2 md:py-3">
                 <div className="flex items-center gap-2 text-xs sm:text-sm">
-                  <Shield className="h-4 w-4 text-primary flex-shrink-0" />
+                  <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                   <span>Built for collectors in public beta</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs sm:text-sm">
-                  <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
+                  <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                   <span>0% fees on first 3 sales</span>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+              <div className="flex flex-col gap-3">
                 <Button 
                   size="lg" 
                   onClick={scrollToListings}
-                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-5 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] bg-[#E60000] hover:bg-[#FF1A1A]"
+                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#E60000] hover:bg-[#FF1A1A] font-bold min-h-[56px]"
                 >
                   Start Hunting Grails
                 </Button>
@@ -158,7 +158,7 @@ export function HeroSection() {
                   size="lg" 
                   variant="outline"
                   onClick={() => navigate('/marketplace?filter=local')}
-                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-5 border-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
+                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 border-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] font-bold min-h-[56px]"
                 >
                   Browse Local Deals
                 </Button>
@@ -166,7 +166,7 @@ export function HeroSection() {
                   size="lg" 
                   variant="secondary"
                   onClick={() => navigate('/scanner')}
-                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-5 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
+                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] font-bold min-h-[56px]"
                 >
                   <Smartphone className="h-5 w-5" />
                   Scan & List a Comic
@@ -198,16 +198,16 @@ export function HeroSection() {
             </div>
           </div>
 
-          <div className="mt-12">
+          <div className="mt-8 md:mt-12">
             <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search comics, cards, or original art..."
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-border bg-card text-lg focus:border-primary focus:outline-none"
+                  className="w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-4 rounded-xl border-2 border-border bg-card text-base sm:text-lg focus:border-primary focus:outline-none min-h-[48px]"
                 />
               </div>
             </form>

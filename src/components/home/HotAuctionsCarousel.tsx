@@ -43,19 +43,19 @@ export function HotAuctionsCarousel() {
 
   if (loading) {
     return (
-      <div className="relative h-48 sm:h-56 md:h-64 bg-muted animate-pulse rounded-lg border-2 border-border mb-4 md:mb-6" />
+      <div className="relative h-40 sm:h-48 md:h-64 bg-muted animate-pulse rounded-lg border-2 border-border mb-4 md:mb-6" />
     );
   }
 
   if (listings.length === 0) {
     return (
-      <div className="relative h-48 sm:h-56 md:h-64 bg-secondary/10 rounded-lg overflow-hidden border-2 border-border mb-4 md:mb-6">
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-          <p className="text-lg font-bold mb-2">Sample Live Auction</p>
-          <p className="text-sm text-muted-foreground mb-4">
+      <div className="relative h-40 sm:h-48 md:h-64 bg-secondary/10 rounded-lg overflow-hidden border-2 border-border mb-4 md:mb-6">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+          <p className="text-base sm:text-lg font-bold mb-2">Sample Live Auction</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
             ASM #300 (CGC 9.6) — Live auctions launching soon. Be one of the first to list!
           </p>
-          <Button onClick={() => window.location.href = '/marketplace'}>
+          <Button onClick={() => window.location.href = '/marketplace'} className="min-h-[44px]">
             See Marketplace
           </Button>
         </div>
@@ -66,27 +66,27 @@ export function HotAuctionsCarousel() {
   const currentListing = listings[currentIndex];
 
   return (
-    <div className="relative h-48 sm:h-56 md:h-64 bg-secondary/10 rounded-lg overflow-hidden border-2 border-border mb-4 md:mb-6">
-      <div className="absolute inset-0 flex items-center justify-between px-3 md:px-4 z-10">
+    <div className="relative h-40 sm:h-48 md:h-64 bg-secondary/10 rounded-lg overflow-hidden border-2 border-border mb-4 md:mb-6">
+      <div className="absolute inset-0 flex items-center justify-between px-2 sm:px-3 md:px-4 z-10">
         <Button
           variant="secondary"
           size="icon"
-          className="h-8 w-8 md:h-10 md:w-10"
+          className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
           onClick={() => setCurrentIndex((prev) => (prev - 1 + listings.length) % listings.length)}
         >
-          <ChevronLeft className="h-4 w-4 md:h-6 md:w-6" />
+          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
         </Button>
         <Button
           variant="secondary"
           size="icon"
-          className="h-8 w-8 md:h-10 md:w-10"
+          className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
           onClick={() => setCurrentIndex((prev) => (prev + 1) % listings.length)}
         >
-          <ChevronRight className="h-4 w-4 md:h-6 md:w-6" />
+          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
         </Button>
       </div>
       
-      <div className="absolute inset-0 flex items-center justify-center p-4">
+      <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
         {getImageUrl(currentListing) && (
           <img
             src={getImageUrl(currentListing)}
@@ -97,18 +97,18 @@ export function HotAuctionsCarousel() {
         )}
       </div>
       
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 md:p-4">
-        <p className="text-white font-bold text-sm md:text-base line-clamp-1">{currentListing.title}</p>
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2 sm:p-3 md:p-4">
+        <p className="text-white font-bold text-xs sm:text-sm md:text-base line-clamp-1">{currentListing.title}</p>
         {currentListing.listed_price && (
-          <p className="text-white/90 text-sm md:text-base">${currentListing.listed_price}</p>
+          <p className="text-white/90 text-sm sm:text-base md:text-lg font-bold">${currentListing.listed_price}</p>
         )}
       </div>
       
-      <div className="absolute top-3 md:top-4 right-3 md:right-4 flex gap-1">
+      <div className="absolute top-2 sm:top-3 md:top-4 right-2 sm:right-3 md:right-4 flex gap-1">
         {listings.map((_, i) => (
           <div
             key={i}
-            className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${i === currentIndex ? "bg-primary" : "bg-white/50"}`}
+            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${i === currentIndex ? "bg-primary" : "bg-white/50"}`}
           />
         ))}
       </div>
