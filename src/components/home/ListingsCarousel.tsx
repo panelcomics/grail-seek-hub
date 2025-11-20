@@ -62,21 +62,24 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         </div>
         <div className="overflow-x-auto pb-4 scrollbar-hide">
           <div className="flex gap-4 min-w-min">
-            {listings.map((listing) => (
-              <div key={listing.id} className="w-64 flex-shrink-0">
-                <ItemCard
-                  id={listing.id}
-                  title={listing.title || listing.series || "Untitled"}
-                  price={resolvePrice(listing)}
-                  condition={listing.condition || "Unknown"}
-                  image={getListingImageUrl(listing)}
-                  category="comic"
-                  isAuction={listing.for_auction}
-                  showMakeOffer={listing.offers_enabled}
-                  showTradeBadge={listing.is_for_trade}
-                />
-              </div>
-            ))}
+            {listings.map((listing) => {
+              const price = resolvePrice(listing);
+              return (
+                <div key={listing.id} className="w-64 flex-shrink-0">
+                  <ItemCard
+                    id={listing.id}
+                    title={listing.title || listing.series || "Untitled"}
+                    price={price === null ? undefined : price}
+                    condition={listing.condition || "Unknown"}
+                    image={getListingImageUrl(listing)}
+                    category="comic"
+                    isAuction={listing.for_auction}
+                    showMakeOffer={listing.offers_enabled}
+                    showTradeBadge={listing.is_for_trade}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

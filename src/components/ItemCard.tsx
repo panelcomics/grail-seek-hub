@@ -15,7 +15,7 @@ import { useWatchAuction } from "@/hooks/useWatchAuction";
 interface ItemCardProps {
   id: string;
   title: string;
-  price: number;
+  price?: number | null;
   condition: string;
   image: string;
   isLocal?: boolean;
@@ -241,9 +241,15 @@ const ItemCard = ({
           </div>
           
           <div className="flex items-center justify-between pt-2 border-t">
-            <div className="text-2xl font-bold text-primary">
-              ${price}
-            </div>
+            {price !== null && price !== undefined && price > 0 ? (
+              <div className="text-2xl font-bold text-primary">
+                ${price}
+              </div>
+            ) : (
+              <div className="text-sm font-medium text-muted-foreground">
+                {showMakeOffer ? "Accepting Offers" : "Price TBD"}
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-2">

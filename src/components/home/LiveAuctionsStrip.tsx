@@ -129,9 +129,11 @@ export function LiveAuctionsStrip() {
                     <div className="flex items-baseline justify-between">
                       <span className="text-xs text-muted-foreground">Current Bid</span>
                       <span className="text-lg font-black text-primary">
-                        ${auction.highest_bid_amount && auction.highest_bid_amount > 0
-                          ? auction.highest_bid_amount.toFixed(2)
-                          : resolvePrice(auction).toFixed(2)}
+                        {(() => {
+                          const price = resolvePrice(auction);
+                          const currentBid = auction.highest_bid_amount || (price !== null ? price : 0);
+                          return currentBid > 0 ? `$${currentBid.toFixed(2)}` : "No bids";
+                        })()}
                       </span>
                     </div>
                     <Button size="sm" className="w-full font-bold" variant="default">
