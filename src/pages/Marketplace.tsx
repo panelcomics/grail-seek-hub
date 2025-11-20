@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2, SlidersHorizontal } from "lucide-react";
 import { formatCents } from "@/lib/fees";
+import { resolvePriceCents } from "@/lib/listingPriceUtils";
 
 export default function Marketplace() {
   const navigate = useNavigate();
@@ -195,7 +196,7 @@ export default function Marketplace() {
                     </p>
                     <div className="flex items-center justify-between mt-3">
                       <span className="text-lg font-bold text-primary">
-                        {formatCents(listing.price_cents)}
+                        {formatCents(resolvePriceCents(listing))}
                       </span>
                       <Button size="sm" variant="outline">
                         View
