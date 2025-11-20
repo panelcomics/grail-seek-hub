@@ -97,6 +97,16 @@ export function calculateMarketplaceFeeWithCustomRate(
   priceCents: number,
   customFeeRate?: number | null
 ): FeeCalculation {
+  // Premium dealers (custom_fee_rate = 0) only pay Stripe fees
+  if (customFeeRate === 0) {
+    const stripe_fee_cents = Math.round(priceCents * STRIPE_RATE) + STRIPE_FIXED_CENTS;
+    return {
+      fee_cents: stripe_fee_cents,
+      payout_cents: priceCents - stripe_fee_cents,
+      platform_fee_cents: 0
+    };
+  }
+
   const feeRate = customFeeRate !== null && customFeeRate !== undefined 
     ? customFeeRate 
     : MARKETPLACE_FEE_RATE;

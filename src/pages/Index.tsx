@@ -7,6 +7,8 @@ import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { ListingsCarousel } from "@/components/home/ListingsCarousel";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { TrustSection } from "@/components/home/TrustSection";
+import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
+import FeaturedShops from "@/components/FeaturedShops";
 
 export default function Index() {
   const [activeCategory, setActiveCategory] = useState("all");
@@ -36,6 +38,13 @@ export default function Index() {
           activeCategory={activeCategory} 
           onCategoryChange={setActiveCategory} 
         />
+
+        {/* Premium Featured Dealers */}
+        <PremiumDealerCarousel sellerName="Panel Comics" />
+        <PremiumDealerCarousel sellerName="Kiss Komixx" />
+
+        {/* Featured Sellers */}
+        <FeaturedShops />
         
         {/* Listings Sections */}
         <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
