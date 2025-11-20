@@ -65,14 +65,14 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
   }
 
   const getImageUrl = (item: any) => {
-    // Priority: comicvine_reference > front (base64) > placeholder
+    // Priority: front (user photo) > comicvine_reference > placeholder
     if (item.images) {
       if (typeof item.images === 'object') {
-        if (item.images.comicvine_reference) {
-          return item.images.comicvine_reference;
-        }
         if (item.images.front) {
           return item.images.front;
+        }
+        if (item.images.comicvine_reference) {
+          return item.images.comicvine_reference;
         }
       } else if (Array.isArray(item.images) && item.images.length > 0) {
         return item.images[0];

@@ -56,14 +56,14 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
   };
 
   const getImageUrl = (item: any) => {
-    // Priority: comicvine_reference > front (base64) > placeholder
+    // Priority: front (user photo) > comicvine_reference > placeholder
     if (item.images) {
       if (typeof item.images === 'object') {
-        if (item.images.comicvine_reference) {
-          return item.images.comicvine_reference;
-        }
         if (item.images.front) {
           return item.images.front;
+        }
+        if (item.images.comicvine_reference) {
+          return item.images.comicvine_reference;
         }
       } else if (Array.isArray(item.images) && item.images.length > 0) {
         return item.images[0];
@@ -103,7 +103,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
             <SellerBadge tier="premium" />
           </div>
           <a 
-            href={`/sellers/${sellerProfile?.username || sellerName.toLowerCase().replace(/\s+/g, '-')}`}
+            href={`/seller/${sellerProfile?.username || sellerName.toLowerCase().replace(/\s+/g, '-')}`}
             className="flex items-center gap-1 text-primary hover:text-primary/80 font-bold whitespace-nowrap"
           >
             View Shop <ChevronRight className="h-5 w-5" />

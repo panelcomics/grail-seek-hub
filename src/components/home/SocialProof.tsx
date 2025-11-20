@@ -11,9 +11,9 @@ export function SocialProof() {
           </p>
           <div className="flex items-center justify-center gap-2">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-xs font-bold">SK</span>
+              <span className="text-xs font-bold">KK</span>
             </div>
-            <p className="text-sm text-muted-foreground">— @SilverAcekeys</p>
+            <p className="text-sm text-muted-foreground">— @kisskomixx</p>
           </div>
         </div>
       </div>
