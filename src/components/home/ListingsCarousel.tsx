@@ -50,22 +50,22 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
   };
 
   return (
-    <section className="py-8 px-4">
+    <section className="py-6 md:py-8 px-4">
       <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold">{title}</h2>
+        <div className="flex justify-between items-center mb-5 md:mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold">{title}</h2>
           {showViewAll && (
-            <Button variant="ghost" className="font-bold">
-              SORT <ChevronRight className="h-5 w-5 ml-1" />
+            <Button variant="ghost" className="font-bold text-sm md:text-base">
+              SORT <ChevronRight className="h-4 w-4 md:h-5 md:w-5 ml-1" />
             </Button>
           )}
         </div>
-        <div className="overflow-x-auto pb-4 scrollbar-hide">
-          <div className="flex gap-4 min-w-min">
+        <div className="overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+          <div className="flex gap-3 md:gap-4 min-w-min">
             {listings.map((listing) => {
               const price = resolvePrice(listing);
               return (
-                <div key={listing.id} className="w-64 flex-shrink-0">
+                <div key={listing.id} className="w-56 sm:w-64 flex-shrink-0 snap-center">
                   <ItemCard
                     id={listing.id}
                     title={listing.title || listing.series || "Untitled"}

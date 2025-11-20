@@ -87,15 +87,16 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
   }
 
   return (
-    <section className="py-8 px-4 bg-gradient-to-b from-red-950/10 to-background border-y border-red-500/20">
+    <section className="py-6 md:py-8 px-4 bg-gradient-to-b from-red-950/10 to-background border-y border-red-500/20">
       <div className="container mx-auto">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-2xl sm:text-3xl font-bold">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-5 md:mb-6">
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
               Featured Shop: {sellerProfile?.display_name || sellerProfile?.username || sellerName}
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 md:gap-2">
               <SellerBadge tier={sellerProfile?.seller_tier || "premium"} />
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">Premium Dealer</span>
               <VerifiedSellerBadge salesCount={sellerProfile?.completed_sales_count || 0} size="sm" />
             </div>
           </div>
@@ -106,12 +107,12 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
             View Shop <ChevronRight className="h-5 w-5" />
           </a>
         </div>
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-          <div className="flex gap-4 min-w-min">
-            {listings.map((listing) => {
+        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x snap-mandatory">
+          <div className="flex gap-3 md:gap-4 min-w-min">
+            {listings.slice(0, 6).map((listing) => {
               const price = resolvePrice(listing);
               return (
-                <div key={listing.id} className="w-64 flex-shrink-0">
+                <div key={listing.id} className="w-56 sm:w-64 flex-shrink-0 snap-center">
                   <ItemCard
                     id={listing.id}
                     title={listing.title || listing.series || "Untitled"}

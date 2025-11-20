@@ -19,10 +19,10 @@ All colors MUST be HSL.
     --popover: 38 40% 95%;
     --popover-foreground: 0 0% 10%;
 
-    /* Bold comic red #D32F2F */
-    --primary: 4 79% 51%;
+    /* Bold comic red #E60000 */
+    --primary: 0 100% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 4 85% 60%;
+    --primary-glow: 0 100% 55%;
 
     /* Slab black */
     --secondary: 0 0% 12%;
@@ -67,9 +67,11 @@ All colors MUST be HSL.
     --gradient-silver: linear-gradient(135deg, hsl(0, 0%, 80%), hsl(0, 0%, 65%));
     --gradient-bronze: linear-gradient(135deg, hsl(25, 75%, 50%), hsl(20, 60%, 40%));
     
-    /* Comic panel texture */
+    /* Comic panel texture & halftone */
     --texture-dots: radial-gradient(circle at 2px 2px, hsl(0, 0%, 90%) 1px, transparent 0);
     --texture-dots-size: 20px 20px;
+    --texture-halftone: radial-gradient(circle at 2px 2px, hsl(0, 0%, 0%) 0.5px, transparent 0);
+    --texture-halftone-size: 4px 4px;
 
     --sidebar-background: 0 0% 98%;
 
@@ -259,5 +261,58 @@ All colors MUST be HSL.
   
   .scrollbar-hide::-webkit-scrollbar {
     display: none;  /* Chrome, Safari, Opera */
+  }
+
+  /* Hero halftone texture */
+  .hero-with-halftone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--texture-halftone);
+    background-size: var(--texture-halftone-size);
+    opacity: 0.05;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Ticker scroll animation */
+  @keyframes ticker-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-10px);
+    }
+  }
+
+  .ticker-scroll {
+    animation: ticker-scroll 15s linear infinite;
+  }
+
+  /* Comic panel border effect */
+  .comic-panel-border {
+    border: 2px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    box-shadow: 
+      inset 0 0 0 1px hsl(var(--primary) / 0.1),
+      0 2px 8px hsl(0 0% 0% / 0.1);
+  }
+
+  /* Enhanced tap targets for mobile */
+  @media (max-width: 640px) {
+    button, a {
+      min-height: 44px;
+    }
+  }
+
+  /* Snap scroll for carousels */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
   }
 }

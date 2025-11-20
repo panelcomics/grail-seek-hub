@@ -97,14 +97,15 @@ const ItemCard = ({
   };
   return (
     <Link to={`/item/${id}`}>
-      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer bg-card border ${
+      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] cursor-pointer bg-card border-2 shadow-md ${
         isUrgent ? 'animate-urgent-glow' : ''
       }`}>
-        <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+        <div className="relative aspect-[3/4] sm:aspect-[2/3] overflow-hidden bg-muted">
           <img
             src={image}
             alt={title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110 filter saturate-110"
+            loading="lazy"
           />
           <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
             <FavoriteButton listingId={id} showCount />
@@ -166,9 +167,9 @@ const ItemCard = ({
           )}
         </div>
         
-        <div className="p-4 space-y-3">
+        <div className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
           <div>
-            <h3 className="line-clamp-2 text-base mb-2 group-hover:text-primary transition-colors">
+            <h3 className="line-clamp-2 text-sm sm:text-base mb-2 group-hover:text-primary transition-colors leading-snug">
               <span className="font-bold">{title}</span>
             </h3>
             
@@ -242,11 +243,11 @@ const ItemCard = ({
           
           <div className="flex items-center justify-between pt-2 border-t">
             {price !== null && price !== undefined && price > 0 ? (
-              <div className="text-2xl font-bold text-primary">
+              <div className="text-xl sm:text-2xl font-bold text-[#E60000] drop-shadow-sm">
                 ${price}
               </div>
             ) : (
-              <div className="text-sm font-medium text-muted-foreground">
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground">
                 {showMakeOffer ? "Accepting Offers" : "Price TBD"}
               </div>
             )}
