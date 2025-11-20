@@ -49,7 +49,7 @@ export function HeroSection() {
                 </div>
                 <div className="flex items-center gap-2 text-xs sm:text-sm">
                   <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
-                  <span>0% fees on first 3 sales</span>
+                  <span>First 100 sellers: Lifetime 2% fee</span>
                 </div>
               </div>
 

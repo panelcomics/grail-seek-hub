@@ -50,16 +50,19 @@ serve(async (req) => {
       throw new Error("Item out of stock");
     }
 
-    // Get seller's Stripe account
+    // Get seller's Stripe account and fee rate
     const { data: sellerProfile } = await supabaseClient
       .from("profiles")
-      .select("stripe_account_id, stripe_onboarding_complete")
+      .select("stripe_account_id, stripe_onboarding_complete, custom_fee_rate, is_founding_seller")
       .eq("user_id", listing.user_id)
       .single();
 
     if (!sellerProfile?.stripe_account_id || !sellerProfile.stripe_onboarding_complete) {
       throw new Error("Seller has not completed payout setup");
     }
+
+    // Determine fee rate: use custom_fee_rate if set, otherwise default to 3.75%
+    const feeRate = sellerProfile.custom_fee_rate ?? 0.0375;
 
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {
@@ -73,9 +76,11 @@ serve(async (req) => {
 
     const amount_cents = listing.price_cents;
     
-    // Calculate platform fee (6.5% cap minus Stripe fees)
-    const max_total_fee_cents = Math.round(amount_cents * 0.065);
+    // Calculate platform fee using seller's custom rate
+    // Total fee is capped at the seller's rate (e.g., 2% for founding sellers, 3.75% for standard)
+    const max_total_fee_cents = Math.round(amount_cents * feeRate);
     const estimated_stripe_fee_cents = Math.round(amount_cents * 0.029) + 30;
+    // Platform gets what's left after Stripe takes their cut
     const platform_fee_cents = Math.max(0, max_total_fee_cents - estimated_stripe_fee_cents);
 
     // Prepare order data
@@ -122,6 +127,8 @@ serve(async (req) => {
         seller_id: listing.user_id,
         max_total_fee_cents: max_total_fee_cents.toString(),
         platform_fee_cents: platform_fee_cents.toString(),
+        seller_fee_rate: feeRate.toString(),
+        is_founding_seller: sellerProfile.is_founding_seller?.toString() || 'false',
       },
     });
 

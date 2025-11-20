@@ -15,8 +15,8 @@ export function FeesSection() {
               <span className="font-bold text-lg text-primary">$0</span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-border">
-              <span className="font-medium">Marketplace Fee</span>
-              <span className="font-bold text-lg">3.75%</span>
+              <span className="font-medium">GrailSeeker Fee</span>
+              <span className="font-bold text-lg">2-3.75%*</span>
             </div>
             <div className="flex justify-between items-center pb-3 border-b border-border">
               <span className="font-medium">Payment Processing (Stripe)</span>
@@ -24,9 +24,10 @@ export function FeesSection() {
             </div>
             <div className="flex justify-between items-center pt-2">
               <span className="font-bold text-lg">Typical Total Fee</span>
-              <span className="font-bold text-2xl text-primary">~6.6%</span>
+              <span className="font-bold text-2xl text-primary">~4.9-6.6%</span>
             </div>
-            <p className="text-sm text-center pt-4 text-muted-foreground">
+            <p className="text-xs text-center pt-4 text-muted-foreground">
+              *First 100 sellers get lifetime 2% rate. Standard rate is 3.75%.<br/>
               vs. 13–15% on big marketplaces
             </p>
           </div>

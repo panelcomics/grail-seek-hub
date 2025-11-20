@@ -1,9 +1,11 @@
-// Marketplace fee calculation - Grail Seeker v2.0
-// Sales: Flat 6.5% MAX total fee (includes Stripe processing)
-// GrailSeeker absorbs Stripe fees out of that 6.5%, leaving ~3-3.5% net
+// Marketplace fee calculation - Grail Seeker v3.0
+// Founding Sellers (First 100): 2% GrailSeeker fee
+// Standard Sellers: 3.75% GrailSeeker fee
+// Stripe processing fees (2.9% + $0.30) apply separately
 // Trades: Tiered based on total trade value (unchanged)
 
-export const MARKETPLACE_FEE_RATE = 0.065;
+export const MARKETPLACE_FEE_RATE = 0.0375; // Standard 3.75% rate
+export const FOUNDING_SELLER_FEE_RATE = 0.02; // Founding seller 2% rate
 export const STRIPE_RATE = 0.029;
 export const STRIPE_FIXED_CENTS = 30;
 
