@@ -36,7 +36,16 @@ export function resolvePrice(listing: any): number {
     return listing.starting_bid;
   }
   
-  // Fallback
+  // Fallback to inventory_items prices (for display only)
+  if (listing.inventory_items?.listed_price && listing.inventory_items.listed_price > 0) {
+    return listing.inventory_items.listed_price;
+  }
+  
+  if (listing.inventory_items?.pricing_mid && listing.inventory_items.pricing_mid > 0) {
+    return listing.inventory_items.pricing_mid;
+  }
+  
+  // Final fallback
   return 0;
 }
 
