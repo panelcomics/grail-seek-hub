@@ -65,8 +65,18 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
   }
 
   const getImageUrl = (item: any) => {
-    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-      return item.images[0];
+    // Priority: comicvine_reference > front (base64) > placeholder
+    if (item.images) {
+      if (typeof item.images === 'object') {
+        if (item.images.comicvine_reference) {
+          return item.images.comicvine_reference;
+        }
+        if (item.images.front) {
+          return item.images.front;
+        }
+      } else if (Array.isArray(item.images) && item.images.length > 0) {
+        return item.images[0];
+      }
     }
     return "/placeholder.svg";
   };

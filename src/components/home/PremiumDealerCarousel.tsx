@@ -56,8 +56,18 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
   };
 
   const getImageUrl = (item: any) => {
-    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-      return item.images[0];
+    // Priority: comicvine_reference > front (base64) > placeholder
+    if (item.images) {
+      if (typeof item.images === 'object') {
+        if (item.images.comicvine_reference) {
+          return item.images.comicvine_reference;
+        }
+        if (item.images.front) {
+          return item.images.front;
+        }
+      } else if (Array.isArray(item.images) && item.images.length > 0) {
+        return item.images[0];
+      }
     }
     return "/placeholder.svg";
   };
@@ -87,25 +97,22 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
   return (
     <section className="py-8 px-4 bg-gradient-to-b from-red-950/10 to-background border-y border-red-500/20">
       <div className="container mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <h2 className="text-3xl font-bold">Featured Shop: {sellerProfile?.display_name || sellerProfile?.username || sellerName}</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-2xl sm:text-3xl font-bold">Featured Shop: {sellerProfile?.display_name || sellerProfile?.username || sellerName}</h2>
             <SellerBadge tier="premium" />
           </div>
           <a 
             href={`/sellers/${sellerProfile?.username || sellerName.toLowerCase().replace(/\s+/g, '-')}`}
-            className="flex items-center gap-1 text-primary hover:text-primary/80 font-bold"
+            className="flex items-center gap-1 text-primary hover:text-primary/80 font-bold whitespace-nowrap"
           >
             View Shop <ChevronRight className="h-5 w-5" />
           </a>
         </div>
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
           <div className="flex gap-4 min-w-min">
             {listings.map((listing) => (
-              <div key={listing.id} className="w-64 flex-shrink-0 relative">
-                <div className="absolute -top-2 -right-2 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-                  0% FEES
-                </div>
+              <div key={listing.id} className="w-64 flex-shrink-0">
                 <ItemCard
                   id={listing.id}
                   title={listing.title || listing.series || "Untitled"}
