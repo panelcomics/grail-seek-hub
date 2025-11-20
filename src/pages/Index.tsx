@@ -8,6 +8,7 @@ import { ListingsCarousel } from "@/components/home/ListingsCarousel";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
+import { LiveAuctionsStrip } from "@/components/home/LiveAuctionsStrip";
 import FeaturedShops from "@/components/FeaturedShops";
 
 export default function Index() {
@@ -27,17 +28,20 @@ export default function Index() {
         {/* Hero Section */}
         <HeroSection />
         
-        {/* Social Proof */}
-        <SocialProof />
-        
-        {/* Fees Section */}
-        <FeesSection />
+        {/* Live Auctions Strip */}
+        <LiveAuctionsStrip />
         
         {/* Category Filter */}
         <CategoryFilter 
           activeCategory={activeCategory} 
           onCategoryChange={setActiveCategory} 
         />
+        
+        {/* Social Proof */}
+        <SocialProof />
+        
+        {/* Fees Section */}
+        <FeesSection />
 
         {/* Premium Featured Dealers */}
         <PremiumDealerCarousel sellerName="Panel Comics" />
