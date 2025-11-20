@@ -9,6 +9,8 @@ import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
 import { LiveAuctionsStrip } from "@/components/home/LiveAuctionsStrip";
+import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
+import { LiveAuctionsTicker } from "@/components/home/LiveAuctionsTicker";
 import FeaturedShops from "@/components/FeaturedShops";
 
 export default function Index() {
@@ -25,8 +27,17 @@ export default function Index() {
       </Helmet>
 
       <main className="min-h-screen">
+        {/* Founding Sellers Banner */}
+        <FoundingSellersBanner />
+        
+        {/* Live Auctions Ticker */}
+        <LiveAuctionsTicker />
+        
         {/* Hero Section */}
         <HeroSection />
+        
+        {/* Fees Section - Moved to appear right after hero */}
+        <FeesSection />
         
         {/* Live Auctions Strip */}
         <LiveAuctionsStrip />
@@ -39,9 +50,6 @@ export default function Index() {
         
         {/* Social Proof */}
         <SocialProof />
-        
-        {/* Fees Section */}
-        <FeesSection />
 
         {/* Premium Featured Dealers */}
         <PremiumDealerCarousel sellerName="Panel Comics" />
