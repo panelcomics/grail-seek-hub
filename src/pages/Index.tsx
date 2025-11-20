@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { HeroSection } from "@/components/home/HeroSection";
-import { MarketplaceTabs } from "@/components/home/MarketplaceTabs";
-import { ListingsGrid } from "@/components/home/ListingsGrid";
+import { SocialProof } from "@/components/home/SocialProof";
+import { FeesSection } from "@/components/home/FeesSection";
+import { CategoryFilter } from "@/components/home/CategoryFilter";
+import { ListingsCarousel } from "@/components/home/ListingsCarousel";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
-import { FeeBreakdown } from "@/components/home/FeeBreakdown";
+import { TrustSection } from "@/components/home/TrustSection";
 
 export default function Index() {
-  const [activeTab, setActiveTab] = useState("featured");
+  const [activeCategory, setActiveCategory] = useState("all");
 
   return (
     <>
@@ -19,20 +21,36 @@ export default function Index() {
         />
       </Helmet>
 
-      <main>
+      <main className="min-h-screen">
+        {/* Hero Section */}
         <HeroSection />
         
-        <MarketplaceTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        {/* Social Proof */}
+        <SocialProof />
         
-        <section className="py-12 px-4">
-          <div className="container mx-auto">
-            <ListingsGrid filterType={activeTab} />
-          </div>
-        </section>
+        {/* Fees Section */}
+        <FeesSection />
+        
+        {/* Category Filter */}
+        <CategoryFilter 
+          activeCategory={activeCategory} 
+          onCategoryChange={setActiveCategory} 
+        />
+        
+        {/* Listings Sections */}
+        <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
+        
+        <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" />
+        
+        <ListingsCarousel title="Hot This Week" filterType="hot-week" />
+        
+        <ListingsCarousel title="Local Deals Near You" filterType="local" />
 
+        {/* Why GrailSeeker */}
         <BenefitBlocks />
         
-        <FeeBreakdown />
+        {/* Trust & Safety */}
+        <TrustSection />
       </main>
     </>
   );
