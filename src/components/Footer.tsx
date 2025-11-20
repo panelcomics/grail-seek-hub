@@ -36,7 +36,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/tradeboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/scanner" className="text-muted-foreground hover:text-foreground transition-colors">
                   Sell &amp; Trade
                 </Link>
               </li>
