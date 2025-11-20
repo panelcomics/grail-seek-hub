@@ -1999,6 +1999,7 @@ export type Database = {
           hide_ai_scanner_tour: boolean | null
           id: string
           is_featured_seller: boolean | null
+          is_founding_seller: boolean | null
           is_verified_seller: boolean | null
           joined_at: string | null
           notify_auction_ending: boolean | null
@@ -2030,6 +2031,7 @@ export type Database = {
           hide_ai_scanner_tour?: boolean | null
           id?: string
           is_featured_seller?: boolean | null
+          is_founding_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
           notify_auction_ending?: boolean | null
@@ -2061,6 +2063,7 @@ export type Database = {
           hide_ai_scanner_tour?: boolean | null
           id?: string
           is_featured_seller?: boolean | null
+          is_founding_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
           notify_auction_ending?: boolean | null
@@ -3063,6 +3066,7 @@ export type Database = {
         Args: { target_event_id: string }
         Returns: number
       }
+      get_founding_seller_count: { Args: never; Returns: number }
       get_monthly_savings: { Args: { target_user_id: string }; Returns: number }
       get_seller_follower_count: {
         Args: { seller_user_id: string }
