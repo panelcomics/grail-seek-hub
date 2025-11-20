@@ -8,6 +8,12 @@ interface SellerBadgeProps {
 }
 
 const tierConfig = {
+  premium: {
+    icon: Star,
+    label: "Premium Dealer",
+    tooltip: "Exclusive premium dealer with 0% marketplace fees",
+    className: "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-2 border-red-400",
+  },
   pro: {
     icon: Award,
     label: "Pro Seller",
