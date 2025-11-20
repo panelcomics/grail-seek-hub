@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Loader2, SlidersHorizontal } from "lucide-react";
 import { formatCents } from "@/lib/fees";
 import { resolvePriceCents } from "@/lib/listingPriceUtils";
+import { MobileFilterBar } from "@/components/MobileFilterBar";
 
 export default function Marketplace() {
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ export default function Marketplace() {
         <link rel="canonical" href={`${window.location.origin}/market`} />
       </Helmet>
 
-      <main className="flex-1 container py-4 md:py-8">
+      <main className="flex-1 container py-4 md:py-8 pb-20 md:pb-8">
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Marketplace</h1>
           <p className="text-sm md:text-base text-muted-foreground">Buy comics and collectibles from the community</p>
@@ -208,6 +209,13 @@ export default function Marketplace() {
             })}
         </div>
       )}
+      
+      <MobileFilterBar
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+      />
     </main>
     </>
   );

@@ -73,18 +73,20 @@ export function HeroSection() {
           </div>
 
           {/* Sticky Search Bar */}
-          <form onSubmit={handleSearch} className="max-w-3xl mx-auto">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+          <div className="md:static sticky top-0 z-40 bg-background/95 backdrop-blur-sm py-4 -mx-4 px-4 md:mx-0 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none">
+            <form onSubmit={handleSearch} className="max-w-3xl mx-auto">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Grails, keys, runs, slabs, sellers..."
                 className="w-full pl-14 pr-4 py-5 rounded-lg border-2 border-border bg-card text-foreground text-lg font-medium focus:outline-none focus:ring-2 focus:ring-primary shadow-md"
               />
             </div>
           </form>
+          </div>
         </div>
       </section>
 
