@@ -434,25 +434,28 @@ export default function SellerProfile() {
               <TabsContent value={activeTab} className="mt-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Regular Listings */}
-                  {activeTab !== "claim-sales" && filteredListings.map((listing) => (
-                    <ItemCard
-                      key={listing.id}
-                      id={listing.id}
-                      title={listing.title}
-                      price={resolvePrice(listing)}
-                      condition="VF"
-                      image={listing.image_url || "/placeholder.svg"}
-                      category="comic"
-                      sellerName={sellerName}
-                      sellerCity={profile.joined_at ? new Date(profile.joined_at).toLocaleDateString() : undefined}
-                      sellerBadge={profile.seller_tier}
-                      isVerifiedSeller={profile.is_verified_seller}
-                      isAuction={listing.type === "auction"}
-                      timeRemaining={listing.type === "auction" ? getTimeRemaining(listing.ends_at) : 0}
-                      showMakeOffer={sellerSettings?.accept_offers}
-                      minOfferPercentage={sellerSettings?.min_offer_percentage}
-                    />
-                  ))}
+                  {activeTab !== "claim-sales" && filteredListings.map((listing) => {
+                    const price = resolvePrice(listing);
+                    return (
+                      <ItemCard
+                        key={listing.id}
+                        id={listing.id}
+                        title={listing.title}
+                        price={price === null ? undefined : price}
+                        condition="VF"
+                        image={listing.image_url || "/placeholder.svg"}
+                        category="comic"
+                        sellerName={sellerName}
+                        sellerCity={profile.joined_at ? new Date(profile.joined_at).toLocaleDateString() : undefined}
+                        sellerBadge={profile.seller_tier}
+                        isVerifiedSeller={profile.is_verified_seller}
+                        isAuction={listing.type === "auction"}
+                        timeRemaining={listing.type === "auction" ? getTimeRemaining(listing.ends_at) : 0}
+                        showMakeOffer={sellerSettings?.accept_offers}
+                        minOfferPercentage={sellerSettings?.min_offer_percentage}
+                      />
+                    );
+                  })}
 
                   {/* Claim Sales */}
                   {(activeTab === "all" || activeTab === "claim-sales") && claimSales.map((sale) => (

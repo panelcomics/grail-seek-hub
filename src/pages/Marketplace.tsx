@@ -210,9 +210,18 @@ export default function Marketplace() {
                       by {sellerName}
                     </p>
                     <div className="flex items-center justify-between mt-3">
-                      <span className="text-lg font-bold text-primary">
-                        {formatCents(resolvePriceCents(listing))}
-                      </span>
+                      {(() => {
+                        const priceCents = resolvePriceCents(listing);
+                        return priceCents !== null ? (
+                          <span className="text-lg font-bold text-primary">
+                            {formatCents(priceCents)}
+                          </span>
+                        ) : (
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Price TBD
+                          </span>
+                        );
+                      })()}
                       <Button size="sm" variant="outline">
                         View
                       </Button>
