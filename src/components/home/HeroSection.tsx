@@ -78,14 +78,14 @@ export function HeroSection() {
   return (
     <>
       {showBanner && (
-        <div className="bg-primary/10 border-b border-primary/20 py-2 px-4">
-          <div className="container mx-auto flex items-center justify-between">
-            <p className="text-sm font-medium">
-              <span className="font-bold">Founding Sellers:</span> 0% fees on your first 3 sales • Lower total fees than eBay & Whatnot
+        <div className="bg-primary/10 border-b border-primary/20 py-1.5 md:py-2 px-3 md:px-4">
+          <div className="container mx-auto flex items-center justify-between gap-2">
+            <p className="text-xs md:text-sm font-medium truncate">
+              <span className="font-bold">Founding Sellers:</span> 0% fees on first 3 sales • Lower fees than eBay
             </p>
             <button
               onClick={() => setShowBanner(false)}
-              className="text-muted-foreground hover:text-foreground text-xl leading-none"
+              className="text-muted-foreground hover:text-foreground text-lg md:text-xl leading-none flex-shrink-0"
               aria-label="Dismiss banner"
             >
               ×
@@ -94,17 +94,22 @@ export function HeroSection() {
         </div>
       )}
 
-      <section className="relative py-16 md:py-24 px-4 overflow-hidden bg-gradient-to-b from-background via-background/95 to-background">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,0,0,0.1),transparent_50%)]" />
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-4 p-4 h-full">
+      <section className="relative py-12 sm:py-16 md:py-24 px-4 overflow-hidden bg-gradient-to-b from-background via-background/95 to-background hero-with-halftone">
+        {/* Vignette overlay */}
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.3)_100%)]" />
+        
+        {/* Enhanced comic collage background */}
+        <div className="absolute inset-0 opacity-20 md:opacity-10 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(230,0,0,0.15),transparent_50%)]" />
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4 p-3 md:p-4 h-full scale-110 md:scale-100">
             {collageImages.map((img, i) => (
               <div
                 key={i}
-                className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-primary/20"
+                className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-primary/30 shadow-lg"
                 style={{
                   transform: `rotate(${i % 2 === 0 ? '-' : ''}${2 + (i % 3)}deg)`,
-                  opacity: 0.7 - (i * 0.1)
+                  opacity: 0.8 - (i * 0.08),
+                  filter: 'saturate(1.4) contrast(1.15)'
                 }}
               >
                 <img
@@ -119,33 +124,33 @@ export function HeroSection() {
         </div>
 
         <div className="container mx-auto max-w-7xl relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h1 className="text-4xl md:text-6xl font-black leading-tight">
+          <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="space-y-5 md:space-y-6">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-[1.15] sm:leading-tight">
                 The Trusted Marketplace for{" "}
-                <span className="text-primary">Comic Grails & Keys</span>
+                <span className="text-primary drop-shadow-lg">Comic Grails & Keys</span>
               </h1>
               
-              <p className="text-lg md:text-xl text-muted-foreground">
+              <p className="text-base sm:text-lg md:text-xl text-foreground/80 leading-relaxed">
                 Buy, sell, and trade slabs, keys, and runs from verified collectors.
               </p>
 
-              <div className="flex flex-wrap gap-4 py-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Shield className="h-4 w-4 text-primary" />
+              <div className="flex flex-wrap gap-3 md:gap-4 py-3 md:py-4">
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <Shield className="h-4 w-4 text-primary flex-shrink-0" />
                   <span>Built for collectors in public beta</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  <span>0% fees on your first 3 sales</span>
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>0% fees on first 3 sales</span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3">
                 <Button 
                   size="lg" 
                   onClick={scrollToListings}
-                  className="text-lg px-8"
+                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-5 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] bg-[#E60000] hover:bg-[#FF1A1A]"
                 >
                   Start Hunting Grails
                 </Button>
@@ -153,7 +158,7 @@ export function HeroSection() {
                   size="lg" 
                   variant="outline"
                   onClick={() => navigate('/marketplace?filter=local')}
-                  className="text-lg px-8"
+                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-5 border-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
                 >
                   Browse Local Deals
                 </Button>
@@ -161,7 +166,7 @@ export function HeroSection() {
                   size="lg" 
                   variant="secondary"
                   onClick={() => navigate('/scanner')}
-                  className="text-lg px-8 flex items-center gap-2"
+                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-5 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02]"
                 >
                   <Smartphone className="h-5 w-5" />
                   Scan & List a Comic
