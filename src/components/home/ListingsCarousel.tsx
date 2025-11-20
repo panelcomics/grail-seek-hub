@@ -5,6 +5,7 @@ import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { resolvePrice } from "@/lib/listingPriceUtils";
+import { getListingImageUrl } from "@/lib/sellerUtils";
 
 interface ListingsCarouselProps {
   title: string;
@@ -48,40 +49,6 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
     }
   };
 
-  if (loading) {
-    return (
-      <section className="py-8 px-4">
-        <div className="container mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold">{title}</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-80 rounded-lg" />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const getImageUrl = (item: any) => {
-    // Priority: front (user photo) > comicvine_reference > placeholder
-    if (item.images) {
-      if (typeof item.images === 'object') {
-        if (item.images.front) {
-          return item.images.front;
-        }
-        if (item.images.comicvine_reference) {
-          return item.images.comicvine_reference;
-        }
-      } else if (Array.isArray(item.images) && item.images.length > 0) {
-        return item.images[0];
-      }
-    }
-    return "/placeholder.svg";
-  };
-
   return (
     <section className="py-8 px-4">
       <div className="container mx-auto">
@@ -93,7 +60,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             </Button>
           )}
         </div>
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto pb-4 scrollbar-hide">
           <div className="flex gap-4 min-w-min">
             {listings.map((listing) => (
               <div key={listing.id} className="w-64 flex-shrink-0">
@@ -102,7 +69,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                   title={listing.title || listing.series || "Untitled"}
                   price={resolvePrice(listing)}
                   condition={listing.condition || "Unknown"}
-                  image={getImageUrl(listing)}
+                  image={getListingImageUrl(listing)}
                   category="comic"
                   isAuction={listing.for_auction}
                   showMakeOffer={listing.offers_enabled}
