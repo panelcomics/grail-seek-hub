@@ -33,14 +33,15 @@ interface SellerProfile {
   display_name: string | null;
   avatar_url: string | null;
   profile_image_url: string | null;
-  seller_level: string; // Changed from completed_sales_count
+  seller_level: string;
   seller_tier: string | null;
-  favorites_total?: number; // Made optional since not in public_profiles
+  favorites_total?: number;
   verified_artist: boolean;
   is_verified_seller: boolean;
   is_featured_seller: boolean;
   bio: string | null;
   joined_at: string;
+  completed_sales_count?: number;  // Will fetch separately if needed
 }
 
 interface SellerSettings {
@@ -112,6 +113,17 @@ export default function SellerProfile() {
 
       setProfile(profileData);
       setProfileUserId(profileData.user_id);
+
+      // Fetch actual sales count for verified badge (from profiles table with proper auth)
+      const { data: salesData } = await supabase
+        .from("profiles")
+        .select("completed_sales_count")
+        .eq("user_id", profileData.user_id)
+        .maybeSingle();
+
+      if (salesData) {
+        setProfile(prev => prev ? { ...prev, completed_sales_count: salesData.completed_sales_count || 0 } : null);
+      }
 
       // Fetch seller settings
       const { data: settingsData } = await supabase
@@ -264,7 +276,8 @@ export default function SellerProfile() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-3xl font-bold">{sellerName}</h1>
                     {profile.is_featured_seller && <FeaturedSellerBadge />}
-                    {profile.is_verified_seller && <VerifiedSellerBadge size="md" />}
+                    <VerifiedSellerBadge salesCount={profile.completed_sales_count || 0} size="md" />
+                    {profile.seller_tier && <SellerBadge tier={profile.seller_tier} />}
                     {profile.verified_artist && (
                       <TooltipProvider>
                         <Tooltip>

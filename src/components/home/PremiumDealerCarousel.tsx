@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SellerBadge } from "@/components/SellerBadge";
+import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { ChevronRight } from "lucide-react";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getSellerSlug, getListingImageUrl } from "@/lib/sellerUtils";
@@ -25,7 +26,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
       // Find seller by username or display name
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, seller_tier, avatar_url")
+        .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
         .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
         .maybeSingle();
 
@@ -93,7 +94,10 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
             <h2 className="text-2xl sm:text-3xl font-bold">
               Featured Shop: {sellerProfile?.display_name || sellerProfile?.username || sellerName}
             </h2>
-            <SellerBadge tier={sellerProfile?.seller_tier || "premium"} />
+            <div className="flex items-center gap-2">
+              <SellerBadge tier={sellerProfile?.seller_tier || "premium"} />
+              <VerifiedSellerBadge salesCount={sellerProfile?.completed_sales_count || 0} size="sm" />
+            </div>
           </div>
           <a 
             href={`/seller/${getSellerSlug(sellerProfile || { username: sellerName })}`}

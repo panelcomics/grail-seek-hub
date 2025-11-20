@@ -1,31 +1,37 @@
 import { Badge } from "@/components/ui/badge";
-import { Shield } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface VerifiedSellerBadgeProps {
+  salesCount?: number;
   className?: string;
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
 }
 
-export function VerifiedSellerBadge({ className = "", size = "md", showLabel = true }: VerifiedSellerBadgeProps) {
+export function VerifiedSellerBadge({ salesCount = 0, className = "", size = "md", showLabel = true }: VerifiedSellerBadgeProps) {
+  // Only show badge if seller has 10+ completed sales
+  if (salesCount < 10) {
+    return null;
+  }
+
   const iconSize = size === "sm" ? "h-3 w-3" : size === "lg" ? "h-5 w-5" : "h-4 w-4";
-  const textSize = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
+  const textSize = size === "sm" ? "text-[10px]" : size === "lg" ? "text-sm" : "text-xs";
 
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <Badge
             variant="secondary"
-            className={`gap-1.5 bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30 ${textSize} ${className}`}
+            className={`gap-1 bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 ${textSize} ${className}`}
           >
-            <Shield className={iconSize} />
+            <ShieldCheck className={iconSize} />
             {showLabel && "Verified Seller"}
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Verified by GrailSeeker as a trusted seller</p>
+          <p className="text-xs">Verified seller with {salesCount}+ completed sales</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
