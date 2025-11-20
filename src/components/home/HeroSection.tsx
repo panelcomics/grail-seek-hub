@@ -19,8 +19,13 @@ export function HeroSection() {
 
   return (
     <>
-      <section className="relative py-16 px-4 bg-gradient-to-b from-primary/5 via-background to-background">
-        <div className="container mx-auto max-w-6xl">
+      <section className="relative py-16 px-4 bg-gradient-to-b from-primary/5 via-background to-background overflow-hidden">
+        {/* Comic Halftone Texture Background */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+          backgroundSize: '8px 8px'
+        }} />
+        <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center mb-8">
             <div className="relative inline-block mb-6">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-4 text-primary leading-tight">

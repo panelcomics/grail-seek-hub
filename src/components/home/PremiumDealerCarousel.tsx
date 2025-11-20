@@ -118,7 +118,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
                 <ItemCard
                   id={listing.id}
                   title={listing.title || listing.series || "Untitled"}
-                  price={listing.listed_price ? listing.listed_price / 100 : 0}
+                  price={(listing.price_cents || 0) / 100}
                   condition={listing.condition || "Unknown"}
                   image={getImageUrl(listing)}
                   category="comic"
