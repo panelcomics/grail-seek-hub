@@ -11,6 +11,7 @@ import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
 import { LiveAuctionsStrip } from "@/components/home/LiveAuctionsStrip";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import { LiveAuctionsTicker } from "@/components/home/LiveAuctionsTicker";
+import { HotAuctionsCarousel } from "@/components/home/HotAuctionsCarousel";
 import FeaturedShops from "@/components/FeaturedShops";
 
 export default function Index() {
@@ -38,6 +39,16 @@ export default function Index() {
         
         {/* Fees Section - Moved to appear right after hero */}
         <FeesSection />
+        
+        {/* Live Right Now - Hot Auctions */}
+        <section className="py-8 px-4 bg-gradient-to-b from-primary/5 to-background">
+          <div className="container mx-auto max-w-6xl">
+            <h2 className="text-3xl md:text-4xl font-black text-center mb-6 text-primary">
+              🔥 Live Right Now — Hot Auctions
+            </h2>
+            <HotAuctionsCarousel />
+          </div>
+        </section>
         
         {/* Live Auctions Strip */}
         <LiveAuctionsStrip />
