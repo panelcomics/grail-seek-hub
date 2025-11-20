@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
 import { supabase } from "@/integrations/supabase/client";
 import { getListingImageUrl } from "@/lib/sellerUtils";
+import ItemCard from "@/components/ItemCard";
+import { resolvePrice } from "@/lib/listingPriceUtils";
 
 const FALLBACK_COVERS = [
   "/covers/sample-asm.jpg",
@@ -19,52 +21,44 @@ export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [collageImages, setCollageImages] = useState<string[]>([]);
+  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [showBanner, setShowBanner] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchPanelComicsListings();
+    fetchFeaturedListings();
   }, []);
 
-  const fetchPanelComicsListings = async () => {
+  const fetchFeaturedListings = async () => {
     try {
-      const { data: sellerData } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .or("username.ilike.%Panel Comics%,display_name.ilike.%Panel Comics%")
-        .maybeSingle();
-
-      if (!sellerData) return;
-
+      // Fetch 4 active listings for the hero display
       const { data: listingsData } = await supabase
         .from("inventory_items")
         .select("*")
-        .eq("user_id", sellerData.user_id)
-        .in("listing_status", ["active", "listed"])
         .or("for_sale.eq.true,for_auction.eq.true")
-        .limit(6);
+        .in("listing_status", ["active", "listed"])
+        .limit(4);
 
       if (listingsData && listingsData.length > 0) {
+        setFeaturedListings(listingsData);
+        
+        // Also set collage images for background
         const images = listingsData
           .map(listing => getListingImageUrl(listing))
-          .filter(url => url && url !== "/placeholder.svg")
-          .slice(0, 6);
+          .filter(url => url && url !== "/placeholder.svg");
 
         if (images.length >= 4) {
-          setCollageImages(images);
+          setCollageImages([...images, ...images].slice(0, 6));
         } else if (images.length > 0) {
-          // Use available images and fill with fallbacks if needed
           setCollageImages([...images, ...FALLBACK_COVERS].slice(0, 6));
         } else {
-          // Use fallbacks only if no real images are available
           setCollageImages(FALLBACK_COVERS);
         }
       } else {
-        // Use fallbacks if no listings found
         setCollageImages(FALLBACK_COVERS);
       }
     } catch (error) {
-      console.error("Error fetching Panel Comics listings:", error);
+      console.error("Error fetching featured listings:", error);
       setCollageImages(FALLBACK_COVERS);
     }
   };
@@ -184,27 +178,50 @@ export function HeroSection() {
               </div>
             </div>
 
-            <div className="relative hidden lg:block">
-              <div className="relative aspect-[3/4] max-w-md mx-auto">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl transform rotate-3" />
-                <div className="relative grid grid-cols-2 gap-3 p-4">
-                  {collageImages.slice(0, 4).map((img, i) => (
-                    <div
-                      key={i}
-                      className="aspect-[2/3] rounded-lg overflow-hidden border-4 border-background shadow-xl"
-                    >
-                      <img
-                        src={img}
-                        alt=""
-                        className="w-full h-full object-cover"
+            {/* Featured slabs grid - desktop 2x2, mobile 2 columns */}
+            <div className="relative">
+              {featuredListings.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  {featuredListings.slice(0, 4).map((listing) => {
+                    const price = resolvePrice(listing);
+                    return (
+                      <ItemCard
+                        key={listing.id}
+                        id={listing.id}
+                        title={listing.title || listing.series || "Untitled"}
+                        price={price === null ? undefined : price}
+                        condition={listing.condition || "Unknown"}
+                        image={getListingImageUrl(listing)}
+                        category="comic"
+                        isAuction={listing.for_auction}
+                        showMakeOffer={listing.offers_enabled}
+                        showTradeBadge={listing.is_for_trade}
                       />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                <div className="absolute -bottom-4 -right-4 bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold shadow-lg">
-                  CGC • CBCS • Raw
+              ) : (
+                <div className="hidden lg:block relative aspect-[3/4] max-w-md mx-auto">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl transform rotate-3" />
+                  <div className="relative grid grid-cols-2 gap-3 p-4">
+                    {collageImages.slice(0, 4).map((img, i) => (
+                      <div
+                        key={i}
+                        className="aspect-[2/3] rounded-lg overflow-hidden border-4 border-background shadow-xl"
+                      >
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="absolute -bottom-4 -right-4 bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold shadow-lg">
+                    CGC • CBCS • Raw
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
