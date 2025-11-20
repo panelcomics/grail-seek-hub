@@ -8,7 +8,6 @@ import heroMarketplace from "@/assets/hero-marketplace.jpg";
 export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
-  const [showBanner, setShowBanner] = useState(true);
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -29,24 +28,7 @@ export function HeroSection() {
 
   return (
     <>
-      {showBanner && (
-        <div className="bg-primary/10 border-b border-primary/20 py-1.5 md:py-2 px-3 md:px-4">
-          <div className="container mx-auto flex items-center justify-between gap-2">
-            <p className="text-xs md:text-sm font-medium truncate">
-              <span className="font-bold">Founding Sellers:</span> 0% fees on first 3 sales • Lower fees than eBay
-            </p>
-            <button
-              onClick={() => setShowBanner(false)}
-              className="text-muted-foreground hover:text-foreground text-lg md:text-xl leading-none flex-shrink-0"
-              aria-label="Dismiss banner"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
-
-      <section className="relative py-8 sm:py-12 md:py-16 px-4 overflow-hidden bg-background">
+      <section className="relative py-4 sm:py-6 md:py-8 px-4 overflow-hidden bg-background">
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="flex flex-col lg:flex-row gap-8 md:gap-12 items-center">
             {/* Left side - Text content */}

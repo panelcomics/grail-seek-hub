@@ -10,7 +10,6 @@ import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
 import { LiveAuctionsStrip } from "@/components/home/LiveAuctionsStrip";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
-import { LiveAuctionsTicker } from "@/components/home/LiveAuctionsTicker";
 import { HotAuctionsCarousel } from "@/components/home/HotAuctionsCarousel";
 import FeaturedShops from "@/components/FeaturedShops";
 
@@ -30,9 +29,6 @@ export default function Index() {
       <main className="min-h-screen">
         {/* Founding Sellers Banner */}
         <FoundingSellersBanner />
-        
-        {/* Live Auctions Ticker */}
-        <LiveAuctionsTicker />
         
         {/* Hero Section */}
         <HeroSection />
