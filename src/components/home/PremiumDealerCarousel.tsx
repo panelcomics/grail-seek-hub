@@ -4,6 +4,7 @@ import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SellerBadge } from "@/components/SellerBadge";
 import { ChevronRight } from "lucide-react";
+import { resolvePrice } from "@/lib/listingPriceUtils";
 
 interface PremiumDealerCarouselProps {
   sellerName: string;
@@ -118,7 +119,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
                 <ItemCard
                   id={listing.id}
                   title={listing.title || listing.series || "Untitled"}
-                  price={(listing.price_cents || 0) / 100}
+                  price={resolvePrice(listing)}
                   condition={listing.condition || "Unknown"}
                   image={getImageUrl(listing)}
                   category="comic"

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Eye, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { resolvePrice } from "@/lib/listingPriceUtils";
 
 export function LiveAuctionsStrip() {
   const [auctions, setAuctions] = useState<any[]>([]);
@@ -102,7 +103,7 @@ export function LiveAuctionsStrip() {
                     <div className="flex items-baseline justify-between">
                       <span className="text-xs text-muted-foreground">Current Bid</span>
                       <span className="text-lg font-black text-primary">
-                        ${((auction.price_cents || 0) / 100).toFixed(2)}
+                        ${resolvePrice(auction).toFixed(2)}
                       </span>
                     </div>
                     <Button size="sm" className="w-full font-bold" variant="default">

@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ItemCard from "@/components/ItemCard";
+import { resolvePrice } from "@/lib/listingPriceUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SellerBadge } from "@/components/SellerBadge";
@@ -422,7 +423,7 @@ export default function SellerProfile() {
                       key={listing.id}
                       id={listing.id}
                       title={listing.title}
-                      price={listing.price_cents / 100}
+                      price={resolvePrice(listing)}
                       condition="VF"
                       image={listing.image_url || "/placeholder.svg"}
                       category="comic"

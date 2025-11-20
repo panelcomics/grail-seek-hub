@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { resolvePrice } from "@/lib/listingPriceUtils";
 
 interface ListingsCarouselProps {
   title: string;
@@ -99,7 +100,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                 <ItemCard
                   id={listing.id}
                   title={listing.title || listing.series || "Untitled"}
-                  price={(listing.price_cents || 0) / 100}
+                  price={resolvePrice(listing)}
                   condition={listing.condition || "Unknown"}
                   image={getImageUrl(listing)}
                   category="comic"
