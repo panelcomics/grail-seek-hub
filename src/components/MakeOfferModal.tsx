@@ -72,7 +72,7 @@ export const MakeOfferModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto pb-[300px] sm:pb-6">
         <DialogHeader>
           <DialogTitle>Make Trade Offer</DialogTitle>
           <DialogDescription>
