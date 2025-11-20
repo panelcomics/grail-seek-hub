@@ -6,7 +6,7 @@ import { WaitlistModal } from "./WaitlistModal";
 import { supabase } from "@/integrations/supabase/client";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 
-const SAMPLE_COVERS = [
+const FALLBACK_COVERS = [
   "/covers/sample-asm.jpg",
   "/covers/sample-batman.jpg",
   "/covers/sample-spawn.jpg",
@@ -18,7 +18,7 @@ const SAMPLE_COVERS = [
 export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
-  const [collageImages, setCollageImages] = useState<string[]>(SAMPLE_COVERS);
+  const [collageImages, setCollageImages] = useState<string[]>([]);
   const [showBanner, setShowBanner] = useState(true);
   const navigate = useNavigate();
 
@@ -52,10 +52,20 @@ export function HeroSection() {
 
         if (images.length >= 4) {
           setCollageImages(images);
+        } else if (images.length > 0) {
+          // Use available images and fill with fallbacks if needed
+          setCollageImages([...images, ...FALLBACK_COVERS].slice(0, 6));
+        } else {
+          // Use fallbacks only if no real images are available
+          setCollageImages(FALLBACK_COVERS);
         }
+      } else {
+        // Use fallbacks if no listings found
+        setCollageImages(FALLBACK_COVERS);
       }
     } catch (error) {
       console.error("Error fetching Panel Comics listings:", error);
+      setCollageImages(FALLBACK_COVERS);
     }
   };
 

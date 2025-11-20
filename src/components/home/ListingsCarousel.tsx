@@ -88,11 +88,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                 </div>
               );
             })
-          ) : (
-            <div className="w-full text-center py-8 px-4 text-muted-foreground">
-              No listings available at this time
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </section>
