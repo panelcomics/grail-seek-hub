@@ -99,7 +99,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                 <ItemCard
                   id={listing.id}
                   title={listing.title || listing.series || "Untitled"}
-                  price={(listing.listed_price || 0) / 100}
+                  price={listing.listed_price ? listing.listed_price / 100 : 0}
                   condition={listing.condition || "Unknown"}
                   image={getImageUrl(listing)}
                   category="comic"

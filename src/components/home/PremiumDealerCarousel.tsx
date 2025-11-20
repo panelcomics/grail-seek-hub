@@ -97,7 +97,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
   }
 
   return (
-    <section className="py-8 px-4 bg-gradient-to-b from-red-950/10 to-background border-y border-red-500/20">
+    <section className="py-8 px-4 bg-gradient-to-b from-red-950/10 to-background border-y border-red-500/20 block">
       <div className="container mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3 flex-wrap">
@@ -118,7 +118,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
                 <ItemCard
                   id={listing.id}
                   title={listing.title || listing.series || "Untitled"}
-                  price={(listing.listed_price || 0) / 100}
+                  price={listing.listed_price ? listing.listed_price / 100 : 0}
                   condition={listing.condition || "Unknown"}
                   image={getImageUrl(listing)}
                   category="comic"
