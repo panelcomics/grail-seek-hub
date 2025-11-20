@@ -20,11 +20,28 @@ export function HeroSection() {
   return (
     <>
       <section className="relative py-16 px-4 bg-gradient-to-b from-primary/5 via-background to-background overflow-hidden">
-        {/* Comic Halftone Texture Background */}
+        {/* Comic Collage Background */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
+          <div className="absolute top-0 right-0 w-1/3 h-full hidden lg:flex flex-col gap-4 p-8">
+            <div className="grid grid-cols-2 gap-4">
+              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg rotate-3" />
+              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg -rotate-2" />
+              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg -rotate-3" />
+              <img src="/placeholder.svg" alt="" className="w-full h-48 object-cover rounded-lg shadow-lg rotate-2" />
+            </div>
+          </div>
+          <div className="absolute top-0 left-0 w-1/4 h-full hidden xl:flex flex-col gap-4 p-8 opacity-70">
+            <img src="/placeholder.svg" alt="" className="w-full h-40 object-cover rounded-lg shadow-lg -rotate-6" />
+            <img src="/placeholder.svg" alt="" className="w-full h-40 object-cover rounded-lg shadow-lg rotate-3" />
+          </div>
+        </div>
+        
+        {/* Comic Halftone Texture */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
           backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
           backgroundSize: '8px 8px'
         }} />
+        
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center mb-8">
             <div className="relative inline-block mb-6">
