@@ -298,17 +298,28 @@ All colors MUST be HSL.
       0 2px 8px hsl(0 0% 0% / 0.1);
   }
 
-  /* Enhanced tap targets for mobile */
-  @media (max-width: 640px) {
+  /* Enhanced tap targets and carousel scrolling for mobile and tablet */
+  @media (max-width: 768px) {
     button, a {
       min-height: 44px;
     }
     
-    /* Ensure carousels are visible and scrollable on mobile */
+    /* Ensure carousels are visible and scrollable on mobile/tablet */
     .overflow-x-auto {
       overflow-x: auto !important;
       overflow-y: visible !important;
       -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
+    /* Hide scrollbar but keep functionality */
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
     }
   }
 

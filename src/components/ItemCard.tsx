@@ -97,10 +97,10 @@ const ItemCard = ({
   };
   return (
     <Link to={`/item/${id}`}>
-      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] cursor-pointer bg-card border-2 shadow-md ${
+      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] cursor-pointer bg-card border-2 shadow-md h-full flex flex-col ${
         isUrgent ? 'animate-urgent-glow' : ''
       }`}>
-        <div className="relative aspect-[3/4] sm:aspect-[2/3] overflow-hidden bg-muted">
+        <div className="relative aspect-[3/4] sm:aspect-[2/3] overflow-hidden bg-muted flex-shrink-0">
           <img
             src={image}
             alt={title}
@@ -167,8 +167,8 @@ const ItemCard = ({
           )}
         </div>
         
-        <div className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
-          <div>
+        <div className="p-3 sm:p-4 space-y-2.5 sm:space-y-3 flex-1 flex flex-col">
+          <div className="flex-1">
             <h3 className="line-clamp-2 text-sm sm:text-base mb-2 group-hover:text-primary transition-colors leading-snug">
               <span className="font-bold">{title}</span>
             </h3>
@@ -241,7 +241,7 @@ const ItemCard = ({
              )}
           </div>
           
-          <div className="flex items-center justify-between pt-2 border-t">
+          <div className="flex items-center justify-between pt-2 mt-auto border-t">
             {price !== null && price !== undefined && price > 0 ? (
               <div className="text-xl sm:text-2xl font-bold text-[#E60000] drop-shadow-sm">
                 ${price}

@@ -131,15 +131,15 @@ export default function FeaturedShops() {
   if (loading || shops.length === 0) return null;
 
   return (
-    <section className="py-12 bg-background/50">
+    <section className="py-6 md:py-12 bg-background/50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-foreground">
+        <div className="flex items-center justify-between mb-6 md:mb-8">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
             Featured Shops
           </h2>
           <Link to="/sellers">
-            <Button variant="link" className="gap-1 text-primary hover:text-primary/80">
-              View All Sellers →
+            <Button variant="link" className="gap-1 text-primary hover:text-primary/80 text-sm md:text-base">
+              View All →
             </Button>
           </Link>
         </div>
