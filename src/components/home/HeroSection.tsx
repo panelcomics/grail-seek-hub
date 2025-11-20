@@ -1,67 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Search, Smartphone, Shield, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
-import { supabase } from "@/integrations/supabase/client";
-import { getListingImageUrl } from "@/lib/sellerUtils";
-import ItemCard from "@/components/ItemCard";
-import { resolvePrice } from "@/lib/listingPriceUtils";
-
-const FALLBACK_COVERS = [
-  "/covers/sample-asm.jpg",
-  "/covers/sample-batman.jpg",
-  "/covers/sample-spawn.jpg",
-  "/covers/sample-xmen.jpg",
-  "/covers/sample-hulk.jpg",
-  "/covers/sample-ff.jpg",
-];
+import heroMarketplace from "@/assets/hero-marketplace.jpg";
 
 export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
-  const [collageImages, setCollageImages] = useState<string[]>([]);
-  const [featuredListings, setFeaturedListings] = useState<any[]>([]);
   const [showBanner, setShowBanner] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchFeaturedListings();
-  }, []);
-
-  const fetchFeaturedListings = async () => {
-    try {
-      // Fetch 4 active listings for the hero display
-      const { data: listingsData } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .or("for_sale.eq.true,for_auction.eq.true")
-        .in("listing_status", ["active", "listed"])
-        .limit(4);
-
-      if (listingsData && listingsData.length > 0) {
-        setFeaturedListings(listingsData);
-        
-        // Also set collage images for background
-        const images = listingsData
-          .map(listing => getListingImageUrl(listing))
-          .filter(url => url && url !== "/placeholder.svg");
-
-        if (images.length >= 4) {
-          setCollageImages([...images, ...images].slice(0, 6));
-        } else if (images.length > 0) {
-          setCollageImages([...images, ...FALLBACK_COVERS].slice(0, 6));
-        } else {
-          setCollageImages(FALLBACK_COVERS);
-        }
-      } else {
-        setCollageImages(FALLBACK_COVERS);
-      }
-    } catch (error) {
-      console.error("Error fetching featured listings:", error);
-      setCollageImages(FALLBACK_COVERS);
-    }
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +49,8 @@ export function HeroSection() {
       <section className="relative py-8 sm:py-12 md:py-16 px-4 overflow-hidden bg-background">
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="flex flex-col lg:flex-row gap-8 md:gap-12 items-center">
-            <div className="space-y-4 md:space-y-6">
+            {/* Left side - Text content */}
+            <div className="w-full lg:w-1/2 space-y-4 md:space-y-6">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.2] sm:leading-[1.15]">
                 The Trusted Marketplace for{" "}
                 <span className="text-primary drop-shadow-lg">Comic Grails & Keys</span>
@@ -150,30 +99,16 @@ export function HeroSection() {
               </div>
             </div>
 
-            {/* Featured slabs grid - shows on both mobile and desktop */}
-            {featuredListings.length > 0 && (
-              <div className="w-full lg:w-auto lg:flex-1">
-                <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-2xl mx-auto lg:mx-0">
-                  {featuredListings.slice(0, 4).map((listing) => {
-                    const price = resolvePrice(listing);
-                    return (
-                      <ItemCard
-                        key={listing.id}
-                        id={listing.id}
-                        title={listing.title || listing.series || "Untitled"}
-                        price={price === null ? undefined : price}
-                        condition={listing.condition || "Unknown"}
-                        image={getListingImageUrl(listing)}
-                        category="comic"
-                        isAuction={listing.for_auction}
-                        showMakeOffer={listing.offers_enabled}
-                        showTradeBadge={listing.is_for_trade}
-                      />
-                    );
-                  })}
-                </div>
+            {/* Right side - Static collage image */}
+            <div className="w-full lg:w-1/2">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={heroMarketplace}
+                  alt="Comic book collection featuring slabs and keys"
+                  className="w-full h-64 sm:h-80 lg:h-96 object-cover"
+                />
               </div>
-            )}
+            </div>
           </div>
 
           <div className="mt-8 md:mt-12">
