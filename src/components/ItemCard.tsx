@@ -115,47 +115,34 @@ const ItemCard = ({
 
   return (
     <Link to={`/item/${id}`}>
-      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] cursor-pointer bg-card border rounded-xl h-full flex flex-col shadow-md">
-        {/* Image container with 3:4 aspect ratio */}
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
+        {/* Image container with 3:4 aspect ratio for tall book covers */}
         <div className="relative aspect-[3/4] overflow-hidden bg-muted flex-shrink-0">
           <img
             src={image}
             alt={title}
-            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
+            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
           
-          {/* Top-left badges: Grade + Format */}
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-            {/* Grade Badge */}
-            <Badge className="bg-black/85 hover:bg-black/90 text-white font-bold text-xs px-2.5 py-1 backdrop-blur-sm shadow-lg">
-              {grade ? (isSlab ? `CGC ${grade}` : grade) : (isSlab ? 'Slab' : 'Raw')}
-            </Badge>
-            
-            {/* Slab/Raw Pill */}
-            <Badge 
-              variant="secondary" 
-              className={`text-[10px] px-2 py-0.5 font-semibold backdrop-blur-sm shadow-md ${
-                isSlab 
-                  ? 'bg-blue-500/90 hover:bg-blue-600 text-white' 
-                  : 'bg-amber-500/90 hover:bg-amber-600 text-white'
-              }`}
-            >
-              {isSlab ? 'Slab' : 'Raw'}
+          {/* Top-left: Single condition badge (grade or slab/raw status) */}
+          <div className="absolute top-2 left-2">
+            <Badge className="bg-black/90 hover:bg-black text-white font-bold text-xs px-2.5 py-1 backdrop-blur-sm shadow-lg border-0">
+              {grade ? `CGC ${grade}` : (isSlab ? 'Slab' : 'Raw')}
             </Badge>
           </div>
           
           {/* Top-right: Favorite button */}
-          <div className="absolute top-2.5 right-2.5">
+          <div className="absolute top-2 right-2">
             <FavoriteButton listingId={id} showCount />
           </div>
 
-          {/* Auction countdown badge at bottom */}
+          {/* Bottom: Auction countdown */}
           {isAuction && countdown > 0 && (
             <div className={`absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-center gap-1.5 text-xs font-bold backdrop-blur-md ${
               isUrgent 
                 ? 'bg-destructive/95 text-destructive-foreground' 
-                : 'bg-black/80 text-white'
+                : 'bg-black/85 text-white'
             }`}>
               <Clock className="h-3.5 w-3.5" />
               Ends in {formatTime(countdown)}
@@ -164,86 +151,39 @@ const ItemCard = ({
         </div>
         
         {/* Card content */}
-        <div className="p-3 flex-1 flex flex-col min-h-0">
+        <div className="p-3.5 flex-1 flex flex-col min-h-0">
           {/* Title - fixed height with ellipsis */}
-          <h3 className="font-bold text-sm leading-snug line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-2 min-h-[2.5rem] text-foreground">
             {title}
           </h3>
           
-          {/* Seller info with trust badges */}
-          {sellerName && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2.5 flex-wrap">
-              {isVerifiedSeller && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Shield className="h-3.5 w-3.5 text-primary" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Verified Seller</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {completedSalesCount >= 10 && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs">Pro Seller ({completedSalesCount}+ sales)</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              <span className="font-medium truncate">{sellerName}</span>
-            </div>
-          )}
-
           {/* Spacer to push price to bottom */}
-          <div className="flex-1" />
+          <div className="flex-1 min-h-2" />
 
-          {/* Price and listing type */}
-          <div className="space-y-2 mt-auto">
-            {/* Price */}
+          {/* Price row */}
+          <div className="space-y-1.5 mt-auto">
             {price !== null && price !== undefined && price > 0 ? (
-              <div>
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
-                  {isAuction ? "Current bid" : "Price"}
-                </div>
-                <div className="text-2xl font-extrabold text-foreground">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-foreground">
                   ${price.toLocaleString()}
-                </div>
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                  {isAuction ? "bid" : ""}
+                </span>
               </div>
             ) : (
               <div className="text-sm font-medium text-muted-foreground">
-                {showMakeOffer ? "Accepting Offers" : "Contact seller"}
+                {showMakeOffer ? "Accepting Offers" : "Contact"}
               </div>
             )}
 
-            {/* Listing type badge */}
-            <div className="flex items-center justify-between gap-2">
-              <Badge 
-                variant="outline" 
-                className={`text-[10px] font-semibold px-2 py-0.5 ${
-                  isAuction 
-                    ? 'border-primary/40 text-primary' 
-                    : 'border-border text-muted-foreground'
-                }`}
-              >
-                {isAuction ? 'Auction' : 'Buy Now'}
-              </Badge>
-
-              {/* Local pickup pill */}
+            {/* Bottom row: listing type + local pickup indicator */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               {localPickupAvailable && (
-                <Badge 
-                  variant="secondary" 
-                  className="text-[10px] px-2 py-0.5 bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 flex items-center gap-1"
-                >
-                  <MapPin className="h-2.5 w-2.5" />
-                  Local
-                </Badge>
+                <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span className="font-medium">Local pickup</span>
+                </div>
               )}
             </div>
           </div>
