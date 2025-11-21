@@ -2,13 +2,9 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Package, Heart, Clock, Shield, Palette, Eye, Star } from "lucide-react";
+import { MapPin, Heart, Clock, Shield, Star } from "lucide-react";
 import { FavoriteButton } from "@/components/FavoriteButton";
-import { SellerBadge } from "@/components/SellerBadge";
-import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { Link } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useWatchAuction } from "@/hooks/useWatchAuction";
 
@@ -42,6 +38,7 @@ interface ItemCardProps {
   variantType?: string;
   variantDetails?: string;
   showTradeBadge?: boolean;
+  localPickupAvailable?: boolean;
 }
 
 const ItemCard = ({ 
@@ -74,10 +71,9 @@ const ItemCard = ({
   variantType,
   variantDetails,
   showTradeBadge = false,
+  localPickupAvailable = false,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
-  const [localPickup, setLocalPickup] = useState(true);
-  const [shipNationwide, setShipNationwide] = useState(false);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
   
   const isUrgent = countdown > 0 && countdown <= 600; // Last 10 minutes
@@ -104,7 +100,7 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Parse grade from condition string (e.g., "CGC 9.8", "Raw NM", "7.5")
+  // Parse grade from condition string
   const parseGrade = (condition: string): { grade: string | null; isSlab: boolean } => {
     const gradeMatch = condition.match(/(\d+\.?\d*)/);
     const grade = gradeMatch ? gradeMatch[1] : null;
@@ -115,95 +111,73 @@ const ItemCard = ({
   };
 
   const { grade, isSlab } = parseGrade(condition);
-  const isRaw = condition.toLowerCase().includes('raw') || (!isSlab && !grade);
+  const isRaw = !isSlab;
 
   return (
     <Link to={`/item/${id}`}>
-      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer bg-card border rounded-xl h-full flex flex-col ${
-        isUrgent ? 'ring-2 ring-destructive' : ''
-      }`}>
-        {/* Full-bleed image */}
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] cursor-pointer bg-card border rounded-xl h-full flex flex-col shadow-md">
+        {/* Image container with 3:4 aspect ratio */}
         <div className="relative aspect-[3/4] overflow-hidden bg-muted flex-shrink-0">
           <img
             src={image}
             alt={title}
-            className="h-full w-full object-cover object-center sm:object-center transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
           />
           
-          {/* Top-left badge: Grade + Slab/Raw */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1.5">
-            <Badge className="bg-black/80 hover:bg-black/90 text-white font-bold text-xs px-2 py-1 backdrop-blur-sm">
-              {grade && isSlab ? `CGC ${grade} • Slab` : 
-               grade && !isSlab ? `${grade} • Raw` :
-               isSlab ? 'Slab' : 
-               'Raw'}
+          {/* Top-left badges: Grade + Format */}
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+            {/* Grade Badge */}
+            <Badge className="bg-black/85 hover:bg-black/90 text-white font-bold text-xs px-2.5 py-1 backdrop-blur-sm shadow-lg">
+              {grade ? (isSlab ? `CGC ${grade}` : grade) : (isSlab ? 'Slab' : 'Raw')}
             </Badge>
-            {showTradeBadge && (
-              <Badge className="bg-green-600/90 hover:bg-green-700 text-white font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm flex items-center gap-1">
-                <Package className="h-2.5 w-2.5" />
-                TRADE
-              </Badge>
-            )}
-            {category === "art" && (
-              <Badge className={`font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm ${
-                isVerifiedArtist 
-                  ? "bg-purple-600/90 hover:bg-purple-700" 
-                  : "bg-purple-500/90 hover:bg-purple-600"
-              } text-white flex items-center gap-1`}>
-                <Palette className="h-2.5 w-2.5" />
-                ART
-              </Badge>
-            )}
+            
+            {/* Slab/Raw Pill */}
+            <Badge 
+              variant="secondary" 
+              className={`text-[10px] px-2 py-0.5 font-semibold backdrop-blur-sm shadow-md ${
+                isSlab 
+                  ? 'bg-blue-500/90 hover:bg-blue-600 text-white' 
+                  : 'bg-amber-500/90 hover:bg-amber-600 text-white'
+              }`}
+            >
+              {isSlab ? 'Slab' : 'Raw'}
+            </Badge>
           </div>
           
-          {/* Top-right: Favorite and Watch buttons */}
-          <div className="absolute top-2 right-2 flex items-center gap-1">
+          {/* Top-right: Favorite button */}
+          <div className="absolute top-2.5 right-2.5">
             <FavoriteButton listingId={id} showCount />
-            {isAuction && (
-              <Button
-                size="icon"
-                variant={isWatching ? "default" : "secondary"}
-                className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleWatch();
-                }}
-              >
-                <Eye className={`h-3.5 w-3.5 ${isWatching ? 'fill-current' : ''}`} />
-              </Button>
-            )}
           </div>
 
-          {/* Time remaining badge at bottom */}
+          {/* Auction countdown badge at bottom */}
           {isAuction && countdown > 0 && (
-            <div className={`absolute bottom-0 left-0 right-0 px-2 py-1.5 flex items-center justify-center gap-1.5 text-xs font-bold ${
+            <div className={`absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-center gap-1.5 text-xs font-bold backdrop-blur-md ${
               isUrgent 
-                ? 'bg-destructive text-destructive-foreground' 
-                : 'bg-black/70 text-white backdrop-blur-sm'
+                ? 'bg-destructive/95 text-destructive-foreground' 
+                : 'bg-black/80 text-white'
             }`}>
-              <Clock className="h-3 w-3" />
+              <Clock className="h-3.5 w-3.5" />
               Ends in {formatTime(countdown)}
             </div>
           )}
         </div>
         
         {/* Card content */}
-        <div className="p-2.5 flex-1 flex flex-col">
-          {/* Title */}
-          <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+        <div className="p-3 flex-1 flex flex-col min-h-0">
+          {/* Title - fixed height with ellipsis */}
+          <h3 className="font-bold text-sm leading-snug line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
             {title}
           </h3>
           
           {/* Seller info with trust badges */}
           {sellerName && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2.5 flex-wrap">
               {isVerifiedSeller && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <Shield className="h-3 w-3 text-primary" />
+                      <Shield className="h-3.5 w-3.5 text-primary" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="text-xs">Verified Seller</p>
@@ -215,7 +189,7 @@ const ItemCard = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                      <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="text-xs">Pro Seller ({completedSalesCount}+ sales)</p>
@@ -227,17 +201,18 @@ const ItemCard = ({
             </div>
           )}
 
-          {/* Spacer */}
+          {/* Spacer to push price to bottom */}
           <div className="flex-1" />
 
-          {/* Price section */}
-          <div className="space-y-1.5 mt-2">
+          {/* Price and listing type */}
+          <div className="space-y-2 mt-auto">
+            {/* Price */}
             {price !== null && price !== undefined && price > 0 ? (
               <div>
-                <div className="text-xs font-semibold text-muted-foreground mb-0.5">
-                  {isAuction ? "Current bid:" : "Price:"}
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+                  {isAuction ? "Current bid" : "Price"}
                 </div>
-                <div className="text-2xl font-bold text-primary">
+                <div className="text-2xl font-extrabold text-foreground">
                   ${price.toLocaleString()}
                 </div>
               </div>
@@ -247,25 +222,30 @@ const ItemCard = ({
               </div>
             )}
 
-            {/* Local pickup indicator */}
-            {isLocal && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                <span>Local pickup available</span>
-              </div>
-            )}
-
             {/* Listing type badge */}
-            {isAuction && (
-              <Badge variant="outline" className="text-[10px] w-fit">
-                Auction
+            <div className="flex items-center justify-between gap-2">
+              <Badge 
+                variant="outline" 
+                className={`text-[10px] font-semibold px-2 py-0.5 ${
+                  isAuction 
+                    ? 'border-primary/40 text-primary' 
+                    : 'border-border text-muted-foreground'
+                }`}
+              >
+                {isAuction ? 'Auction' : 'Buy Now'}
               </Badge>
-            )}
-            {!isAuction && !isClaimSale && (
-              <Badge variant="outline" className="text-[10px] w-fit">
-                Buy Now
-              </Badge>
-            )}
+
+              {/* Local pickup pill */}
+              {localPickupAvailable && (
+                <Badge 
+                  variant="secondary" 
+                  className="text-[10px] px-2 py-0.5 bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 flex items-center gap-1"
+                >
+                  <MapPin className="h-2.5 w-2.5" />
+                  Local
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </Card>
