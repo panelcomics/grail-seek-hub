@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { formatComicDisplay } from "@/lib/comics/format";
 import { getComicCoverImage, getComicImageUrl } from "@/lib/comicImages";
 import { ImageManagement } from "@/components/ImageManagement";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import {
   Dialog,
   DialogContent,
@@ -101,6 +102,8 @@ const MyCollection = () => {
     is_slab: false,
   });
   const [saving, setSaving] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     fetchComics();
@@ -441,19 +444,30 @@ const MyCollection = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 px-1">
-            {/* Comic Images Carousel - Mobile Optimized */}
+            {/* Comic Images Preview with Lightbox */}
             {editingComic && listingImages.length > 0 && (
-              <div className="relative mb-6 pb-6 border-b">
+              <div className="relative pb-6 border-b">
                 <Carousel className="w-full max-w-md mx-auto touch-pan-y">
                   <CarouselContent>
-                    {listingImages.map((image) => (
+                    {listingImages.map((image, idx) => (
                       <CarouselItem key={image.id}>
-                        <div className="relative">
+                        <div 
+                          className="relative cursor-pointer group"
+                          onClick={() => {
+                            setLightboxIndex(idx);
+                            setLightboxOpen(true);
+                          }}
+                        >
                           <img
                             src={image.thumbnail_url || image.url}
                             alt="Comic cover"
-                            className="w-full aspect-[2/3] object-contain rounded-lg bg-muted"
+                            className="w-full aspect-[2/3] object-contain rounded-lg bg-muted transition-opacity group-hover:opacity-75"
                           />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="bg-background/80 px-3 py-1.5 rounded-md text-sm font-medium">
+                              Click to enlarge
+                            </div>
+                          </div>
                           {image.is_primary && (
                             <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs font-semibold">
                               Primary Cover
@@ -495,6 +509,31 @@ const MyCollection = () => {
                     <ImagePlus className="h-4 w-4 mr-2" />
                     Add More Photos
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Read-only Status Summary */}
+            {editingComic && (
+              <div className="bg-muted/50 rounded-lg p-4 border mb-4">
+                <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Current Status</h4>
+                <div className="text-lg font-bold">
+                  {editForm.is_slab && editForm.cgc_grade ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className="text-primary">
+                        {editForm.grading_company || "CGC"} {editForm.cgc_grade}
+                      </span>
+                      {editForm.certification_number && (
+                        <span className="text-sm text-muted-foreground">
+                          • Cert #{editForm.certification_number}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-foreground">
+                      Raw Comic {editForm.condition_notes ? `(${editForm.condition_notes})` : ""}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -801,6 +840,20 @@ const MyCollection = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Image Lightbox */}
+      {editingComic && listingImages.length > 0 && (
+        <ImageLightbox
+          images={listingImages.map(img => ({
+            url: img.url,
+            id: img.id,
+            is_primary: img.is_primary
+          }))}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          initialIndex={lightboxIndex}
+        />
+      )}
       </div>
     </ProtectedRoute>
   );
