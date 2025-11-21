@@ -131,7 +131,7 @@ export default function AdminDashboard() {
                 </CardHeader>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/admin/verified-sellers")}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/admin/sellers")}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />

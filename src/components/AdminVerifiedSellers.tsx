@@ -15,6 +15,7 @@ interface Seller {
   is_verified_seller: boolean;
   custom_fee_rate: number | null;
   completed_sales_count: number;
+  is_founding_seller: boolean;
 }
 
 export function AdminVerifiedSellers() {
@@ -32,7 +33,7 @@ export function AdminVerifiedSellers() {
     try {
       const { data: profileData, error } = await supabase
         .from("profiles")
-        .select("user_id, username, is_verified_seller, custom_fee_rate, completed_sales_count")
+        .select("user_id, username, is_verified_seller, custom_fee_rate, completed_sales_count, is_founding_seller")
         .order("completed_sales_count", { ascending: false })
         .limit(50);
 
@@ -121,7 +122,7 @@ export function AdminVerifiedSellers() {
             Verified Sellers Management
           </CardTitle>
           <CardDescription>
-            Manage verified seller status and custom fee rates for VIP sellers
+            Manage verified seller badges. Toggle verification status for trusted sellers.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -147,12 +148,21 @@ export function AdminVerifiedSellers() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">{seller.email}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Sales: {seller.completed_sales_count} • 
-                        Fee: {seller.custom_fee_rate 
-                          ? `${(seller.custom_fee_rate * 100).toFixed(2)}%` 
-                          : "Default (6.5%)"}
-                      </p>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <span>Sales: {seller.completed_sales_count}</span>
+                        <span>•</span>
+                        <span>
+                          Fee: {seller.custom_fee_rate 
+                            ? `${(seller.custom_fee_rate * 100).toFixed(2)}%` 
+                            : "3.75%"}
+                        </span>
+                        {seller.is_founding_seller && (
+                          <>
+                            <span>•</span>
+                            <span className="text-primary font-medium">Founding Seller</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">

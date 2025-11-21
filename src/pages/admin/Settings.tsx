@@ -114,7 +114,7 @@ export default function AdminSettings() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 mb-6">
-          <Link to="/admin/verified-sellers">
+          <Link to="/admin/sellers">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

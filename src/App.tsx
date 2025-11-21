@@ -108,6 +108,7 @@ const AppContent = () => {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/verified-sellers" element={<AdminVerifiedSellersPage />} />
+            <Route path="/admin/sellers" element={<AdminVerifiedSellersPage />} />
             <Route path="/admin/manage-sellers" element={<ManageSellers />} />
             <Route path="/admin/original-art/upload" element={<UploadOriginalArt />} />
             <Route path="/admin/original-art/manage" element={<ManageOriginalArt />} />
