@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { ScanButton } from "@/components/scanner/ScanButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -44,6 +44,9 @@ const TRENDING_SERIES = [
   "Batman",
 ];
 
+const GRADE_OPTIONS = ["All", "10.0", "9.9", "9.8", "9.6", "9.4", "9.2", "9.0", "8.5", "8.0", "7.5", "7.0", "Raw"];
+const PUBLISHER_OPTIONS = ["All", "Marvel", "DC", "Image", "Dark Horse", "IDW", "Other"];
+
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -51,11 +54,12 @@ export default function SearchPage() {
   const [results, setResults] = useState<any[]>([]);
   const [recentSearches] = useState<string[]>(["Spider-Man #1", "Hulk #181"]);
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState("ending-soon");
+  const [sortBy, setSortBy] = useState("newest");
   
   // Filter states
+  const [filterGrade, setFilterGrade] = useState("All");
   const [filterFormat, setFilterFormat] = useState<"all" | "slab" | "raw">("all");
-  const [filterSaleType, setFilterSaleType] = useState<"all" | "auction" | "buynow">("all");
+  const [filterPublisher, setFilterPublisher] = useState("All");
   const [filterLocalPickup, setFilterLocalPickup] = useState(false);
   const [filterPriceMin, setFilterPriceMin] = useState<string>("");
   const [filterPriceMax, setFilterPriceMax] = useState<string>("");
@@ -151,8 +155,9 @@ export default function SearchPage() {
   };
 
   const clearAllFilters = () => {
+    setFilterGrade("All");
     setFilterFormat("all");
-    setFilterSaleType("all");
+    setFilterPublisher("All");
     setFilterLocalPickup(false);
     setFilterPriceMin("");
     setFilterPriceMax("");
@@ -160,15 +165,15 @@ export default function SearchPage() {
 
   const getActiveFilters = () => {
     const active: { label: string; key: string }[] = [];
+    if (filterGrade !== "All") active.push({ label: `Grade: ${filterGrade}`, key: "grade" });
     if (filterFormat === "slab") active.push({ label: "Slab", key: "format" });
     if (filterFormat === "raw") active.push({ label: "Raw", key: "format" });
-    if (filterSaleType === "auction") active.push({ label: "Auction", key: "saletype" });
-    if (filterSaleType === "buynow") active.push({ label: "Buy Now", key: "saletype" });
+    if (filterPublisher !== "All") active.push({ label: filterPublisher, key: "publisher" });
     if (filterLocalPickup) active.push({ label: "Local Pickup", key: "local" });
     if (filterPriceMin || filterPriceMax) {
       const min = filterPriceMin ? `$${filterPriceMin}` : "";
       const max = filterPriceMax ? `$${filterPriceMax}` : "";
-      const label = min && max ? `Price: ${min}–${max}` : min ? `Min: ${min}` : `Max: ${max}`;
+      const label = min && max ? `${min}–${max}` : min ? `Min: ${min}` : `Max: ${max}`;
       active.push({ label, key: "price" });
     }
     return active;
@@ -176,8 +181,9 @@ export default function SearchPage() {
 
   const removeFilter = (key: string) => {
     switch (key) {
+      case "grade": setFilterGrade("All"); break;
       case "format": setFilterFormat("all"); break;
-      case "saletype": setFilterSaleType("all"); break;
+      case "publisher": setFilterPublisher("All"); break;
       case "local": setFilterLocalPickup(false); break;
       case "price": 
         setFilterPriceMin("");
@@ -188,27 +194,36 @@ export default function SearchPage() {
 
   const applyFilters = (items: any[]) => {
     return items.filter((item) => {
+      // Grade filter
+      if (filterGrade !== "All") {
+        const condition = (item.cgc_grade || item.condition || "").toLowerCase();
+        if (filterGrade === "Raw") {
+          const isSlab = condition.includes('cgc') || condition.includes('cbcs') || condition.includes('slab');
+          if (isSlab) return false;
+        } else {
+          if (!condition.includes(filterGrade.toLowerCase())) return false;
+        }
+      }
+
       // Format filter (Slab/Raw)
       if (filterFormat !== "all") {
-        const condition = (item.cgc_grade || item.condition || "").toLowerCase();
-        const isSlab = condition.includes('cgc') || condition.includes('cbcs') || condition.includes('slab');
+        const isSlab = item.is_slab === true;
         if (filterFormat === "slab" && !isSlab) return false;
         if (filterFormat === "raw" && isSlab) return false;
       }
 
-      // Sale Type filter (Auction/Buy Now)
-      if (filterSaleType !== "all") {
-        const isAuction = item.for_auction === true;
-        if (filterSaleType === "auction" && !isAuction) return false;
-        if (filterSaleType === "buynow" && isAuction) return false;
+      // Publisher filter
+      if (filterPublisher !== "All") {
+        const publisher = (item.publisher || "").toLowerCase();
+        if (filterPublisher === "Other") {
+          if (["marvel", "dc", "image", "dark horse", "idw"].some(p => publisher.includes(p))) return false;
+        } else {
+          if (!publisher.includes(filterPublisher.toLowerCase())) return false;
+        }
       }
 
       // Local Pickup filter
-      if (filterLocalPickup) {
-        // Assuming there's a field for this - if not, this will always filter out
-        // You may need to adjust based on actual schema
-        if (!item.local_pickup) return false;
-      }
+      if (filterLocalPickup && !item.local_pickup) return false;
 
       // Price Range filter
       const price = item.listed_price;
@@ -223,13 +238,40 @@ export default function SearchPage() {
     });
   };
 
+  const sortResults = (items: any[]) => {
+    const sorted = [...items];
+    
+    switch (sortBy) {
+      case "newest":
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case "price-low":
+        return sorted.sort((a, b) => (a.listed_price || 0) - (b.listed_price || 0));
+      case "price-high":
+        return sorted.sort((a, b) => (b.listed_price || 0) - (a.listed_price || 0));
+      case "grade-high":
+        return sorted.sort((a, b) => {
+          const gradeA = parseFloat((a.cgc_grade || a.grade || "0").match(/\d+\.?\d*/)?.[0] || "0");
+          const gradeB = parseFloat((b.cgc_grade || b.grade || "0").match(/\d+\.?\d*/)?.[0] || "0");
+          return gradeB - gradeA;
+        });
+      case "grade-low":
+        return sorted.sort((a, b) => {
+          const gradeA = parseFloat((a.cgc_grade || a.grade || "0").match(/\d+\.?\d*/)?.[0] || "0");
+          const gradeB = parseFloat((b.cgc_grade || b.grade || "0").match(/\d+\.?\d*/)?.[0] || "0");
+          return gradeA - gradeB;
+        });
+      default:
+        return sorted;
+    }
+  };
+
   const activeFilters = getActiveFilters();
-  const filteredResults = applyFilters(results);
+  const filteredResults = sortResults(applyFilters(results));
 
   return (
     <main className="flex-1 bg-background">
       {/* Search Header */}
-      <div className="bg-[hsl(var(--muted))] border-b border-border">
+      <div className="bg-muted/50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <form onSubmit={handleSearchSubmit} className="relative max-w-2xl mx-auto">
             <div className="relative">
@@ -299,96 +341,116 @@ export default function SearchPage() {
 
       {/* Filters and Sort Bar */}
       {isSearching && (
-        <div className="border-b border-border bg-muted/30 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="border-b border-border bg-background shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-2.5">
             {/* Main Control Bar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <Collapsible open={showFilters} onOpenChange={setShowFilters} className="w-full sm:w-auto">
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 h-9">
-                    <SlidersHorizontal className="h-4 w-4" />
+                  <Button variant="outline" size="sm" className="gap-2 h-8 text-xs w-full sm:w-auto">
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
                     Filters
                     {activeFilters.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                      <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
                         {activeFilters.length}
                       </Badge>
                     )}
-                    <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-background rounded-lg border border-border shadow-sm">
+                <CollapsibleContent className="mt-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-3 bg-muted/30 rounded-xl border border-border">
+                    {/* Grade Filter */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase">
+                        Grade
+                      </Label>
+                      <Select value={filterGrade} onValueChange={setFilterGrade}>
+                        <SelectTrigger className="w-full h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          {GRADE_OPTIONS.map(grade => (
+                            <SelectItem key={grade} value={grade} className="text-xs">{grade}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {/* Format Filter */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase">
                         Format
                       </Label>
                       <Select value={filterFormat} onValueChange={(val: any) => setFilterFormat(val)}>
-                        <SelectTrigger className="w-full h-9">
+                        <SelectTrigger className="w-full h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="slab">Slab</SelectItem>
-                          <SelectItem value="raw">Raw</SelectItem>
+                          <SelectItem value="all" className="text-xs">All</SelectItem>
+                          <SelectItem value="slab" className="text-xs">Slab</SelectItem>
+                          <SelectItem value="raw" className="text-xs">Raw</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    {/* Sale Type Filter */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                        Sale Type
+                    {/* Publisher Filter */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase">
+                        Publisher
                       </Label>
-                      <Select value={filterSaleType} onValueChange={(val: any) => setFilterSaleType(val)}>
-                        <SelectTrigger className="w-full h-9">
+                      <Select value={filterPublisher} onValueChange={setFilterPublisher}>
+                        <SelectTrigger className="w-full h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-background z-50">
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="auction">Auction</SelectItem>
-                          <SelectItem value="buynow">Buy Now</SelectItem>
+                          {PUBLISHER_OPTIONS.map(pub => (
+                            <SelectItem key={pub} value={pub} className="text-xs">{pub}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    {/* Price Range Filter */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                        Price Range
+                    {/* Price Min */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase">
+                        Min Price
                       </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Min"
-                          value={filterPriceMin}
-                          onChange={(e) => setFilterPriceMin(e.target.value)}
-                          className="h-9"
-                        />
-                        <span className="text-muted-foreground">–</span>
-                        <Input
-                          type="number"
-                          placeholder="Max"
-                          value={filterPriceMax}
-                          onChange={(e) => setFilterPriceMax(e.target.value)}
-                          className="h-9"
-                        />
-                      </div>
+                      <Input
+                        type="number"
+                        placeholder="$0"
+                        value={filterPriceMin}
+                        onChange={(e) => setFilterPriceMin(e.target.value)}
+                        className="h-8 text-xs"
+                      />
                     </div>
 
-                    {/* Local Pickup Filter */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                        Other Options
+                    {/* Price Max */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase">
+                        Max Price
                       </Label>
-                      <div className="flex items-center gap-2 h-9">
+                      <Input
+                        type="number"
+                        placeholder="Any"
+                        value={filterPriceMax}
+                        onChange={(e) => setFilterPriceMax(e.target.value)}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+
+                    {/* Local Pickup */}
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-semibold text-muted-foreground uppercase">
+                        Pickup
+                      </Label>
+                      <div className="flex items-center gap-2 h-8">
                         <Checkbox
                           id="local"
                           checked={filterLocalPickup}
                           onCheckedChange={(checked) => setFilterLocalPickup(!!checked)}
                         />
-                        <Label htmlFor="local" className="text-sm cursor-pointer">
-                          Local Pickup
+                        <Label htmlFor="local" className="text-xs cursor-pointer">
+                          Local
                         </Label>
                       </div>
                     </div>
@@ -396,17 +458,18 @@ export default function SearchPage() {
                 </CollapsibleContent>
               </Collapsible>
 
-              <div className="flex items-center gap-2">
-                <Label className="text-sm text-muted-foreground hidden sm:inline">Sort:</Label>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Label className="text-xs text-muted-foreground hidden sm:inline whitespace-nowrap">Sort:</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[160px] h-9">
+                  <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-background z-50">
-                    <SelectItem value="ending-soon">Ending Soon</SelectItem>
-                    <SelectItem value="newly-listed">Newly Listed</SelectItem>
-                    <SelectItem value="price-low">Price: Low → High</SelectItem>
-                    <SelectItem value="price-high">Price: High → Low</SelectItem>
+                    <SelectItem value="newest" className="text-xs">Newest</SelectItem>
+                    <SelectItem value="price-low" className="text-xs">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high" className="text-xs">Price: High to Low</SelectItem>
+                    <SelectItem value="grade-high" className="text-xs">Grade: High to Low</SelectItem>
+                    <SelectItem value="grade-low" className="text-xs">Grade: Low to High</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -414,12 +477,12 @@ export default function SearchPage() {
 
             {/* Active Filter Chips */}
             {activeFilters.length > 0 && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border flex-wrap">
+              <div className="flex items-center gap-1.5 mt-2.5 pt-2.5 border-t border-border overflow-x-auto">
                 {activeFilters.map((filter) => (
                   <Badge
                     key={filter.key}
                     variant="secondary"
-                    className="gap-1 pr-1 py-1 h-7"
+                    className="gap-1 pr-0.5 py-0.5 h-6 text-[10px] flex-shrink-0"
                   >
                     {filter.label}
                     <Button
@@ -428,7 +491,7 @@ export default function SearchPage() {
                       className="h-4 w-4 p-0 hover:bg-transparent"
                       onClick={() => removeFilter(filter.key)}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-2.5 w-2.5" />
                     </Button>
                   </Badge>
                 ))}
@@ -436,7 +499,7 @@ export default function SearchPage() {
                   variant="ghost"
                   size="sm"
                   onClick={clearAllFilters}
-                  className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-6 text-[10px] text-muted-foreground hover:text-foreground px-2"
                 >
                   Clear all
                 </Button>

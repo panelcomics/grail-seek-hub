@@ -1169,10 +1169,12 @@ export type Database = {
           is_for_trade: boolean | null
           is_key: boolean | null
           is_reprint: boolean | null
+          is_slab: boolean | null
           issue_number: string | null
           key_type: string | null
           listed_price: number | null
           listing_status: string | null
+          local_pickup: boolean | null
           offers_enabled: boolean | null
           owner_id: string | null
           pricing_currency: string | null
@@ -1220,10 +1222,12 @@ export type Database = {
           is_for_trade?: boolean | null
           is_key?: boolean | null
           is_reprint?: boolean | null
+          is_slab?: boolean | null
           issue_number?: string | null
           key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
+          local_pickup?: boolean | null
           offers_enabled?: boolean | null
           owner_id?: string | null
           pricing_currency?: string | null
@@ -1271,10 +1275,12 @@ export type Database = {
           is_for_trade?: boolean | null
           is_key?: boolean | null
           is_reprint?: boolean | null
+          is_slab?: boolean | null
           issue_number?: string | null
           key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
+          local_pickup?: boolean | null
           offers_enabled?: boolean | null
           owner_id?: string | null
           pricing_currency?: string | null
