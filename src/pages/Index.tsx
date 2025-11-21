@@ -12,6 +12,7 @@ import { LiveAuctionsStrip } from "@/components/home/LiveAuctionsStrip";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import { HotAuctionsCarousel } from "@/components/home/HotAuctionsCarousel";
 import FeaturedShops from "@/components/FeaturedShops";
+import { SafetySection } from "@/components/home/SafetySection";
 
 export default function Index() {
   const [activeCategory, setActiveCategory] = useState("all");
@@ -35,6 +36,9 @@ export default function Index() {
         
         {/* Trust Row */}
         <TrustSection />
+        
+        {/* Safety Section */}
+        <SafetySection />
         
         {/* Fees Section - Moved to appear right after hero */}
         <FeesSection />
