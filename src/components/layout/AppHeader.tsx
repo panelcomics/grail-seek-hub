@@ -100,6 +100,9 @@ export function AppHeader() {
           <span className="font-bold hidden xs:inline">
             Grail<span className="text-primary">Seeker</span>
           </span>
+          <span className="md:hidden bg-primary text-primary-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            Beta
+          </span>
         </Link>
 
         <nav className="flex items-center gap-2">
