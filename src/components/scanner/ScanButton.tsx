@@ -233,6 +233,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
   return (
     <>
       <Button
+        type="button"
         onClick={handleOpenModal}
         disabled={loading}
         className={`h-12 w-12 shrink-0 bg-orange-500 hover:bg-orange-600 text-white transition-all duration-200 hover:scale-105 active:scale-95 ${className || ""}`}
