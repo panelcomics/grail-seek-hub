@@ -112,11 +112,7 @@ const ItemCard = ({
   const getBadgeText = () => {
     if (isSlab && grade) {
       const company = gradingCompany || 'CGC';
-      const baseText = `${company} ${grade}`;
-      if (certificationNumber) {
-        return `${baseText} • Cert #${certificationNumber}`;
-      }
-      return baseText;
+      return `${company} ${grade}`;
     }
     
     if (!isSlab && condition) {

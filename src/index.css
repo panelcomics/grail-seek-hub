@@ -300,8 +300,55 @@ All colors MUST be HSL.
 
   /* Enhanced tap targets and carousel scrolling for mobile and tablet */
   @media (max-width: 768px) {
+    /* Container padding consistency */
+    .container {
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+    }
+    
+    /* Touch target sizing */
     button, a {
       min-height: 44px;
+    }
+    
+    /* Icon sizing consistency to prevent stretching */
+    .lucide, svg {
+      flex-shrink: 0;
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+    
+    /* Form element spacing */
+    input:not([type="checkbox"]):not([type="radio"]), 
+    textarea, 
+    select,
+    [role="combobox"] {
+      min-height: 44px !important;
+      padding: 0.75rem !important;
+    }
+    
+    /* Card spacing improvements */
+    .space-y-2 > * + * {
+      margin-top: 0.625rem;
+    }
+    
+    .space-y-4 > * + * {
+      margin-top: 1.25rem;
+    }
+    
+    /* Grid gap refinements */
+    .gap-3 {
+      gap: 0.875rem;
+    }
+    
+    .gap-4 {
+      gap: 1rem;
+    }
+    
+    /* Section breathing room */
+    section {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
     }
     
     /* Ensure carousels are visible and scrollable on mobile/tablet */

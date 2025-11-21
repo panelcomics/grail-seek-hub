@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Image as ImageIcon, Info } from "lucide-react";
+import { Loader2, Image as ImageIcon, Info, Upload, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ComicVinePicker } from "./ComicVinePicker";
 import { PricingHelper } from "./scanner/PricingHelper";
@@ -81,6 +81,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [cgcCert, setCgcCert] = useState<string>(""); // CGC/barcode/cert number
   const [savedItemId, setSavedItemId] = useState<string | null>(null); // Track saved item for multi-image
   const [listingImages, setListingImages] = useState<any[]>([]);
+  const [pendingImages, setPendingImages] = useState<File[]>([]); // Track images before save
 
   // Auto-fill fields if a pick was pre-selected by parent
   useEffect(() => {
@@ -272,12 +273,30 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
 
       if (inventoryError) throw inventoryError;
 
-      // Save the item ID for multi-image upload
+      // Save the item ID and upload pending images
       setSavedItemId(inventoryItem.id);
+      
+      // Upload pending images if any
+      if (pendingImages.length > 0) {
+        const { uploadViaProxy } = await import("@/lib/uploadImage");
+        for (let i = 0; i < pendingImages.length; i++) {
+          const file = pendingImages[i];
+          const { publicUrl, previewUrl } = await uploadViaProxy(file);
+          
+          await supabase.from("listing_images").insert({
+            listing_id: inventoryItem.id,
+            url: publicUrl,
+            thumbnail_url: previewUrl || publicUrl,
+            is_primary: i === 0, // First is primary
+            sort_order: i,
+          });
+        }
+      }
+      
       await fetchListingImages(inventoryItem.id);
 
       toast.success("Comic added to your inventory!", {
-        description: "You can add more photos below or finish"
+        description: pendingImages.length > 0 ? "Your photos have been uploaded!" : "You can add more photos below or finish"
       });
 
     } catch (error: any) {
@@ -638,21 +657,76 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
           </div>
           </div>
 
-          {/* Multi-image upload - Available immediately after first save */}
-          {savedItemId && (
-            <div className="space-y-3 pt-6 border-t">
-              <Label className="text-base font-semibold">Additional Photos (Optional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Add up to 8 photos: front, back, spine, defects, etc.
-              </p>
+          {/* Multi-image upload - Available BEFORE and AFTER save */}
+          <div className="space-y-3 pt-6 border-t">
+            <Label className="text-base font-semibold">Additional Photos (Optional)</Label>
+            <p className="text-sm text-muted-foreground">
+              Add up to 8 photos: front, back, spine, defects, etc.
+            </p>
+            
+            {savedItemId ? (
               <ImageManagement
                 listingId={savedItemId}
                 images={listingImages}
                 onImagesChange={() => fetchListingImages(savedItemId)}
                 maxImages={8}
               />
-            </div>
-          )}
+            ) : (
+              <div className="space-y-4">
+                {pendingImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {pendingImages.map((file, idx) => (
+                      <Card key={idx} className="relative p-2">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${idx + 1}`}
+                          className="w-full aspect-square object-cover rounded"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="w-full"
+                            onClick={() => setPendingImages(pendingImages.filter((_, i) => i !== idx))}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                
+                {pendingImages.length < 8 && (
+                  <div className="flex justify-center">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => document.getElementById('pending-file-upload')?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Add Photos ({pendingImages.length}/8)
+                    </Button>
+                    <input
+                      id="pending-file-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (pendingImages.length + files.length > 8) {
+                          toast.error(`Max 8 photos. You can add ${8 - pendingImages.length} more.`);
+                          return;
+                        }
+                        setPendingImages([...pendingImages, ...files]);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Submit Button */}
           <div className="flex gap-3 pt-4 border-t">
