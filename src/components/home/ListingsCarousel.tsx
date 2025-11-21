@@ -97,6 +97,8 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                     sellerCity={profile?.city}
                     isVerifiedSeller={profile?.is_verified_seller}
                     completedSalesCount={profile?.completed_sales_count || 0}
+                    isSlab={listing.is_slab}
+                    grade={listing.cgc_grade}
                   />
                 </div>
               );

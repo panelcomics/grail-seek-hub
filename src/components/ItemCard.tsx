@@ -39,6 +39,8 @@ interface ItemCardProps {
   variantDetails?: string;
   showTradeBadge?: boolean;
   localPickupAvailable?: boolean;
+  isSlab?: boolean; // Source of truth from database
+  grade?: string | null; // CGC grade from database
 }
 
 const ItemCard = ({ 
@@ -72,6 +74,8 @@ const ItemCard = ({
   variantDetails,
   showTradeBadge = false,
   localPickupAvailable = false,
+  isSlab = false,
+  grade = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -100,18 +104,13 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Parse grade from condition string
-  const parseGrade = (condition: string): { grade: string | null; isSlab: boolean } => {
-    const gradeMatch = condition.match(/(\d+\.?\d*)/);
-    const grade = gradeMatch ? gradeMatch[1] : null;
-    const isSlab = condition.toLowerCase().includes('cgc') || 
-                   condition.toLowerCase().includes('cbcs') || 
-                   condition.toLowerCase().includes('slab');
-    return { grade, isSlab };
+  // Display badge text based on slab status and grade
+  const getBadgeText = () => {
+    if (isSlab) {
+      return grade ? `CGC ${grade}` : 'Slab';
+    }
+    return 'Raw';
   };
-
-  const { grade, isSlab } = parseGrade(condition);
-  const isRaw = !isSlab;
 
   return (
     <Link to={`/item/${id}`}>
@@ -128,7 +127,7 @@ const ItemCard = ({
           {/* Top-left: Single condition badge (grade or slab/raw status) */}
           <div className="absolute top-2 left-2">
             <Badge className="bg-black/90 hover:bg-black text-white font-bold text-xs px-2.5 py-1 backdrop-blur-sm shadow-lg border-0">
-              {grade ? `CGC ${grade}` : (isSlab ? 'Slab' : 'Raw')}
+              {getBadgeText()}
             </Badge>
           </div>
           

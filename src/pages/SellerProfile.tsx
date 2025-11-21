@@ -51,12 +51,17 @@ interface SellerSettings {
 
 interface Listing {
   id: string;
-  title: string;
-  price_cents: number;
-  image_url: string;
-  type: string;
-  status: string;
-  ends_at: string | null;
+  title: string | null;
+  series: string | null;
+  issue_number: string | null;
+  listed_price: number | null;
+  images: any;
+  cgc_grade: string | null;
+  condition: string | null;
+  is_slab: boolean;
+  for_auction: boolean;
+  listing_status: string;
+  created_at: string;
 }
 
 export default function SellerProfile() {
@@ -138,10 +143,11 @@ export default function SellerProfile() {
 
       // Fetch active listings
       const { data: listingsData, error: listingsError } = await supabase
-        .from("listings")
-        .select("id, title, price_cents, image_url, type, status, ends_at")
+        .from("inventory_items")
+        .select("id, title, series, issue_number, listed_price, images, cgc_grade, condition, is_slab, for_auction, listing_status, created_at")
         .eq("user_id", profileData.user_id)
-        .eq("status", "active")
+        .eq("listing_status", "listed")
+        .or("for_sale.eq.true,for_auction.eq.true")
         .order("created_at", { ascending: false });
 
       if (listingsError) {
@@ -197,8 +203,8 @@ export default function SellerProfile() {
   // Filter listings based on tab
   const filteredListings = listings.filter((listing) => {
     if (activeTab === "all") return true;
-    if (activeTab === "auctions") return listing.type === "auction";
-    if (activeTab === "buy-now") return listing.type === "buy_now";
+    if (activeTab === "auctions") return listing.for_auction;
+    if (activeTab === "buy-now") return !listing.for_auction;
     return true;
   });
 
@@ -426,8 +432,8 @@ export default function SellerProfile() {
             <div className="flex-1">
               <TabsList className="mb-6">
                 <TabsTrigger value="all">All ({listings.length + claimSales.length})</TabsTrigger>
-                <TabsTrigger value="buy-now">Buy Now ({listings.filter(l => l.type === 'buy_now').length})</TabsTrigger>
-                <TabsTrigger value="auctions">Auctions ({listings.filter(l => l.type === 'auction').length})</TabsTrigger>
+                <TabsTrigger value="buy-now">Buy Now ({listings.filter(l => !l.for_auction).length})</TabsTrigger>
+                <TabsTrigger value="auctions">Auctions ({listings.filter(l => l.for_auction).length})</TabsTrigger>
                 <TabsTrigger value="claim-sales">Claim Sales ({claimSales.length})</TabsTrigger>
               </TabsList>
 
@@ -435,24 +441,26 @@ export default function SellerProfile() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {/* Regular Listings */}
                   {activeTab !== "claim-sales" && filteredListings.map((listing) => {
-                    const price = resolvePrice(listing);
+                    const price = listing.listed_price;
+                    const imageUrl = listing.images?.front || (Array.isArray(listing.images) && listing.images[0]?.url) || "/placeholder.svg";
                     return (
                       <ItemCard
                         key={listing.id}
                         id={listing.id}
-                        title={listing.title}
+                        title={listing.title || `${listing.series} #${listing.issue_number}`}
                         price={price === null ? undefined : price}
-                        condition="VF"
-                        image={listing.image_url || "/placeholder.svg"}
+                        condition={listing.cgc_grade || listing.condition || "Unknown"}
+                        image={imageUrl}
                         category="comic"
                         sellerName={sellerName}
                         sellerCity={profile.joined_at ? new Date(profile.joined_at).toLocaleDateString() : undefined}
                         sellerBadge={profile.seller_tier}
                         isVerifiedSeller={profile.is_verified_seller}
-                        isAuction={listing.type === "auction"}
-                        timeRemaining={listing.type === "auction" ? getTimeRemaining(listing.ends_at) : 0}
+                        isAuction={listing.for_auction}
                         showMakeOffer={sellerSettings?.accept_offers}
                         minOfferPercentage={sellerSettings?.min_offer_percentage}
+                        isSlab={listing.is_slab}
+                        grade={listing.cgc_grade}
                       />
                     );
                   })}
