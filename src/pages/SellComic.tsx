@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { formatComicDisplay } from "@/lib/comics/format";
 import { ComicImageCarousel } from "@/components/ComicImageCarousel";
 import { ImageManagement } from "@/components/ImageManagement";
+import { useSellerFee } from "@/hooks/useSellerFee";
 
 export default function SellComic() {
   const { comicId } = useParams();
@@ -40,6 +41,8 @@ export default function SellComic() {
   const [inSearchOf, setInSearchOf] = useState("");
   const [tradeNotes, setTradeNotes] = useState("");
   const [cgcCert, setCgcCert] = useState(""); // CGC/barcode/cert number
+  
+  const { isFoundingSeller, feeRate, loading: feeLoading } = useSellerFee(user?.id);
 
   useEffect(() => {
     // Wait for auth to finish loading before checking user
@@ -357,6 +360,13 @@ export default function SellComic() {
                               placeholder="175.00"
                               required={forSale}
                             />
+                            {!feeLoading && (
+                              <p className="text-xs text-muted-foreground">
+                                {isFoundingSeller 
+                                  ? "Your seller fee: 2% GrailSeeker fee + Stripe processing (2.9% + $0.30)" 
+                                  : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing (2.9% + $0.30)"}
+                              </p>
+                            )}
                           </div>
                         ) : (
                           <div className="space-y-4">
