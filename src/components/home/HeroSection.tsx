@@ -55,7 +55,8 @@ export function HeroSection() {
                   <img
                     src={heroComics}
                     alt="Vintage comic book collection featuring Marvel and DC classics"
-                    className="w-full h-[240px] sm:h-96 object-cover object-left sm:object-center"
+                    className="w-full h-[240px] sm:h-96 object-cover"
+                    style={{ objectPosition: '25% center' }}
                   />
                 </div>
               </div>
