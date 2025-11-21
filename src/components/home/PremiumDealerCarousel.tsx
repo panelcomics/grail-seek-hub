@@ -127,6 +127,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
                   isSlab={listing.is_slab}
                   grade={listing.cgc_grade}
                   gradingCompany={listing.grading_company}
+                  certificationNumber={listing.certification_number}
                 />
               </div>
             );

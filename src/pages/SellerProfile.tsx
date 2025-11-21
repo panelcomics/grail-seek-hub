@@ -58,6 +58,7 @@ interface Listing {
   images: any;
   cgc_grade: string | null;
   grading_company: string | null;
+  certification_number: string | null;
   condition: string | null;
   is_slab: boolean;
   for_auction: boolean;
@@ -145,7 +146,7 @@ export default function SellerProfile() {
       // Fetch active listings
       const { data: listingsData, error: listingsError } = await supabase
         .from("inventory_items")
-        .select("id, title, series, issue_number, listed_price, images, cgc_grade, grading_company, condition, is_slab, for_auction, listing_status, created_at")
+        .select("id, title, series, issue_number, listed_price, images, cgc_grade, grading_company, certification_number, condition, is_slab, for_auction, listing_status, created_at")
         .eq("user_id", profileData.user_id)
         .eq("listing_status", "listed")
         .or("for_sale.eq.true,for_auction.eq.true")
@@ -463,6 +464,7 @@ export default function SellerProfile() {
                         isSlab={listing.is_slab}
                         grade={listing.cgc_grade}
                         gradingCompany={listing.grading_company}
+                        certificationNumber={listing.certification_number}
                       />
                     );
                   })}

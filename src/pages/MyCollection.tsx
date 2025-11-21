@@ -64,6 +64,7 @@ interface Comic {
   is_slab?: boolean;
   cgc_grade?: string | null;
   grading_company?: string | null;
+  certification_number?: string | null;
   writer?: string | null;
   artist?: string | null;
 }
@@ -96,6 +97,7 @@ const MyCollection = () => {
     artist: "",
     cgc_grade: "",
     grading_company: "CGC",
+    certification_number: "",
     is_slab: false,
   });
   const [saving, setSaving] = useState(false);
@@ -214,6 +216,7 @@ const MyCollection = () => {
       artist: comic.artist || "",
       cgc_grade: comic.cgc_grade || "",
       grading_company: comic.grading_company || "CGC",
+      certification_number: comic.certification_number || "",
       is_slab: comic.is_slab || false,
     });
   };
@@ -241,8 +244,10 @@ const MyCollection = () => {
           key_type: editForm.is_key ? (editForm.key_type || null) : null,
           writer: editForm.writer || null,
           artist: editForm.artist || null,
-          cgc_grade: editForm.cgc_grade || null,
           is_slab: editForm.is_slab,
+          grading_company: editForm.is_slab ? editForm.grading_company : null,
+          cgc_grade: editForm.is_slab ? editForm.cgc_grade : null,
+          certification_number: editForm.is_slab ? (editForm.certification_number || null) : null,
         })
         .eq("id", editingComic.id);
 
@@ -365,10 +370,15 @@ const MyCollection = () => {
                         )}
                         {/* Show grading company + grade for slabs, otherwise show condition */}
                         {comic.is_slab && comic.cgc_grade ? (
-                          <div className="mt-2">
-                            <span className="text-sm font-bold text-primary">
+                          <div className="mt-2 space-y-0.5">
+                            <div className="text-sm font-bold text-primary">
                               {comic.grading_company || "CGC"} {comic.cgc_grade}
-                            </span>
+                            </div>
+                            {comic.certification_number && (
+                              <div className="text-xs text-muted-foreground">
+                                Cert #{comic.certification_number}
+                              </div>
+                            )}
                           </div>
                         ) : comic.condition_notes ? (
                           <p className="text-xs text-muted-foreground mt-2 italic">
@@ -652,6 +662,23 @@ const MyCollection = () => {
                         <SelectItem value="10.0" className="min-h-[44px] text-base">10.0</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="certification_number" className="text-base">
+                      Certification Number
+                    </Label>
+                    <Input
+                      id="certification_number"
+                      type="text"
+                      value={editForm.certification_number}
+                      onChange={(e) => setEditForm({ ...editForm, certification_number: e.target.value })}
+                      placeholder="e.g., 1234567890"
+                      className="min-h-[44px] text-base"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Enter the official certification/barcode number from the slab label
+                    </p>
                   </div>
                 </div>
               )}

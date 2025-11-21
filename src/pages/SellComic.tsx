@@ -40,7 +40,7 @@ export default function SellComic() {
   const [forTrade, setForTrade] = useState(false);
   const [inSearchOf, setInSearchOf] = useState("");
   const [tradeNotes, setTradeNotes] = useState("");
-  const [cgcCert, setCgcCert] = useState(""); // CGC/barcode/cert number
+  const [certificationNumber, setCertificationNumber] = useState(""); // Slab certification/barcode number
   
   const { isFoundingSeller, feeRate, loading: feeLoading } = useSellerFee(user?.id);
 
@@ -83,7 +83,7 @@ export default function SellComic() {
       setForTrade(data.is_for_trade || false);
       setInSearchOf(data.in_search_of || "");
       setTradeNotes(data.trade_notes || "");
-      setCgcCert(data.cgc_grade || ""); // Load CGC cert
+      setCertificationNumber(data.certification_number || ""); // Load cert number
       
       if (data.listed_price) {
         setPrice(data.listed_price.toString());
@@ -146,7 +146,7 @@ export default function SellComic() {
         is_for_trade: forTrade,
         in_search_of: forTrade ? inSearchOf.trim() : null,
         trade_notes: forTrade ? tradeNotes.trim() : null,
-        cgc_grade: cgcCert.trim() || null, // Update CGC cert
+        certification_number: certificationNumber.trim() || null, // Update cert number
         for_sale: forSale,
         for_auction: forSale && listingType === "auction",
       };
@@ -299,28 +299,28 @@ export default function SellComic() {
                       {comic.publisher && (
                         <div>Publisher: {comic.publisher}</div>
                       )}
-                  {comic.grade && (
-                    <div>Grade: {comic.grade}</div>
+                  {comic.is_slab && comic.cgc_grade && (
+                    <div>Grade: {comic.grading_company || 'CGC'} {comic.cgc_grade}</div>
                   )}
-                  {comic.cgc_grade && (
-                    <div>CGC/Cert: {comic.cgc_grade}</div>
+                  {comic.certification_number && (
+                    <div>Cert #: {comic.certification_number}</div>
                   )}
                 </div>
 
-                {/* CGC / Barcode / Cert Number Field */}
+                {/* Certification / Barcode Number Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="cgc-cert">
-                    CGC / Barcode / Cert # (Optional)
+                  <Label htmlFor="cert-number">
+                    Certification Number (Optional)
                   </Label>
                   <Input
-                    id="cgc-cert"
+                    id="cert-number"
                     type="text"
-                    value={cgcCert}
-                    onChange={(e) => setCgcCert(e.target.value)}
-                    placeholder="e.g., CGC 12345678 or barcode"
+                    value={certificationNumber}
+                    onChange={(e) => setCertificationNumber(e.target.value)}
+                    placeholder="e.g., 1234567890"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Enter CGC certification number, barcode, or any identifying cert info
+                    Enter the official certification/barcode number from the slab label
                   </p>
                 </div>
 
