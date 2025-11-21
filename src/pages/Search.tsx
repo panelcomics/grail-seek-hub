@@ -82,17 +82,19 @@ export default function SearchPage() {
   }, []);
 
   const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      setResults([]);
-      setIsSearching(false);
-      return;
-    }
+    const trimmed = query.trim();
+    const normalized = trimmed.toLowerCase().replace(/#/g, " ");
+    const tokens = normalized.split(/\s+/).filter(Boolean);
+    const numberTokens = tokens.filter((t) => /^\d+$/.test(t));
+    const textTokens = tokens.filter((t) => !/^\d+$/.test(t));
+    const textTerm = textTokens.join(" ");
+    const issueTerm = numberTokens[0];
 
     setIsSearching(true);
     setShowDropdown(false);
 
     try {
-      const { data, error } = await supabase
+      let queryBuilder = supabase
         .from("inventory_items")
         .select(`
           *,
@@ -102,10 +104,24 @@ export default function SearchPage() {
             completed_sales_count
           )
         `)
-        .or(`title.ilike.%${query}%,series.ilike.%${query}%,issue_number.ilike.%${query}%`)
         .eq("listing_status", "listed")
         .eq("for_sale", true)
-        .limit(20);
+        .limit(50);
+
+      if (textTerm || issueTerm) {
+        const orParts: string[] = [];
+        if (textTerm) {
+          orParts.push(`title.ilike.%${textTerm}%`);
+          orParts.push(`series.ilike.%${textTerm}%`);
+        }
+        if (issueTerm) {
+          orParts.push(`issue_number.ilike.%${issueTerm}%`);
+        }
+        const orFilter = orParts.join(",");
+        queryBuilder = queryBuilder.or(orFilter);
+      }
+
+      const { data, error } = await queryBuilder;
 
       if (error) throw error;
 
