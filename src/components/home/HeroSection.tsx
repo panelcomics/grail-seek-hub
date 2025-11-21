@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, TrendingUp } from "lucide-react";
+import { Shield, TrendingUp, Package, Clock, BadgeCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
 import { EnhancedSearchInput } from "./EnhancedSearchInput";
@@ -77,6 +77,31 @@ export function HeroSection() {
                 >
                   Browse Local Deals
                 </Button>
+              </div>
+
+              {/* Stats - order 5 on mobile */}
+              <div className="order-5 grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 px-4 sm:px-0 pt-4 sm:pt-6 border-t border-border/40">
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                  </div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-primary">500+</div>
+                  <div className="text-[10px] sm:text-xs md:text-sm text-muted-foreground font-medium">Live Slabs</div>
+                </div>
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                  </div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-primary">New</div>
+                  <div className="text-[10px] sm:text-xs md:text-sm text-muted-foreground font-medium">Listings Every Hour</div>
+                </div>
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                    <BadgeCheck className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                  </div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-black text-primary">Verified</div>
+                  <div className="text-[10px] sm:text-xs md:text-sm text-muted-foreground font-medium">Sellers & Dealers</div>
+                </div>
               </div>
             </div>
 
