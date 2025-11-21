@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { calculateMarketplaceFee, formatCents } from "@/lib/fees";
+import { calculateMarketplaceFeeWithCustomRate, formatCents, formatFeeRate } from "@/lib/fees";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ListItemModalProps {
   open: boolean;
@@ -16,11 +17,39 @@ interface ListItemModalProps {
 }
 
 export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: ListItemModalProps) {
+  const { user } = useAuth();
   const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [customFeeRate, setCustomFeeRate] = useState<number | null>(null);
+  const [isFoundingSeller, setIsFoundingSeller] = useState(false);
+
+  useEffect(() => {
+    const fetchSellerFee = async () => {
+      if (!user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('custom_fee_rate, is_founding_seller')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!error && data) {
+          setCustomFeeRate(data.custom_fee_rate);
+          setIsFoundingSeller(data.is_founding_seller || false);
+        }
+      } catch (error) {
+        console.error('Error fetching seller fee:', error);
+      }
+    };
+
+    if (open) {
+      fetchSellerFee();
+    }
+  }, [user?.id, open]);
 
   const priceCents = Math.round(parseFloat(price || "0") * 100);
-  const { fee_cents, payout_cents } = calculateMarketplaceFee(priceCents);
+  const { fee_cents, payout_cents } = calculateMarketplaceFeeWithCustomRate(priceCents, customFeeRate);
 
   const handleList = async () => {
     if (!price || parseFloat(price) <= 0) {
@@ -92,6 +121,11 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
               value={price}
               onChange={(e) => setPrice(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              {isFoundingSeller 
+                ? "Your seller fee: 2% GrailSeeker fee + Stripe processing" 
+                : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing"}
+            </p>
           </div>
 
           {priceCents > 0 && (
@@ -101,7 +135,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
                 <span className="font-medium">{formatCents(priceCents)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Flat 6.5% selling fee (including payment processing):</span>
+                <span>Total selling fee:</span>
                 <span>-{formatCents(fee_cents)}</span>
               </div>
               <div className="flex justify-between font-semibold border-t pt-2">
