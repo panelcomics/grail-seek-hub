@@ -131,22 +131,14 @@ const ItemCard = ({
             loading="lazy"
           />
           
-          {/* Top-left badges: Grade and Slab/Raw */}
+          {/* Top-left badge: Grade + Slab/Raw */}
           <div className="absolute top-2 left-2 flex flex-col gap-1.5">
-            {grade && (
-              <Badge className="bg-black/80 hover:bg-black/90 text-white font-bold text-xs px-2 py-1 backdrop-blur-sm">
-                {isSlab ? `CGC ${grade}` : grade}
-              </Badge>
-            )}
-            {isSlab ? (
-              <Badge className="bg-blue-600/90 hover:bg-blue-600 text-white font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm">
-                Slab
-              </Badge>
-            ) : isRaw ? (
-              <Badge className="bg-gray-600/90 hover:bg-gray-600 text-white font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm">
-                Raw
-              </Badge>
-            ) : null}
+            <Badge className="bg-black/80 hover:bg-black/90 text-white font-bold text-xs px-2 py-1 backdrop-blur-sm">
+              {grade && isSlab ? `CGC ${grade} • Slab` : 
+               grade && !isSlab ? `${grade} • Raw` :
+               isSlab ? 'Slab' : 
+               'Raw'}
+            </Badge>
             {showTradeBadge && (
               <Badge className="bg-green-600/90 hover:bg-green-700 text-white font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm flex items-center gap-1">
                 <Package className="h-2.5 w-2.5" />
@@ -198,7 +190,7 @@ const ItemCard = ({
         </div>
         
         {/* Card content */}
-        <div className="p-3 flex-1 flex flex-col">
+        <div className="p-2.5 flex-1 flex flex-col">
           {/* Title */}
           <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2 group-hover:text-primary transition-colors">
             {title}
@@ -239,11 +231,11 @@ const ItemCard = ({
           <div className="flex-1" />
 
           {/* Price section */}
-          <div className="space-y-2 mt-2">
+          <div className="space-y-1.5 mt-2">
             {price !== null && price !== undefined && price > 0 ? (
               <div>
-                <div className="text-xs text-muted-foreground mb-0.5">
-                  {isAuction ? "Current bid" : "Price"}
+                <div className="text-xs font-semibold text-muted-foreground mb-0.5">
+                  {isAuction ? "Current bid:" : "Price:"}
                 </div>
                 <div className="text-2xl font-bold text-primary">
                   ${price.toLocaleString()}
