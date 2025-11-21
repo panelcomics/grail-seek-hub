@@ -69,7 +69,7 @@ const Hero = () => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     type="text"
-                    placeholder="Search by title, series, issue number, or keyword..."
+                    placeholder="Hunt: ASM 300, Hulk 181, CGC 9.8 slabs..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 h-12 text-base"
