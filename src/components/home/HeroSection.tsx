@@ -1,21 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, Smartphone, Shield, TrendingUp } from "lucide-react";
+import { Shield, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
+import { EnhancedSearchInput } from "./EnhancedSearchInput";
 import heroComics from "@/assets/hero-comics.png";
 
 export function HeroSection() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
 
   const scrollToListings = () => {
     const listingsSection = document.querySelector('[data-listings-section]');
@@ -101,18 +94,7 @@ export function HeroSection() {
 
           {/* Search bar - order 3 on mobile */}
           <div className="order-3 w-full lg:w-auto lg:mt-8 md:mt-12 px-4 sm:px-0">
-            <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-              <div className="relative">
-                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search comics, cards, or original art..."
-                  className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-4 rounded-xl border-2 border-border bg-card text-sm sm:text-lg focus:border-primary focus:outline-none min-h-[44px] sm:min-h-[48px]"
-                />
-              </div>
-            </form>
+            <EnhancedSearchInput />
           </div>
         </div>
       </section>
