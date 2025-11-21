@@ -61,6 +61,10 @@ interface Comic {
   variant_notes?: string | null;
   is_key?: boolean;
   key_type?: string | null;
+  is_slab?: boolean;
+  cgc_grade?: string | null;
+  writer?: string | null;
+  artist?: string | null;
 }
 
 const MyCollection = () => {
@@ -204,10 +208,10 @@ const MyCollection = () => {
       variant_notes: comic.variant_notes || "",
       is_key: comic.is_key || false,
       key_type: comic.key_type || "",
-      writer: (comic as any).writer || "",
-      artist: (comic as any).artist || "",
-      cgc_grade: (comic as any).cgc_grade || "",
-      is_slab: (comic as any).is_slab || false,
+      writer: comic.writer || "",
+      artist: comic.artist || "",
+      cgc_grade: comic.cgc_grade || "",
+      is_slab: comic.is_slab || false,
     });
   };
 
@@ -264,6 +268,10 @@ const MyCollection = () => {
               variant_notes: editForm.variant_notes || null,
               is_key: editForm.is_key,
               key_type: editForm.is_key ? (editForm.key_type || null) : null,
+              is_slab: editForm.is_slab,
+              cgc_grade: editForm.cgc_grade || null,
+              writer: editForm.writer || null,
+              artist: editForm.artist || null,
             }
           : c
       ));
@@ -351,11 +359,16 @@ const MyCollection = () => {
                             {comic.details.length > 60 ? `${comic.details.substring(0, 60)}...` : comic.details}
                           </p>
                         )}
-                        {comic.condition_notes && (
+                        {/* Show CGC grade for slabs, otherwise show condition */}
+                        {comic.is_slab && comic.cgc_grade ? (
+                          <div className="mt-2">
+                            <span className="text-sm font-bold text-primary">CGC {comic.cgc_grade}</span>
+                          </div>
+                        ) : comic.condition_notes ? (
                           <p className="text-xs text-muted-foreground mt-2 italic">
                             {comic.condition_notes}
                           </p>
-                        )}
+                        ) : null}
                         <div className="flex gap-2 mt-2">
                           <Button
                             variant="ghost"
