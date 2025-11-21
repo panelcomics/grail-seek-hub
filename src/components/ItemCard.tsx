@@ -24,6 +24,7 @@ interface ItemCardProps {
   sellerCity?: string;
   sellerBadge?: string | null;
   isVerifiedSeller?: boolean;
+  completedSalesCount?: number;
   category: "comic" | "card" | "art";
   isAuction?: boolean;
   timeRemaining?: number; // in seconds
@@ -55,6 +56,7 @@ const ItemCard = ({
   sellerCity,
   sellerBadge,
   isVerifiedSeller = false,
+  completedSalesCount = 0,
   category,
   isAuction = false,
   timeRemaining = 0,
@@ -225,8 +227,17 @@ const ItemCard = ({
             {/* Seller Info */}
              {sellerName && sellerCity && (
                <div className="flex items-center justify-between gap-2 mb-3">
-                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
-                   {isVerifiedSeller && <Shield className="h-3 w-3 text-primary shrink-0" />}
+                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+                   {isVerifiedSeller && (
+                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20 flex items-center gap-0.5">
+                       <Shield className="h-3 w-3" />
+                     </Badge>
+                   )}
+                   {completedSalesCount >= 10 && (
+                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20 flex items-center gap-0.5">
+                       <Shield className="h-3 w-3 fill-current" />
+                     </Badge>
+                   )}
                    <span className="font-medium truncate">{sellerName}</span>
                    <span>•</span>
                    <span className="truncate">{sellerCity}</span>

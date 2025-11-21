@@ -114,7 +114,7 @@ export default function ListingDetail() {
         .select(`
           *,
           inventory_items_public(*),
-          profiles!user_id(user_id, username, display_name, avatar_url, completed_sales_count)
+          profiles!user_id(user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller)
         `)
         .eq("id", id)
         .single();
@@ -286,9 +286,33 @@ export default function ListingDetail() {
                         <Link to={`/seller/${sellerSlug}`} className="font-semibold hover:underline">
                           {sellerName}
                         </Link>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {seller.is_verified_seller && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+                              <Shield className="h-3 w-3" />
+                              Verified
+                            </Badge>
+                          )}
+                          {seller.completed_sales_count >= 10 && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20 flex items-center gap-1">
+                              <Shield className="h-3 w-3 fill-current" />
+                              Pro
+                            </Badge>
+                          )}
+                        </div>
                         {seller.completed_sales_count > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {seller.completed_sales_count} sales
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {seller.completed_sales_count} sale{seller.completed_sales_count !== 1 ? 's' : ''}
+                          </p>
+                        )}
+                        {seller.is_verified_seller && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            This seller has been verified by GrailSeeker.
+                          </p>
+                        )}
+                        {seller.completed_sales_count >= 10 && !seller.is_verified_seller && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            This seller has completed 10+ successful sales.
                           </p>
                         )}
                       </div>
@@ -343,6 +367,9 @@ export default function ListingDetail() {
                           <div>
                             <span className="font-medium">Local Pickup</span>
                             <p className="text-xs text-muted-foreground">No shipping fee</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tip: For local meetups, choose public locations and bring a friend when possible.
+                            </p>
                           </div>
                         </Label>
                       </div>
