@@ -63,6 +63,7 @@ interface Comic {
   key_type?: string | null;
   is_slab?: boolean;
   cgc_grade?: string | null;
+  grading_company?: string | null;
   writer?: string | null;
   artist?: string | null;
 }
@@ -94,6 +95,7 @@ const MyCollection = () => {
     writer: "",
     artist: "",
     cgc_grade: "",
+    grading_company: "CGC",
     is_slab: false,
   });
   const [saving, setSaving] = useState(false);
@@ -211,6 +213,7 @@ const MyCollection = () => {
       writer: comic.writer || "",
       artist: comic.artist || "",
       cgc_grade: comic.cgc_grade || "",
+      grading_company: comic.grading_company || "CGC",
       is_slab: comic.is_slab || false,
     });
   };
@@ -270,6 +273,7 @@ const MyCollection = () => {
               key_type: editForm.is_key ? (editForm.key_type || null) : null,
               is_slab: editForm.is_slab,
               cgc_grade: editForm.cgc_grade || null,
+              grading_company: editForm.grading_company || null,
               writer: editForm.writer || null,
               artist: editForm.artist || null,
             }
@@ -359,10 +363,12 @@ const MyCollection = () => {
                             {comic.details.length > 60 ? `${comic.details.substring(0, 60)}...` : comic.details}
                           </p>
                         )}
-                        {/* Show CGC grade for slabs, otherwise show condition */}
+                        {/* Show grading company + grade for slabs, otherwise show condition */}
                         {comic.is_slab && comic.cgc_grade ? (
                           <div className="mt-2">
-                            <span className="text-sm font-bold text-primary">CGC {comic.cgc_grade}</span>
+                            <span className="text-sm font-bold text-primary">
+                              {comic.grading_company || "CGC"} {comic.cgc_grade}
+                            </span>
                           </div>
                         ) : comic.condition_notes ? (
                           <p className="text-xs text-muted-foreground mt-2 italic">
@@ -570,20 +576,22 @@ const MyCollection = () => {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 cursor-pointer" onClick={() => setEditForm({ ...editForm, is_slab: !editForm.is_slab })}>
                   <Label htmlFor="is_slab" className="text-base font-semibold cursor-pointer block">
-                    This comic is a CGC/graded slab
+                    Graded Slab (CGC, CBCS, PGX)
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                    Turn this on if the book is in a CGC/CBCS/PGX slab.
+                    Turn this on if the book is professionally graded.
                   </p>
                 </div>
                 <Switch
                   id="is_slab"
                   checked={editForm.is_slab}
                   onCheckedChange={(checked) => {
-                    setEditForm({ ...editForm, is_slab: checked });
-                    if (!checked) {
-                      setEditForm({ ...editForm, is_slab: false, cgc_grade: "" });
-                    }
+                    setEditForm({ 
+                      ...editForm, 
+                      is_slab: checked,
+                      cgc_grade: checked ? editForm.cgc_grade : "",
+                      grading_company: checked ? (editForm.grading_company || "CGC") : ""
+                    });
                   }}
                   className="data-[state=checked]:bg-primary mt-1 scale-110 sm:scale-100"
                 />
@@ -591,71 +599,60 @@ const MyCollection = () => {
               
               {editForm.is_slab && (
                 <div className="space-y-3 animate-in fade-in duration-200 pt-2">
-                  <Label htmlFor="cgc_grade" className="font-semibold text-base">CGC Grade *</Label>
-                  
-                  {/* Mobile-optimized grade picker */}
-                  <Select
-                    value={editForm.cgc_grade}
-                    onValueChange={(value) => setEditForm({ ...editForm, cgc_grade: value })}
-                  >
-                    <SelectTrigger id="cgc_grade" className="min-h-[44px] text-base">
-                      <SelectValue placeholder="Select grade..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      <SelectItem value="0.5" className="min-h-[44px] text-base">0.5</SelectItem>
-                      <SelectItem value="1.0" className="min-h-[44px] text-base">1.0</SelectItem>
-                      <SelectItem value="1.5" className="min-h-[44px] text-base">1.5</SelectItem>
-                      <SelectItem value="2.0" className="min-h-[44px] text-base">2.0</SelectItem>
-                      <SelectItem value="2.5" className="min-h-[44px] text-base">2.5</SelectItem>
-                      <SelectItem value="3.0" className="min-h-[44px] text-base">3.0</SelectItem>
-                      <SelectItem value="3.5" className="min-h-[44px] text-base">3.5</SelectItem>
-                      <SelectItem value="4.0" className="min-h-[44px] text-base">4.0</SelectItem>
-                      <SelectItem value="4.5" className="min-h-[44px] text-base">4.5</SelectItem>
-                      <SelectItem value="5.0" className="min-h-[44px] text-base">5.0</SelectItem>
-                      <SelectItem value="5.5" className="min-h-[44px] text-base">5.5</SelectItem>
-                      <SelectItem value="6.0" className="min-h-[44px] text-base">6.0</SelectItem>
-                      <SelectItem value="6.5" className="min-h-[44px] text-base">6.5</SelectItem>
-                      <SelectItem value="7.0" className="min-h-[44px] text-base">7.0</SelectItem>
-                      <SelectItem value="7.5" className="min-h-[44px] text-base">7.5</SelectItem>
-                      <SelectItem value="8.0" className="min-h-[44px] text-base">8.0</SelectItem>
-                      <SelectItem value="8.5" className="min-h-[44px] text-base">8.5</SelectItem>
-                      <SelectItem value="9.0" className="min-h-[44px] text-base">9.0</SelectItem>
-                      <SelectItem value="9.2" className="min-h-[44px] text-base">9.2</SelectItem>
-                      <SelectItem value="9.4" className="min-h-[44px] text-base">9.4</SelectItem>
-                      <SelectItem value="9.6" className="min-h-[44px] text-base">9.6</SelectItem>
-                      <SelectItem value="9.8" className="min-h-[44px] text-base">9.8</SelectItem>
-                      <SelectItem value="9.9" className="min-h-[44px] text-base">9.9</SelectItem>
-                      <SelectItem value="10.0" className="min-h-[44px] text-base">10.0</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <div className="relative">
-                    <Label htmlFor="cgc_grade_manual" className="text-sm text-muted-foreground mb-1.5 block">
-                      Or enter custom grade:
-                    </Label>
-                    <Input
-                      id="cgc_grade_manual"
-                      type="number"
-                      step="0.1"
-                      min="0.5"
-                      max="10.0"
-                      value={editForm.cgc_grade}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        if (!e.target.value || (val >= 0.5 && val <= 10.0)) {
-                          setEditForm({ ...editForm, cgc_grade: e.target.value });
-                        }
-                      }}
-                      placeholder="Type grade (0.5 to 10.0)"
-                      className="min-h-[44px] text-base"
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="grading_company" className="font-semibold text-base">Grading Company *</Label>
+                    <Select
+                      value={editForm.grading_company}
+                      onValueChange={(value) => setEditForm({ ...editForm, grading_company: value })}
+                    >
+                      <SelectTrigger id="grading_company" className="min-h-[44px] text-base">
+                        <SelectValue placeholder="Select company..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CGC" className="min-h-[44px] text-base">CGC</SelectItem>
+                        <SelectItem value="CBCS" className="min-h-[44px] text-base">CBCS</SelectItem>
+                        <SelectItem value="PGX" className="min-h-[44px] text-base">PGX</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
-                  {editForm.cgc_grade && (parseFloat(editForm.cgc_grade) < 0.5 || parseFloat(editForm.cgc_grade) > 10.0) && (
-                    <p className="text-xs text-destructive font-medium bg-destructive/10 p-2 rounded">
-                      Grade must be between 0.5 and 10.0
-                    </p>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="cgc_grade" className="font-semibold text-base">Grade *</Label>
+                    <Select
+                      value={editForm.cgc_grade}
+                      onValueChange={(value) => setEditForm({ ...editForm, cgc_grade: value })}
+                    >
+                      <SelectTrigger id="cgc_grade" className="min-h-[44px] text-base">
+                        <SelectValue placeholder="Select grade..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        <SelectItem value="0.5" className="min-h-[44px] text-base">0.5</SelectItem>
+                        <SelectItem value="1.0" className="min-h-[44px] text-base">1.0</SelectItem>
+                        <SelectItem value="1.5" className="min-h-[44px] text-base">1.5</SelectItem>
+                        <SelectItem value="2.0" className="min-h-[44px] text-base">2.0</SelectItem>
+                        <SelectItem value="2.5" className="min-h-[44px] text-base">2.5</SelectItem>
+                        <SelectItem value="3.0" className="min-h-[44px] text-base">3.0</SelectItem>
+                        <SelectItem value="3.5" className="min-h-[44px] text-base">3.5</SelectItem>
+                        <SelectItem value="4.0" className="min-h-[44px] text-base">4.0</SelectItem>
+                        <SelectItem value="4.5" className="min-h-[44px] text-base">4.5</SelectItem>
+                        <SelectItem value="5.0" className="min-h-[44px] text-base">5.0</SelectItem>
+                        <SelectItem value="5.5" className="min-h-[44px] text-base">5.5</SelectItem>
+                        <SelectItem value="6.0" className="min-h-[44px] text-base">6.0</SelectItem>
+                        <SelectItem value="6.5" className="min-h-[44px] text-base">6.5</SelectItem>
+                        <SelectItem value="7.0" className="min-h-[44px] text-base">7.0</SelectItem>
+                        <SelectItem value="7.5" className="min-h-[44px] text-base">7.5</SelectItem>
+                        <SelectItem value="8.0" className="min-h-[44px] text-base">8.0</SelectItem>
+                        <SelectItem value="8.5" className="min-h-[44px] text-base">8.5</SelectItem>
+                        <SelectItem value="9.0" className="min-h-[44px] text-base">9.0</SelectItem>
+                        <SelectItem value="9.2" className="min-h-[44px] text-base">9.2</SelectItem>
+                        <SelectItem value="9.4" className="min-h-[44px] text-base">9.4</SelectItem>
+                        <SelectItem value="9.6" className="min-h-[44px] text-base">9.6</SelectItem>
+                        <SelectItem value="9.8" className="min-h-[44px] text-base">9.8</SelectItem>
+                        <SelectItem value="9.9" className="min-h-[44px] text-base">9.9</SelectItem>
+                        <SelectItem value="10.0" className="min-h-[44px] text-base">10.0</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
             </div>

@@ -40,7 +40,8 @@ interface ItemCardProps {
   showTradeBadge?: boolean;
   localPickupAvailable?: boolean;
   isSlab?: boolean; // Source of truth from database
-  grade?: string | null; // CGC grade from database
+  grade?: string | null; // Grade from database
+  gradingCompany?: string | null; // Grading company (CGC, CBCS, PGX)
 }
 
 const ItemCard = ({ 
@@ -76,6 +77,7 @@ const ItemCard = ({
   localPickupAvailable = false,
   isSlab = false,
   grade = null,
+  gradingCompany = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -104,10 +106,11 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Display badge text based on slab status and grade
+  // Display badge text based on slab status, grading company, and grade
   const getBadgeText = () => {
     if (isSlab) {
-      return grade ? `CGC ${grade}` : 'Slab';
+      const company = gradingCompany || 'CGC';
+      return grade ? `${company} ${grade}` : 'Slab';
     }
     return 'Raw';
   };

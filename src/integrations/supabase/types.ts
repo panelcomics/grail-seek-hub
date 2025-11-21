@@ -1162,6 +1162,7 @@ export type Database = {
           for_auction: boolean | null
           for_sale: boolean | null
           grade: string | null
+          grading_company: string | null
           id: string
           images: Json | null
           in_search_of: string | null
@@ -1215,6 +1216,7 @@ export type Database = {
           for_auction?: boolean | null
           for_sale?: boolean | null
           grade?: string | null
+          grading_company?: string | null
           id?: string
           images?: Json | null
           in_search_of?: string | null
@@ -1268,6 +1270,7 @@ export type Database = {
           for_auction?: boolean | null
           for_sale?: boolean | null
           grade?: string | null
+          grading_company?: string | null
           id?: string
           images?: Json | null
           in_search_of?: string | null
