@@ -92,12 +92,20 @@ export function EnhancedSearchInput() {
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const query = searchQuery.trim();
+    if (query) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
       setShowDropdown(false);
       inputRef.current?.blur();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
     }
   };
 
@@ -142,10 +150,11 @@ export function EnhancedSearchInput() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholder="Search grails, keys, slabs, or story arcs…"
-          className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-4 rounded-full border-2 border-border bg-card text-sm sm:text-lg focus:border-primary focus:outline-none min-h-[44px] sm:min-h-[48px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] focus:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all"
+          className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-4 rounded-full border-2 border-border bg-white text-sm sm:text-lg focus:border-primary focus:outline-none min-h-[44px] sm:min-h-[48px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] focus:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all"
         />
       </div>
 
@@ -153,7 +162,7 @@ export function EnhancedSearchInput() {
       {showDropdown && (showPopularSearches || showSuggestions) && (
         <div
           ref={dropdownRef}
-          className="absolute top-full left-0 right-0 mt-2 bg-card border-2 border-border rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden z-50"
+          className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-border rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.18)] overflow-hidden z-[100] max-h-[320px] overflow-y-auto"
         >
           {showPopularSearches && (
             <div className="p-2">

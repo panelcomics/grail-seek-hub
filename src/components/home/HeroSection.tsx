@@ -93,7 +93,7 @@ export function HeroSection() {
           </div>
 
           {/* Search bar - order 3 on mobile */}
-          <div className="order-3 w-full lg:w-auto lg:mt-8 md:mt-12 px-4 sm:px-0">
+          <div className="order-3 w-full lg:w-auto lg:mt-8 md:mt-12 px-4 sm:px-0 mb-6 sm:mb-8 relative z-20">
             <EnhancedSearchInput />
           </div>
         </div>
