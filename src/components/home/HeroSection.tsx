@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Smartphone, Shield, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
-import heroMarketplace from "@/assets/hero-marketplace.jpg";
+import heroComics from "@/assets/hero-comics.png";
 
 export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,9 +85,9 @@ export function HeroSection() {
             <div className="w-full lg:w-1/2">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
-                  src={heroMarketplace}
-                  alt="Comic book collection featuring slabs and keys"
-                  className="w-full h-64 sm:h-80 lg:h-96 object-cover"
+                  src={heroComics}
+                  alt="Vintage comic book collection featuring Marvel and DC classics"
+                  className="w-full h-64 sm:h-80 lg:h-96 object-cover object-center"
                 />
               </div>
             </div>
