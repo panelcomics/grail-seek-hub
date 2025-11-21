@@ -561,6 +561,7 @@ export default function SearchPage() {
                   localPickupAvailable={item.local_pickup}
                   isSlab={item.is_slab}
                   grade={item.cgc_grade}
+                  gradingCompany={item.grading_company}
                 />
               ))}
             </div>

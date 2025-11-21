@@ -99,6 +99,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                     completedSalesCount={profile?.completed_sales_count || 0}
                     isSlab={listing.is_slab}
                     grade={listing.cgc_grade}
+                    gradingCompany={listing.grading_company}
                   />
                 </div>
               );
