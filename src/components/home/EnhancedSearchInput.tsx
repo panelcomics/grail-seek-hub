@@ -153,7 +153,7 @@ export function EnhancedSearchInput() {
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          placeholder="Search grails, keys, slabs, or story arcs…"
+          placeholder="Hunt: ASM 300, Hulk 181, CGC 9.8 slabs..."
           className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-4 rounded-full border-2 border-border bg-white text-sm sm:text-lg focus:border-primary focus:outline-none min-h-[44px] sm:min-h-[48px] shadow-[0_2px_8px_rgba(0,0,0,0.08)] focus:shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all"
         />
       </div>

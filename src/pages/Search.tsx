@@ -307,7 +307,7 @@ export default function SearchPage() {
               <Input
                 ref={inputRef}
                 type="text"
-                placeholder="Search grails, keys, slabs, or creators…"
+                placeholder="Hunt: ASM 300, Hulk 181, CGC 9.8 slabs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setShowDropdown(true)}

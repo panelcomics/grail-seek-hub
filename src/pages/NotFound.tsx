@@ -60,7 +60,7 @@ const NotFound = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Try searching for a comic, set, or seller..."
+                  placeholder="Hunt: ASM 300, Hulk 181, CGC 9.8 slabs..."
                   className="w-full pl-12 pr-4 py-3 rounded-lg border-2 border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
