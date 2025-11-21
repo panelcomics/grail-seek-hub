@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
+import { Search, Trash2, Loader2, Edit2, ImagePlus, RefreshCw } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
 import { formatComicDisplay } from "@/lib/comics/format";
@@ -22,6 +22,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -397,7 +404,7 @@ const MyCollection = () => {
       </AlertDialog>
 
       <Dialog open={!!editingComic} onOpenChange={() => setEditingComic(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Comic Details</DialogTitle>
             <DialogDescription>
@@ -405,6 +412,48 @@ const MyCollection = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 px-1">
+            {/* Comic Images Carousel */}
+            {editingComic && listingImages.length > 0 && (
+              <div className="relative mb-6 pb-6 border-b">
+                <Carousel className="w-full max-w-md mx-auto">
+                  <CarouselContent>
+                    {listingImages.map((image) => (
+                      <CarouselItem key={image.id}>
+                        <div className="relative">
+                          <img
+                            src={image.thumbnail_url || image.url}
+                            alt="Comic cover"
+                            className="w-full aspect-[2/3] object-contain rounded-lg bg-muted"
+                          />
+                          {image.is_primary && (
+                            <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold">
+                              Primary Cover
+                            </div>
+                          )}
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  {listingImages.length > 1 && (
+                    <>
+                      <CarouselPrevious className="left-2" />
+                      <CarouselNext className="right-2" />
+                    </>
+                  )}
+                </Carousel>
+                <div className="flex gap-2 justify-center mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById(`file-upload-${editingComic.id}`)?.click()}
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    Add Image
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
               <Input
@@ -478,30 +527,96 @@ const MyCollection = () => {
                 placeholder="e.g., Jack Kirby"
               />
             </div>
-            <div className="space-y-4 pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="is_slab" className="font-semibold">
-                  Graded Slab (CGC, CBCS, PGX)
-                </Label>
+            
+            {/* CGC/Slab Section - Improved */}
+            <div className="space-y-4 pt-4 pb-4 border-t border-b bg-accent/10 p-4 rounded-lg">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="is_slab" className="text-base font-semibold cursor-pointer">
+                    This comic is a CGC/graded slab
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enable if this comic is professionally graded (CGC, CBCS, PGX)
+                  </p>
+                </div>
                 <Switch
                   id="is_slab"
                   checked={editForm.is_slab}
-                  onCheckedChange={(checked) => setEditForm({ ...editForm, is_slab: checked })}
+                  onCheckedChange={(checked) => {
+                    setEditForm({ ...editForm, is_slab: checked });
+                    if (!checked) {
+                      setEditForm({ ...editForm, is_slab: false, cgc_grade: "" });
+                    }
+                  }}
+                  className="data-[state=checked]:bg-primary"
                 />
               </div>
               
               {editForm.is_slab && (
-                <div className="space-y-2">
-                  <Label htmlFor="cgc_grade">Grade *</Label>
-                  <Input
-                    id="cgc_grade"
-                    value={editForm.cgc_grade}
-                    onChange={(e) => setEditForm({ ...editForm, cgc_grade: e.target.value })}
-                    placeholder="e.g., 9.8, 9.6, 9.4"
-                  />
+                <div className="space-y-2 animate-in fade-in duration-200">
+                  <Label htmlFor="cgc_grade" className="font-semibold">CGC Grade *</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={editForm.cgc_grade}
+                      onValueChange={(value) => setEditForm({ ...editForm, cgc_grade: value })}
+                    >
+                      <SelectTrigger id="cgc_grade" className="flex-1">
+                        <SelectValue placeholder="Select grade..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        <SelectItem value="0.5">0.5</SelectItem>
+                        <SelectItem value="1.0">1.0</SelectItem>
+                        <SelectItem value="1.5">1.5</SelectItem>
+                        <SelectItem value="2.0">2.0</SelectItem>
+                        <SelectItem value="2.5">2.5</SelectItem>
+                        <SelectItem value="3.0">3.0</SelectItem>
+                        <SelectItem value="3.5">3.5</SelectItem>
+                        <SelectItem value="4.0">4.0</SelectItem>
+                        <SelectItem value="4.5">4.5</SelectItem>
+                        <SelectItem value="5.0">5.0</SelectItem>
+                        <SelectItem value="5.5">5.5</SelectItem>
+                        <SelectItem value="6.0">6.0</SelectItem>
+                        <SelectItem value="6.5">6.5</SelectItem>
+                        <SelectItem value="7.0">7.0</SelectItem>
+                        <SelectItem value="7.5">7.5</SelectItem>
+                        <SelectItem value="8.0">8.0</SelectItem>
+                        <SelectItem value="8.5">8.5</SelectItem>
+                        <SelectItem value="9.0">9.0</SelectItem>
+                        <SelectItem value="9.2">9.2</SelectItem>
+                        <SelectItem value="9.4">9.4</SelectItem>
+                        <SelectItem value="9.6">9.6</SelectItem>
+                        <SelectItem value="9.8">9.8</SelectItem>
+                        <SelectItem value="9.9">9.9</SelectItem>
+                        <SelectItem value="10.0">10.0</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="relative flex-1">
+                      <Input
+                        id="cgc_grade_manual"
+                        type="number"
+                        step="0.1"
+                        min="0.5"
+                        max="10.0"
+                        value={editForm.cgc_grade}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!e.target.value || (val >= 0.5 && val <= 10.0)) {
+                            setEditForm({ ...editForm, cgc_grade: e.target.value });
+                          }
+                        }}
+                        placeholder="Or type grade"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    Enter the numeric grade (e.g., 9.8)
+                    Select from dropdown or manually enter grade (0.5 to 10.0)
                   </p>
+                  {editForm.cgc_grade && (parseFloat(editForm.cgc_grade) < 0.5 || parseFloat(editForm.cgc_grade) > 10.0) && (
+                    <p className="text-xs text-destructive font-medium">
+                      Grade must be between 0.5 and 10.0
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -588,13 +703,9 @@ const MyCollection = () => {
               )}
             </div>
 
-            {/* Multi-Photo Management */}
+            {/* Hidden ImageManagement for upload functionality */}
             {editingComic && (
-              <div className="space-y-3 pt-6 border-t">
-                <Label className="text-base font-semibold">Photos</Label>
-                <p className="text-sm text-muted-foreground">
-                  Manage photos for this comic (up to 8 images)
-                </p>
+              <div className="hidden">
                 <ImageManagement
                   listingId={editingComic.id}
                   images={listingImages}
@@ -608,7 +719,10 @@ const MyCollection = () => {
             <Button variant="outline" onClick={() => setEditingComic(null)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSaveEdit} disabled={saving || !editForm.title}>
+            <Button 
+              onClick={handleSaveEdit} 
+              disabled={saving || !editForm.title || (editForm.is_slab && !editForm.cgc_grade) || (editForm.is_slab && editForm.cgc_grade && (parseFloat(editForm.cgc_grade) < 0.5 || parseFloat(editForm.cgc_grade) > 10.0))}
+            >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
             </Button>
