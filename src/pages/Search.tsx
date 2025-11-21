@@ -374,7 +374,7 @@ export default function SearchPage() {
                   title={item.title || `${item.series} #${item.issue_number}`}
                   price={item.listed_price}
                   condition={item.cgc_grade || item.condition || "Raw"}
-                  image={item.images?.[0] || "/placeholder.svg"}
+                  image={(item.images as any)?.front || "/placeholder.svg"}
                   category="comic"
                   sellerName={item.profiles?.username}
                   isVerifiedSeller={item.profiles?.is_verified_seller}
