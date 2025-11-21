@@ -92,20 +92,18 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-12 max-w-screen-xl items-center justify-between px-4 relative">
+      <div className="mx-auto flex h-12 max-w-screen-xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-sm">
             GS
           </div>
+          <span className="md:hidden bg-primary text-primary-foreground text-[9px] font-semibold px-1.5 py-0.5 rounded-full">
+            Beta
+          </span>
           <span className="font-bold hidden xs:inline">
             Grail<span className="text-primary">Seeker</span>
           </span>
         </Link>
-
-        {/* Centered Beta pill on mobile only - inside header bar */}
-        <span className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-[9px] font-semibold px-1.5 py-0.5 rounded-full">
-          Beta
-        </span>
 
         <nav className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild aria-label="Scanner">
