@@ -1380,7 +1380,7 @@ export type Database = {
       }
       listings: {
         Row: {
-          comic_id: string
+          comic_id: string | null
           condition_notes: string | null
           cover_date: string | null
           created_at: string | null
@@ -1408,7 +1408,7 @@ export type Database = {
           volume_name: string | null
         }
         Insert: {
-          comic_id: string
+          comic_id?: string | null
           condition_notes?: string | null
           cover_date?: string | null
           created_at?: string | null
@@ -1436,7 +1436,7 @@ export type Database = {
           volume_name?: string | null
         }
         Update: {
-          comic_id?: string
+          comic_id?: string | null
           condition_notes?: string | null
           cover_date?: string | null
           created_at?: string | null
