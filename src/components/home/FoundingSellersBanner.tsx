@@ -39,17 +39,18 @@ export function FoundingSellersBanner() {
   if (loading || !isVisible) return null;
 
   return (
-    <div className="bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground py-1.5 sm:py-2 px-4 relative overflow-hidden">
+    <div className="bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground py-2 sm:py-2.5 px-3 sm:px-4 relative overflow-hidden">
       <div className="container mx-auto max-w-6xl">
-        <div className="flex items-center justify-between gap-2 sm:gap-4">
-          <p className="text-xs sm:text-sm font-semibold text-center flex-1 leading-tight">
-            Founding Sellers (First 100): Lifetime 2% GrailSeeker Fee • Stripe processing fees apply (2.9% + $0.30)
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] sm:text-sm font-semibold flex-1 leading-snug pr-1">
+            <span className="block sm:inline">Founding Sellers (First 100): Lifetime 2% GrailSeeker Fee</span>
+            <span className="block sm:inline sm:ml-1 opacity-95">• Stripe fees apply (2.9% + $0.30)</span>
           </p>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleDismiss}
-            className="text-primary-foreground hover:bg-primary-foreground/20 flex-shrink-0 h-6 w-6 p-0"
+            className="text-primary-foreground hover:bg-primary-foreground/20 flex-shrink-0 h-7 w-7 sm:h-6 sm:w-6 p-0"
             aria-label="Dismiss banner"
           >
             <X className="h-3.5 w-3.5" />
