@@ -412,10 +412,10 @@ const MyCollection = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 px-1">
-            {/* Comic Images Carousel */}
+            {/* Comic Images Carousel - Mobile Optimized */}
             {editingComic && listingImages.length > 0 && (
               <div className="relative mb-6 pb-6 border-b">
-                <Carousel className="w-full max-w-md mx-auto">
+                <Carousel className="w-full max-w-md mx-auto touch-pan-y">
                   <CarouselContent>
                     {listingImages.map((image) => (
                       <CarouselItem key={image.id}>
@@ -426,7 +426,7 @@ const MyCollection = () => {
                             className="w-full aspect-[2/3] object-contain rounded-lg bg-muted"
                           />
                           {image.is_primary && (
-                            <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold">
+                            <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs font-semibold">
                               Primary Cover
                             </div>
                           )}
@@ -436,19 +436,35 @@ const MyCollection = () => {
                   </CarouselContent>
                   {listingImages.length > 1 && (
                     <>
-                      <CarouselPrevious className="left-2" />
-                      <CarouselNext className="right-2" />
+                      <CarouselPrevious className="left-1 h-10 w-10 md:left-2" />
+                      <CarouselNext className="right-1 h-10 w-10 md:right-2" />
                     </>
                   )}
                 </Carousel>
-                <div className="flex gap-2 justify-center mt-4">
+                <div className="flex flex-col sm:flex-row gap-2 justify-center mt-4">
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="default"
+                    className="min-h-[44px] w-full sm:w-auto"
+                    onClick={() => {
+                      const primaryImage = listingImages.find(img => img.is_primary);
+                      if (primaryImage) {
+                        // Trigger file upload to replace primary
+                        document.getElementById(`file-upload-${editingComic.id}`)?.click();
+                      }
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Change Cover Photo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    className="min-h-[44px] w-full sm:w-auto"
                     onClick={() => document.getElementById(`file-upload-${editingComic.id}`)?.click()}
                   >
                     <ImagePlus className="h-4 w-4 mr-2" />
-                    Add Image
+                    Add More Photos
                   </Button>
                 </div>
               </div>
@@ -461,6 +477,7 @@ const MyCollection = () => {
                 value={editForm.title}
                 onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                 placeholder="Comic title"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -470,6 +487,7 @@ const MyCollection = () => {
                 value={editForm.issue_number}
                 onChange={(e) => setEditForm({ ...editForm, issue_number: e.target.value })}
                 placeholder="#1"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -479,6 +497,7 @@ const MyCollection = () => {
                 value={editForm.volume_name}
                 onChange={(e) => setEditForm({ ...editForm, volume_name: e.target.value })}
                 placeholder="Leave empty unless different from title"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -488,6 +507,7 @@ const MyCollection = () => {
                 value={editForm.publisher}
                 onChange={(e) => setEditForm({ ...editForm, publisher: e.target.value })}
                 placeholder="Marvel Comics"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -498,6 +518,7 @@ const MyCollection = () => {
                 value={editForm.year}
                 onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
                 placeholder="1984"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -507,6 +528,7 @@ const MyCollection = () => {
                 type="date"
                 value={editForm.cover_date}
                 onChange={(e) => setEditForm({ ...editForm, cover_date: e.target.value })}
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -516,6 +538,7 @@ const MyCollection = () => {
                 value={editForm.writer}
                 onChange={(e) => setEditForm({ ...editForm, writer: e.target.value })}
                 placeholder="e.g., Stan Lee"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -525,18 +548,19 @@ const MyCollection = () => {
                 value={editForm.artist}
                 onChange={(e) => setEditForm({ ...editForm, artist: e.target.value })}
                 placeholder="e.g., Jack Kirby"
+                className="min-h-[44px]"
               />
             </div>
             
-            {/* CGC/Slab Section - Improved */}
+            {/* CGC/Slab Section - Mobile Optimized */}
             <div className="space-y-4 pt-4 pb-4 border-t border-b bg-accent/10 p-4 rounded-lg">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="is_slab" className="text-base font-semibold cursor-pointer">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 cursor-pointer" onClick={() => setEditForm({ ...editForm, is_slab: !editForm.is_slab })}>
+                  <Label htmlFor="is_slab" className="text-base font-semibold cursor-pointer block">
                     This comic is a CGC/graded slab
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enable if this comic is professionally graded (CGC, CBCS, PGX)
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    Turn this on if the book is in a CGC/CBCS/PGX slab.
                   </p>
                 </div>
                 <Switch
@@ -548,72 +572,74 @@ const MyCollection = () => {
                       setEditForm({ ...editForm, is_slab: false, cgc_grade: "" });
                     }
                   }}
-                  className="data-[state=checked]:bg-primary"
+                  className="data-[state=checked]:bg-primary mt-1 scale-110 sm:scale-100"
                 />
               </div>
               
               {editForm.is_slab && (
-                <div className="space-y-2 animate-in fade-in duration-200">
-                  <Label htmlFor="cgc_grade" className="font-semibold">CGC Grade *</Label>
-                  <div className="flex gap-2">
-                    <Select
+                <div className="space-y-3 animate-in fade-in duration-200 pt-2">
+                  <Label htmlFor="cgc_grade" className="font-semibold text-base">CGC Grade *</Label>
+                  
+                  {/* Mobile-optimized grade picker */}
+                  <Select
+                    value={editForm.cgc_grade}
+                    onValueChange={(value) => setEditForm({ ...editForm, cgc_grade: value })}
+                  >
+                    <SelectTrigger id="cgc_grade" className="min-h-[44px] text-base">
+                      <SelectValue placeholder="Select grade..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <SelectItem value="0.5" className="min-h-[44px] text-base">0.5</SelectItem>
+                      <SelectItem value="1.0" className="min-h-[44px] text-base">1.0</SelectItem>
+                      <SelectItem value="1.5" className="min-h-[44px] text-base">1.5</SelectItem>
+                      <SelectItem value="2.0" className="min-h-[44px] text-base">2.0</SelectItem>
+                      <SelectItem value="2.5" className="min-h-[44px] text-base">2.5</SelectItem>
+                      <SelectItem value="3.0" className="min-h-[44px] text-base">3.0</SelectItem>
+                      <SelectItem value="3.5" className="min-h-[44px] text-base">3.5</SelectItem>
+                      <SelectItem value="4.0" className="min-h-[44px] text-base">4.0</SelectItem>
+                      <SelectItem value="4.5" className="min-h-[44px] text-base">4.5</SelectItem>
+                      <SelectItem value="5.0" className="min-h-[44px] text-base">5.0</SelectItem>
+                      <SelectItem value="5.5" className="min-h-[44px] text-base">5.5</SelectItem>
+                      <SelectItem value="6.0" className="min-h-[44px] text-base">6.0</SelectItem>
+                      <SelectItem value="6.5" className="min-h-[44px] text-base">6.5</SelectItem>
+                      <SelectItem value="7.0" className="min-h-[44px] text-base">7.0</SelectItem>
+                      <SelectItem value="7.5" className="min-h-[44px] text-base">7.5</SelectItem>
+                      <SelectItem value="8.0" className="min-h-[44px] text-base">8.0</SelectItem>
+                      <SelectItem value="8.5" className="min-h-[44px] text-base">8.5</SelectItem>
+                      <SelectItem value="9.0" className="min-h-[44px] text-base">9.0</SelectItem>
+                      <SelectItem value="9.2" className="min-h-[44px] text-base">9.2</SelectItem>
+                      <SelectItem value="9.4" className="min-h-[44px] text-base">9.4</SelectItem>
+                      <SelectItem value="9.6" className="min-h-[44px] text-base">9.6</SelectItem>
+                      <SelectItem value="9.8" className="min-h-[44px] text-base">9.8</SelectItem>
+                      <SelectItem value="9.9" className="min-h-[44px] text-base">9.9</SelectItem>
+                      <SelectItem value="10.0" className="min-h-[44px] text-base">10.0</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <div className="relative">
+                    <Label htmlFor="cgc_grade_manual" className="text-sm text-muted-foreground mb-1.5 block">
+                      Or enter custom grade:
+                    </Label>
+                    <Input
+                      id="cgc_grade_manual"
+                      type="number"
+                      step="0.1"
+                      min="0.5"
+                      max="10.0"
                       value={editForm.cgc_grade}
-                      onValueChange={(value) => setEditForm({ ...editForm, cgc_grade: value })}
-                    >
-                      <SelectTrigger id="cgc_grade" className="flex-1">
-                        <SelectValue placeholder="Select grade..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        <SelectItem value="0.5">0.5</SelectItem>
-                        <SelectItem value="1.0">1.0</SelectItem>
-                        <SelectItem value="1.5">1.5</SelectItem>
-                        <SelectItem value="2.0">2.0</SelectItem>
-                        <SelectItem value="2.5">2.5</SelectItem>
-                        <SelectItem value="3.0">3.0</SelectItem>
-                        <SelectItem value="3.5">3.5</SelectItem>
-                        <SelectItem value="4.0">4.0</SelectItem>
-                        <SelectItem value="4.5">4.5</SelectItem>
-                        <SelectItem value="5.0">5.0</SelectItem>
-                        <SelectItem value="5.5">5.5</SelectItem>
-                        <SelectItem value="6.0">6.0</SelectItem>
-                        <SelectItem value="6.5">6.5</SelectItem>
-                        <SelectItem value="7.0">7.0</SelectItem>
-                        <SelectItem value="7.5">7.5</SelectItem>
-                        <SelectItem value="8.0">8.0</SelectItem>
-                        <SelectItem value="8.5">8.5</SelectItem>
-                        <SelectItem value="9.0">9.0</SelectItem>
-                        <SelectItem value="9.2">9.2</SelectItem>
-                        <SelectItem value="9.4">9.4</SelectItem>
-                        <SelectItem value="9.6">9.6</SelectItem>
-                        <SelectItem value="9.8">9.8</SelectItem>
-                        <SelectItem value="9.9">9.9</SelectItem>
-                        <SelectItem value="10.0">10.0</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="relative flex-1">
-                      <Input
-                        id="cgc_grade_manual"
-                        type="number"
-                        step="0.1"
-                        min="0.5"
-                        max="10.0"
-                        value={editForm.cgc_grade}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!e.target.value || (val >= 0.5 && val <= 10.0)) {
-                            setEditForm({ ...editForm, cgc_grade: e.target.value });
-                          }
-                        }}
-                        placeholder="Or type grade"
-                        className="w-full"
-                      />
-                    </div>
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!e.target.value || (val >= 0.5 && val <= 10.0)) {
+                          setEditForm({ ...editForm, cgc_grade: e.target.value });
+                        }
+                      }}
+                      placeholder="Type grade (0.5 to 10.0)"
+                      className="min-h-[44px] text-base"
+                    />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Select from dropdown or manually enter grade (0.5 to 10.0)
-                  </p>
+                  
                   {editForm.cgc_grade && (parseFloat(editForm.cgc_grade) < 0.5 || parseFloat(editForm.cgc_grade) > 10.0) && (
-                    <p className="text-xs text-destructive font-medium">
+                    <p className="text-xs text-destructive font-medium bg-destructive/10 p-2 rounded">
                       Grade must be between 0.5 and 10.0
                     </p>
                   )}
@@ -628,24 +654,25 @@ const MyCollection = () => {
                 onChange={(e) => setEditForm({ ...editForm, details: e.target.value })}
                 placeholder="e.g., 1st appearance of the black suit, key issue, variant, signed, etc."
                 rows={2}
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="variant_type">Variant Type</Label>
               <Select value={editForm.variant_type} onValueChange={(value) => setEditForm({ ...editForm, variant_type: value })}>
-                <SelectTrigger id="variant_type">
+                <SelectTrigger id="variant_type" className="min-h-[44px]">
                   <SelectValue placeholder="Select variant type..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Direct">Direct</SelectItem>
-                  <SelectItem value="Newsstand">Newsstand</SelectItem>
-                  <SelectItem value="Price Variant">Price Variant</SelectItem>
-                  <SelectItem value="Canadian">Canadian</SelectItem>
-                  <SelectItem value="Mark Jewelers">Mark Jewelers</SelectItem>
-                  <SelectItem value="2nd Print">2nd Print</SelectItem>
-                  <SelectItem value="3rd Print">3rd Print</SelectItem>
-                  <SelectItem value="Facsimile">Facsimile</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="Direct" className="min-h-[44px]">Direct</SelectItem>
+                  <SelectItem value="Newsstand" className="min-h-[44px]">Newsstand</SelectItem>
+                  <SelectItem value="Price Variant" className="min-h-[44px]">Price Variant</SelectItem>
+                  <SelectItem value="Canadian" className="min-h-[44px]">Canadian</SelectItem>
+                  <SelectItem value="Mark Jewelers" className="min-h-[44px]">Mark Jewelers</SelectItem>
+                  <SelectItem value="2nd Print" className="min-h-[44px]">2nd Print</SelectItem>
+                  <SelectItem value="3rd Print" className="min-h-[44px]">3rd Print</SelectItem>
+                  <SelectItem value="Facsimile" className="min-h-[44px]">Facsimile</SelectItem>
+                  <SelectItem value="Other" className="min-h-[44px]">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -656,6 +683,7 @@ const MyCollection = () => {
                 value={editForm.variant_details}
                 onChange={(e) => setEditForm({ ...editForm, variant_details: e.target.value })}
                 placeholder="e.g., Cover B, 1:25 ratio"
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-2">
@@ -666,18 +694,19 @@ const MyCollection = () => {
                 onChange={(e) => setEditForm({ ...editForm, variant_notes: e.target.value })}
                 placeholder="e.g., Campbell Virgin Variant, Diamond Retailer Incentive"
                 rows={2}
+                className="min-h-[44px]"
               />
             </div>
             <div className="space-y-4 pt-2 border-t">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 min-h-[44px]">
                 <input
                   type="checkbox"
                   id="is_key"
                   checked={editForm.is_key}
                   onChange={(e) => setEditForm({ ...editForm, is_key: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded border-gray-300 h-5 w-5"
                 />
-                <Label htmlFor="is_key" className="font-semibold cursor-pointer">
+                <Label htmlFor="is_key" className="font-semibold cursor-pointer text-base">
                   Key Issue
                 </Label>
               </div>
@@ -686,17 +715,17 @@ const MyCollection = () => {
                 <div className="space-y-2">
                   <Label htmlFor="key_type">Key Type</Label>
                   <Select value={editForm.key_type} onValueChange={(value) => setEditForm({ ...editForm, key_type: value })}>
-                    <SelectTrigger id="key_type">
+                    <SelectTrigger id="key_type" className="min-h-[44px]">
                       <SelectValue placeholder="Select key type..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Major Key">Major Key</SelectItem>
-                      <SelectItem value="Minor Key">Minor Key</SelectItem>
-                      <SelectItem value="First Appearance">First Appearance</SelectItem>
-                      <SelectItem value="Cameo">Cameo</SelectItem>
-                      <SelectItem value="Origin">Origin</SelectItem>
-                      <SelectItem value="Death">Death</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="Major Key" className="min-h-[44px]">Major Key</SelectItem>
+                      <SelectItem value="Minor Key" className="min-h-[44px]">Minor Key</SelectItem>
+                      <SelectItem value="First Appearance" className="min-h-[44px]">First Appearance</SelectItem>
+                      <SelectItem value="Cameo" className="min-h-[44px]">Cameo</SelectItem>
+                      <SelectItem value="Origin" className="min-h-[44px]">Origin</SelectItem>
+                      <SelectItem value="Death" className="min-h-[44px]">Death</SelectItem>
+                      <SelectItem value="Other" className="min-h-[44px]">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -715,13 +744,19 @@ const MyCollection = () => {
               </div>
             )}
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setEditingComic(null)} disabled={saving}>
+          <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setEditingComic(null)} 
+              disabled={saving}
+              className="min-h-[44px] w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button 
               onClick={handleSaveEdit} 
               disabled={saving || !editForm.title || (editForm.is_slab && !editForm.cgc_grade) || (editForm.is_slab && editForm.cgc_grade && (parseFloat(editForm.cgc_grade) < 0.5 || parseFloat(editForm.cgc_grade) > 10.0))}
+              className="min-h-[44px] w-full sm:w-auto"
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes
