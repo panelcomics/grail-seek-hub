@@ -126,6 +126,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
                   showTradeBadge={listing.is_for_trade}
                   isSlab={listing.is_slab}
                   grade={listing.cgc_grade}
+                  gradingCompany={listing.grading_company}
                 />
               </div>
             );

@@ -30,6 +30,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
           listed_price,
           images,
           cgc_grade,
+          grading_company,
           condition,
           user_id,
           is_for_trade,
@@ -131,6 +132,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             localPickupAvailable={item.local_pickup}
             isSlab={item.is_slab}
             grade={item.cgc_grade}
+            gradingCompany={item.grading_company}
           />
         );
       })}

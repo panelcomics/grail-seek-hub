@@ -765,7 +765,7 @@ const MyCollection = () => {
             </Button>
             <Button 
               onClick={handleSaveEdit} 
-              disabled={saving || !editForm.title || (editForm.is_slab && !editForm.cgc_grade) || (editForm.is_slab && editForm.cgc_grade && (parseFloat(editForm.cgc_grade) < 0.5 || parseFloat(editForm.cgc_grade) > 10.0))}
+              disabled={saving || !editForm.title || (editForm.is_slab && (!editForm.cgc_grade || !editForm.grading_company))}
               className="min-h-[44px] w-full sm:w-auto"
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
