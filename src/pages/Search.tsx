@@ -54,13 +54,11 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState("ending-soon");
   
   // Filter states
-  const [filterSlab, setFilterSlab] = useState(false);
-  const [filterRaw, setFilterRaw] = useState(false);
-  const [filterAuction, setFilterAuction] = useState(false);
-  const [filterBuyNow, setFilterBuyNow] = useState(false);
+  const [filterFormat, setFilterFormat] = useState<"all" | "slab" | "raw">("all");
+  const [filterSaleType, setFilterSaleType] = useState<"all" | "auction" | "buynow">("all");
   const [filterLocalPickup, setFilterLocalPickup] = useState(false);
-  const [filterCGC, setFilterCGC] = useState(false);
-  const [filterPGX, setFilterPGX] = useState(false);
+  const [filterPriceMin, setFilterPriceMin] = useState<string>("");
+  const [filterPriceMax, setFilterPriceMax] = useState<string>("");
   
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -153,40 +151,80 @@ export default function SearchPage() {
   };
 
   const clearAllFilters = () => {
-    setFilterSlab(false);
-    setFilterRaw(false);
-    setFilterAuction(false);
-    setFilterBuyNow(false);
+    setFilterFormat("all");
+    setFilterSaleType("all");
     setFilterLocalPickup(false);
-    setFilterCGC(false);
-    setFilterPGX(false);
+    setFilterPriceMin("");
+    setFilterPriceMax("");
   };
 
   const getActiveFilters = () => {
     const active: { label: string; key: string }[] = [];
-    if (filterSlab) active.push({ label: "Slab", key: "slab" });
-    if (filterRaw) active.push({ label: "Raw", key: "raw" });
-    if (filterAuction) active.push({ label: "Auction", key: "auction" });
-    if (filterBuyNow) active.push({ label: "Buy Now", key: "buynow" });
+    if (filterFormat === "slab") active.push({ label: "Slab", key: "format" });
+    if (filterFormat === "raw") active.push({ label: "Raw", key: "format" });
+    if (filterSaleType === "auction") active.push({ label: "Auction", key: "saletype" });
+    if (filterSaleType === "buynow") active.push({ label: "Buy Now", key: "saletype" });
     if (filterLocalPickup) active.push({ label: "Local Pickup", key: "local" });
-    if (filterCGC) active.push({ label: "CGC", key: "cgc" });
-    if (filterPGX) active.push({ label: "PGX", key: "pgx" });
+    if (filterPriceMin || filterPriceMax) {
+      const min = filterPriceMin ? `$${filterPriceMin}` : "";
+      const max = filterPriceMax ? `$${filterPriceMax}` : "";
+      const label = min && max ? `Price: ${min}–${max}` : min ? `Min: ${min}` : `Max: ${max}`;
+      active.push({ label, key: "price" });
+    }
     return active;
   };
 
   const removeFilter = (key: string) => {
     switch (key) {
-      case "slab": setFilterSlab(false); break;
-      case "raw": setFilterRaw(false); break;
-      case "auction": setFilterAuction(false); break;
-      case "buynow": setFilterBuyNow(false); break;
+      case "format": setFilterFormat("all"); break;
+      case "saletype": setFilterSaleType("all"); break;
       case "local": setFilterLocalPickup(false); break;
-      case "cgc": setFilterCGC(false); break;
-      case "pgx": setFilterPGX(false); break;
+      case "price": 
+        setFilterPriceMin("");
+        setFilterPriceMax("");
+        break;
     }
   };
 
+  const applyFilters = (items: any[]) => {
+    return items.filter((item) => {
+      // Format filter (Slab/Raw)
+      if (filterFormat !== "all") {
+        const condition = (item.cgc_grade || item.condition || "").toLowerCase();
+        const isSlab = condition.includes('cgc') || condition.includes('cbcs') || condition.includes('slab');
+        if (filterFormat === "slab" && !isSlab) return false;
+        if (filterFormat === "raw" && isSlab) return false;
+      }
+
+      // Sale Type filter (Auction/Buy Now)
+      if (filterSaleType !== "all") {
+        const isAuction = item.for_auction === true;
+        if (filterSaleType === "auction" && !isAuction) return false;
+        if (filterSaleType === "buynow" && isAuction) return false;
+      }
+
+      // Local Pickup filter
+      if (filterLocalPickup) {
+        // Assuming there's a field for this - if not, this will always filter out
+        // You may need to adjust based on actual schema
+        if (!item.local_pickup) return false;
+      }
+
+      // Price Range filter
+      const price = item.listed_price;
+      if (price !== null && price !== undefined) {
+        const min = filterPriceMin ? parseFloat(filterPriceMin) : null;
+        const max = filterPriceMax ? parseFloat(filterPriceMax) : null;
+        if (min !== null && price < min) return false;
+        if (max !== null && price > max) return false;
+      }
+
+      return true;
+    });
+  };
+
   const activeFilters = getActiveFilters();
+  const filteredResults = applyFilters(results);
 
   return (
     <main className="flex-1 bg-background">
@@ -279,96 +317,71 @@ export default function SearchPage() {
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-background rounded-lg border border-border shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-background rounded-lg border border-border shadow-sm">
+                    {/* Format Filter */}
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                        Condition
+                        Format
                       </Label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="slab"
-                            checked={filterSlab}
-                            onCheckedChange={(checked) => setFilterSlab(!!checked)}
-                          />
-                          <Label htmlFor="slab" className="text-sm cursor-pointer">
-                            Slab
-                          </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="raw"
-                            checked={filterRaw}
-                            onCheckedChange={(checked) => setFilterRaw(!!checked)}
-                          />
-                          <Label htmlFor="raw" className="text-sm cursor-pointer">
-                            Raw
-                          </Label>
-                        </div>
-                      </div>
+                      <Select value={filterFormat} onValueChange={(val: any) => setFilterFormat(val)}>
+                        <SelectTrigger className="w-full h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="slab">Slab</SelectItem>
+                          <SelectItem value="raw">Raw</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
+                    {/* Sale Type Filter */}
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                        Listing Type
+                        Sale Type
                       </Label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="auction"
-                            checked={filterAuction}
-                            onCheckedChange={(checked) => setFilterAuction(!!checked)}
-                          />
-                          <Label htmlFor="auction" className="text-sm cursor-pointer">
-                            Auction
-                          </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="buynow"
-                            checked={filterBuyNow}
-                            onCheckedChange={(checked) => setFilterBuyNow(!!checked)}
-                          />
-                          <Label htmlFor="buynow" className="text-sm cursor-pointer">
-                            Buy Now
-                          </Label>
-                        </div>
-                      </div>
+                      <Select value={filterSaleType} onValueChange={(val: any) => setFilterSaleType(val)}>
+                        <SelectTrigger className="w-full h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="auction">Auction</SelectItem>
+                          <SelectItem value="buynow">Buy Now</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
+                    {/* Price Range Filter */}
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                        Grading Company
-                      </Label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="cgc"
-                            checked={filterCGC}
-                            onCheckedChange={(checked) => setFilterCGC(!!checked)}
-                          />
-                          <Label htmlFor="cgc" className="text-sm cursor-pointer">
-                            CGC
-                          </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="pgx"
-                            checked={filterPGX}
-                            onCheckedChange={(checked) => setFilterPGX(!!checked)}
-                          />
-                          <Label htmlFor="pgx" className="text-sm cursor-pointer">
-                            PGX
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                        Other
+                        Price Range
                       </Label>
                       <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={filterPriceMin}
+                          onChange={(e) => setFilterPriceMin(e.target.value)}
+                          className="h-9"
+                        />
+                        <span className="text-muted-foreground">–</span>
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          value={filterPriceMax}
+                          onChange={(e) => setFilterPriceMax(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Local Pickup Filter */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                        Other Options
+                      </Label>
+                      <div className="flex items-center gap-2 h-9">
                         <Checkbox
                           id="local"
                           checked={filterLocalPickup}
@@ -435,13 +448,13 @@ export default function SearchPage() {
 
       {/* Results or No Results */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {isSearching && results.length > 0 && (
+        {isSearching && filteredResults.length > 0 && (
           <div>
             <p className="text-sm text-muted-foreground mb-4">
-              {results.length} results for "{searchQuery}"
+              {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''} {searchQuery && `for "${searchQuery}"`}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {results.map((item) => (
+              {filteredResults.map((item) => (
                 <ItemCard
                   key={item.id}
                   id={item.id}
@@ -456,6 +469,17 @@ export default function SearchPage() {
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {isSearching && filteredResults.length === 0 && results.length > 0 && (
+          <div className="text-center py-12">
+            <p className="text-lg text-muted-foreground mb-4">
+              No listings match your filters.
+            </p>
+            <Button variant="outline" onClick={clearAllFilters}>
+              Clear all filters
+            </Button>
           </div>
         )}
 
