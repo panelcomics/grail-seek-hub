@@ -25,7 +25,15 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
     try {
       let query = supabase
         .from("inventory_items")
-        .select("*")
+        .select(`
+          *,
+          profiles!inventory_items_user_id_fkey(
+            username,
+            city,
+            is_verified_seller,
+            completed_sales_count
+          )
+        `)
         .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
         .in("listing_status", ["active", "listed"])
         .limit(10);
@@ -72,18 +80,23 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
           ) : listings.length > 0 ? (
             listings.map((listing) => {
               const price = resolvePrice(listing);
+              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
               return (
                 <div key={listing.id} className="w-[280px] sm:w-64 flex-shrink-0 snap-center">
                   <ItemCard
                     id={listing.id}
                     title={listing.title || listing.series || "Untitled"}
                     price={price === null ? undefined : price}
-                    condition={listing.condition || "Unknown"}
+                    condition={listing.condition || listing.cgc_grade || "Unknown"}
                     image={getListingImageUrl(listing)}
                     category="comic"
                     isAuction={listing.for_auction}
                     showMakeOffer={listing.offers_enabled}
                     showTradeBadge={listing.is_for_trade}
+                    sellerName={profile?.username}
+                    sellerCity={profile?.city}
+                    isVerifiedSeller={profile?.is_verified_seller}
+                    completedSalesCount={profile?.completed_sales_count || 0}
                   />
                 </div>
               );
