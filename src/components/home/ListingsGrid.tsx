@@ -37,6 +37,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
           for_auction,
           offers_enabled,
           is_featured,
+          local_pickup,
           profiles!inventory_items_user_id_fkey(username, city, state, seller_tier, is_verified_seller, completed_sales_count)
         `)
         .eq("listing_status", "listed")
@@ -84,7 +85,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="space-y-4">
             <Skeleton className="h-64 w-full" />
@@ -105,7 +106,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {listings.map((item) => {
         const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
         const displayTitle = item.title || `${item.series || "Unknown"} #${item.issue_number || "?"}`;
@@ -117,7 +118,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             title={displayTitle}
             price={item.listed_price || 0}
             image={getImageUrl(item)}
-            condition={item.cgc_grade || item.condition || ""}
+            condition={item.cgc_grade || item.condition || "Raw"}
             sellerName={profile?.username}
             sellerCity={profile?.city}
             sellerBadge={profile?.seller_tier}
@@ -125,6 +126,8 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             completedSalesCount={profile?.completed_sales_count || 0}
             category="comic"
             showTradeBadge={item.is_for_trade}
+            isAuction={item.for_auction}
+            localPickupAvailable={item.local_pickup}
           />
         );
       })}

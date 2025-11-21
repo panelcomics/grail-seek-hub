@@ -529,6 +529,8 @@ export default function SearchPage() {
                   sellerName={item.profiles?.username}
                   isVerifiedSeller={item.profiles?.is_verified_seller}
                   completedSalesCount={item.profiles?.completed_sales_count}
+                  isAuction={item.for_auction}
+                  localPickupAvailable={item.local_pickup}
                 />
               ))}
             </div>
