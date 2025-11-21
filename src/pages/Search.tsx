@@ -103,7 +103,8 @@ export default function SearchPage() {
           )
         `)
         .or(`title.ilike.%${query}%,series.ilike.%${query}%,issue_number.ilike.%${query}%`)
-        .eq("listing_status", "active")
+        .eq("listing_status", "listed")
+        .eq("for_sale", true)
         .limit(20);
 
       if (error) throw error;
