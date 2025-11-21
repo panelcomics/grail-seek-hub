@@ -131,6 +131,11 @@ export default function SellComic() {
       return;
     }
 
+    if (forSale && (!shippingPrice || parseFloat(shippingPrice) < 0)) {
+      toast.error("Please enter a valid shipping price");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -142,14 +147,21 @@ export default function SellComic() {
         in_search_of: forTrade ? inSearchOf.trim() : null,
         trade_notes: forTrade ? tradeNotes.trim() : null,
         cgc_grade: cgcCert.trim() || null, // Update CGC cert
+        for_sale: forSale,
+        for_auction: forSale && listingType === "auction",
       };
+
+      console.log("Updating inventory_items with:", inventoryUpdate);
 
       const { error: updateError } = await supabase
         .from("inventory_items")
         .update(inventoryUpdate)
         .eq("id", comic.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Error updating inventory_items:", updateError);
+        throw new Error(`Failed to update inventory: ${updateError.message}`);
+      }
 
       // If listing for sale, create a listing in the listings table
       if (forSale) {
@@ -159,6 +171,7 @@ export default function SellComic() {
         const listingData: any = {
           user_id: user.id,
           inventory_item_id: comic.id,
+          comic_id: null, // Legacy field - now optional
           type: listingType,
           image_url: comic.images?.front || null,
           title: listingTitle,
@@ -184,11 +197,20 @@ export default function SellComic() {
           listingData.ends_at = endsAt.toISOString();
         }
 
-        const { error: listingError } = await supabase
-          .from("listings")
-          .insert(listingData);
+        console.log("Inserting listing with data:", listingData);
 
-        if (listingError) throw listingError;
+        const { data: insertedListing, error: listingError } = await supabase
+          .from("listings")
+          .insert(listingData)
+          .select()
+          .single();
+
+        if (listingError) {
+          console.error("Error inserting listing:", listingError);
+          throw new Error(`Failed to create listing: ${listingError.message}`);
+        }
+
+        console.log("Successfully created listing:", insertedListing);
       }
 
       const messages = [];
@@ -197,9 +219,10 @@ export default function SellComic() {
       
       toast.success(`Item ${messages.join(" and ")}!`);
       navigate("/my-inventory");
-    } catch (error) {
-      console.error("Error creating listing:", error);
-      toast.error("Failed to create listing");
+    } catch (error: any) {
+      console.error("Full error creating listing:", error);
+      const errorMessage = error?.message || "Failed to create listing. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

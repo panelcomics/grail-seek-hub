@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
@@ -82,6 +83,7 @@ const MyCollection = () => {
     writer: "",
     artist: "",
     cgc_grade: "",
+    is_slab: false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -198,6 +200,7 @@ const MyCollection = () => {
       writer: (comic as any).writer || "",
       artist: (comic as any).artist || "",
       cgc_grade: (comic as any).cgc_grade || "",
+      is_slab: (comic as any).is_slab || false,
     });
   };
 
@@ -225,6 +228,7 @@ const MyCollection = () => {
           writer: editForm.writer || null,
           artist: editForm.artist || null,
           cgc_grade: editForm.cgc_grade || null,
+          is_slab: editForm.is_slab,
         })
         .eq("id", editingComic.id);
 
@@ -474,14 +478,32 @@ const MyCollection = () => {
                 placeholder="e.g., Jack Kirby"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="cgc_grade">CGC / Barcode / Cert # (Optional)</Label>
-              <Input
-                id="cgc_grade"
-                value={editForm.cgc_grade}
-                onChange={(e) => setEditForm({ ...editForm, cgc_grade: e.target.value })}
-                placeholder="e.g., CGC cert number or barcode"
-              />
+            <div className="space-y-4 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="is_slab" className="font-semibold">
+                  Graded Slab (CGC, CBCS, PGX)
+                </Label>
+                <Switch
+                  id="is_slab"
+                  checked={editForm.is_slab}
+                  onCheckedChange={(checked) => setEditForm({ ...editForm, is_slab: checked })}
+                />
+              </div>
+              
+              {editForm.is_slab && (
+                <div className="space-y-2">
+                  <Label htmlFor="cgc_grade">Grade *</Label>
+                  <Input
+                    id="cgc_grade"
+                    value={editForm.cgc_grade}
+                    onChange={(e) => setEditForm({ ...editForm, cgc_grade: e.target.value })}
+                    placeholder="e.g., 9.8, 9.6, 9.4"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter the numeric grade (e.g., 9.8)
+                  </p>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="details">Details / Significance</Label>
