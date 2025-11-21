@@ -57,7 +57,7 @@ export function HeroSection() {
               </div>
 
               {/* Hero image - order 2 on mobile (shown here), order 3 on desktop (shown on right) */}
-              <div className="order-2 lg:hidden w-screen -ml-4 sm:ml-0 sm:w-full">
+              <div className="order-2 lg:hidden w-screen -ml-4 sm:ml-0 sm:w-full -mt-2 sm:mt-0">
                 <div className="relative rounded-none sm:rounded-2xl overflow-hidden shadow-2xl">
                   <img
                     src={heroComics}

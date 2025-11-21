@@ -42,7 +42,7 @@ export function FoundingSellersBanner() {
     <div className="bg-gradient-to-r from-primary/90 via-primary to-primary/90 text-primary-foreground py-1.5 px-3 sm:px-4 relative overflow-hidden">
       <div className="container mx-auto max-w-6xl">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] sm:text-xs font-semibold flex-1 leading-tight pr-1">
+          <p className="text-[9px] sm:text-xs font-semibold flex-1 leading-tight pr-1">
             Founding Sellers (First 100): Lifetime 2% Fee • Stripe fees apply (2.9% + $0.30)
           </p>
           <Button
