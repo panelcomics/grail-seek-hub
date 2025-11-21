@@ -38,6 +38,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
           offers_enabled,
           is_featured,
           local_pickup,
+          is_slab,
           profiles!inventory_items_user_id_fkey(username, city, state, seller_tier, is_verified_seller, completed_sales_count)
         `)
         .eq("listing_status", "listed")
@@ -128,6 +129,8 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             showTradeBadge={item.is_for_trade}
             isAuction={item.for_auction}
             localPickupAvailable={item.local_pickup}
+            isSlab={item.is_slab}
+            grade={item.cgc_grade}
           />
         );
       })}

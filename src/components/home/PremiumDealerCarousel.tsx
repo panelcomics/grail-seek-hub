@@ -124,6 +124,8 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
                   isAuction={listing.for_auction}
                   showMakeOffer={listing.offers_enabled}
                   showTradeBadge={listing.is_for_trade}
+                  isSlab={listing.is_slab}
+                  grade={listing.cgc_grade}
                 />
               </div>
             );

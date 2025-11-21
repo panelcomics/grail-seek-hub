@@ -559,6 +559,8 @@ export default function SearchPage() {
                   completedSalesCount={item.profiles?.completed_sales_count}
                   isAuction={item.for_auction}
                   localPickupAvailable={item.local_pickup}
+                  isSlab={item.is_slab}
+                  grade={item.cgc_grade}
                 />
               ))}
             </div>
