@@ -15,6 +15,7 @@ import { ComicVinePicker } from "./ComicVinePicker";
 import { PricingHelper } from "./scanner/PricingHelper";
 import { extractKeyNotes } from "@/lib/scanHistoryUtils";
 import { ImageManagement } from "./ImageManagement";
+import { useSellerFee } from "@/hooks/useSellerFee";
 
 interface ComicVinePick {
   id: number;
@@ -49,6 +50,7 @@ interface ScannerListingFormProps {
 export function ScannerListingForm({ imageUrl, initialData = {}, confidence, comicvineResults, selectedPick }: ScannerListingFormProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isFoundingSeller, feeRate } = useSellerFee(user?.id);
   const [submitting, setSubmitting] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [loadingPricing, setLoadingPricing] = useState(false);
@@ -618,6 +620,11 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="0.00"
               />
+              <p className="text-xs text-muted-foreground">
+                {isFoundingSeller 
+                  ? "Your seller fee: 2% GrailSeeker fee + Stripe processing (2.9% + $0.30)" 
+                  : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing (2.9% + $0.30)"}
+              </p>
             </div>
             
             {title && (
