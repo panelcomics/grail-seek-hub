@@ -102,8 +102,8 @@ export function AppHeader() {
           </span>
         </Link>
 
-        {/* Centered Beta pill on mobile only */}
-        <span className="md:hidden absolute left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[9px] font-semibold px-1.5 py-0.5 rounded-full my-1">
+        {/* Centered Beta pill on mobile only - inside header bar */}
+        <span className="md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-[9px] font-semibold px-1.5 py-0.5 rounded-full">
           Beta
         </span>
 
