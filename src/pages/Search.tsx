@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { ScanButton } from "@/components/scanner/ScanButton";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +49,7 @@ const GRADE_OPTIONS = ["All", "10.0", "9.9", "9.8", "9.6", "9.4", "9.2", "9.0", 
 const PUBLISHER_OPTIONS = ["All", "Marvel", "DC", "Image", "Dark Horse", "IDW", "Other"];
 
 export default function SearchPage() {
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -67,6 +69,15 @@ export default function SearchPage() {
   const { toast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load search from URL params on mount
+  useEffect(() => {
+    const queryParam = searchParams.get("q");
+    if (queryParam) {
+      setSearchQuery(queryParam);
+      handleSearch(queryParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -283,7 +294,7 @@ export default function SearchPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setShowDropdown(true)}
-                className="h-14 pl-12 pr-16 text-base rounded-full shadow-md border-0 bg-background"
+                className="h-14 pl-12 pr-16 text-base rounded-full shadow-lg border border-border bg-white"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
                 <ScanButton onScanResult={handleScanResult} />
