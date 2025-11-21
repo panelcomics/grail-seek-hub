@@ -3,11 +3,12 @@ import { Input } from "@/components/ui/input";
 import { ScanButton } from "@/components/scanner/ScanButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -151,6 +152,42 @@ export default function SearchPage() {
     handleSearch(term);
   };
 
+  const clearAllFilters = () => {
+    setFilterSlab(false);
+    setFilterRaw(false);
+    setFilterAuction(false);
+    setFilterBuyNow(false);
+    setFilterLocalPickup(false);
+    setFilterCGC(false);
+    setFilterPGX(false);
+  };
+
+  const getActiveFilters = () => {
+    const active: { label: string; key: string }[] = [];
+    if (filterSlab) active.push({ label: "Slab", key: "slab" });
+    if (filterRaw) active.push({ label: "Raw", key: "raw" });
+    if (filterAuction) active.push({ label: "Auction", key: "auction" });
+    if (filterBuyNow) active.push({ label: "Buy Now", key: "buynow" });
+    if (filterLocalPickup) active.push({ label: "Local Pickup", key: "local" });
+    if (filterCGC) active.push({ label: "CGC", key: "cgc" });
+    if (filterPGX) active.push({ label: "PGX", key: "pgx" });
+    return active;
+  };
+
+  const removeFilter = (key: string) => {
+    switch (key) {
+      case "slab": setFilterSlab(false); break;
+      case "raw": setFilterRaw(false); break;
+      case "auction": setFilterAuction(false); break;
+      case "buynow": setFilterBuyNow(false); break;
+      case "local": setFilterLocalPickup(false); break;
+      case "cgc": setFilterCGC(false); break;
+      case "pgx": setFilterPGX(false); break;
+    }
+  };
+
+  const activeFilters = getActiveFilters();
+
   return (
     <main className="flex-1 bg-background">
       {/* Search Header */}
@@ -222,21 +259,27 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Filters and Sort */}
+      {/* Filters and Sort Bar */}
       {isSearching && (
-        <div className="border-b border-border bg-background">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="border-b border-border bg-muted/30 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            {/* Main Control Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <Collapsible open={showFilters} onOpenChange={setShowFilters}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button variant="outline" size="sm" className="gap-2 h-9">
                     <SlidersHorizontal className="h-4 w-4" />
                     Filters
+                    {activeFilters.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                        {activeFilters.length}
+                      </Badge>
+                    )}
                     <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-background rounded-lg border border-border shadow-sm">
                     <div className="space-y-2">
                       <Label className="text-xs font-semibold text-muted-foreground uppercase">
                         Condition
@@ -341,20 +384,51 @@ export default function SearchPage() {
               </Collapsible>
 
               <div className="flex items-center gap-2">
-                <Label className="text-sm text-muted-foreground">Sort by:</Label>
+                <Label className="text-sm text-muted-foreground hidden sm:inline">Sort:</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[160px] h-9">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background z-50">
                     <SelectItem value="ending-soon">Ending Soon</SelectItem>
                     <SelectItem value="newly-listed">Newly Listed</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="price-low">Price: Low → High</SelectItem>
+                    <SelectItem value="price-high">Price: High → Low</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Active Filter Chips */}
+            {activeFilters.length > 0 && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border flex-wrap">
+                {activeFilters.map((filter) => (
+                  <Badge
+                    key={filter.key}
+                    variant="secondary"
+                    className="gap-1 pr-1 py-1 h-7"
+                  >
+                    {filter.label}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 p-0 hover:bg-transparent"
+                      onClick={() => removeFilter(filter.key)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
