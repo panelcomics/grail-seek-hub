@@ -98,7 +98,6 @@ export default function SearchPage() {
           *,
           profiles:owner_id (
             username,
-            city,
             is_verified_seller,
             completed_sales_count
           )
@@ -361,7 +360,6 @@ export default function SearchPage() {
                   image={item.images?.[0] || "/placeholder.svg"}
                   category="comic"
                   sellerName={item.profiles?.username}
-                  sellerCity={item.profiles?.city}
                   isVerifiedSeller={item.profiles?.is_verified_seller}
                   completedSalesCount={item.profiles?.completed_sales_count}
                 />
