@@ -33,6 +33,9 @@ export default function Index() {
         {/* Hero Section */}
         <HeroSection />
         
+        {/* Trust Row */}
+        <TrustSection />
+        
         {/* Fees Section - Moved to appear right after hero */}
         <FeesSection />
         
@@ -73,9 +76,6 @@ export default function Index() {
 
         {/* Why GrailSeeker */}
         <BenefitBlocks />
-        
-        {/* Trust & Safety */}
-        <TrustSection />
       </main>
     </>
   );

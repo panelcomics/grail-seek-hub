@@ -28,21 +28,21 @@ export function HeroSection() {
 
   return (
     <>
-      <section className="relative py-2 sm:py-3 md:py-4 px-4 overflow-hidden bg-background">
+      <section className="relative py-4 sm:py-6 md:py-8 px-4 overflow-hidden bg-gradient-to-b from-[hsl(30,15%,97%)] to-[hsl(30,10%,94%)]">
         <div className="container mx-auto max-w-7xl relative z-10">
-          <div className="flex flex-col lg:flex-row gap-8 md:gap-12 items-center">
+          <div className="flex flex-col lg:flex-row gap-6 md:gap-10 items-center">
             {/* Left side - Text content */}
-            <div className="w-full lg:w-1/2 space-y-4 md:space-y-6">
+            <div className="w-full lg:w-1/2 space-y-4 md:space-y-5">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.2] sm:leading-[1.15]">
                 The Trusted Marketplace for{" "}
                 <span className="text-primary drop-shadow-lg">Comic Grails & Keys</span>
               </h1>
               
-              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-foreground/80 leading-relaxed">
-                Buy, sell, and trade slabs, keys, and runs from verified collectors.
+              <p className="text-base sm:text-lg md:text-xl text-foreground/80 leading-relaxed">
+                The easiest way to buy, sell, and trade slabs, keys, and grails from verified collectors.
               </p>
 
-              <div className="flex flex-wrap gap-3 md:gap-4 py-2 md:py-3">
+              <div className="flex flex-wrap gap-3 md:gap-4 py-2 text-muted-foreground">
                 <div className="flex items-center gap-2 text-xs sm:text-sm">
                   <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                   <span>Built for collectors in public beta</span>
@@ -57,7 +57,7 @@ export function HeroSection() {
                 <Button 
                   size="lg" 
                   onClick={scrollToListings}
-                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#E60000] hover:bg-[#FF1A1A] font-bold min-h-[56px]"
+                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 shadow-[0_4px_14px_rgba(230,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(230,0,0,0.35)] transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#E60000] hover:bg-[#FF1A1A] font-bold min-h-[56px]"
                 >
                   Start Hunting Grails
                 </Button>
@@ -65,18 +65,9 @@ export function HeroSection() {
                   size="lg" 
                   variant="outline"
                   onClick={() => navigate('/marketplace?filter=local')}
-                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 border-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] font-bold min-h-[56px]"
+                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 border-2 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] font-semibold min-h-[56px]"
                 >
                   Browse Local Deals
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="secondary"
-                  onClick={() => navigate('/scanner')}
-                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-7 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] font-bold min-h-[56px]"
-                >
-                  <Smartphone className="h-5 w-5" />
-                  Scan & List a Comic
                 </Button>
               </div>
             </div>
@@ -87,7 +78,7 @@ export function HeroSection() {
                 <img
                   src={heroComics}
                   alt="Vintage comic book collection featuring Marvel and DC classics"
-                  className="w-full h-64 sm:h-80 lg:h-96 object-cover object-center"
+                  className="w-full h-80 sm:h-96 lg:h-[500px] object-cover object-center"
                 />
               </div>
             </div>
