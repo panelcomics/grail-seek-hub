@@ -361,11 +361,26 @@ export default function SellComic() {
                               required={forSale}
                             />
                             {!feeLoading && (
-                              <p className="text-xs text-muted-foreground">
-                                {isFoundingSeller 
-                                  ? "Your seller fee: 2% GrailSeeker fee + Stripe processing (2.9% + $0.30)" 
-                                  : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing (2.9% + $0.30)"}
-                              </p>
+                              <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground">
+                                  {isFoundingSeller 
+                                    ? "Your seller fee: 2% GrailSeeker fee + Stripe processing (2.9% + $0.30)" 
+                                    : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing (2.9% + $0.30)"}
+                                </p>
+                                {price && parseFloat(price) > 0 && (() => {
+                                  const priceNum = parseFloat(price);
+                                  const platformFee = (feeRate * priceNum).toFixed(2);
+                                  const stripeFee = (0.029 * priceNum + 0.30).toFixed(2);
+                                  const totalFees = (parseFloat(platformFee) + parseFloat(stripeFee)).toFixed(2);
+                                  const payout = (priceNum - parseFloat(totalFees)).toFixed(2);
+                                  
+                                  return (
+                                    <p className="text-xs text-muted-foreground">
+                                      Estimated total fees: ${totalFees}. Estimated payout to you: ${payout}. (Includes ${platformFee} GrailSeeker fee + ${stripeFee} Stripe fee.)
+                                    </p>
+                                  );
+                                })()}
+                              </div>
                             )}
                           </div>
                         ) : (
