@@ -97,12 +97,21 @@ export default function SearchPage() {
 
   const handleSearch = async (query: string) => {
     const trimmed = query.trim();
+    
+    if (!trimmed) {
+      setIsSearching(false);
+      setResults([]);
+      return;
+    }
+
     const normalized = trimmed.toLowerCase().replace(/#/g, " ");
     const tokens = normalized.split(/\s+/).filter(Boolean);
     const numberTokens = tokens.filter((t) => /^\d+$/.test(t));
     const textTokens = tokens.filter((t) => !/^\d+$/.test(t));
     const textTerm = textTokens.join(" ");
     const issueTerm = numberTokens[0];
+
+    console.log('[Search] Query:', query, '| Text:', textTerm, '| Issue:', issueTerm);
 
     setIsSearching(true);
     setShowDropdown(false);
@@ -133,20 +142,28 @@ export default function SearchPage() {
         }
         const orFilter = orParts.join(",");
         queryBuilder = queryBuilder.or(orFilter);
+        console.log('[Search] OR filter:', orFilter);
       }
 
       const { data, error } = await queryBuilder;
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Search] Database error:', error);
+        throw error;
+      }
 
+      console.log('[Search] Results:', data?.length || 0, 'items');
       setResults(data || []);
     } catch (error: any) {
-      console.error("Search error:", error);
+      console.error('[Search] Search failed:', error);
       toast({
         title: "Search failed",
         description: error.message || "Unable to search",
         variant: "destructive",
       });
+      setResults([]);
+    } finally {
+      setIsSearching(true); // Keep searching state to show results UI
     }
   };
 
