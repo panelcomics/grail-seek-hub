@@ -42,6 +42,7 @@ interface ItemCardProps {
   isSlab?: boolean; // Source of truth from database
   grade?: string | null; // Grade from database
   gradingCompany?: string | null; // Grading company (CGC, CBCS, PGX)
+  certificationNumber?: string | null; // Certification/barcode number
 }
 
 const ItemCard = ({ 
@@ -78,6 +79,7 @@ const ItemCard = ({
   isSlab = false,
   grade = null,
   gradingCompany = null,
+  certificationNumber = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -106,13 +108,22 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Display badge text based on slab status, grading company, and grade
+  // Display badge text based on slab status, grading company, grade, and cert number
   const getBadgeText = () => {
-    if (isSlab) {
+    if (isSlab && grade) {
       const company = gradingCompany || 'CGC';
-      return grade ? `${company} ${grade}` : 'Slab';
+      const baseText = `${company} ${grade}`;
+      if (certificationNumber) {
+        return `${baseText} • Cert #${certificationNumber}`;
+      }
+      return baseText;
     }
-    return 'Raw';
+    
+    if (!isSlab && condition) {
+      return condition;
+    }
+
+    return null;
   };
 
   return (

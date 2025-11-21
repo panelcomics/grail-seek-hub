@@ -1152,6 +1152,7 @@ export type Database = {
       inventory_items: {
         Row: {
           artist: string | null
+          certification_number: string | null
           cgc_grade: string | null
           comicvine_issue_id: string | null
           comicvine_volume_id: string | null
@@ -1206,6 +1207,7 @@ export type Database = {
         }
         Insert: {
           artist?: string | null
+          certification_number?: string | null
           cgc_grade?: string | null
           comicvine_issue_id?: string | null
           comicvine_volume_id?: string | null
@@ -1260,6 +1262,7 @@ export type Database = {
         }
         Update: {
           artist?: string | null
+          certification_number?: string | null
           cgc_grade?: string | null
           comicvine_issue_id?: string | null
           comicvine_volume_id?: string | null

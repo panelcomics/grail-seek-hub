@@ -355,6 +355,13 @@ export default function ListingDetail() {
                   <p className="text-sm text-muted-foreground">{listing.condition_notes}</p>
                 </div>
               )}
+              
+              {listing.inventory_items_public?.is_slab && listing.inventory_items_public?.certification_number && (
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-2">Certification Number</h3>
+                  <p className="text-sm text-muted-foreground">{listing.inventory_items_public.certification_number}</p>
+                </div>
+              )}
 
               {!checkoutMode ? (
                 <Card>

@@ -562,6 +562,7 @@ export default function SearchPage() {
                   isSlab={item.is_slab}
                   grade={item.cgc_grade}
                   gradingCompany={item.grading_company}
+                  certificationNumber={item.certification_number}
                 />
               ))}
             </div>

@@ -100,6 +100,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                     isSlab={listing.is_slab}
                     grade={listing.cgc_grade}
                     gradingCompany={listing.grading_company}
+                    certificationNumber={listing.certification_number}
                   />
                 </div>
               );

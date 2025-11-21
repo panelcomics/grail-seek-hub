@@ -31,6 +31,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
           images,
           cgc_grade,
           grading_company,
+          certification_number,
           condition,
           user_id,
           is_for_trade,
@@ -133,6 +134,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             isSlab={item.is_slab}
             grade={item.cgc_grade}
             gradingCompany={item.grading_company}
+            certificationNumber={item.certification_number}
           />
         );
       })}
