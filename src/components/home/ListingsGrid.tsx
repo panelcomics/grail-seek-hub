@@ -37,7 +37,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
           for_auction,
           offers_enabled,
           is_featured,
-          profiles!inventory_items_user_id_fkey(username, city, state, seller_tier)
+          profiles!inventory_items_user_id_fkey(username, city, state, seller_tier, is_verified_seller, completed_sales_count)
         `)
         .eq("listing_status", "listed")
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
@@ -121,6 +121,8 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             sellerName={profile?.username}
             sellerCity={profile?.city}
             sellerBadge={profile?.seller_tier}
+            isVerifiedSeller={profile?.is_verified_seller}
+            completedSalesCount={profile?.completed_sales_count || 0}
             category="comic"
             showTradeBadge={item.is_for_trade}
           />

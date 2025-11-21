@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Package, Heart, Clock, Shield, Palette, Eye } from "lucide-react";
+import { MapPin, Package, Heart, Clock, Shield, Palette, Eye, Star } from "lucide-react";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { SellerBadge } from "@/components/SellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
@@ -80,7 +80,7 @@ const ItemCard = ({
   const [shipNationwide, setShipNationwide] = useState(false);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
   
-  const isUrgent = countdown > 0 && countdown <= 180; // Last 3 minutes
+  const isUrgent = countdown > 0 && countdown <= 600; // Last 10 minutes
 
   useEffect(() => {
     if (!isAuction || countdown <= 0) return;
@@ -93,229 +93,186 @@ const ItemCard = ({
   }, [isAuction, countdown]);
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    if (seconds <= 0) return "Ended";
+    
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
   };
+
+  // Parse grade from condition string (e.g., "CGC 9.8", "Raw NM", "7.5")
+  const parseGrade = (condition: string): { grade: string | null; isSlab: boolean } => {
+    const gradeMatch = condition.match(/(\d+\.?\d*)/);
+    const grade = gradeMatch ? gradeMatch[1] : null;
+    const isSlab = condition.toLowerCase().includes('cgc') || 
+                   condition.toLowerCase().includes('cbcs') || 
+                   condition.toLowerCase().includes('slab');
+    return { grade, isSlab };
+  };
+
+  const { grade, isSlab } = parseGrade(condition);
+  const isRaw = condition.toLowerCase().includes('raw') || (!isSlab && !grade);
+
   return (
     <Link to={`/item/${id}`}>
-      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] cursor-pointer bg-card border-2 shadow-md h-full flex flex-col ${
-        isUrgent ? 'animate-urgent-glow' : ''
+      <Card className={`group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer bg-card border rounded-xl h-full flex flex-col ${
+        isUrgent ? 'ring-2 ring-destructive' : ''
       }`}>
-        <div className="relative aspect-[3/4] sm:aspect-[2/3] overflow-hidden bg-muted flex-shrink-0">
+        {/* Full-bleed image */}
+        <div className="relative aspect-[3/4] overflow-hidden bg-muted flex-shrink-0">
           <img
             src={image}
             alt={title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110 filter saturate-110"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
-          <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+          
+          {/* Top-left badges: Grade and Slab/Raw */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+            {grade && (
+              <Badge className="bg-black/80 hover:bg-black/90 text-white font-bold text-xs px-2 py-1 backdrop-blur-sm">
+                {isSlab ? `CGC ${grade}` : grade}
+              </Badge>
+            )}
+            {isSlab ? (
+              <Badge className="bg-blue-600/90 hover:bg-blue-600 text-white font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm">
+                Slab
+              </Badge>
+            ) : isRaw ? (
+              <Badge className="bg-gray-600/90 hover:bg-gray-600 text-white font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm">
+                Raw
+              </Badge>
+            ) : null}
+            {showTradeBadge && (
+              <Badge className="bg-green-600/90 hover:bg-green-700 text-white font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm flex items-center gap-1">
+                <Package className="h-2.5 w-2.5" />
+                TRADE
+              </Badge>
+            )}
+            {category === "art" && (
+              <Badge className={`font-semibold text-[10px] px-2 py-0.5 backdrop-blur-sm ${
+                isVerifiedArtist 
+                  ? "bg-purple-600/90 hover:bg-purple-700" 
+                  : "bg-purple-500/90 hover:bg-purple-600"
+              } text-white flex items-center gap-1`}>
+                <Palette className="h-2.5 w-2.5" />
+                ART
+              </Badge>
+            )}
+          </div>
+          
+          {/* Top-right: Favorite and Watch buttons */}
+          <div className="absolute top-2 right-2 flex items-center gap-1">
             <FavoriteButton listingId={id} showCount />
             {isAuction && (
               <Button
                 size="icon"
                 variant={isWatching ? "default" : "secondary"}
-                className="h-8 w-8 rounded-full shadow-md"
+                className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   toggleWatch();
                 }}
               >
-                <Eye className={`h-4 w-4 ${isWatching ? 'fill-current' : ''}`} />
+                <Eye className={`h-3.5 w-3.5 ${isWatching ? 'fill-current' : ''}`} />
               </Button>
             )}
           </div>
-          <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {showTradeBadge && (
-              <Badge className="font-semibold bg-green-600 hover:bg-green-700 text-white flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                TRADE
-              </Badge>
-            )}
-            {category === "art" && (
-              <Badge className={`font-semibold ${isVerifiedArtist ? "bg-purple-600 hover:bg-purple-700" : "bg-purple-500 hover:bg-purple-600"} text-white flex items-center gap-1`}>
-                <Palette className="h-3 w-3" />
-                {isVerifiedArtist ? "Original Art by Verified Artist" : "Original Art"}
-              </Badge>
-            )}
-            {showEndingSoonBadge && (
-              <Badge className="font-semibold bg-destructive hover:bg-destructive text-destructive-foreground">
-                <Clock className="h-3 w-3 mr-1" />
-                Ending Soon
-              </Badge>
-            )}
-            <Badge variant="secondary" className="font-semibold">
-              {condition}
-            </Badge>
-            {isClaimSale && (
-              <Badge className="font-semibold bg-orange-500 hover:bg-orange-600 text-white animate-claim-fade">
-                Claim Mode: ${price} - {itemsLeft} Left
-              </Badge>
-            )}
-            {isAuction && !isClaimSale && !showEndingSoonBadge && (
-              <Badge variant="destructive" className="font-semibold animate-pulse">
-                $2 BIN
-              </Badge>
-            )}
-          </div>
+
+          {/* Time remaining badge at bottom */}
           {isAuction && countdown > 0 && (
-            <div className={`absolute bottom-3 left-3 right-3 backdrop-blur px-3 py-2 rounded-md flex items-center justify-center gap-2 font-bold ${
-              isUrgent ? 'bg-destructive text-destructive-foreground' : 'bg-destructive/90 text-destructive-foreground'
+            <div className={`absolute bottom-0 left-0 right-0 px-2 py-1.5 flex items-center justify-center gap-1.5 text-xs font-bold ${
+              isUrgent 
+                ? 'bg-destructive text-destructive-foreground' 
+                : 'bg-black/70 text-white backdrop-blur-sm'
             }`}>
-              <Clock className="h-4 w-4" />
-              {formatTime(countdown)}
+              <Clock className="h-3 w-3" />
+              Ends in {formatTime(countdown)}
             </div>
           )}
         </div>
         
-        <div className="p-3 sm:p-4 space-y-2.5 sm:space-y-3 flex-1 flex flex-col">
-          <div className="flex-1">
-            <h3 className="line-clamp-2 text-sm sm:text-base mb-2 group-hover:text-primary transition-colors leading-snug">
-              <span className="font-bold">{title}</span>
-            </h3>
-            
-            {/* Variant info */}
-            {variantType && (
-              <Badge variant="outline" className="text-xs mb-2">
-                {variantType}
+        {/* Card content */}
+        <div className="p-3 flex-1 flex flex-col">
+          {/* Title */}
+          <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+            {title}
+          </h3>
+          
+          {/* Seller info with trust badges */}
+          {sellerName && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2 flex-wrap">
+              {isVerifiedSeller && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Shield className="h-3 w-3 text-primary" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Verified Seller</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {completedSalesCount >= 10 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Pro Seller ({completedSalesCount}+ sales)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <span className="font-medium truncate">{sellerName}</span>
+            </div>
+          )}
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Price section */}
+          <div className="space-y-2 mt-2">
+            {price !== null && price !== undefined && price > 0 ? (
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">
+                  {isAuction ? "Current bid" : "Price"}
+                </div>
+                <div className="text-2xl font-bold text-primary">
+                  ${price.toLocaleString()}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm font-medium text-muted-foreground">
+                {showMakeOffer ? "Accepting Offers" : "Contact seller"}
+              </div>
+            )}
+
+            {/* Local pickup indicator */}
+            {isLocal && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                <span>Local pickup available</span>
+              </div>
+            )}
+
+            {/* Listing type badge */}
+            {isAuction && (
+              <Badge variant="outline" className="text-[10px] w-fit">
+                Auction
               </Badge>
             )}
-            
-            {variantDetails && (
-              <p className="text-xs text-muted-foreground mb-2">
-                {variantDetails}
-              </p>
-            )}
-            
-            {/* Art subcategory and COA */}
-            {category === "art" && subcategory && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-muted-foreground capitalize">
-                  {subcategory.replace(/_/g, " ")}
-                </span>
-                {hasCoa ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="cursor-help">
-                          <Shield className="h-3.5 w-3.5 text-blue-500" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Verified with Certificate of Authenticity.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="cursor-help">
-                          <Shield className="h-3.5 w-3.5 text-gray-400" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>COA not provided — verify authenticity before purchase.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
-            )}
-            
-            {/* Seller Info */}
-             {sellerName && sellerCity && (
-               <div className="flex items-center justify-between gap-2 mb-3">
-                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
-                   {isVerifiedSeller && (
-                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20 flex items-center gap-0.5">
-                       <Shield className="h-3 w-3" />
-                     </Badge>
-                   )}
-                   {completedSalesCount >= 10 && (
-                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20 flex items-center gap-0.5">
-                       <Shield className="h-3 w-3 fill-current" />
-                     </Badge>
-                   )}
-                   <span className="font-medium truncate">{sellerName}</span>
-                   <span>•</span>
-                   <span className="truncate">{sellerCity}</span>
-                   {sellerBadge && (
-                     <>
-                       <span>•</span>
-                       <SellerBadge tier={sellerBadge} className="shrink-0" />
-                     </>
-                   )}
-                 </div>
-               </div>
-             )}
-          </div>
-          
-          <div className="flex items-center justify-between pt-2 mt-auto border-t">
-            {price !== null && price !== undefined && price > 0 ? (
-              <div className="text-xl sm:text-2xl font-bold text-[#E60000] drop-shadow-sm">
-                ${price}
-              </div>
-            ) : (
-              <div className="text-xs sm:text-sm font-medium text-muted-foreground">
-                {showMakeOffer ? "Accepting Offers" : "Price TBD"}
-              </div>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            {showMakeOffer ? (
-              <>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="border-primary text-primary hover:bg-primary/5 transition-all hover:shadow-sm hover:-translate-y-0.5"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                >
-                  Make Offer
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                >
-                  View Listing
-                </Button>
-              </>
-            ) : isClaimSale ? (
-              <Button 
-                size="sm" 
-                className="col-span-2 bg-orange-500 hover:bg-orange-600 text-white transition-all hover:shadow-md hover:-translate-y-0.5"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onClaim?.();
-                }}
-              >
-                Claim Now
-              </Button>
-            ) : showEndingSoonBadge && isAuction ? (
-              <Button 
-                size="sm" 
-                className="col-span-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                Bid Now
-              </Button>
-            ) : (
-              <Button size="sm" className="col-span-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:shadow-md hover:-translate-y-0.5">
-                View Listing
-              </Button>
+            {!isAuction && !isClaimSale && (
+              <Badge variant="outline" className="text-[10px] w-fit">
+                Buy Now
+              </Badge>
             )}
           </div>
         </div>
