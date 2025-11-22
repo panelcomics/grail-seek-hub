@@ -30,14 +30,16 @@ export default function Index() {
         {/* Founding Sellers Banner */}
         <FoundingSellersBanner />
         
-        {/* Hero Section */}
-        <HeroSection />
-        
-        {/* Featured Grails - Real listings from inventory - RIGHT AFTER HERO */}
+      {/* Hero Section */}
+      <HeroSection />
+      
+      {/* Featured Grails - Real listings from inventory - RIGHT AFTER HERO */}
+      <div className="bg-white py-6">
         <FeaturedGrailsCarousel />
-        
-        {/* Trust Row */}
-        <TrustSection />
+      </div>
+      
+      {/* Trust Row */}
+      <TrustSection />
         
         {/* Safety Section */}
         <SafetySection />
