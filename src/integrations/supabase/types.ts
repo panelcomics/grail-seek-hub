@@ -1191,6 +1191,7 @@ export type Database = {
           scanner_confidence: number | null
           scanner_last_scanned_at: string | null
           series: string | null
+          shipping_price: number | null
           sold_at: string | null
           storage_container_id: string | null
           title: string | null
@@ -1246,6 +1247,7 @@ export type Database = {
           scanner_confidence?: number | null
           scanner_last_scanned_at?: string | null
           series?: string | null
+          shipping_price?: number | null
           sold_at?: string | null
           storage_container_id?: string | null
           title?: string | null
@@ -1301,6 +1303,7 @@ export type Database = {
           scanner_confidence?: number | null
           scanner_last_scanned_at?: string | null
           series?: string | null
+          shipping_price?: number | null
           sold_at?: string | null
           storage_container_id?: string | null
           title?: string | null

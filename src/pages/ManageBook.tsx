@@ -48,7 +48,7 @@ export default function ManageBook() {
     
     // Pricing & Condition
     listed_price: "",
-    shipping_price: "5.00",
+    shipping_price: "",
     
     // Sell & Trade
     for_sale: false,
@@ -113,7 +113,7 @@ export default function ManageBook() {
         grading_company: data.grading_company || "CGC",
         certification_number: data.certification_number || "",
         listed_price: data.listed_price?.toString() || "",
-        shipping_price: "5.00",
+        shipping_price: data.shipping_price?.toString() || "",
         for_sale: data.for_sale || false,
         for_auction: data.for_auction || false,
         is_for_trade: data.is_for_trade || false,
@@ -174,6 +174,7 @@ export default function ManageBook() {
         cgc_grade: formData.is_slab ? formData.cgc_grade : null,
         certification_number: formData.certification_number || null,
         listed_price: formData.listed_price ? parseFloat(formData.listed_price) : null,
+        shipping_price: formData.shipping_price ? parseFloat(formData.shipping_price) : null,
         for_sale: formData.for_sale,
         for_auction: formData.for_auction,
         is_for_trade: formData.is_for_trade,
