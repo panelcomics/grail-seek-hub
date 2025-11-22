@@ -149,7 +149,7 @@ const ItemCard = ({
   };
 
   return (
-    <Link to={`/item/${id}`}>
+    <Link to={`/listing/${id}`}>
       <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
         {/* Image container with 3:4 aspect ratio for tall book covers */}
         <div className="relative aspect-[3/4] overflow-hidden bg-muted flex-shrink-0">

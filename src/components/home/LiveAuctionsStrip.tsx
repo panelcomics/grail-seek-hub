@@ -109,7 +109,7 @@ export function LiveAuctionsStrip() {
         <div className="overflow-x-auto overflow-y-visible pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide snap-x snap-mandatory">
           <div className="flex gap-3 md:gap-4 min-w-min">
             {auctions.map((auction) => (
-              <Link key={auction.id} to={`/item/${auction.id}`} className="flex-shrink-0 snap-center">
+              <Link key={auction.id} to={`/listing/${auction.id}`} className="flex-shrink-0 snap-center">
                 <Card className="w-48 sm:w-56 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 border-primary/20">
                   <div className="relative aspect-[2/3] overflow-hidden bg-muted">
                     <img
