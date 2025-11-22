@@ -114,18 +114,26 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Format the main title line (series + issue number)
+  // Format the main title line (title + issue number)
   const getMainTitle = () => {
-    // Try to combine series + issue number first
-    if (series && issueNumber) {
-      return `${series} #${issueNumber}`;
+    // If we have an issue number, construct the full title
+    if (issueNumber) {
+      // Check if title already contains this issue number (avoid duplication)
+      const issuePattern = `#${issueNumber}`;
+      if (title && title.includes(issuePattern)) {
+        return title;
+      }
+      // Construct from title + issue number
+      if (title) {
+        return `${title} #${issueNumber}`;
+      }
+      // Fallback: use series + issue number
+      if (series) {
+        return `${series} #${issueNumber}`;
+      }
     }
-    // If we have issue number in title but no series field, use title as-is
-    if (title) {
-      return title;
-    }
-    // Fallback
-    return "Untitled";
+    // No issue number, just use title or series
+    return title || series || "Untitled";
   };
 
   // Get grade display text
