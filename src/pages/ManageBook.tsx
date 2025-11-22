@@ -22,6 +22,7 @@ export default function ManageBook() {
   const [saving, setSaving] = useState(false);
   const [item, setItem] = useState<any>(null);
   const [listingImages, setListingImages] = useState<any[]>([]);
+  const [activeListing, setActiveListing] = useState<any>(null);
 
   // Form state for all fields
   const [formData, setFormData] = useState({
@@ -124,12 +125,32 @@ export default function ManageBook() {
       });
       
       await fetchListingImages(id);
+      await fetchActiveListing(id);
     } catch (error) {
       console.error("Error fetching item:", error);
       toast.error("Failed to load item");
       navigate("/my-collection");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchActiveListing = async (itemId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("listings")
+        .select("id, status, type")
+        .eq("inventory_item_id", itemId)
+        .in("status", ["active", "live", "listed"])
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching active listing:", error);
+      }
+      
+      setActiveListing(data);
+    } catch (error) {
+      console.error("Error fetching listing:", error);
     }
   };
 
@@ -194,7 +215,9 @@ export default function ManageBook() {
       if (error) throw error;
 
       toast.success("Book updated successfully");
-      navigate("/my-collection");
+      
+      // Refresh listing status after save
+      await fetchActiveListing(item.id);
     } catch (error) {
       console.error("Error updating item:", error);
       toast.error("Failed to update book");
@@ -541,6 +564,18 @@ export default function ManageBook() {
                   />
                 </div>
 
+                {!activeListing && formData.for_sale && (
+                  <p className="text-sm text-muted-foreground">
+                    Not live yet — turn on 'List for Sale' and save to publish this listing.
+                  </p>
+                )}
+                
+                {!activeListing && !formData.for_sale && (
+                  <p className="text-sm text-muted-foreground">
+                    Turn on 'List for Sale' and save to create a public listing.
+                  </p>
+                )}
+
                 <div className="flex items-center justify-between">
                   <Label htmlFor="for_auction">Auction</Label>
                   <Switch
@@ -626,14 +661,14 @@ export default function ManageBook() {
                 Save Changes
               </Button>
               
-              {formData.for_sale && item.listing_status === "listed" && (
+              {activeListing && (
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/item/${id}`)}
+                  onClick={() => navigate(`/listing/${activeListing.id}`)}
                   size="lg"
                 >
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  View Public Listing
+                  View Live Listing
                 </Button>
               )}
             </div>
