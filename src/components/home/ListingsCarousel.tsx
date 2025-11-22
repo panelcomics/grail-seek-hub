@@ -13,25 +13,35 @@ interface ListingsCarouselProps {
   showViewAll?: boolean;
 }
 
-export function ListingsCarousel({ title, filterType, showViewAll = true }: ListingsCarouselProps) {
+export function ListingsCarousel({ title, filterType, showViewAll = true, deferMs = 0 }: ListingsCarouselProps & { deferMs?: number }) {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchListings();
-  }, [filterType]);
+    if (deferMs > 0) {
+      const timer = setTimeout(() => {
+        fetchListings();
+      }, deferMs);
+      return () => clearTimeout(timer);
+    } else {
+      fetchListings();
+    }
+  }, [filterType, deferMs]);
 
   const fetchListings = async () => {
     // Check cache first to avoid refetching on navigation
-    const cacheKey = `listings_${filterType}`;
+    const cacheKey = `gs-home-${filterType}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
         const { data: cachedData, timestamp } = JSON.parse(cached);
         // Use cache if less than 5 minutes old
         if (Date.now() - timestamp < 5 * 60 * 1000) {
+          console.log(`FETCH ${filterType} from cache`);
           setListings(cachedData);
           setLoading(false);
+          // Background refresh: fetch fresh data and update cache
+          fetchFreshData(cacheKey);
           return;
         }
       } catch (e) {
@@ -40,9 +50,10 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
     }
 
     setLoading(true);
-    console.log(`FETCH ${filterType} start`);
+    console.time(`FETCH ${filterType}`);
+    console.log(`FETCH ${filterType} start (network)`);
     try {
-      // Optimized query: only select fields needed for homepage cards
+      // Optimized query: only fields needed for homepage cards (no heavy text fields)
       let query = supabase
         .from("listings")
         .select(`
@@ -72,7 +83,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         `)
         .eq("status", "active")
         .in("type", ["fixed", "auction"])
-        .limit(10);
+        .limit(8);
 
       if (filterType === "featured-grails") {
         query = query
@@ -97,17 +108,20 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
       if (error) {
         console.error(`FETCH ${filterType} error:`, error);
+        console.timeEnd(`FETCH ${filterType}`);
         setListings([]);
         return;
       }
 
       if (!data || data.length === 0) {
         console.log(`FETCH ${filterType} success: 0 listings`);
+        console.timeEnd(`FETCH ${filterType}`);
         setListings([]);
         return;
       }
 
       console.log(`FETCH ${filterType} success: ${data.length} listings`);
+      console.timeEnd(`FETCH ${filterType}`);
 
       // Derive seller profiles from joined inventory items
       const inventoryItems = (data || [])
@@ -152,9 +166,93 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
       }
     } catch (error) {
       console.error(`Error in ${filterType} fetchListings:`, error);
+      console.timeEnd(`FETCH ${filterType}`);
       setListings([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Background refresh after cache hit
+  const fetchFreshData = async (cacheKey: string) => {
+    try {
+      console.time(`FETCH ${filterType} (background)`);
+      let query = supabase
+        .from("listings")
+        .select(`
+          id,
+          price,
+          price_cents,
+          status,
+          type,
+          created_at,
+          inventory_items!inventory_item_id (
+            id,
+            owner_id,
+            title,
+            series,
+            issue_number,
+            images,
+            cgc_grade,
+            grading_company,
+            certification_number,
+            condition,
+            is_slab,
+            local_pickup,
+            for_auction,
+            offers_enabled,
+            is_for_trade
+          )
+        `)
+        .eq("status", "active")
+        .in("type", ["fixed", "auction"])
+        .limit(8);
+
+      if (filterType === "featured-grails") {
+        query = query.eq("type", "fixed").order("created_at", { ascending: false });
+      } else if (filterType === "newly-listed") {
+        query = query.order("created_at", { ascending: false });
+      } else if (filterType === "ending-soon") {
+        query = query.order("ends_at", { ascending: true, nullsFirst: false });
+      } else if (filterType === "hot-week") {
+        query = query.eq("type", "fixed").order("created_at", { ascending: false });
+      } else if (filterType === "local") {
+        query = query.order("created_at", { ascending: false });
+      } else {
+        query = query.order("created_at", { ascending: false });
+      }
+
+      const { data, error } = await query;
+      console.timeEnd(`FETCH ${filterType} (background)`);
+
+      if (!error && data && data.length > 0) {
+        const inventoryItems = data.map((l: any) => l.inventory_items).filter(Boolean);
+        const ownerIds = [...new Set(inventoryItems.map((i: any) => i.owner_id).filter(Boolean))];
+
+        if (ownerIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, username, seller_tier, is_verified_seller, completed_sales_count")
+            .in("user_id", ownerIds);
+
+          const listingsWithProfiles = data.map((listing: any) => {
+            const inventory = listing.inventory_items;
+            const profile = profiles?.find((p: any) => p.user_id === inventory?.owner_id);
+            return { ...listing, profiles: profile || null };
+          });
+
+          // Update cache silently
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            data: listingsWithProfiles,
+            timestamp: Date.now()
+          }));
+          
+          // Update state if data changed
+          setListings(listingsWithProfiles);
+        }
+      }
+    } catch (error) {
+      console.error(`Background refresh error for ${filterType}:`, error);
     }
   };
 
