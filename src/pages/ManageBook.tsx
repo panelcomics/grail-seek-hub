@@ -263,7 +263,7 @@ export default function ManageBook() {
           price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
           shipping_price: shippingPrice,
           status: "active",
-          type: "sale",
+          type: formData.for_auction ? "auction" : "fixed",
           details: formData.details,
           issue_number: formData.issue_number,
           volume_name: formData.series,
