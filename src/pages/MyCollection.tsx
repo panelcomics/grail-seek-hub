@@ -173,40 +173,42 @@ const MyCollection = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
               {filteredComics.map((comic) => {
                 return (
                 <Card 
                   key={comic.id} 
-                  className="cursor-pointer hover:shadow-lg transition-shadow h-auto"
+                  className="cursor-pointer hover:shadow-lg transition-shadow bg-white border border-border"
                   onClick={() => navigate(`/inventory/${comic.id}`)}
                 >
-                  <CardContent className="pt-6">
-                    <div className="flex gap-4">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       {comic.image_url && (
                         <img
                           src={comic.image_url}
                           alt={comic.title}
-                          className="w-20 h-28 object-cover rounded flex-shrink-0"
+                          className="w-full sm:w-24 h-32 sm:h-36 object-contain rounded flex-shrink-0 mx-auto sm:mx-0"
                         />
                       )}
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <CardTitle className="text-base mb-2 line-clamp-2 break-words">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <CardTitle className="text-sm sm:text-base line-clamp-2">
                           <span className="font-bold">{comic.title}</span>
                           {comic.issue_number && <span className="font-bold"> #{comic.issue_number}</span>}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground truncate" style={{ marginTop: "4px" }}>
-                          {comic.cover_date && new Date(comic.cover_date).toLocaleDateString()}
-                        </p>
+                        {comic.cover_date && (
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                            {new Date(comic.cover_date).toLocaleDateString()}
+                          </p>
+                        )}
                         {comic.details && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words">
-                            {comic.details.length > 60 ? `${comic.details.substring(0, 60)}...` : comic.details}
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {comic.details}
                           </p>
                         )}
                         {/* Show grading company + grade for slabs, otherwise show condition */}
                         {comic.is_slab && comic.cgc_grade ? (
-                          <div className="mt-2 space-y-0.5">
-                            <div className="text-sm font-bold text-primary truncate">
+                          <div className="space-y-1">
+                            <div className="text-xs sm:text-sm font-bold text-primary truncate">
                               {comic.grading_company || "CGC"} {comic.cgc_grade}
                             </div>
                             {comic.certification_number && (
@@ -216,15 +218,15 @@ const MyCollection = () => {
                             )}
                           </div>
                         ) : comic.condition_notes ? (
-                          <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2 break-words">
+                          <p className="text-xs text-muted-foreground italic line-clamp-1">
                             {comic.condition_notes}
                           </p>
                         ) : null}
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 pt-1">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="p-0 h-auto"
+                            className="p-0 h-auto hover:bg-transparent"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/inventory/${comic.id}`);
@@ -235,7 +237,7 @@ const MyCollection = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="p-0 h-auto"
+                            className="p-0 h-auto hover:bg-transparent"
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeleteId(comic.id);

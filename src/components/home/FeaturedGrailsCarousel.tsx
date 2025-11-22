@@ -115,7 +115,7 @@ export function FeaturedGrailsCarousel() {
   }
 
   return (
-    <section className="py-6 px-4 bg-white">
+    <section className="py-6 px-4 bg-gradient-to-b from-primary/5 to-background">
       <div className="container mx-auto max-w-6xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-primary">
@@ -164,29 +164,31 @@ export function FeaturedGrailsCarousel() {
               const price = resolvePrice(listing);
               const profile = listing.profiles;
               return (
-                <div key={listing.listing_id} className="w-[320px] max-w-[320px] flex-shrink-0 snap-center bg-white border border-border rounded-lg shadow-sm">
-                  <ItemCard
-                    id={listing.listing_id}
-                    title={listing.title || listing.series || "Untitled"}
-                    price={price === null ? undefined : price}
-                    condition={listing.condition || listing.cgc_grade || "Unknown"}
-                    image={getListingImageUrl(listing)}
-                    category="comic"
-                    isAuction={listing.for_auction}
-                    showMakeOffer={listing.offers_enabled}
-                    showTradeBadge={listing.is_for_trade}
-                    sellerName={profile?.username}
-                    sellerCity={undefined}
-                    isVerifiedSeller={profile?.is_verified_seller}
-                    completedSalesCount={profile?.completed_sales_count || 0}
-                    isSlab={listing.is_slab}
-                    grade={listing.cgc_grade}
-                    gradingCompany={listing.grading_company}
-                    certificationNumber={listing.certification_number}
-                    series={listing.series}
-                    issueNumber={listing.issue_number}
-                    keyInfo={listing.variant_description || listing.details}
-                  />
+                <div key={listing.listing_id} className="w-[320px] max-w-[320px] flex-shrink-0 snap-center">
+                  <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden h-full">
+                    <ItemCard
+                      id={listing.listing_id}
+                      title={listing.title || listing.series || "Untitled"}
+                      price={price === null ? undefined : price}
+                      condition={listing.condition || listing.cgc_grade || "Unknown"}
+                      image={getListingImageUrl(listing)}
+                      category="comic"
+                      isAuction={listing.for_auction}
+                      showMakeOffer={listing.offers_enabled}
+                      showTradeBadge={listing.is_for_trade}
+                      sellerName={profile?.username}
+                      sellerCity={undefined}
+                      isVerifiedSeller={profile?.is_verified_seller}
+                      completedSalesCount={profile?.completed_sales_count || 0}
+                      isSlab={listing.is_slab}
+                      grade={listing.cgc_grade}
+                      gradingCompany={listing.grading_company}
+                      certificationNumber={listing.certification_number}
+                      series={listing.series}
+                      issueNumber={listing.issue_number}
+                      keyInfo={listing.variant_description || listing.details}
+                    />
+                  </div>
                 </div>
               );
             })}

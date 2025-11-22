@@ -235,9 +235,12 @@ export default function ManageBook() {
         const shippingPrice = formData.shipping_price ? parseFloat(formData.shipping_price) : null;
         
         console.log("💰 Processing listing creation/update", {
+          inventoryId: item.id,
+          for_sale: formData.for_sale,
           listedPrice,
           listedPriceCents: listedPrice ? Math.round(listedPrice * 100) : null,
           shippingPrice,
+          title: formData.title || formData.series,
         });
 
         // Check if listing already exists
