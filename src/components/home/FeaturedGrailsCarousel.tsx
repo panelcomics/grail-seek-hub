@@ -40,12 +40,6 @@ export function FeaturedGrailsCarousel() {
             is_for_trade,
             offers_enabled,
             user_id
-          ),
-          profiles!user_id(
-            username,
-            city,
-            is_verified_seller,
-            completed_sales_count
           )
         `)
         .eq("status", "active")
@@ -54,14 +48,23 @@ export function FeaturedGrailsCarousel() {
 
       if (error) throw error;
 
+      // Fetch profiles separately for each unique user_id
+      const userIds = [...new Set((data || []).map(l => l.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username, is_verified_seller, completed_sales_count")
+        .in("user_id", userIds);
+
       // Transform data to include inventory_items properties at top level
       const transformedListings = (data || []).map(listing => {
         const item = listing.inventory_items;
+        const profile = profiles?.find(p => p.user_id === listing.user_id);
         return {
           ...listing,
           ...item,
           listing_id: listing.id,
           price_cents: listing.price_cents,
+          profiles: profile,
         };
       });
 
@@ -124,7 +127,7 @@ export function FeaturedGrailsCarousel() {
         <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
           {listings.slice(0, 8).map((listing) => {
             const price = resolvePrice(listing);
-            const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+            const profile = listing.profiles;
             return (
               <ItemCard
                 key={listing.listing_id}
@@ -138,7 +141,7 @@ export function FeaturedGrailsCarousel() {
                 showMakeOffer={listing.offers_enabled}
                 showTradeBadge={listing.is_for_trade}
                 sellerName={profile?.username}
-                sellerCity={profile?.city}
+                sellerCity={undefined}
                 isVerifiedSeller={profile?.is_verified_seller}
                 completedSalesCount={profile?.completed_sales_count || 0}
                 isSlab={listing.is_slab}
@@ -158,7 +161,7 @@ export function FeaturedGrailsCarousel() {
           <div className="flex gap-3 min-w-min">
             {listings.map((listing) => {
               const price = resolvePrice(listing);
-              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+              const profile = listing.profiles;
               return (
                 <div key={listing.listing_id} className="w-[280px] flex-shrink-0 snap-center">
                   <ItemCard
@@ -171,9 +174,9 @@ export function FeaturedGrailsCarousel() {
                     isAuction={listing.for_auction}
                     showMakeOffer={listing.offers_enabled}
                     showTradeBadge={listing.is_for_trade}
-                    sellerName={profile?.username}
-                    sellerCity={profile?.city}
-                    isVerifiedSeller={profile?.is_verified_seller}
+                  sellerName={profile?.username}
+                  sellerCity={undefined}
+                  isVerifiedSeller={profile?.is_verified_seller}
                     completedSalesCount={profile?.completed_sales_count || 0}
                     isSlab={listing.is_slab}
                     grade={listing.cgc_grade}
