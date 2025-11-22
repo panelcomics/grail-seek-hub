@@ -265,7 +265,7 @@ export const AdminArtListings = () => {
                             </Dialog>
                           )}
                           <Button variant="outline" size="sm" asChild>
-                            <a href={`/item/${listing.id}`} target="_blank" rel="noopener noreferrer">
+                            <a href={`/listing/${listing.id}`} target="_blank" rel="noopener noreferrer">
                               View Listing
                             </a>
                           </Button>

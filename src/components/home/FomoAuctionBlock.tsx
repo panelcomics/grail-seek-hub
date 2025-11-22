@@ -146,7 +146,7 @@ export function FomoAuctionBlock() {
           {auctions.map((auction, index) => (
             <Link 
               key={auction.id} 
-              to={auction.id.startsWith('placeholder') ? '/marketplace' : `/item/${auction.id}`}
+              to={auction.id.startsWith('placeholder') ? '/marketplace' : `/listing/${auction.id}`}
               className="group flex-shrink-0"
             >
               <Card className="w-[160px] sm:w-[180px] overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 bg-background">
