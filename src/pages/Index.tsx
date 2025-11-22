@@ -8,7 +8,7 @@ import { ListingsCarousel } from "@/components/home/ListingsCarousel";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
-import { FeaturedGrailsCarousel } from "@/components/home/FeaturedGrailsCarousel";
+
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import FeaturedShops from "@/components/FeaturedShops";
 import { SafetySection } from "@/components/home/SafetySection";
@@ -34,7 +34,7 @@ export default function Index() {
         <HeroSection />
         
         {/* 3. Featured Grails — Buy It Now */}
-        <FeaturedGrailsCarousel />
+        <ListingsCarousel title="✨ Featured Grails — Buy It Now" filterType="featured-grails" />
         
         {/* 4. Start Hunting Grails / Browse Local Deals buttons + search */}
         <TrustSection />
