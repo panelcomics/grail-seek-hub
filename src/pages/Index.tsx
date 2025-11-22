@@ -8,9 +8,8 @@ import { ListingsCarousel } from "@/components/home/ListingsCarousel";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
-import { LiveAuctionsStrip } from "@/components/home/LiveAuctionsStrip";
+import { FeaturedGrailsCarousel } from "@/components/home/FeaturedGrailsCarousel";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
-import { HotAuctionsCarousel } from "@/components/home/HotAuctionsCarousel";
 import FeaturedShops from "@/components/FeaturedShops";
 import { SafetySection } from "@/components/home/SafetySection";
 
@@ -43,15 +42,8 @@ export default function Index() {
         {/* Fees Section - Moved to appear right after hero */}
         <FeesSection />
         
-        {/* Live Right Now - Hot Auctions */}
-        <section className="pt-1.5 pb-3 sm:py-4 md:py-8 px-4 bg-gradient-to-b from-primary/5 to-background">
-          <div className="container mx-auto max-w-6xl">
-            <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-center mb-3 md:mb-6 text-primary">
-              🔥 Live Right Now — Hot Auctions
-            </h2>
-            <HotAuctionsCarousel />
-          </div>
-        </section>
+        {/* Featured Grails - Real listings from inventory */}
+        <FeaturedGrailsCarousel />
         
         {/* Category Filter */}
         <CategoryFilter 
