@@ -114,12 +114,18 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Format the main title line (series + issue)
+  // Format the main title line (series + issue number)
   const getMainTitle = () => {
+    // Try to combine series + issue number first
     if (series && issueNumber) {
       return `${series} #${issueNumber}`;
     }
-    return title;
+    // If we have issue number in title but no series field, use title as-is
+    if (title) {
+      return title;
+    }
+    // Fallback
+    return "Untitled";
   };
 
   // Get grade display text
@@ -165,58 +171,59 @@ const ItemCard = ({
         </div>
         
         {/* Card content */}
-        <div className="p-3.5 flex-1 flex flex-col min-h-0">
-          {/* Main title: Series + Issue */}
-          <h3 className="font-bold text-sm leading-tight line-clamp-1 text-foreground">
+        <div className="p-3 flex-1 flex flex-col min-h-0">
+          {/* Main title: Series + Issue Number (bold) */}
+          <h3 className="font-bold text-sm leading-tight line-clamp-1 text-foreground mb-1">
             {getMainTitle()}
           </h3>
           
-          {/* Key info line - only show if available */}
+          {/* Key info line - only show if available (smaller, muted, truncated) */}
           {keyInfo && (
-            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+            <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
               {keyInfo}
             </p>
           )}
-
-          {/* Grade badge as text pill */}
-          {getGradeText() && (
-            <div className="mt-1.5">
-              <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-foreground">
-                {getGradeText()}
-              </span>
-            </div>
-          )}
           
-          {/* Spacer to push price to bottom */}
-          <div className="flex-1 min-h-2" />
+          {/* Spacer to push price row to bottom */}
+          <div className="flex-1 min-h-1" />
 
-          {/* Price row */}
-          <div className="space-y-1.5 mt-auto">
-            {price !== null && price !== undefined && price > 0 ? (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-bold text-foreground">
-                  ${price.toLocaleString()}
+          {/* Bottom row: Price on left, Grade pill on right */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: Price */}
+            <div className="flex items-baseline gap-1">
+              {price !== null && price !== undefined && price > 0 ? (
+                <>
+                  <span className="text-xl font-bold text-foreground">
+                    ${price.toLocaleString()}
+                  </span>
+                  {isAuction && (
+                    <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide">
+                      bid
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-sm font-medium text-muted-foreground">
+                  {showMakeOffer ? "Offers" : "Contact"}
                 </span>
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                  {isAuction ? "bid" : ""}
-                </span>
-              </div>
-            ) : (
-              <div className="text-sm font-medium text-muted-foreground">
-                {showMakeOffer ? "Accepting Offers" : "Contact"}
-              </div>
-            )}
-
-            {/* Bottom row: listing type + local pickup indicator */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {localPickupAvailable && (
-                <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  <span className="font-medium">Local pickup</span>
-                </div>
               )}
             </div>
+
+            {/* Right: Grade pill */}
+            {getGradeText() && (
+              <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-foreground whitespace-nowrap flex-shrink-0">
+                {getGradeText()}
+              </span>
+            )}
           </div>
+
+          {/* Optional: Local pickup indicator below if needed */}
+          {localPickupAvailable && (
+            <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground mt-1">
+              <MapPin className="h-3 w-3" />
+              <span className="font-medium">Local pickup</span>
+            </div>
+          )}
         </div>
       </Card>
     </Link>
