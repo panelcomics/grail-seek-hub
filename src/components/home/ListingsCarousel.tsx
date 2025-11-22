@@ -22,22 +22,36 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
   }, [filterType]);
 
   const fetchListings = async () => {
+    // Check cache first to avoid refetching on navigation
+    const cacheKey = `listings_${filterType}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { data: cachedData, timestamp } = JSON.parse(cached);
+        // Use cache if less than 5 minutes old
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setListings(cachedData);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        // Invalid cache, continue with fetch
+      }
+    }
+
     setLoading(true);
     console.log(`FETCH ${filterType} start`);
     try {
-      // All homepage sections now use listings table with joined inventory data
-      // Join directly to inventory_items table (has public SELECT policy) to get all fields needed
+      // Optimized query: only select fields needed for homepage cards
       let query = supabase
         .from("listings")
         .select(`
           id,
-          title,
           price,
           price_cents,
           status,
           type,
           created_at,
-          inventory_item_id,
           inventory_items!inventory_item_id (
             id,
             owner_id,
@@ -49,14 +63,11 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             grading_company,
             certification_number,
             condition,
-            for_sale,
-            for_auction,
-            offers_enabled,
-            is_for_trade,
             is_slab,
             local_pickup,
-            variant_description,
-            details
+            for_auction,
+            offers_enabled,
+            is_for_trade
           )
         `)
         .eq("status", "active")
@@ -129,6 +140,16 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
       });
 
       setListings(listingsWithProfiles);
+      
+      // Cache the results for 5 minutes
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          data: listingsWithProfiles,
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        // Storage quota exceeded, ignore
+      }
     } catch (error) {
       console.error(`Error in ${filterType} fetchListings:`, error);
       setListings([]);
@@ -187,7 +208,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                     certificationNumber={inventory.certification_number}
                     series={inventory.series}
                     issueNumber={inventory.issue_number}
-                    keyInfo={inventory.variant_description || inventory.details}
+                    keyInfo={null}
                   />
                 </div>
               );
@@ -236,7 +257,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                       certificationNumber={inventory.certification_number}
                       series={inventory.series}
                       issueNumber={inventory.issue_number}
-                      keyInfo={inventory.variant_description || inventory.details}
+                      keyInfo={null}
                     />
                   </div>
                 );
