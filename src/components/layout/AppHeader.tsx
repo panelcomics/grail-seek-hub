@@ -92,12 +92,12 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-9 sm:h-12 max-w-screen-xl items-center justify-between px-3 sm:px-4">
-        <Link to="/" className="flex items-center gap-1.5 sm:gap-2">
-          <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-[10px] sm:text-sm">
+      <div className="mx-auto flex h-[42px] sm:h-12 max-w-screen-xl items-center justify-between px-2 sm:px-4">
+        <Link to="/" className="flex items-center gap-1 sm:gap-2">
+          <div className="h-[22px] w-[22px] sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-[9px] sm:text-sm">
             GS
           </div>
-          <span className="md:hidden bg-primary text-primary-foreground text-[7px] font-semibold px-1 py-[1px] rounded-full leading-none">
+          <span className="md:hidden bg-primary text-primary-foreground text-[6px] font-semibold px-[3px] py-[1px] rounded-full leading-none">
             Beta
           </span>
           <span className="font-bold hidden xs:inline">
@@ -105,28 +105,28 @@ export function AppHeader() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <Button variant="ghost" size="icon" asChild aria-label="Scanner" className="h-8 w-8 sm:h-10 sm:w-10">
+        <nav className="flex items-center gap-0.5 sm:gap-2">
+          <Button variant="ghost" size="icon" asChild aria-label="Scanner" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
             <Link to="/scanner">
-              <ScanLine className="h-4 w-4 sm:h-5 sm:w-5" />
+              <ScanLine className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Search" className="h-8 w-8 sm:h-10 sm:w-10">
+          <Button variant="ghost" size="icon" asChild aria-label="Search" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
             <Link to="/search">
-              <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Search className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Favorites" className="relative h-8 w-8 sm:h-10 sm:w-10">
+          <Button variant="ghost" size="icon" asChild aria-label="Favorites" className="relative h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
             <Link to="/watchlist">
-              <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Heart className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Deals & Alerts" className="relative h-8 w-8 sm:h-10 sm:w-10">
+          <Button variant="ghost" size="icon" asChild aria-label="Deals & Alerts" className="relative h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
             <Link to="/deals">
-              <Tag className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Tag className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
               {newDealsCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center font-medium">
                   {newDealsCount > 99 ? "99+" : newDealsCount}
@@ -148,9 +148,9 @@ export function AppHeader() {
                 size="icon"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label="Account"
-                className="h-8 w-8 sm:h-10 sm:w-10"
+                className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0"
               >
-                <User2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                <User2 className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
               </Button>
               
               {isOpen && (
@@ -228,9 +228,9 @@ export function AppHeader() {
               )}
             </div>
           ) : (
-            <Button variant="ghost" size="icon" asChild aria-label="Sign In" className="h-8 w-8 sm:h-10 sm:w-10">
+            <Button variant="ghost" size="icon" asChild aria-label="Sign In" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
               <Link to="/auth">
-                <User2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                <User2 className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
               </Link>
             </Button>
           )}
