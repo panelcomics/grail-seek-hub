@@ -9,7 +9,7 @@ import { getListingImageUrl } from "@/lib/sellerUtils";
 
 interface ListingsCarouselProps {
   title: string;
-  filterType: "newly-listed" | "ending-soon" | "hot-week" | "local" | "recommended";
+  filterType: "newly-listed" | "ending-soon" | "hot-week" | "local" | "recommended" | "featured-grails";
   showViewAll?: boolean;
 }
 
@@ -23,21 +23,55 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
   const fetchListings = async () => {
     try {
+      // Optimized query - only select fields actually used
       let query = supabase
         .from("inventory_items")
         .select(`
-          *
+          id,
+          title,
+          series,
+          issue_number,
+          listed_price,
+          condition,
+          cgc_grade,
+          grading_company,
+          certification_number,
+          for_auction,
+          for_sale,
+          is_for_trade,
+          offers_enabled,
+          is_slab,
+          variant_description,
+          details,
+          images,
+          owner_id,
+          created_at,
+          listing_status
         `)
-        .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
         .in("listing_status", ["active", "listed"])
         .limit(10);
 
-      if (filterType === "newly-listed") {
-        query = query.order("created_at", { ascending: false });
+      if (filterType === "featured-grails") {
+        query = query
+          .eq("for_sale", true)
+          .gt("listed_price", 0)
+          .order("created_at", { ascending: false });
+      } else if (filterType === "newly-listed") {
+        query = query
+          .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
+          .order("created_at", { ascending: false });
       } else if (filterType === "ending-soon") {
-        query = query.eq("for_auction", true).order("created_at", { ascending: true });
+        query = query
+          .eq("for_auction", true)
+          .order("created_at", { ascending: true });
       } else if (filterType === "hot-week") {
-        query = query.eq("is_featured", true);
+        query = query
+          .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
+          .eq("is_featured", true);
+      } else if (filterType === "local") {
+        query = query.or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true");
+      } else {
+        query = query.or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true");
       }
 
       const { data, error } = await query;
