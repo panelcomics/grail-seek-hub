@@ -380,6 +380,28 @@ export default function ManageBook() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* LEFT: Image Gallery */}
           <div className="space-y-4">
+            {/* Primary Image Display */}
+            {(listingImages.length > 0 || item.images) && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
+                    <img
+                      src={
+                        listingImages.find(img => img.is_primary)?.url ||
+                        listingImages[0]?.url ||
+                        (item.images && Array.isArray(item.images) && item.images.length > 0 
+                          ? (typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url)
+                          : '/placeholder.svg')
+                      }
+                      alt={formData.title || "Book cover"}
+                      className="w-full h-auto object-contain max-h-[600px] mx-auto"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Photo Management */}
             <Card>
               <CardContent className="pt-6">
                 <Label className="text-base font-semibold mb-3 block">Photos (up to 8)</Label>

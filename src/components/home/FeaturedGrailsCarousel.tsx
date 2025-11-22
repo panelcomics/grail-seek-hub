@@ -39,7 +39,7 @@ export function FeaturedGrailsCarousel() {
             for_auction,
             is_for_trade,
             offers_enabled,
-            user_id
+            owner_id
           )
         `)
         .eq("status", "active")
@@ -48,17 +48,17 @@ export function FeaturedGrailsCarousel() {
 
       if (error) throw error;
 
-      // Fetch profiles separately for each unique user_id
-      const userIds = [...new Set((data || []).map(l => l.user_id))];
+      // Fetch profiles separately for each unique owner_id
+      const ownerIds = [...new Set((data || []).map(l => l.inventory_items.owner_id).filter(Boolean))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, username, is_verified_seller, completed_sales_count")
-        .in("user_id", userIds);
+        .in("user_id", ownerIds);
 
       // Transform data to include inventory_items properties at top level
       const transformedListings = (data || []).map(listing => {
         const item = listing.inventory_items;
-        const profile = profiles?.find(p => p.user_id === listing.user_id);
+        const profile = profiles?.find(p => p.user_id === item.owner_id);
         return {
           ...listing,
           ...item,

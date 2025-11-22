@@ -156,7 +156,7 @@ const ItemCard = ({
           <img
             src={image}
             alt={title}
-            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-auto object-contain object-center max-h-[400px] mx-auto transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
           
