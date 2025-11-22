@@ -22,6 +22,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
   }, [filterType]);
 
   const fetchListings = async () => {
+    setLoading(true);
     try {
       // Optimized query - only fields used in ItemCard
       let query = supabase
@@ -76,10 +77,26 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error(`Error fetching ${filterType} listings:`, error);
+        setListings([]);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.log(`No listings found for ${filterType}`);
+        setListings([]);
+        return;
+      }
 
       // Fetch profiles separately - only fields used in cards
       const ownerIds = [...new Set((data || []).map(l => l.owner_id).filter(Boolean))];
+      
+      if (ownerIds.length === 0) {
+        setListings(data.map(listing => ({ ...listing, profiles: null })));
+        return;
+      }
+
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, username, seller_tier, is_verified_seller, completed_sales_count")
@@ -93,7 +110,8 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
       setListings(listingsWithProfiles);
     } catch (error) {
-      console.error("Error fetching listings:", error);
+      console.error(`Error in ${filterType} fetchListings:`, error);
+      setListings([]);
     } finally {
       setLoading(false);
     }
@@ -156,47 +174,52 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         </div>
       </div>
 
-      {/* Desktop: Grid with 5-6 cards per row */}
-      <div className="hidden md:block container mx-auto px-4">
-        {loading ? (
-          <div className="grid grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(10)].map((_, i) => (
-              <Skeleton key={i} className="h-[400px] rounded-lg" />
-            ))}
-          </div>
-        ) : listings.length > 0 ? (
-          <div className="grid grid-cols-5 xl:grid-cols-6 gap-4">
-            {listings.map((listing) => {
-              const price = resolvePrice(listing);
-              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
-              return (
-                <ItemCard
-                  key={listing.id}
-                  id={listing.id}
-                  title={listing.title || listing.series || "Untitled"}
-                  price={price === null ? undefined : price}
-                  condition={listing.condition || listing.cgc_grade || "Unknown"}
-                  image={getListingImageUrl(listing)}
-                  category="comic"
-                  isAuction={listing.for_auction}
-                  showMakeOffer={listing.offers_enabled}
-                  showTradeBadge={listing.is_for_trade}
-                  sellerName={profile?.username}
-                  sellerCity={undefined}
-                  isVerifiedSeller={profile?.is_verified_seller}
-                  completedSalesCount={profile?.completed_sales_count || 0}
-                  isSlab={listing.is_slab}
-                  grade={listing.cgc_grade}
-                  gradingCompany={listing.grading_company}
-                  certificationNumber={listing.certification_number}
-                  series={listing.series}
-                  issueNumber={listing.issue_number}
-                  keyInfo={listing.variant_description || listing.details}
-                />
-              );
-            })}
-          </div>
-        ) : null}
+      {/* Desktop: Horizontal scroll row (same as mobile but larger cards) */}
+      <div className="hidden md:block overflow-x-auto overflow-y-visible pb-4 scrollbar-hide">
+        <div className="container mx-auto px-4">
+          {loading ? (
+            <div className="flex gap-4 min-w-min">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="w-[200px] h-[400px] flex-shrink-0 rounded-lg" />
+              ))}
+            </div>
+          ) : listings.length > 0 ? (
+            <div className="flex gap-4 min-w-min">
+              {listings.map((listing) => {
+                const price = resolvePrice(listing);
+                const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+                return (
+                  <div key={listing.id} className="w-[200px] flex-shrink-0">
+                    <ItemCard
+                      id={listing.id}
+                      title={listing.title || listing.series || "Untitled"}
+                      price={price === null ? undefined : price}
+                      condition={listing.condition || listing.cgc_grade || "Unknown"}
+                      image={getListingImageUrl(listing)}
+                      category="comic"
+                      isAuction={listing.for_auction}
+                      showMakeOffer={listing.offers_enabled}
+                      showTradeBadge={listing.is_for_trade}
+                      sellerName={profile?.username}
+                      sellerCity={undefined}
+                      isVerifiedSeller={profile?.is_verified_seller}
+                      completedSalesCount={profile?.completed_sales_count || 0}
+                      isSlab={listing.is_slab}
+                      grade={listing.cgc_grade}
+                      gradingCompany={listing.grading_company}
+                      certificationNumber={listing.certification_number}
+                      series={listing.series}
+                      issueNumber={listing.issue_number}
+                      keyInfo={listing.variant_description || listing.details}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">No listings available</p>
+          )}
+        </div>
       </div>
     </section>
   );
