@@ -27,14 +27,14 @@ export function getSellerSlug(profile: {
 
 /**
  * Optimize image URL with Supabase transformations for faster loading.
- * Adds width=600 and quality=80 for homepage cards to reduce file size.
+ * Adds width=400 and quality=75 for homepage cards to reduce file size.
  */
 function optimizeImageUrl(url: string): string {
   // Only apply transformations to Supabase storage URLs
   if (url.includes('supabase.co/storage/v1/object/public/')) {
-    // Add transformation parameters: width=600, quality=80
+    // Add transformation parameters: width=400, quality=75
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}width=600&quality=80`;
+    return `${url}${separator}width=400&quality=75`;
   }
   return url;
 }
