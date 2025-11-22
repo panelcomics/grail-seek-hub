@@ -43,6 +43,9 @@ interface ItemCardProps {
   grade?: string | null; // Grade from database
   gradingCompany?: string | null; // Grading company (CGC, CBCS, PGX)
   certificationNumber?: string | null; // Certification/barcode number
+  series?: string | null; // Series name
+  issueNumber?: string | null; // Issue number
+  keyInfo?: string | null; // Key info from details/variant
 }
 
 const ItemCard = ({ 
@@ -80,6 +83,9 @@ const ItemCard = ({
   grade = null,
   gradingCompany = null,
   certificationNumber = null,
+  series = null,
+  issueNumber = null,
+  keyInfo = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -108,17 +114,23 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Display badge text based on slab status, grading company, grade, and cert number
-  const getBadgeText = () => {
+  // Format the main title line (series + issue)
+  const getMainTitle = () => {
+    if (series && issueNumber) {
+      return `${series} #${issueNumber}`;
+    }
+    return title;
+  };
+
+  // Get grade display text
+  const getGradeText = () => {
     if (isSlab && grade) {
       const company = gradingCompany || 'CGC';
       return `${company} ${grade}`;
     }
-    
     if (!isSlab && condition) {
       return condition;
     }
-
     return null;
   };
 
@@ -134,14 +146,7 @@ const ItemCard = ({
             loading="lazy"
           />
           
-          {/* Top-left: Single condition badge (grade or slab/raw status) */}
-          <div className="absolute top-2 left-2">
-            <Badge className="bg-black/90 hover:bg-black text-white font-bold text-xs px-2.5 py-1 backdrop-blur-sm shadow-lg border-0">
-              {getBadgeText()}
-            </Badge>
-          </div>
-          
-          {/* Top-right: Favorite button */}
+          {/* Top-right: Favorite button only */}
           <div className="absolute top-2 right-2">
             <FavoriteButton listingId={id} showCount />
           </div>
@@ -161,10 +166,26 @@ const ItemCard = ({
         
         {/* Card content */}
         <div className="p-3.5 flex-1 flex flex-col min-h-0">
-          {/* Title - fixed height with ellipsis */}
-          <h3 className="font-semibold text-sm leading-tight line-clamp-2 mb-2 min-h-[2.5rem] text-foreground">
-            {title}
+          {/* Main title: Series + Issue */}
+          <h3 className="font-bold text-sm leading-tight line-clamp-1 text-foreground">
+            {getMainTitle()}
           </h3>
+          
+          {/* Key info line - only show if available */}
+          {keyInfo && (
+            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+              {keyInfo}
+            </p>
+          )}
+
+          {/* Grade badge as text pill */}
+          {getGradeText() && (
+            <div className="mt-1.5">
+              <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-foreground">
+                {getGradeText()}
+              </span>
+            </div>
+          )}
           
           {/* Spacer to push price to bottom */}
           <div className="flex-1 min-h-2" />
