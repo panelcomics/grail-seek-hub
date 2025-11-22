@@ -26,6 +26,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
     console.log(`FETCH ${filterType} start`);
     try {
       // All homepage sections now use listings table with joined inventory data
+      // Join directly to inventory_items table (has public SELECT policy) to get all fields needed
       let query = supabase
         .from("listings")
         .select(`
@@ -36,8 +37,10 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
           status,
           type,
           created_at,
-          inventory_items_public (
+          inventory_item_id,
+          inventory_items!inventory_item_id (
             id,
+            owner_id,
             title,
             series,
             issue_number,
@@ -46,16 +49,14 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             grading_company,
             certification_number,
             condition,
-            owner_id,
-            is_for_trade,
             for_sale,
             for_auction,
             offers_enabled,
+            is_for_trade,
             is_slab,
             local_pickup,
             variant_description,
-            details,
-            created_at
+            details
           )
         `)
         .eq("status", "active")
@@ -99,7 +100,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
       // Derive seller profiles from joined inventory items
       const inventoryItems = (data || [])
-        .map((l: any) => l.inventory_items_public)
+        .map((l: any) => l.inventory_items)
         .filter(Boolean);
 
       const ownerIds = [...new Set(inventoryItems.map((i: any) => i.owner_id).filter(Boolean))];
@@ -119,7 +120,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
       }
 
       const listingsWithProfiles = (data || []).map((listing: any) => {
-        const inventory = listing.inventory_items_public;
+        const inventory = listing.inventory_items;
         const profile = profiles?.find((p: any) => p.user_id === inventory?.owner_id);
         return {
           ...listing,
@@ -160,7 +161,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             </>
           ) : listings.length > 0 ? (
             listings.map((listing) => {
-              const inventory = listing.inventory_items_public || listing;
+              const inventory = listing.inventory_items || listing;
               const priceSource = inventory ? { ...inventory, ...listing } : listing;
               const price = resolvePrice(priceSource);
               const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
@@ -209,7 +210,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
           ) : listings.length > 0 ? (
             <div className="flex gap-4 min-w-min">
               {listings.map((listing) => {
-                const inventory = listing.inventory_items_public || listing;
+                const inventory = listing.inventory_items || listing;
                 const priceSource = inventory ? { ...inventory, ...listing } : listing;
                 const price = resolvePrice(priceSource);
                 const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
