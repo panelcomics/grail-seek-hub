@@ -26,13 +26,28 @@ export function getSellerSlug(profile: {
 }
 
 /**
+ * Optimize image URL with Supabase transformations for faster loading.
+ * Adds width=600 and quality=80 for homepage cards to reduce file size.
+ */
+function optimizeImageUrl(url: string): string {
+  // Only apply transformations to Supabase storage URLs
+  if (url.includes('supabase.co/storage/v1/object/public/')) {
+    // Add transformation parameters: width=600, quality=80
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}width=600&quality=80`;
+  }
+  return url;
+}
+
+/**
  * Get the primary image URL for a listing with proper fallback priority.
  * Priority: seller-uploaded photo > ComicVine reference > placeholder
+ * Optimizes Supabase images with transformation parameters.
  */
 export function getListingImageUrl(item: any): string {
   // Handle direct image_url field
   if (item.image_url && typeof item.image_url === 'string') {
-    return item.image_url;
+    return optimizeImageUrl(item.image_url);
   }
   
   // Handle images object/array
@@ -41,17 +56,17 @@ export function getListingImageUrl(item: any): string {
     if (typeof item.images === 'object' && !Array.isArray(item.images)) {
       // Priority 1: User-uploaded front image
       if (item.images.front && typeof item.images.front === 'string') {
-        return item.images.front;
+        return optimizeImageUrl(item.images.front);
       }
       
       // Priority 2: Back image if front not available
       if (item.images.back && typeof item.images.back === 'string') {
-        return item.images.back;
+        return optimizeImageUrl(item.images.back);
       }
       
       // Priority 3: ComicVine reference
       if (item.images.comicvine_reference && typeof item.images.comicvine_reference === 'string') {
-        return item.images.comicvine_reference;
+        return optimizeImageUrl(item.images.comicvine_reference);
       }
     }
     
@@ -59,17 +74,17 @@ export function getListingImageUrl(item: any): string {
     if (Array.isArray(item.images) && item.images.length > 0) {
       const firstImage = item.images[0];
       if (typeof firstImage === 'string') {
-        return firstImage;
+        return optimizeImageUrl(firstImage);
       }
       if (typeof firstImage === 'object' && firstImage.url) {
-        return firstImage.url;
+        return optimizeImageUrl(firstImage.url);
       }
     }
   }
   
   // Fallback to comicvine_cover_url if present
   if (item.comicvine_cover_url && typeof item.comicvine_cover_url === 'string') {
-    return item.comicvine_cover_url;
+    return optimizeImageUrl(item.comicvine_cover_url);
   }
   
   // Final fallback
