@@ -17,53 +17,32 @@ export function FeaturedGrailsCarousel() {
 
   const fetchFeaturedGrails = async () => {
     try {
-      // Query listings table directly with inventory_items join
+      // Query inventory_items directly - show ALL live Buy-It-Now listings
       const { data, error } = await supabase
-        .from("listings")
-        .select(`
-          *,
-          inventory_items!inner(
-            id,
-            title,
-            series,
-            issue_number,
-            condition,
-            cgc_grade,
-            grading_company,
-            certification_number,
-            is_slab,
-            details,
-            variant_description,
-            images,
-            for_sale,
-            for_auction,
-            is_for_trade,
-            offers_enabled,
-            owner_id
-          )
-        `)
-        .eq("status", "active")
-        .order("updated_at", { ascending: false })
-        .limit(12);
+        .from("inventory_items")
+        .select("*")
+        .eq("for_sale", true)
+        .gt("listed_price", 0)
+        .in("listing_status", ["active", "listed"])
+        .order("created_at", { ascending: false })
+        .limit(10);
 
       if (error) throw error;
 
+      console.log("FeaturedGrails listings:", (data || []).length);
+
       // Fetch profiles separately for each unique owner_id
-      const ownerIds = [...new Set((data || []).map(l => l.inventory_items.owner_id).filter(Boolean))];
+      const ownerIds = [...new Set((data || []).map(l => l.owner_id).filter(Boolean))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, username, is_verified_seller, completed_sales_count")
         .in("user_id", ownerIds);
 
-      // Transform data to include inventory_items properties at top level
+      // Attach profile data to each listing
       const transformedListings = (data || []).map(listing => {
-        const item = listing.inventory_items;
-        const profile = profiles?.find(p => p.user_id === item.owner_id);
+        const profile = profiles?.find(p => p.user_id === listing.owner_id);
         return {
           ...listing,
-          ...item,
-          listing_id: listing.id,
-          price_cents: listing.price_cents,
           profiles: profile,
         };
       });
@@ -129,9 +108,9 @@ export function FeaturedGrailsCarousel() {
             const price = resolvePrice(listing);
             const profile = listing.profiles;
             return (
-              <div key={listing.listing_id} className="max-w-[280px] mx-auto w-full">
+              <div key={listing.id} className="max-w-[280px] mx-auto w-full">
                 <ItemCard
-                  id={listing.listing_id}
+                  id={listing.id}
                   title={listing.title || listing.series || "Untitled"}
                   price={price === null ? undefined : price}
                   condition={listing.condition || listing.cgc_grade || "Unknown"}
@@ -164,10 +143,10 @@ export function FeaturedGrailsCarousel() {
               const price = resolvePrice(listing);
               const profile = listing.profiles;
               return (
-                <div key={listing.listing_id} className="w-[320px] max-w-[320px] flex-shrink-0 snap-center">
+                <div key={listing.id} className="w-[320px] max-w-[320px] flex-shrink-0 snap-center">
                   <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden h-full">
                     <ItemCard
-                      id={listing.listing_id}
+                      id={listing.id}
                       title={listing.title || listing.series || "Untitled"}
                       price={price === null ? undefined : price}
                       condition={listing.condition || listing.cgc_grade || "Unknown"}

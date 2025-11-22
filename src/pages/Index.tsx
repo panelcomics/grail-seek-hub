@@ -36,41 +36,37 @@ export default function Index() {
         {/* 3. Featured Grails — Buy It Now */}
         <FeaturedGrailsCarousel />
         
-        {/* 4. Start Hunting Grails / Browse Local Deals buttons */}
+        {/* 4. Start Hunting Grails / Browse Local Deals buttons + search */}
         <TrustSection />
         
-        {/* Safety Section */}
+        {/* 5. Stats row (500+ / New / Verified) */}
+        <SocialProof />
+
+        {/* 6. Newly Listed */}
+        <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
+        
+        {/* 7. Local Deals Near You */}
+        <ListingsCarousel title="Local Deals Near You" filterType="local" />
+        
+        {/* Everything else */}
         <SafetySection />
         
-        {/* Fees Section */}
         <FeesSection />
         
-        {/* Category Filter */}
         <CategoryFilter 
           activeCategory={activeCategory} 
           onCategoryChange={setActiveCategory} 
         />
-        
-        {/* Social Proof */}
-        <SocialProof />
 
-        {/* Premium Featured Dealers */}
         <PremiumDealerCarousel sellerName="Panel Comics" />
         <PremiumDealerCarousel sellerName="Kiss Komixx" />
 
-        {/* Featured Sellers */}
         <FeaturedShops />
-        
-        {/* Listings Sections */}
-        <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
         
         <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" />
         
         <ListingsCarousel title="Hot This Week" filterType="hot-week" />
-        
-        <ListingsCarousel title="Local Deals Near You" filterType="local" />
 
-        {/* Why GrailSeeker */}
         <BenefitBlocks />
       </main>
     </>
