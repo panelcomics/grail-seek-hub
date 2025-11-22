@@ -178,7 +178,7 @@ const MyCollection = () => {
                 return (
                 <Card 
                   key={comic.id} 
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  className="cursor-pointer hover:shadow-lg transition-shadow h-auto"
                   onClick={() => navigate(`/inventory/${comic.id}`)}
                 >
                   <CardContent className="pt-6">
@@ -187,36 +187,36 @@ const MyCollection = () => {
                         <img
                           src={comic.image_url}
                           alt={comic.title}
-                          className="w-20 h-28 object-cover rounded"
+                          className="w-20 h-28 object-cover rounded flex-shrink-0"
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base mb-2">
+                        <CardTitle className="text-base mb-2 whitespace-normal break-words max-w-full">
                           <span className="font-bold">{comic.title}</span>
                           {comic.issue_number && <span className="font-bold"> #{comic.issue_number}</span>}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground" style={{ marginTop: "4px" }}>
+                        <p className="text-sm text-muted-foreground whitespace-normal break-words" style={{ marginTop: "4px" }}>
                           {comic.cover_date && new Date(comic.cover_date).toLocaleDateString()}
                         </p>
                         {comic.details && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-1 whitespace-normal break-words">
                             {comic.details.length > 60 ? `${comic.details.substring(0, 60)}...` : comic.details}
                           </p>
                         )}
                         {/* Show grading company + grade for slabs, otherwise show condition */}
                         {comic.is_slab && comic.cgc_grade ? (
                           <div className="mt-2 space-y-0.5">
-                            <div className="text-sm font-bold text-primary">
+                            <div className="text-sm font-bold text-primary whitespace-normal break-words">
                               {comic.grading_company || "CGC"} {comic.cgc_grade}
                             </div>
                             {comic.certification_number && (
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-xs text-muted-foreground whitespace-normal break-words">
                                 Cert #{comic.certification_number}
                               </div>
                             )}
                           </div>
                         ) : comic.condition_notes ? (
-                          <p className="text-xs text-muted-foreground mt-2 italic">
+                          <p className="text-xs text-muted-foreground mt-2 italic whitespace-normal break-words">
                             {comic.condition_notes}
                           </p>
                         ) : null}
