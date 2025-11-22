@@ -172,6 +172,14 @@ export default function ManageBook() {
   const handleSave = async () => {
     if (!user || !item) return;
 
+    console.log("🔍 SAVE HANDLER START", {
+      itemId: item.id,
+      itemTitle: formData.title || formData.series,
+      for_sale: formData.for_sale,
+      listed_price_string: formData.listed_price,
+      shipping_price_string: formData.shipping_price,
+    });
+
     setSaving(true);
     try {
       const updateData: any = {
@@ -207,24 +215,43 @@ export default function ManageBook() {
         updated_at: new Date().toISOString(),
       };
 
+      console.log("📝 Updating inventory_items table", updateData);
+
       const { error } = await supabase
         .from("inventory_items")
         .update(updateData)
         .eq("id", item.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ inventory_items update failed:", error);
+        throw error;
+      }
+
+      console.log("✅ inventory_items updated successfully");
 
       // Create or update listings table entry if for_sale is true
       if (formData.for_sale) {
         const listedPrice = formData.listed_price ? parseFloat(formData.listed_price) : null;
         const shippingPrice = formData.shipping_price ? parseFloat(formData.shipping_price) : null;
         
+        console.log("💰 Processing listing creation/update", {
+          listedPrice,
+          listedPriceCents: listedPrice ? Math.round(listedPrice * 100) : null,
+          shippingPrice,
+        });
+
         // Check if listing already exists
-        const { data: existingListing } = await supabase
+        const { data: existingListing, error: existingError } = await supabase
           .from("listings")
           .select("id")
           .eq("inventory_item_id", item.id)
           .maybeSingle();
+
+        if (existingError) {
+          console.error("❌ Error checking for existing listing:", existingError);
+        }
+
+        console.log("🔎 Existing listing check:", existingListing);
 
         const listingPayload = {
           title: formData.title || formData.series || "Untitled",
@@ -240,37 +267,60 @@ export default function ManageBook() {
           updated_at: new Date().toISOString(),
         };
 
+        console.log("📦 Listing payload prepared:", listingPayload);
+
         if (existingListing) {
-          // Update existing listing
-          await supabase
+          console.log("🔄 Updating existing listing:", existingListing.id);
+          const { error: updateError } = await supabase
             .from("listings")
             .update(listingPayload)
             .eq("id", existingListing.id);
+          
+          if (updateError) {
+            console.error("❌ Listing update failed:", updateError);
+            throw updateError;
+          }
+          console.log("✅ Listing updated successfully");
         } else {
-          // Create new listing
-          await supabase
+          console.log("➕ Creating new listing");
+          const { data: insertedListing, error: insertError } = await supabase
             .from("listings")
             .insert({
               user_id: user.id,
               inventory_item_id: item.id,
               ...listingPayload,
-            });
+            })
+            .select();
+          
+          if (insertError) {
+            console.error("❌ Listing insert failed:", insertError);
+            throw insertError;
+          }
+          console.log("✅ Listing created successfully:", insertedListing);
         }
       } else {
+        console.log("🚫 for_sale is false, deactivating existing listings");
         // If for_sale is false, deactivate any existing listing
-        await supabase
+        const { error: deactivateError } = await supabase
           .from("listings")
           .update({ status: "inactive" })
           .eq("inventory_item_id", item.id)
           .in("status", ["active", "live", "listed"]);
+        
+        if (deactivateError) {
+          console.error("❌ Listing deactivation failed:", deactivateError);
+        } else {
+          console.log("✅ Listings deactivated");
+        }
       }
 
       toast.success("Book updated successfully");
       
       // Refresh listing status after save
       await fetchActiveListing(item.id);
+      console.log("🔍 SAVE HANDLER COMPLETE");
     } catch (error) {
-      console.error("Error updating item:", error);
+      console.error("❌ ERROR in handleSave:", error);
       toast.error("Failed to update book");
     } finally {
       setSaving(false);

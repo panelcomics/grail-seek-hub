@@ -190,33 +190,33 @@ const MyCollection = () => {
                           className="w-20 h-28 object-cover rounded flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base mb-2 whitespace-normal break-words max-w-full">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <CardTitle className="text-base mb-2 line-clamp-2 break-words">
                           <span className="font-bold">{comic.title}</span>
                           {comic.issue_number && <span className="font-bold"> #{comic.issue_number}</span>}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground whitespace-normal break-words" style={{ marginTop: "4px" }}>
+                        <p className="text-sm text-muted-foreground truncate" style={{ marginTop: "4px" }}>
                           {comic.cover_date && new Date(comic.cover_date).toLocaleDateString()}
                         </p>
                         {comic.details && (
-                          <p className="text-xs text-muted-foreground mt-1 whitespace-normal break-words">
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 break-words">
                             {comic.details.length > 60 ? `${comic.details.substring(0, 60)}...` : comic.details}
                           </p>
                         )}
                         {/* Show grading company + grade for slabs, otherwise show condition */}
                         {comic.is_slab && comic.cgc_grade ? (
                           <div className="mt-2 space-y-0.5">
-                            <div className="text-sm font-bold text-primary whitespace-normal break-words">
+                            <div className="text-sm font-bold text-primary truncate">
                               {comic.grading_company || "CGC"} {comic.cgc_grade}
                             </div>
                             {comic.certification_number && (
-                              <div className="text-xs text-muted-foreground whitespace-normal break-words">
+                              <div className="text-xs text-muted-foreground truncate">
                                 Cert #{comic.certification_number}
                               </div>
                             )}
                           </div>
                         ) : comic.condition_notes ? (
-                          <p className="text-xs text-muted-foreground mt-2 italic whitespace-normal break-words">
+                          <p className="text-xs text-muted-foreground mt-2 italic line-clamp-2 break-words">
                             {comic.condition_notes}
                           </p>
                         ) : null}

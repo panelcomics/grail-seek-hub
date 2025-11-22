@@ -27,19 +27,17 @@ export default function Index() {
       </Helmet>
 
       <main className="min-h-screen">
-        {/* Founding Sellers Banner */}
+        {/* 1. Founding Sellers Banner */}
         <FoundingSellersBanner />
         
-      {/* Hero Section */}
-      <HeroSection />
-      
-      {/* Featured Grails - Real listings from inventory - RIGHT AFTER HERO */}
-      <div className="bg-white py-6">
+        {/* 2. Comic Stack Hero */}
+        <HeroSection />
+        
+        {/* 3. Featured Grails — Buy It Now */}
         <FeaturedGrailsCarousel />
-      </div>
-      
-      {/* Trust Row */}
-      <TrustSection />
+        
+        {/* 4. Start Hunting Grails / Browse Local Deals buttons */}
+        <TrustSection />
         
         {/* Safety Section */}
         <SafetySection />
