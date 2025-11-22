@@ -33,17 +33,17 @@ export default function Index() {
         {/* Hero Section */}
         <HeroSection />
         
+        {/* Featured Grails - Real listings from inventory - RIGHT AFTER HERO */}
+        <FeaturedGrailsCarousel />
+        
         {/* Trust Row */}
         <TrustSection />
         
         {/* Safety Section */}
         <SafetySection />
         
-        {/* Fees Section - Moved to appear right after hero */}
+        {/* Fees Section */}
         <FeesSection />
-        
-        {/* Featured Grails - Real listings from inventory */}
-        <FeaturedGrailsCarousel />
         
         {/* Category Filter */}
         <CategoryFilter 

@@ -217,7 +217,7 @@ export default function ManageBook() {
       // Create or update listings table entry if for_sale is true
       if (formData.for_sale) {
         const listedPrice = formData.listed_price ? parseFloat(formData.listed_price) : null;
-        const shippingPrice = formData.shipping_price ? parseFloat(formData.shipping_price) : 5.00;
+        const shippingPrice = formData.shipping_price ? parseFloat(formData.shipping_price) : null;
         
         // Check if listing already exists
         const { data: existingListing } = await supabase
@@ -226,23 +226,25 @@ export default function ManageBook() {
           .eq("inventory_item_id", item.id)
           .maybeSingle();
 
+        const listingPayload = {
+          title: formData.title || formData.series || "Untitled",
+          price: listedPrice,
+          price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
+          shipping_price: shippingPrice,
+          status: "active",
+          type: "sale",
+          details: formData.details,
+          issue_number: formData.issue_number,
+          volume_name: formData.series,
+          quantity: 1,
+          updated_at: new Date().toISOString(),
+        };
+
         if (existingListing) {
           // Update existing listing
           await supabase
             .from("listings")
-            .update({
-              title: formData.title || formData.series || "Untitled",
-              price: listedPrice,
-              price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
-              shipping_price: shippingPrice,
-              status: "active",
-              type: formData.for_auction ? "auction" : "sale",
-              details: formData.details,
-              issue_number: formData.issue_number,
-              volume_name: formData.series,
-              quantity: 1,
-              updated_at: new Date().toISOString(),
-            })
+            .update(listingPayload)
             .eq("id", existingListing.id);
         } else {
           // Create new listing
@@ -251,16 +253,7 @@ export default function ManageBook() {
             .insert({
               user_id: user.id,
               inventory_item_id: item.id,
-              title: formData.title || formData.series || "Untitled",
-              price: listedPrice,
-              price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
-              shipping_price: shippingPrice,
-              status: "active",
-              type: formData.for_auction ? "auction" : "sale",
-              details: formData.details,
-              issue_number: formData.issue_number,
-              volume_name: formData.series,
-              quantity: 1,
+              ...listingPayload,
             });
         }
       } else {
@@ -578,14 +571,14 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION B: Pricing & Condition */}
-            <Card className="bg-card border-border">
+            <Card className="bg-white border border-border">
               <CardContent className="pt-6 space-y-4">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Pricing</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Pricing</h2>
                 
                 <div>
-                  <Label htmlFor="listed_price" className="text-foreground">Sale Price ($)</Label>
+                  <Label htmlFor="listed_price" className="text-gray-900 font-medium">Sale Price ($)</Label>
                   <Input
-                    className="bg-background border-input"
+                    className="bg-background border-input mt-1"
                     id="listed_price"
                     type="number"
                     step="0.01"
@@ -596,40 +589,40 @@ export default function ManageBook() {
                 </div>
 
                 <div>
-                  <Label htmlFor="shipping_price" className="text-foreground">Shipping Price ($)</Label>
+                  <Label htmlFor="shipping_price" className="text-gray-900 font-medium">Shipping Price ($)</Label>
                   <Input
-                    className="bg-background border-input"
+                    className="bg-background border-input mt-1"
                     id="shipping_price"
                     type="number"
                     step="0.01"
                     value={formData.shipping_price}
                     onChange={(e) => setFormData({ ...formData, shipping_price: e.target.value })}
-                    placeholder="5.00"
+                    placeholder="$0–25 typical"
                   />
                 </div>
               </CardContent>
             </Card>
 
             {/* SECTION C: Sell & Trade Options */}
-            <Card className="bg-card border-border">
+            <Card className="bg-white border border-border">
               <CardContent className="pt-6 space-y-4">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Sell & Trade Options</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Sell & Trade Options</h2>
                 
-                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-background">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-gray-300 bg-gray-50">
                   <div className="flex-1">
-                    <Label htmlFor="for_sale" className="text-base font-bold text-foreground cursor-pointer">
+                    <Label htmlFor="for_sale" className="text-base font-bold text-gray-900 cursor-pointer">
                       List for Sale
                     </Label>
                     {activeListing ? (
-                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                      <p className="text-sm text-green-600 mt-1 font-medium">
                         ✓ Live — this book is listed for sale on the marketplace.
                       </p>
                     ) : formData.for_sale ? (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-gray-600 mt-1">
                         Not live yet — save to publish this listing.
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-gray-600 mt-1">
                         Turn this on and save to create a public listing.
                       </p>
                     )}
@@ -641,8 +634,8 @@ export default function ManageBook() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                  <Label htmlFor="for_auction" className="text-base font-semibold text-foreground cursor-pointer">
+                <div className="flex items-center justify-between p-3 rounded-lg border border-gray-300 bg-gray-50">
+                  <Label htmlFor="for_auction" className="text-base font-semibold text-gray-900 cursor-pointer">
                     Auction
                   </Label>
                   <Switch
@@ -652,8 +645,8 @@ export default function ManageBook() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                  <Label htmlFor="is_for_trade" className="text-base font-semibold text-foreground cursor-pointer">
+                <div className="flex items-center justify-between p-3 rounded-lg border border-gray-300 bg-gray-50">
+                  <Label htmlFor="is_for_trade" className="text-base font-semibold text-gray-900 cursor-pointer">
                     Available for Trade
                   </Label>
                   <Switch
@@ -691,14 +684,14 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION D: Private Notes */}
-            <Card className="bg-card border-border">
+            <Card className="bg-white border border-border">
               <CardContent className="pt-6 space-y-4">
-                <h2 className="text-xl font-semibold mb-4 text-foreground">Private Notes</h2>
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Private Notes</h2>
                 
                 <div>
-                  <Label htmlFor="private_location" className="text-foreground">Storage Location</Label>
+                  <Label htmlFor="private_location" className="text-gray-900 font-medium">Storage Location</Label>
                   <Input
-                    className="bg-background border-input"
+                    className="bg-background border-input mt-1"
                     id="private_location"
                     value={formData.private_location}
                     onChange={(e) => setFormData({ ...formData, private_location: e.target.value })}
@@ -707,9 +700,9 @@ export default function ManageBook() {
                 </div>
 
                 <div>
-                  <Label htmlFor="private_notes" className="text-foreground">Private Notes</Label>
+                  <Label htmlFor="private_notes" className="text-gray-900 font-medium">Private Notes</Label>
                   <Textarea
-                    className="bg-background border-input"
+                    className="bg-background border-input mt-1"
                     id="private_notes"
                     value={formData.private_notes}
                     onChange={(e) => setFormData({ ...formData, private_notes: e.target.value })}
