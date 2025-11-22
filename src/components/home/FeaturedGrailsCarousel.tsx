@@ -17,45 +17,55 @@ export function FeaturedGrailsCarousel() {
 
   const fetchFeaturedGrails = async () => {
     try {
-      // Query inventory_items directly with for_sale and active listing_status
+      // Query listings table directly with inventory_items join
       const { data, error } = await supabase
-        .from("inventory_items")
+        .from("listings")
         .select(`
           *,
-          profiles!inventory_items_user_id_fkey (
+          inventory_items!inner(
+            id,
+            title,
+            series,
+            issue_number,
+            condition,
+            cgc_grade,
+            grading_company,
+            certification_number,
+            is_slab,
+            details,
+            variant_description,
+            images,
+            for_sale,
+            for_auction,
+            is_for_trade,
+            offers_enabled,
+            user_id
+          ),
+          profiles!user_id(
             username,
             city,
             is_verified_seller,
             completed_sales_count
-          ),
-          listings!listings_inventory_item_id_fkey (
-            id,
-            status
           )
         `)
-        .eq("for_sale", true)
-        .in("listing_status", ["active", "listed"])
+        .eq("status", "active")
         .order("updated_at", { ascending: false })
         .limit(12);
 
       if (error) throw error;
 
-      // Filter items that have an active listing and flatten data
-      const filteredListings = (data || [])
-        .filter(item => {
-          const listingsArray = Array.isArray(item.listings) ? item.listings : (item.listings ? [item.listings] : []);
-          return listingsArray.some((listing: any) => listing && listing.status === "active");
-        })
-        .map(item => {
-          const listingsArray = Array.isArray(item.listings) ? item.listings : (item.listings ? [item.listings] : []);
-          const activeListing = listingsArray.find((listing: any) => listing && listing.status === "active");
-          return {
-            ...item,
-            listing_id: activeListing?.id || item.id // Use listing ID if available, fallback to item ID
-          };
-        });
+      // Transform data to include inventory_items properties at top level
+      const transformedListings = (data || []).map(listing => {
+        const item = listing.inventory_items;
+        return {
+          ...listing,
+          ...item,
+          listing_id: listing.id,
+          price_cents: listing.price_cents,
+        };
+      });
 
-      setListings(filteredListings);
+      setListings(transformedListings);
     } catch (error) {
       console.error("Error fetching featured grails:", error);
     } finally {

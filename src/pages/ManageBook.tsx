@@ -236,7 +236,7 @@ export default function ManageBook() {
               price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
               shipping_price: shippingPrice,
               status: "active",
-              type: formData.for_auction ? "auction" : "buy_now",
+              type: formData.for_auction ? "auction" : "sale",
               details: formData.details,
               issue_number: formData.issue_number,
               volume_name: formData.series,
@@ -256,7 +256,7 @@ export default function ManageBook() {
               price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
               shipping_price: shippingPrice,
               status: "active",
-              type: formData.for_auction ? "auction" : "buy_now",
+              type: formData.for_auction ? "auction" : "sale",
               details: formData.details,
               issue_number: formData.issue_number,
               volume_name: formData.series,
@@ -578,9 +578,9 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION B: Pricing & Condition */}
-            <Card>
+            <Card className="bg-background border-border">
               <CardContent className="pt-6 space-y-4">
-                <h2 className="text-xl font-semibold mb-4">Pricing</h2>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">Pricing</h2>
                 
                 <div>
                   <Label htmlFor="listed_price">Sale Price ($)</Label>
@@ -609,12 +609,14 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION C: Sell & Trade Options */}
-            <Card>
+            <Card className="bg-background border-border">
               <CardContent className="pt-6 space-y-4">
-                <h2 className="text-xl font-semibold mb-4">Sell & Trade Options</h2>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">Sell & Trade Options</h2>
                 
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="for_sale">List for Sale</Label>
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                  <Label htmlFor="for_sale" className="text-base font-semibold text-foreground cursor-pointer">
+                    List for Sale
+                  </Label>
                   <Switch
                     id="for_sale"
                     checked={formData.for_sale}
@@ -623,19 +625,21 @@ export default function ManageBook() {
                 </div>
 
                 {!activeListing && formData.for_sale && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground px-3">
                     Not live yet — turn on 'List for Sale' and save to publish this listing.
                   </p>
                 )}
                 
                 {!activeListing && !formData.for_sale && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground px-3">
                     Turn on 'List for Sale' and save to create a public listing.
                   </p>
                 )}
 
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="for_auction">Auction</Label>
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                  <Label htmlFor="for_auction" className="text-base font-semibold text-foreground cursor-pointer">
+                    Auction
+                  </Label>
                   <Switch
                     id="for_auction"
                     checked={formData.for_auction}
@@ -643,8 +647,10 @@ export default function ManageBook() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="is_for_trade">Available for Trade</Label>
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                  <Label htmlFor="is_for_trade" className="text-base font-semibold text-foreground cursor-pointer">
+                    Available for Trade
+                  </Label>
                   <Switch
                     id="is_for_trade"
                     checked={formData.is_for_trade}
@@ -680,9 +686,9 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION D: Private Notes */}
-            <Card>
+            <Card className="bg-background border-border">
               <CardContent className="pt-6 space-y-4">
-                <h2 className="text-xl font-semibold mb-4">Private Notes</h2>
+                <h2 className="text-xl font-semibold mb-4 text-foreground">Private Notes</h2>
                 
                 <div>
                   <Label htmlFor="private_location">Storage Location</Label>
@@ -707,28 +713,31 @@ export default function ManageBook() {
               </CardContent>
             </Card>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1"
-                size="lg"
-              >
-                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Save Changes
-              </Button>
-              
-              {activeListing && (
+            {/* Action Buttons - Sticky on mobile */}
+            <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm p-4 -mx-4 md:static md:bg-transparent md:p-0 md:mx-0 border-t md:border-t-0">
+              <div className="flex gap-3 max-w-6xl mx-auto">
                 <Button
-                  variant="outline"
-                  onClick={() => navigate(`/listing/${activeListing.id}`)}
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1"
                   size="lg"
+                  variant="default"
                 >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View Live Listing
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Save Changes
                 </Button>
-              )}
+                
+                {activeListing && (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/listing/${activeListing.id}`)}
+                    size="lg"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Live Listing
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>

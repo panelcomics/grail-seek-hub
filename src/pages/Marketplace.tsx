@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2, SlidersHorizontal } from "lucide-react";
-import { formatCents } from "@/lib/fees";
 import { MobileFilterBar } from "@/components/MobileFilterBar";
+import ItemCard from "@/components/ItemCard";
+import { resolvePrice } from "@/lib/listingPriceUtils";
+import { getListingImageUrl } from "@/lib/sellerUtils";
 
 export default function Marketplace() {
   const navigate = useNavigate();
@@ -36,29 +37,54 @@ export default function Marketplace() {
 
   const fetchListings = async () => {
     try {
+      // Query listings table directly with inventory_items join
       const { data, error } = await supabase
-        .from("inventory_items")
+        .from("listings")
         .select(`
           *,
-          profiles!inventory_items_user_id_fkey(display_name, username, avatar_url, city, is_verified_seller, completed_sales_count),
-          listings!listings_inventory_item_id_fkey(id, status, price_cents)
+          inventory_items!inner(
+            id,
+            title,
+            series,
+            issue_number,
+            condition,
+            cgc_grade,
+            grading_company,
+            certification_number,
+            is_slab,
+            details,
+            variant_description,
+            images,
+            for_sale,
+            for_auction,
+            is_for_trade,
+            offers_enabled,
+            user_id
+          ),
+          profiles!user_id(
+            display_name,
+            username,
+            avatar_url,
+            city,
+            is_verified_seller,
+            completed_sales_count
+          )
         `)
-        .eq("for_sale", true)
-        .in("listing_status", ["listed", "active"])
+        .eq("status", "active")
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
       
-      // Transform data to match expected format
-      const transformedData = (data || []).map(item => {
-        const listingsArray = Array.isArray(item.listings) ? item.listings : (item.listings ? [item.listings] : []);
-        const activeListing = listingsArray.find((l: any) => l?.status === "active");
-        
+      // Transform data to include inventory_items properties at top level
+      const transformedData = (data || []).map(listing => {
+        const item = listing.inventory_items;
         return {
+          ...listing,
           ...item,
-          id: activeListing?.id || item.id,
-          listing_id: activeListing?.id || item.id,
-          price_cents: item.listed_price ? Math.round(item.listed_price * 100) : null,
+          listing_id: listing.id,
+          price_cents: listing.price_cents,
+          // Keep nested for backwards compatibility
+          inventory_items: item,
         };
       });
       
@@ -183,69 +209,38 @@ export default function Marketplace() {
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredAndSortedListings.map((item) => {
-              const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
-              const sellerName = profile?.display_name || profile?.username || "Seller";
-              const imageUrl = item.images?.[0]?.url || null;
+            {filteredAndSortedListings.map((listing) => {
+              const price = resolvePrice(listing);
+              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
               
               return (
-                <Card
-                  key={item.listing_id}
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => navigate(`/listing/${item.listing_id}`)}
-                >
-                  <CardContent className="p-4">
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={item.title || item.series}
-                        className="aspect-[2/3] w-full object-cover rounded-md mb-3"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="aspect-[2/3] bg-muted rounded-md mb-3 flex items-center justify-center text-muted-foreground">
-                        No image
-                      </div>
-                    )}
-                    <h3 className="font-semibold line-clamp-2 mb-1 text-sm md:text-base">
-                      {item.title || item.series || "Untitled"}
-                    </h3>
-                    {item.issue_number && (
-                      <p className="text-xs md:text-sm text-muted-foreground mb-2">
-                        Issue #{item.issue_number}
-                      </p>
-                    )}
-                    {item.details && (
-                      <p className="text-xs text-muted-foreground mb-1 line-clamp-1">
-                        {item.details}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mb-2">
-                      by {sellerName}
-                    </p>
-                    <div className="flex items-center justify-between mt-3">
-                      {(() => {
-                        const priceCents = item.price_cents;
-                        return priceCents !== null ? (
-                          <span className="text-lg font-bold text-primary">
-                            {formatCents(priceCents)}
-                          </span>
-                        ) : (
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Price TBD
-                          </span>
-                        );
-                      })()}
-                      <Button size="sm" variant="outline">
-                        View
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ItemCard
+                  key={listing.listing_id}
+                  id={listing.listing_id}
+                  title={listing.title || listing.series || "Untitled"}
+                  price={price === null ? undefined : price}
+                  condition={listing.condition || listing.cgc_grade || "Unknown"}
+                  image={getListingImageUrl(listing)}
+                  category="comic"
+                  isAuction={listing.for_auction}
+                  showMakeOffer={listing.offers_enabled}
+                  showTradeBadge={listing.is_for_trade}
+                  sellerName={profile?.username}
+                  sellerCity={profile?.city}
+                  isVerifiedSeller={profile?.is_verified_seller}
+                  completedSalesCount={profile?.completed_sales_count || 0}
+                  isSlab={listing.is_slab}
+                  grade={listing.cgc_grade}
+                  gradingCompany={listing.grading_company}
+                  certificationNumber={listing.certification_number}
+                  series={listing.series}
+                  issueNumber={listing.issue_number}
+                  keyInfo={listing.variant_description || listing.details}
+                />
               );
             })}
-        </div>
-      )}
+          </div>
+        )}
       
       <MobileFilterBar
         sortBy={sortBy}
