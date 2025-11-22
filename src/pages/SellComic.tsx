@@ -20,6 +20,25 @@ import { useSellerFee } from "@/hooks/useSellerFee";
 export default function SellComic() {
   const { comicId } = useParams();
   const navigate = useNavigate();
+  
+  // Redirect to unified manage book page
+  useEffect(() => {
+    if (comicId) {
+      navigate(`/inventory/${comicId}`, { replace: true });
+    }
+  }, [comicId, navigate]);
+
+  return (
+    <main className="flex-1 container py-8 flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </main>
+  );
+}
+
+// Legacy component - now redirects to ManageBook
+function SellComicLegacy() {
+  const { comicId } = useParams();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
