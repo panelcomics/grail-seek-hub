@@ -4,7 +4,6 @@ import { Shield, TrendingUp, Package, Clock, BadgeCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
 import { EnhancedSearchInput } from "./EnhancedSearchInput";
-import { FomoAuctionBlock } from "./FomoAuctionBlock";
 import heroComics from "@/assets/hero-comics.png";
 
 export function HeroSection() {
@@ -60,11 +59,6 @@ export function HeroSection() {
                   />
                   {/* Visual indicator overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent pointer-events-none" />
-                </div>
-                
-                {/* FOMO Auction Block - positioned below hero image on mobile */}
-                <div className="mt-1.5 -mx-4">
-                  <FomoAuctionBlock />
                 </div>
               </div>
 
@@ -127,9 +121,6 @@ export function HeroSection() {
                   className="w-full h-80 sm:h-96 lg:h-[500px] object-cover object-center"
                 />
               </div>
-              
-              {/* FOMO Auction Block - positioned below hero image on desktop */}
-              <FomoAuctionBlock />
             </div>
           </div>
         </div>

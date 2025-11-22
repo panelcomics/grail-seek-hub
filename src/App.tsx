@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import Footer from "./components/Footer";
 import Index from "./pages/Index";
-import ItemDetail from "./pages/ItemDetail";
 import Auth from "./pages/Auth";
 import Scanner from "./pages/Scanner";
 import ResultDetail from "./pages/scanner/ResultDetail";
@@ -79,7 +78,6 @@ const AppContent = () => {
         <div className="flex-1">
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/search" element={<Search />} />
             <Route path="/scanner" element={<Scanner />} />

@@ -17,62 +17,41 @@ export function FeaturedGrailsCarousel() {
 
   const fetchFeaturedGrails = async () => {
     try {
-      // Query listings table joined with inventory_items and profiles
+      // Query inventory_items directly with for_sale and active listing_status
       const { data, error } = await supabase
-        .from("listings")
+        .from("inventory_items")
         .select(`
-          id,
-          inventory_item_id,
-          inventory_items!listings_inventory_item_id_fkey (
+          *,
+          profiles!inventory_items_user_id_fkey (
+            username,
+            city,
+            is_verified_seller,
+            completed_sales_count
+          ),
+          listings!listings_inventory_item_id_fkey (
             id,
-            title,
-            series,
-            issue_number,
-            condition,
-            cgc_grade,
-            grading_company,
-            certification_number,
-            images,
-            listed_price,
-            for_sale,
-            for_auction,
-            is_for_trade,
-            offers_enabled,
-            is_slab,
-            variant_description,
-            details,
-            user_id,
-            updated_at,
-            profiles!inventory_items_user_id_fkey (
-              username,
-              city,
-              is_verified_seller,
-              completed_sales_count
-            )
+            status
           )
         `)
-        .eq("status", "active")
-        .not("inventory_items.for_sale", "is", null)
-        .order("created_at", { ascending: false })
+        .eq("for_sale", true)
+        .in("listing_status", ["active", "listed"])
+        .order("updated_at", { ascending: false })
         .limit(12);
 
       if (error) throw error;
 
-      // Filter and flatten the data structure
+      // Filter items that have an active listing and flatten data
       const filteredListings = (data || [])
-        .filter(listing => {
-          const item = Array.isArray(listing.inventory_items) 
-            ? listing.inventory_items[0] 
-            : listing.inventory_items;
-          return item && item.for_sale === true;
+        .filter(item => {
+          const listingsArray = Array.isArray(item.listings) ? item.listings : (item.listings ? [item.listings] : []);
+          return listingsArray.some((listing: any) => listing && listing.status === "active");
         })
-        .map(listing => {
-          const item = Array.isArray(listing.inventory_items) 
-            ? listing.inventory_items[0] 
-            : listing.inventory_items;
+        .map(item => {
+          const listingsArray = Array.isArray(item.listings) ? item.listings : (item.listings ? [item.listings] : []);
+          const activeListing = listingsArray.find((listing: any) => listing && listing.status === "active");
           return {
-            listing_id: listing.id,
-            ...item
+            ...item,
+            listing_id: activeListing?.id || item.id // Use listing ID if available, fallback to item ID
           };
         });
 
