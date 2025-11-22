@@ -135,6 +135,9 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             grade={item.cgc_grade}
             gradingCompany={item.grading_company}
             certificationNumber={item.certification_number}
+            series={item.series}
+            issueNumber={item.issue_number}
+            keyInfo={item.variant_description || item.details}
           />
         );
       })}
