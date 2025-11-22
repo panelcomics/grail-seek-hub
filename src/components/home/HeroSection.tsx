@@ -26,25 +26,25 @@ export function HeroSection() {
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="flex flex-col lg:flex-row gap-6 md:gap-10 items-center">
             {/* Left side - Text content */}
-            <div className="w-full lg:w-1/2 space-y-2 sm:space-y-4 md:space-y-5 lg:space-y-4 flex flex-col px-0 sm:px-0 lg:pt-0">
+            <div className="w-full lg:w-1/2 space-y-1.5 sm:space-y-4 md:space-y-5 lg:space-y-4 flex flex-col px-0 sm:px-0 lg:pt-0">
               {/* Headline - order 1 on mobile */}
-              <div className="order-1 px-4 pt-2 sm:pt-0 sm:px-0">
-                <h1 className="text-[28px] leading-tight sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-2 sm:mb-3 md:mb-4 text-center sm:text-left">
+              <div className="order-1 px-4 pt-1.5 sm:pt-0 sm:px-0">
+                <h1 className="text-[24px] leading-[1.2] sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-1.5 sm:mb-3 md:mb-4 text-center sm:text-left">
                   Trusted Marketplace for{" "}
-                  <span className="text-primary drop-shadow-lg block sm:inline mt-1 sm:mt-0">Comic Grails & Keys</span>
+                  <span className="text-primary drop-shadow-lg block sm:inline mt-0.5 sm:mt-0">Comic Grails & Keys</span>
                 </h1>
                 
-                <p className="text-sm sm:text-lg md:text-xl text-foreground/80 leading-relaxed text-center sm:text-left px-2 sm:px-0">
+                <p className="text-xs sm:text-lg md:text-xl text-foreground/80 leading-snug sm:leading-relaxed text-center sm:text-left px-2 sm:px-0">
                   Buy, sell, and trade slabs, keys, and grails from verified collectors.
                 </p>
 
-                <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 py-3 sm:py-3 text-muted-foreground justify-center sm:justify-start">
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                    <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 py-1.5 sm:py-3 text-muted-foreground justify-center sm:justify-start">
+                  <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm">
+                    <Shield className="h-2.5 w-2.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                     <span className="whitespace-nowrap">Built for collectors</span>
                   </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                  <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm">
+                    <TrendingUp className="h-2.5 w-2.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                     <span className="whitespace-nowrap">Lifetime 2% fee</span>
                   </div>
                 </div>
@@ -56,20 +56,20 @@ export function HeroSection() {
                   <img
                     src={heroComics}
                     alt="Vintage comic book collection featuring Marvel and DC classics"
-                    className="w-full h-[240px] sm:h-96 object-cover object-[30%_center] sm:object-center"
+                    className="w-full h-[180px] sm:h-96 object-cover object-[30%_center] sm:object-center"
                   />
                   {/* Visual indicator overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent pointer-events-none" />
                 </div>
                 
                 {/* FOMO Auction Block - positioned below hero image on mobile */}
-                <div className="mt-2 -mx-4">
+                <div className="mt-1.5 -mx-4">
                   <FomoAuctionBlock />
                 </div>
               </div>
 
               {/* Buttons - order 3 on mobile (moved up for better flow) */}
-              <div className="order-3 flex flex-col gap-2.5 sm:gap-3 px-4 sm:px-0 mt-2 sm:mt-0">
+              <div className="order-3 flex flex-col gap-2 sm:gap-3 px-4 sm:px-0 mt-1 sm:mt-0">
                 <Button 
                   size="lg" 
                   onClick={scrollToListings}
@@ -93,7 +93,7 @@ export function HeroSection() {
               </div>
 
               {/* Stats - order 5 on mobile, order 4 on desktop */}
-              <div className="order-5 lg:order-4 grid grid-cols-3 gap-4 sm:gap-4 md:gap-6 px-4 sm:px-0 pt-5 pb-4 sm:pt-6 sm:pb-0 lg:pt-4 border-t border-border/40">
+              <div className="order-5 lg:order-4 grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 px-4 sm:px-0 pt-3 pb-2 sm:pt-6 sm:pb-0 lg:pt-4 border-t border-border/40">
                 <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
                     <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
