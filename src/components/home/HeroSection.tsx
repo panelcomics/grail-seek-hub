@@ -26,7 +26,7 @@ export function HeroSection() {
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="flex flex-col lg:flex-row gap-6 md:gap-10 items-center">
             {/* Left side - Text content */}
-            <div className="w-full lg:w-1/2 space-y-3 sm:space-y-4 md:space-y-5 flex flex-col px-0 sm:px-0">
+            <div className="w-full lg:w-1/2 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-4 flex flex-col px-0 sm:px-0 lg:pt-0">{/* Removed top padding on desktop */}
               {/* Headline - order 1 on mobile */}
               <div className="order-1 px-4 pt-4 sm:pt-0 sm:px-0">
                 <h1 className="text-[28px] leading-tight sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-3 sm:mb-3 md:mb-4 text-center sm:text-left">
@@ -87,8 +87,13 @@ export function HeroSection() {
                 </Button>
               </div>
 
-              {/* Stats - order 4 on mobile */}
-              <div className="order-4 grid grid-cols-3 gap-4 sm:gap-4 md:gap-6 px-4 sm:px-0 pt-5 pb-4 sm:pt-6 sm:pb-0 border-t border-border/40">
+              {/* Search bar - order 4 on mobile, order 3.5 on desktop (between buttons and stats) */}
+              <div className="order-4 lg:order-[3.5] w-full px-4 sm:px-0 lg:mt-2">
+                <EnhancedSearchInput />
+              </div>
+
+              {/* Stats - order 5 on mobile, order 4 on desktop */}
+              <div className="order-5 lg:order-4 grid grid-cols-3 gap-4 sm:gap-4 md:gap-6 px-4 sm:px-0 pt-5 pb-4 sm:pt-6 sm:pb-0 lg:pt-4 border-t border-border/40">
                 <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
                     <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
@@ -126,11 +131,6 @@ export function HeroSection() {
               {/* FOMO Auction Block - positioned below hero image on desktop */}
               <FomoAuctionBlock />
             </div>
-          </div>
-
-          {/* Search bar - order 5 on mobile (moved after stats) */}
-          <div className="order-5 w-full lg:w-auto lg:mt-8 md:mt-12 px-4 sm:px-0 mb-4 sm:mb-8 relative z-20">
-            <EnhancedSearchInput />
           </div>
         </div>
       </section>
