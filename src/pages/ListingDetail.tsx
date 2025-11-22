@@ -113,15 +113,22 @@ export default function ListingDetail() {
         .from("listings")
         .select(`
           *,
-          inventory_items_public(*),
-          profiles!user_id(user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller)
+          inventory_items_public(*)
         `)
         .eq("id", id)
         .single();
 
       if (error) throw error;
+
+      // Fetch profile separately
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller")
+        .eq("user_id", data.user_id)
+        .single();
+
       setListing(data);
-      setSeller(data.profiles);
+      setSeller(profileData);
     } catch (error) {
       console.error("Error fetching listing:", error);
       toast.error("Listing not found");

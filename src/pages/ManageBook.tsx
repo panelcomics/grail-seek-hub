@@ -578,13 +578,14 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION B: Pricing & Condition */}
-            <Card className="bg-background border-border">
+            <Card className="bg-card border-border">
               <CardContent className="pt-6 space-y-4">
                 <h2 className="text-xl font-semibold mb-4 text-foreground">Pricing</h2>
                 
                 <div>
-                  <Label htmlFor="listed_price">Sale Price ($)</Label>
+                  <Label htmlFor="listed_price" className="text-foreground">Sale Price ($)</Label>
                   <Input
+                    className="bg-background border-input"
                     id="listed_price"
                     type="number"
                     step="0.01"
@@ -595,8 +596,9 @@ export default function ManageBook() {
                 </div>
 
                 <div>
-                  <Label htmlFor="shipping_price">Shipping Price ($)</Label>
+                  <Label htmlFor="shipping_price" className="text-foreground">Shipping Price ($)</Label>
                   <Input
+                    className="bg-background border-input"
                     id="shipping_price"
                     type="number"
                     step="0.01"
@@ -609,32 +611,35 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION C: Sell & Trade Options */}
-            <Card className="bg-background border-border">
+            <Card className="bg-card border-border">
               <CardContent className="pt-6 space-y-4">
                 <h2 className="text-xl font-semibold mb-4 text-foreground">Sell & Trade Options</h2>
                 
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                  <Label htmlFor="for_sale" className="text-base font-semibold text-foreground cursor-pointer">
-                    List for Sale
-                  </Label>
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-background">
+                  <div className="flex-1">
+                    <Label htmlFor="for_sale" className="text-base font-bold text-foreground cursor-pointer">
+                      List for Sale
+                    </Label>
+                    {activeListing ? (
+                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                        ✓ Live — this book is listed for sale on the marketplace.
+                      </p>
+                    ) : formData.for_sale ? (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Not live yet — save to publish this listing.
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Turn this on and save to create a public listing.
+                      </p>
+                    )}
+                  </div>
                   <Switch
                     id="for_sale"
                     checked={formData.for_sale}
                     onCheckedChange={(checked) => setFormData({ ...formData, for_sale: checked })}
                   />
                 </div>
-
-                {!activeListing && formData.for_sale && (
-                  <p className="text-sm text-muted-foreground px-3">
-                    Not live yet — turn on 'List for Sale' and save to publish this listing.
-                  </p>
-                )}
-                
-                {!activeListing && !formData.for_sale && (
-                  <p className="text-sm text-muted-foreground px-3">
-                    Turn on 'List for Sale' and save to create a public listing.
-                  </p>
-                )}
 
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
                   <Label htmlFor="for_auction" className="text-base font-semibold text-foreground cursor-pointer">
@@ -686,13 +691,14 @@ export default function ManageBook() {
             </Card>
 
             {/* SECTION D: Private Notes */}
-            <Card className="bg-background border-border">
+            <Card className="bg-card border-border">
               <CardContent className="pt-6 space-y-4">
                 <h2 className="text-xl font-semibold mb-4 text-foreground">Private Notes</h2>
                 
                 <div>
-                  <Label htmlFor="private_location">Storage Location</Label>
+                  <Label htmlFor="private_location" className="text-foreground">Storage Location</Label>
                   <Input
+                    className="bg-background border-input"
                     id="private_location"
                     value={formData.private_location}
                     onChange={(e) => setFormData({ ...formData, private_location: e.target.value })}
@@ -701,8 +707,9 @@ export default function ManageBook() {
                 </div>
 
                 <div>
-                  <Label htmlFor="private_notes">Private Notes</Label>
+                  <Label htmlFor="private_notes" className="text-foreground">Private Notes</Label>
                   <Textarea
+                    className="bg-background border-input"
                     id="private_notes"
                     value={formData.private_notes}
                     onChange={(e) => setFormData({ ...formData, private_notes: e.target.value })}
@@ -719,7 +726,7 @@ export default function ManageBook() {
                 <Button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex-1"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
                   size="lg"
                   variant="default"
                 >

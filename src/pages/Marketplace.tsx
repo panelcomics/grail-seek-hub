@@ -60,29 +60,30 @@ export default function Marketplace() {
             is_for_trade,
             offers_enabled,
             user_id
-          ),
-          profiles!user_id(
-            display_name,
-            username,
-            avatar_url,
-            city,
-            is_verified_seller,
-            completed_sales_count
           )
         `)
         .eq("status", "active")
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      
+
+      // Fetch profiles separately for each unique user_id
+      const userIds = [...new Set((data || []).map(l => l.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, username, avatar_url, is_verified_seller, completed_sales_count")
+        .in("user_id", userIds);
+
       // Transform data to include inventory_items properties at top level
       const transformedData = (data || []).map(listing => {
         const item = listing.inventory_items;
+        const profile = profiles?.find(p => p.user_id === listing.user_id);
         return {
           ...listing,
           ...item,
           listing_id: listing.id,
           price_cents: listing.price_cents,
+          profiles: profile,
           // Keep nested for backwards compatibility
           inventory_items: item,
         };
@@ -211,7 +212,7 @@ export default function Marketplace() {
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredAndSortedListings.map((listing) => {
               const price = resolvePrice(listing);
-              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+              const profile = listing.profiles;
               
               return (
                 <ItemCard
@@ -226,7 +227,7 @@ export default function Marketplace() {
                   showMakeOffer={listing.offers_enabled}
                   showTradeBadge={listing.is_for_trade}
                   sellerName={profile?.username}
-                  sellerCity={profile?.city}
+                  sellerCity={undefined}
                   isVerifiedSeller={profile?.is_verified_seller}
                   completedSalesCount={profile?.completed_sales_count || 0}
                   isSlab={listing.is_slab}
