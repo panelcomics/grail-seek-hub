@@ -323,9 +323,17 @@ export default function ManageBook() {
       // Refresh listing status after save
       await fetchActiveListing(item.id);
       console.log("🔍 SAVE HANDLER COMPLETE");
-    } catch (error) {
-      console.error("❌ ERROR in handleSave:", error);
-      toast.error("Failed to update book");
+    } catch (error: any) {
+      console.error("❌ FULL ERROR OBJECT:", error);
+      console.error("❌ Error message:", error?.message);
+      console.error("❌ Error details:", error?.details);
+      console.error("❌ Error hint:", error?.hint);
+      console.error("❌ Error code:", error?.code);
+      
+      // Show more specific error message to user
+      const errorMessage = error?.message || "Failed to update book";
+      const errorDetails = error?.details ? ` (${error.details})` : "";
+      toast.error(`${errorMessage}${errorDetails}`);
     } finally {
       setSaving(false);
     }
