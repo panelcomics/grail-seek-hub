@@ -42,11 +42,14 @@ export default function Index() {
         {/* 5. Stats row (500+ / New / Verified) */}
         <SocialProof />
 
-        {/* 6. Newly Listed */}
-        <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
+        {/* 6. Hot Auctions Ending Soon */}
+        <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" />
         
         {/* 7. Local Deals Near You */}
         <ListingsCarousel title="Local Deals Near You" filterType="local" />
+        
+        {/* 8. Newly Listed */}
+        <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
         
         {/* Everything else */}
         <SafetySection />
@@ -62,8 +65,6 @@ export default function Index() {
         <PremiumDealerCarousel sellerName="Kiss Komixx" />
 
         <FeaturedShops />
-        
-        <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" />
         
         <ListingsCarousel title="Hot This Week" filterType="hot-week" />
 
