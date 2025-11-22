@@ -346,7 +346,7 @@ export default function ListingDetail() {
               )}
 
               <div className="text-2xl md:text-3xl font-bold text-primary mb-6">
-                {formatCents(listing.price_cents)}
+                {listing.price_cents ? formatCents(listing.price_cents) : listing.price ? `$${listing.price.toFixed(2)}` : '$0.00'}
               </div>
 
               {listing.details && (
