@@ -307,6 +307,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
                     series={inventory.series}
                     issueNumber={inventory.issue_number}
                     keyInfo={null}
+                    showFavoriteButton={false}
                   />
                 </div>
               );
@@ -356,6 +357,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
                       series={inventory.series}
                       issueNumber={inventory.issue_number}
                       keyInfo={null}
+                      showFavoriteButton={false}
                     />
                   </div>
                 );
