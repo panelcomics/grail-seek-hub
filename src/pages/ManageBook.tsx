@@ -214,6 +214,64 @@ export default function ManageBook() {
 
       if (error) throw error;
 
+      // Create or update listings table entry if for_sale is true
+      if (formData.for_sale) {
+        const listedPrice = formData.listed_price ? parseFloat(formData.listed_price) : null;
+        const shippingPrice = formData.shipping_price ? parseFloat(formData.shipping_price) : 5.00;
+        
+        // Check if listing already exists
+        const { data: existingListing } = await supabase
+          .from("listings")
+          .select("id")
+          .eq("inventory_item_id", item.id)
+          .maybeSingle();
+
+        if (existingListing) {
+          // Update existing listing
+          await supabase
+            .from("listings")
+            .update({
+              title: formData.title || formData.series || "Untitled",
+              price: listedPrice,
+              price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
+              shipping_price: shippingPrice,
+              status: "active",
+              type: formData.for_auction ? "auction" : "buy_now",
+              details: formData.details,
+              issue_number: formData.issue_number,
+              volume_name: formData.series,
+              quantity: 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingListing.id);
+        } else {
+          // Create new listing
+          await supabase
+            .from("listings")
+            .insert({
+              user_id: user.id,
+              inventory_item_id: item.id,
+              title: formData.title || formData.series || "Untitled",
+              price: listedPrice,
+              price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
+              shipping_price: shippingPrice,
+              status: "active",
+              type: formData.for_auction ? "auction" : "buy_now",
+              details: formData.details,
+              issue_number: formData.issue_number,
+              volume_name: formData.series,
+              quantity: 1,
+            });
+        }
+      } else {
+        // If for_sale is false, deactivate any existing listing
+        await supabase
+          .from("listings")
+          .update({ status: "inactive" })
+          .eq("inventory_item_id", item.id)
+          .in("status", ["active", "live", "listed"]);
+      }
+
       toast.success("Book updated successfully");
       
       // Refresh listing status after save

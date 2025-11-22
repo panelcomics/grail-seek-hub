@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2, SlidersHorizontal } from "lucide-react";
 import { formatCents } from "@/lib/fees";
-import { resolvePriceCents } from "@/lib/listingPriceUtils";
 import { MobileFilterBar } from "@/components/MobileFilterBar";
 
 export default function Marketplace() {
@@ -38,18 +37,32 @@ export default function Marketplace() {
   const fetchListings = async () => {
     try {
       const { data, error } = await supabase
-        .from("listings")
+        .from("inventory_items")
         .select(`
           *,
-          inventory_items!inventory_item_id(*),
-          profiles!user_id(display_name, username, avatar_url)
+          profiles!inventory_items_user_id_fkey(display_name, username, avatar_url, city, is_verified_seller, completed_sales_count),
+          listings!listings_inventory_item_id_fkey(id, status, price_cents)
         `)
-        .eq("status", "active")
-        .gt("quantity", 0)
-        .order("created_at", { ascending: false });
+        .eq("for_sale", true)
+        .in("listing_status", ["listed", "active"])
+        .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      setListings(data || []);
+      
+      // Transform data to match expected format
+      const transformedData = (data || []).map(item => {
+        const listingsArray = Array.isArray(item.listings) ? item.listings : (item.listings ? [item.listings] : []);
+        const activeListing = listingsArray.find((l: any) => l?.status === "active");
+        
+        return {
+          ...item,
+          id: activeListing?.id || item.id,
+          listing_id: activeListing?.id || item.id,
+          price_cents: item.listed_price ? Math.round(item.listed_price * 100) : null,
+        };
+      });
+      
+      setListings(transformedData);
     } catch (error) {
       console.error("Error fetching listings:", error);
     } finally {
@@ -59,10 +72,10 @@ export default function Marketplace() {
 
   const filteredAndSortedListings = (() => {
     let filtered = search
-      ? listings.filter((listing) =>
-          listing.title?.toLowerCase().includes(search.toLowerCase()) ||
-          listing.inventory_items?.title?.toLowerCase().includes(search.toLowerCase()) ||
-          listing.details?.toLowerCase().includes(search.toLowerCase())
+      ? listings.filter((item) =>
+          item.title?.toLowerCase().includes(search.toLowerCase()) ||
+          item.series?.toLowerCase().includes(search.toLowerCase()) ||
+          item.details?.toLowerCase().includes(search.toLowerCase())
         )
       : listings;
 
@@ -76,12 +89,12 @@ export default function Marketplace() {
         break;
       case "title":
         filtered = [...filtered].sort((a, b) => 
-          (a.title || a.inventory_items?.title || "").localeCompare(b.title || b.inventory_items?.title || "")
+          (a.title || a.series || "").localeCompare(b.title || b.series || "")
         );
         break;
       case "newest":
       default:
-        // Already sorted by created_at desc
+        // Already sorted by updated_at desc
         break;
     }
 
@@ -170,21 +183,22 @@ export default function Marketplace() {
           </div>
         ) : (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredAndSortedListings.map((listing) => {
-              const sellerName = listing.profiles?.display_name || listing.profiles?.username || "Seller";
-              const imageUrl = listing.image_url || listing.inventory_items?.images?.[0]?.url;
+            {filteredAndSortedListings.map((item) => {
+              const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+              const sellerName = profile?.display_name || profile?.username || "Seller";
+              const imageUrl = item.images?.[0]?.url || null;
               
               return (
                 <Card
-                  key={listing.id}
+                  key={item.listing_id}
                   className="cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => navigate(`/l/${listing.id}`)}
+                  onClick={() => navigate(`/listing/${item.listing_id}`)}
                 >
                   <CardContent className="p-4">
                     {imageUrl ? (
                       <img
                         src={imageUrl}
-                        alt={listing.title || listing.inventory_items?.title}
+                        alt={item.title || item.series}
                         className="aspect-[2/3] w-full object-cover rounded-md mb-3"
                         loading="lazy"
                       />
@@ -194,16 +208,16 @@ export default function Marketplace() {
                       </div>
                     )}
                     <h3 className="font-semibold line-clamp-2 mb-1 text-sm md:text-base">
-                      {listing.title || listing.inventory_items?.title}
+                      {item.title || item.series || "Untitled"}
                     </h3>
-                    {listing.issue_number && (
+                    {item.issue_number && (
                       <p className="text-xs md:text-sm text-muted-foreground mb-2">
-                        Issue #{listing.issue_number}
+                        Issue #{item.issue_number}
                       </p>
                     )}
-                    {listing.details && (
+                    {item.details && (
                       <p className="text-xs text-muted-foreground mb-1 line-clamp-1">
-                        {listing.details}
+                        {item.details}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground mb-2">
@@ -211,7 +225,7 @@ export default function Marketplace() {
                     </p>
                     <div className="flex items-center justify-between mt-3">
                       {(() => {
-                        const priceCents = resolvePriceCents(listing);
+                        const priceCents = item.price_cents;
                         return priceCents !== null ? (
                           <span className="text-lg font-bold text-primary">
                             {formatCents(priceCents)}
