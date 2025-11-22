@@ -150,13 +150,13 @@ const ItemCard = ({
 
   return (
     <Link to={`/listing/${id}`}>
-      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer bg-card border rounded-lg h-full flex flex-col w-full max-w-[230px] mx-auto">
         {/* Image container with 3:4 aspect ratio for tall book covers */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-muted flex-shrink-0">
+        <div className="relative aspect-[3/4] overflow-hidden bg-muted flex-shrink-0 rounded-t-lg">
           <img
             src={image}
             alt={title}
-            className="w-full h-auto object-contain object-center max-h-[270px] md:max-h-[400px] mx-auto transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover object-center max-h-[300px] md:max-h-[350px] rounded-t-lg transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
           

@@ -111,12 +111,14 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
           )}
         </div>
       </div>
-      <div className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
-        <div className="flex gap-3 md:gap-4 px-4 min-w-min">
+      
+      {/* Mobile: Horizontal scroll with 1.5 cards visible */}
+      <div className="md:hidden overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
+        <div className="flex gap-3 px-4 min-w-min">
           {loading ? (
             <>
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="w-[280px] sm:w-64 h-[420px] flex-shrink-0 snap-center bg-muted animate-pulse rounded-lg" />
+                <Skeleton key={i} className="w-[230px] h-[380px] flex-shrink-0 snap-center rounded-lg" />
               ))}
             </>
           ) : listings.length > 0 ? (
@@ -124,7 +126,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
               const price = resolvePrice(listing);
               const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
               return (
-                <div key={listing.id} className="w-[280px] sm:w-64 flex-shrink-0 snap-center">
+                <div key={listing.id} className="w-[230px] flex-shrink-0 snap-center">
                   <ItemCard
                     id={listing.id}
                     title={listing.title || listing.series || "Untitled"}
@@ -135,9 +137,9 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                     isAuction={listing.for_auction}
                     showMakeOffer={listing.offers_enabled}
                     showTradeBadge={listing.is_for_trade}
-              sellerName={profile?.username}
-              sellerCity={undefined}
-              isVerifiedSeller={profile?.is_verified_seller}
+                    sellerName={profile?.username}
+                    sellerCity={undefined}
+                    isVerifiedSeller={profile?.is_verified_seller}
                     completedSalesCount={profile?.completed_sales_count || 0}
                     isSlab={listing.is_slab}
                     grade={listing.cgc_grade}
@@ -152,6 +154,49 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             })
           ) : null}
         </div>
+      </div>
+
+      {/* Desktop: Grid with 5-6 cards per row */}
+      <div className="hidden md:block container mx-auto px-4">
+        {loading ? (
+          <div className="grid grid-cols-5 xl:grid-cols-6 gap-4">
+            {[...Array(12)].map((_, i) => (
+              <Skeleton key={i} className="h-[420px] rounded-lg" />
+            ))}
+          </div>
+        ) : listings.length > 0 ? (
+          <div className="grid grid-cols-5 xl:grid-cols-6 gap-4">
+            {listings.map((listing) => {
+              const price = resolvePrice(listing);
+              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+              return (
+                <ItemCard
+                  key={listing.id}
+                  id={listing.id}
+                  title={listing.title || listing.series || "Untitled"}
+                  price={price === null ? undefined : price}
+                  condition={listing.condition || listing.cgc_grade || "Unknown"}
+                  image={getListingImageUrl(listing)}
+                  category="comic"
+                  isAuction={listing.for_auction}
+                  showMakeOffer={listing.offers_enabled}
+                  showTradeBadge={listing.is_for_trade}
+                  sellerName={profile?.username}
+                  sellerCity={undefined}
+                  isVerifiedSeller={profile?.is_verified_seller}
+                  completedSalesCount={profile?.completed_sales_count || 0}
+                  isSlab={listing.is_slab}
+                  grade={listing.cgc_grade}
+                  gradingCompany={listing.grading_company}
+                  certificationNumber={listing.certification_number}
+                  series={listing.series}
+                  issueNumber={listing.issue_number}
+                  keyInfo={listing.variant_description || listing.details}
+                />
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </section>
   );
