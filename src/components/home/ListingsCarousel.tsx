@@ -26,13 +26,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
       let query = supabase
         .from("inventory_items")
         .select(`
-          *,
-          profiles!inventory_items_user_id_fkey(
-            username,
-            city,
-            is_verified_seller,
-            completed_sales_count
-          )
+          *
         `)
         .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
         .in("listing_status", ["active", "listed"])
@@ -49,7 +43,21 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
       const { data, error } = await query;
 
       if (error) throw error;
-      setListings(data || []);
+
+      // Fetch profiles separately for each unique owner_id
+      const ownerIds = [...new Set((data || []).map(l => l.owner_id).filter(Boolean))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username, is_verified_seller, completed_sales_count")
+        .in("user_id", ownerIds);
+
+      // Attach profile data to each listing
+      const listingsWithProfiles = (data || []).map(listing => ({
+        ...listing,
+        profiles: profiles?.find(p => p.user_id === listing.owner_id)
+      }));
+
+      setListings(listingsWithProfiles);
     } catch (error) {
       console.error("Error fetching listings:", error);
     } finally {
@@ -93,9 +101,9 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
                     isAuction={listing.for_auction}
                     showMakeOffer={listing.offers_enabled}
                     showTradeBadge={listing.is_for_trade}
-                    sellerName={profile?.username}
-                    sellerCity={profile?.city}
-                    isVerifiedSeller={profile?.is_verified_seller}
+              sellerName={profile?.username}
+              sellerCity={undefined}
+              isVerifiedSeller={profile?.is_verified_seller}
                     completedSalesCount={profile?.completed_sales_count || 0}
                     isSlab={listing.is_slab}
                     grade={listing.cgc_grade}

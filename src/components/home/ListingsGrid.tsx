@@ -33,7 +33,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
           grading_company,
           certification_number,
           condition,
-          user_id,
+          owner_id,
           is_for_trade,
           for_sale,
           for_auction,
@@ -41,7 +41,8 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
           is_featured,
           local_pickup,
           is_slab,
-          profiles!inventory_items_user_id_fkey(username, city, state, seller_tier, is_verified_seller, completed_sales_count)
+          variant_description,
+          details
         `)
         .eq("listing_status", "listed")
         .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
@@ -71,7 +72,21 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
       const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
-      setListings(data || []);
+
+      // Fetch profiles separately for each unique owner_id
+      const ownerIds = [...new Set((data || []).map(l => l.owner_id).filter(Boolean))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username, seller_tier, is_verified_seller, completed_sales_count")
+        .in("user_id", ownerIds);
+
+      // Attach profile data to each listing
+      const listingsWithProfiles = (data || []).map(listing => ({
+        ...listing,
+        profiles: profiles?.find(p => p.user_id === listing.owner_id)
+      }));
+
+      setListings(listingsWithProfiles);
     } catch (error) {
       console.error("Error fetching listings:", error);
     } finally {
@@ -123,7 +138,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             image={getImageUrl(item)}
             condition={item.cgc_grade || item.condition || "Raw"}
             sellerName={profile?.username}
-            sellerCity={profile?.city}
+            sellerCity={undefined}
             sellerBadge={profile?.seller_tier}
             isVerifiedSeller={profile?.is_verified_seller}
             completedSalesCount={profile?.completed_sales_count || 0}
