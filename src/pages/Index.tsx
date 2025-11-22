@@ -44,7 +44,7 @@ export default function Index() {
         <FeesSection />
         
         {/* Live Right Now - Hot Auctions */}
-        <section className="py-4 md:py-8 px-4 bg-gradient-to-b from-primary/5 to-background">
+        <section className="pt-2 pb-4 sm:py-4 md:py-8 px-4 bg-gradient-to-b from-primary/5 to-background">
           <div className="container mx-auto max-w-6xl">
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-center mb-4 md:mb-6 text-primary">
               🔥 Live Right Now — Hot Auctions
