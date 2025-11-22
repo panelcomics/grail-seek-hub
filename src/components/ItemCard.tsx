@@ -157,6 +157,8 @@ const ItemCard = ({
             src={image}
             alt={title}
             className="w-full h-full object-cover object-center max-h-[300px] md:max-h-[350px] rounded-t-lg transition-transform duration-500 group-hover:scale-105"
+            width={230}
+            height={307}
             loading="lazy"
           />
           
