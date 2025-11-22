@@ -23,7 +23,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
   const fetchListings = async () => {
     try {
-      // Optimized query - only select fields actually used
+      // Optimized query - only fields used in ItemCard
       let query = supabase
         .from("inventory_items")
         .select(`
@@ -32,21 +32,21 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
           series,
           issue_number,
           listed_price,
-          condition,
+          images,
           cgc_grade,
           grading_company,
           certification_number,
-          for_auction,
-          for_sale,
+          condition,
+          owner_id,
           is_for_trade,
+          for_sale,
+          for_auction,
           offers_enabled,
           is_slab,
+          local_pickup,
           variant_description,
           details,
-          images,
-          owner_id,
-          created_at,
-          listing_status
+          created_at
         `)
         .in("listing_status", ["active", "listed"])
         .limit(10);
@@ -78,11 +78,11 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
       if (error) throw error;
 
-      // Fetch profiles separately for each unique owner_id
+      // Fetch profiles separately - only fields used in cards
       const ownerIds = [...new Set((data || []).map(l => l.owner_id).filter(Boolean))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, username, is_verified_seller, completed_sales_count")
+        .select("user_id, username, seller_tier, is_verified_seller, completed_sales_count")
         .in("user_id", ownerIds);
 
       // Attach profile data to each listing
@@ -117,8 +117,8 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         <div className="flex gap-3 px-4 min-w-min">
           {loading ? (
             <>
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="w-[230px] h-[380px] flex-shrink-0 snap-center rounded-lg" />
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="w-[230px] h-[360px] flex-shrink-0 snap-center rounded-lg" />
               ))}
             </>
           ) : listings.length > 0 ? (
@@ -160,8 +160,8 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
       <div className="hidden md:block container mx-auto px-4">
         {loading ? (
           <div className="grid grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(12)].map((_, i) => (
-              <Skeleton key={i} className="h-[420px] rounded-lg" />
+            {[...Array(10)].map((_, i) => (
+              <Skeleton key={i} className="h-[400px] rounded-lg" />
             ))}
           </div>
         ) : listings.length > 0 ? (

@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageManagement } from "@/components/ImageManagement";
 import { Separator } from "@/components/ui/separator";
+import { getListingImageUrl } from "@/lib/sellerUtils";
 
 export default function ManageBook() {
   const { id } = useParams();
@@ -381,25 +382,17 @@ export default function ManageBook() {
           {/* LEFT: Image Gallery */}
           <div className="space-y-4">
             {/* Primary Image Display */}
-            {(listingImages.length > 0 || item.images) && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={
-                        listingImages.find(img => img.is_primary)?.url ||
-                        listingImages[0]?.url ||
-                        (item.images && Array.isArray(item.images) && item.images.length > 0 
-                          ? (typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url)
-                          : '/placeholder.svg')
-                      }
-                      alt={formData.title || "Book cover"}
-                      className="w-full h-auto object-contain max-h-[600px] mx-auto"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
+                  <img
+                    src={getListingImageUrl(item)}
+                    alt={formData.title || "Book cover"}
+                    className="w-full h-auto object-cover max-h-[600px] mx-auto rounded-lg"
+                  />
+                </div>
+              </CardContent>
+            </Card>
             
             {/* Photo Management */}
             <Card>
