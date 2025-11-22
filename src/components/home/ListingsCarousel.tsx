@@ -41,7 +41,6 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             title,
             series,
             issue_number,
-            listed_price,
             images,
             cgc_grade,
             grading_company,
