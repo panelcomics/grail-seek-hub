@@ -62,6 +62,7 @@ import TradeDetail from "./pages/TradeDetail";
 import TradeOffers from "./pages/TradeOffers";
 import Sell from "./pages/Sell";
 import About from "./pages/About";
+import ManageBook from "./pages/ManageBook";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -119,6 +120,7 @@ const AppContent = () => {
             <Route path="/my-collection" element={<MyCollection />} />
             <Route path="/my-inventory" element={<MyInventory />} />
             <Route path="/inventory" element={<MyInventory />} />
+            <Route path="/inventory/:id" element={<ManageBook />} />
             <Route path="/sell/stats" element={<SellerStats />} />
             
             <Route path="/sellers" element={<Sellers />} />

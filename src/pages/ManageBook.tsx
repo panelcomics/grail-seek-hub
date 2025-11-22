@@ -1,0 +1,644 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Loader2, ExternalLink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { ImageManagement } from "@/components/ImageManagement";
+import { Separator } from "@/components/ui/separator";
+
+export default function ManageBook() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [item, setItem] = useState<any>(null);
+  const [listingImages, setListingImages] = useState<any[]>([]);
+
+  // Form state for all fields
+  const [formData, setFormData] = useState({
+    // Comic Details
+    title: "",
+    issue_number: "",
+    series: "",
+    publisher: "",
+    year: "",
+    cover_date: "",
+    condition: "",
+    details: "",
+    variant_type: "",
+    variant_details: "",
+    variant_notes: "",
+    is_key: false,
+    key_type: "",
+    writer: "",
+    artist: "",
+    is_slab: false,
+    cgc_grade: "",
+    grading_company: "CGC",
+    certification_number: "",
+    
+    // Pricing & Condition
+    listed_price: "",
+    shipping_price: "5.00",
+    
+    // Sell & Trade
+    for_sale: false,
+    for_auction: false,
+    is_for_trade: false,
+    in_search_of: "",
+    trade_notes: "",
+    
+    // Private
+    private_notes: "",
+    private_location: "",
+  });
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    fetchItem();
+  }, [id, authLoading]);
+
+  const fetchItem = async () => {
+    if (!id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      
+      if (data.user_id !== user?.id) {
+        toast.error("You don't own this item");
+        navigate("/my-collection");
+        return;
+      }
+
+      setItem(data);
+      
+      // Populate form
+      setFormData({
+        title: data.title || "",
+        issue_number: data.issue_number || "",
+        series: data.series || "",
+        publisher: data.publisher || "",
+        year: data.year?.toString() || "",
+        cover_date: data.cover_date || "",
+        condition: data.condition || "",
+        details: data.details || "",
+        variant_type: data.variant_type || "",
+        variant_details: data.variant_details || "",
+        variant_notes: data.variant_notes || "",
+        is_key: data.is_key || false,
+        key_type: data.key_type || "",
+        writer: data.writer || "",
+        artist: data.artist || "",
+        is_slab: data.is_slab || false,
+        cgc_grade: data.cgc_grade || "",
+        grading_company: data.grading_company || "CGC",
+        certification_number: data.certification_number || "",
+        listed_price: data.listed_price?.toString() || "",
+        shipping_price: "5.00",
+        for_sale: data.for_sale || false,
+        for_auction: data.for_auction || false,
+        is_for_trade: data.is_for_trade || false,
+        in_search_of: data.in_search_of || "",
+        trade_notes: data.trade_notes || "",
+        private_notes: data.private_notes || "",
+        private_location: data.private_location || "",
+      });
+      
+      await fetchListingImages(id);
+    } catch (error) {
+      console.error("Error fetching item:", error);
+      toast.error("Failed to load item");
+      navigate("/my-collection");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchListingImages = async (itemId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("listing_images")
+        .select("*")
+        .eq("listing_id", itemId)
+        .order("sort_order", { ascending: true });
+
+      if (error) throw error;
+      setListingImages(data || []);
+    } catch (error) {
+      console.error("Error fetching images:", error);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user || !item) return;
+
+    setSaving(true);
+    try {
+      const updateData: any = {
+        title: formData.title,
+        issue_number: formData.issue_number || null,
+        series: formData.series || null,
+        publisher: formData.publisher || null,
+        year: formData.year ? parseInt(formData.year) : null,
+        cover_date: formData.cover_date || null,
+        condition: formData.condition || null,
+        details: formData.details || null,
+        variant_type: formData.variant_type || null,
+        variant_details: formData.variant_details || null,
+        variant_notes: formData.variant_notes || null,
+        is_key: formData.is_key,
+        key_type: formData.is_key ? (formData.key_type || null) : null,
+        writer: formData.writer || null,
+        artist: formData.artist || null,
+        is_slab: formData.is_slab,
+        grading_company: formData.is_slab ? formData.grading_company : null,
+        cgc_grade: formData.is_slab ? formData.cgc_grade : null,
+        certification_number: formData.certification_number || null,
+        listed_price: formData.listed_price ? parseFloat(formData.listed_price) : null,
+        for_sale: formData.for_sale,
+        for_auction: formData.for_auction,
+        is_for_trade: formData.is_for_trade,
+        in_search_of: formData.is_for_trade ? formData.in_search_of.trim() : null,
+        trade_notes: formData.is_for_trade ? formData.trade_notes.trim() : null,
+        private_notes: formData.private_notes || null,
+        private_location: formData.private_location || null,
+        listing_status: formData.for_sale ? "listed" : "not_listed",
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("inventory_items")
+        .update(updateData)
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      toast.success("Book updated successfully");
+      navigate("/my-collection");
+    } catch (error) {
+      console.error("Error updating item:", error);
+      toast.error("Failed to update book");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getDisplayTitle = () => {
+    const titlePart = formData.series || formData.title || "Untitled";
+    const issuePart = formData.issue_number ? ` #${formData.issue_number}` : "";
+    const gradePart = formData.is_slab && formData.cgc_grade 
+      ? ` – ${formData.grading_company || "CGC"} ${formData.cgc_grade}` 
+      : "";
+    return `${titlePart}${issuePart}${gradePart}`;
+  };
+
+  if (loading || authLoading) {
+    return (
+      <main className="flex-1 container py-8 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </main>
+    );
+  }
+
+  if (!item) {
+    return (
+      <main className="flex-1 container py-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl font-bold mb-4">Book not found</h1>
+          <Button onClick={() => navigate("/my-collection")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Collection
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex-1 container py-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/my-collection")}
+          className="mb-2"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to My Collection
+        </Button>
+
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">{getDisplayTitle()}</h1>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* LEFT: Image Gallery */}
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <Label className="text-base font-semibold mb-3 block">Photos (up to 8)</Label>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add multiple photos: front, back, spine, defects, etc.
+                </p>
+                <ImageManagement
+                  listingId={id!}
+                  images={listingImages}
+                  onImagesChange={() => fetchListingImages(id!)}
+                  maxImages={8}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT: Form Sections */}
+          <div className="space-y-6">
+            {/* SECTION A: Comic Details */}
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <h2 className="text-xl font-semibold mb-4">Comic Details</h2>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="Amazing Spider-Man"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="issue_number">Issue #</Label>
+                    <Input
+                      id="issue_number"
+                      value={formData.issue_number}
+                      onChange={(e) => setFormData({ ...formData, issue_number: e.target.value })}
+                      placeholder="129"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="series">Series</Label>
+                    <Input
+                      id="series"
+                      value={formData.series}
+                      onChange={(e) => setFormData({ ...formData, series: e.target.value })}
+                      placeholder="Amazing Spider-Man"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="publisher">Publisher</Label>
+                    <Input
+                      id="publisher"
+                      value={formData.publisher}
+                      onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
+                      placeholder="Marvel"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="year">Year</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      value={formData.year}
+                      onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                      placeholder="1974"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="cover_date">Cover Date</Label>
+                    <Input
+                      id="cover_date"
+                      type="date"
+                      value={formData.cover_date}
+                      onChange={(e) => setFormData({ ...formData, cover_date: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="condition">Condition</Label>
+                    <Input
+                      id="condition"
+                      value={formData.condition}
+                      onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                      placeholder="VG, FN, NM, etc."
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="details">Key Info / Details</Label>
+                    <Textarea
+                      id="details"
+                      value={formData.details}
+                      onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+                      placeholder="1st Punisher appearance, newsstand variant, etc."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="writer">Writer</Label>
+                    <Input
+                      id="writer"
+                      value={formData.writer}
+                      onChange={(e) => setFormData({ ...formData, writer: e.target.value })}
+                      placeholder="Stan Lee"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="artist">Artist</Label>
+                    <Input
+                      id="artist"
+                      value={formData.artist}
+                      onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
+                      placeholder="John Romita Sr."
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="is_key">Key Issue</Label>
+                    <Switch
+                      id="is_key"
+                      checked={formData.is_key}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_key: checked })}
+                    />
+                  </div>
+
+                  {formData.is_key && (
+                    <div>
+                      <Label htmlFor="key_type">Key Type</Label>
+                      <Input
+                        id="key_type"
+                        value={formData.key_type}
+                        onChange={(e) => setFormData({ ...formData, key_type: e.target.value })}
+                        placeholder="1st appearance, origin story, death, etc."
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="variant_type">Variant Type</Label>
+                    <Input
+                      id="variant_type"
+                      value={formData.variant_type}
+                      onChange={(e) => setFormData({ ...formData, variant_type: e.target.value })}
+                      placeholder="Newsstand, Direct, Incentive, etc."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="variant_details">Variant Details</Label>
+                    <Input
+                      id="variant_details"
+                      value={formData.variant_details}
+                      onChange={(e) => setFormData({ ...formData, variant_details: e.target.value })}
+                      placeholder="1:25 ratio, convention exclusive, etc."
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="variant_notes">Variant Notes</Label>
+                    <Textarea
+                      id="variant_notes"
+                      value={formData.variant_notes}
+                      onChange={(e) => setFormData({ ...formData, variant_notes: e.target.value })}
+                      placeholder="Additional variant information"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="is_slab">Graded Slab</Label>
+                    <Switch
+                      id="is_slab"
+                      checked={formData.is_slab}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_slab: checked })}
+                    />
+                  </div>
+
+                  {formData.is_slab && (
+                    <>
+                      <div>
+                        <Label htmlFor="grading_company">Grading Company</Label>
+                        <Select
+                          value={formData.grading_company}
+                          onValueChange={(value) => setFormData({ ...formData, grading_company: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CGC">CGC</SelectItem>
+                            <SelectItem value="CBCS">CBCS</SelectItem>
+                            <SelectItem value="PGX">PGX</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="cgc_grade">Grade</Label>
+                        <Input
+                          id="cgc_grade"
+                          value={formData.cgc_grade}
+                          onChange={(e) => setFormData({ ...formData, cgc_grade: e.target.value })}
+                          placeholder="9.8"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="certification_number">Certification Number</Label>
+                        <Input
+                          id="certification_number"
+                          value={formData.certification_number}
+                          onChange={(e) => setFormData({ ...formData, certification_number: e.target.value })}
+                          placeholder="1234567890"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* SECTION B: Pricing & Condition */}
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <h2 className="text-xl font-semibold mb-4">Pricing</h2>
+                
+                <div>
+                  <Label htmlFor="listed_price">Sale Price ($)</Label>
+                  <Input
+                    id="listed_price"
+                    type="number"
+                    step="0.01"
+                    value={formData.listed_price}
+                    onChange={(e) => setFormData({ ...formData, listed_price: e.target.value })}
+                    placeholder="175.00"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="shipping_price">Shipping Price ($)</Label>
+                  <Input
+                    id="shipping_price"
+                    type="number"
+                    step="0.01"
+                    value={formData.shipping_price}
+                    onChange={(e) => setFormData({ ...formData, shipping_price: e.target.value })}
+                    placeholder="5.00"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* SECTION C: Sell & Trade Options */}
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <h2 className="text-xl font-semibold mb-4">Sell & Trade Options</h2>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="for_sale">List for Sale</Label>
+                  <Switch
+                    id="for_sale"
+                    checked={formData.for_sale}
+                    onCheckedChange={(checked) => setFormData({ ...formData, for_sale: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="for_auction">Auction</Label>
+                  <Switch
+                    id="for_auction"
+                    checked={formData.for_auction}
+                    onCheckedChange={(checked) => setFormData({ ...formData, for_auction: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is_for_trade">Available for Trade</Label>
+                  <Switch
+                    id="is_for_trade"
+                    checked={formData.is_for_trade}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_for_trade: checked })}
+                  />
+                </div>
+
+                {formData.is_for_trade && (
+                  <>
+                    <div>
+                      <Label htmlFor="in_search_of">In Search Of</Label>
+                      <Input
+                        id="in_search_of"
+                        value={formData.in_search_of}
+                        onChange={(e) => setFormData({ ...formData, in_search_of: e.target.value })}
+                        placeholder="What you're looking for in a trade"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="trade_notes">Trade Notes</Label>
+                      <Textarea
+                        id="trade_notes"
+                        value={formData.trade_notes}
+                        onChange={(e) => setFormData({ ...formData, trade_notes: e.target.value })}
+                        placeholder="Additional trade information"
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* SECTION D: Private Notes */}
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <h2 className="text-xl font-semibold mb-4">Private Notes</h2>
+                
+                <div>
+                  <Label htmlFor="private_location">Storage Location</Label>
+                  <Input
+                    id="private_location"
+                    value={formData.private_location}
+                    onChange={(e) => setFormData({ ...formData, private_location: e.target.value })}
+                    placeholder="Box 3, Shelf A, etc."
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="private_notes">Private Notes</Label>
+                  <Textarea
+                    id="private_notes"
+                    value={formData.private_notes}
+                    onChange={(e) => setFormData({ ...formData, private_notes: e.target.value })}
+                    placeholder="Personal notes (not visible to buyers)"
+                    rows={4}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1"
+                size="lg"
+              >
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save Changes
+              </Button>
+              
+              {formData.for_sale && item.listing_status === "listed" && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/item/${id}`)}
+                  size="lg"
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View Public Listing
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
