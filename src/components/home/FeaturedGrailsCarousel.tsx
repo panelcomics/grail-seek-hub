@@ -115,7 +115,7 @@ export function FeaturedGrailsCarousel() {
   }
 
   return (
-    <section className="py-6 px-4 bg-gradient-to-b from-primary/5 to-background">
+    <section className="py-6 px-4 bg-white">
       <div className="container mx-auto max-w-6xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-primary">
@@ -123,47 +123,48 @@ export function FeaturedGrailsCarousel() {
           </h2>
         </div>
         
-        {/* Desktop: Grid */}
-        <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
-          {listings.slice(0, 8).map((listing) => {
+        {/* Desktop: 3 cards with max 280px width */}
+        <div className="hidden md:grid md:grid-cols-3 gap-4 mb-4">
+          {listings.slice(0, 9).map((listing) => {
             const price = resolvePrice(listing);
             const profile = listing.profiles;
             return (
-              <ItemCard
-                key={listing.listing_id}
-                id={listing.listing_id}
-                title={listing.title || listing.series || "Untitled"}
-                price={price === null ? undefined : price}
-                condition={listing.condition || listing.cgc_grade || "Unknown"}
-                image={getListingImageUrl(listing)}
-                category="comic"
-                isAuction={listing.for_auction}
-                showMakeOffer={listing.offers_enabled}
-                showTradeBadge={listing.is_for_trade}
-                sellerName={profile?.username}
-                sellerCity={undefined}
-                isVerifiedSeller={profile?.is_verified_seller}
-                completedSalesCount={profile?.completed_sales_count || 0}
-                isSlab={listing.is_slab}
-                grade={listing.cgc_grade}
-                gradingCompany={listing.grading_company}
-                certificationNumber={listing.certification_number}
-                series={listing.series}
-                issueNumber={listing.issue_number}
-                keyInfo={listing.variant_description || listing.details}
-              />
+              <div key={listing.listing_id} className="max-w-[280px] mx-auto w-full">
+                <ItemCard
+                  id={listing.listing_id}
+                  title={listing.title || listing.series || "Untitled"}
+                  price={price === null ? undefined : price}
+                  condition={listing.condition || listing.cgc_grade || "Unknown"}
+                  image={getListingImageUrl(listing)}
+                  category="comic"
+                  isAuction={listing.for_auction}
+                  showMakeOffer={listing.offers_enabled}
+                  showTradeBadge={listing.is_for_trade}
+                  sellerName={profile?.username}
+                  sellerCity={undefined}
+                  isVerifiedSeller={profile?.is_verified_seller}
+                  completedSalesCount={profile?.completed_sales_count || 0}
+                  isSlab={listing.is_slab}
+                  grade={listing.cgc_grade}
+                  gradingCompany={listing.grading_company}
+                  certificationNumber={listing.certification_number}
+                  series={listing.series}
+                  issueNumber={listing.issue_number}
+                  keyInfo={listing.variant_description || listing.details}
+                />
+              </div>
             );
           })}
         </div>
 
-        {/* Mobile: Horizontal Scroll */}
+        {/* Mobile: Horizontal Scroll - max 320px, one card at a time */}
         <div className="md:hidden overflow-x-auto overflow-y-visible pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
-          <div className="flex gap-3 min-w-min">
+          <div className="flex gap-4 min-w-min">
             {listings.map((listing) => {
               const price = resolvePrice(listing);
               const profile = listing.profiles;
               return (
-                <div key={listing.listing_id} className="w-[280px] flex-shrink-0 snap-center">
+                <div key={listing.listing_id} className="w-[320px] max-w-[320px] flex-shrink-0 snap-center bg-white border border-border rounded-lg shadow-sm">
                   <ItemCard
                     id={listing.listing_id}
                     title={listing.title || listing.series || "Untitled"}
@@ -174,9 +175,9 @@ export function FeaturedGrailsCarousel() {
                     isAuction={listing.for_auction}
                     showMakeOffer={listing.offers_enabled}
                     showTradeBadge={listing.is_for_trade}
-                  sellerName={profile?.username}
-                  sellerCity={undefined}
-                  isVerifiedSeller={profile?.is_verified_seller}
+                    sellerName={profile?.username}
+                    sellerCity={undefined}
+                    isVerifiedSeller={profile?.is_verified_seller}
                     completedSalesCount={profile?.completed_sales_count || 0}
                     isSlab={listing.is_slab}
                     grade={listing.cgc_grade}
