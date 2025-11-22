@@ -92,12 +92,12 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-12 max-w-screen-xl items-center justify-between px-4">
+      <div className="mx-auto flex h-10 sm:h-12 max-w-screen-xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-sm">
+          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-xs sm:text-sm">
             GS
           </div>
-          <span className="md:hidden bg-primary text-primary-foreground text-[9px] font-semibold px-1.5 py-0.5 rounded-full">
+          <span className="md:hidden bg-primary text-primary-foreground text-[8px] font-semibold px-1 py-0.5 rounded-full">
             Beta
           </span>
           <span className="font-bold hidden xs:inline">

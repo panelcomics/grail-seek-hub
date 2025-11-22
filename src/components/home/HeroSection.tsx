@@ -26,10 +26,10 @@ export function HeroSection() {
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="flex flex-col lg:flex-row gap-6 md:gap-10 items-center">
             {/* Left side - Text content */}
-            <div className="w-full lg:w-1/2 space-y-3 sm:space-y-4 md:space-y-5 lg:space-y-4 flex flex-col px-0 sm:px-0 lg:pt-0">{/* Removed top padding on desktop */}
+            <div className="w-full lg:w-1/2 space-y-2 sm:space-y-4 md:space-y-5 lg:space-y-4 flex flex-col px-0 sm:px-0 lg:pt-0">
               {/* Headline - order 1 on mobile */}
-              <div className="order-1 px-4 pt-4 sm:pt-0 sm:px-0">
-                <h1 className="text-[28px] leading-tight sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-3 sm:mb-3 md:mb-4 text-center sm:text-left">
+              <div className="order-1 px-4 pt-2 sm:pt-0 sm:px-0">
+                <h1 className="text-[28px] leading-tight sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-2 sm:mb-3 md:mb-4 text-center sm:text-left">
                   Trusted Marketplace for{" "}
                   <span className="text-primary drop-shadow-lg block sm:inline mt-1 sm:mt-0">Comic Grails & Keys</span>
                 </h1>
@@ -56,14 +56,14 @@ export function HeroSection() {
                   <img
                     src={heroComics}
                     alt="Vintage comic book collection featuring Marvel and DC classics"
-                    className="w-full h-[360px] sm:h-96 object-cover object-[30%_center] sm:object-center"
+                    className="w-full h-[240px] sm:h-96 object-cover object-[30%_center] sm:object-center"
                   />
                   {/* Visual indicator overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent pointer-events-none" />
                 </div>
                 
                 {/* FOMO Auction Block - positioned below hero image on mobile */}
-                <div className="mt-3 -mx-4">
+                <div className="mt-2 -mx-4">
                   <FomoAuctionBlock />
                 </div>
               </div>
