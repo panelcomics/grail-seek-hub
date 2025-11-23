@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 
 interface ListingsCarouselProps {
@@ -23,58 +22,44 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
   const fetchListings = async () => {
     setLoading(true);
+    console.time(`FETCH ${filterType}`);
     console.log(`FETCH ${filterType} start`);
+    
     try {
-      // All homepage sections now use listings table with joined inventory data
-      // Join directly to inventory_items table (has public SELECT policy) to get all fields needed
+      // Use the same base query as ListingsGrid.tsx (working browse page)
       let query = supabase
-        .from("listings")
+        .from("inventory_items")
         .select(`
           id,
           title,
-          price,
-          price_cents,
-          status,
-          type,
-          created_at,
-          inventory_item_id,
-          inventory_items!inventory_item_id (
-            id,
-            owner_id,
-            title,
-            series,
-            issue_number,
-            images,
-            cgc_grade,
-            grading_company,
-            certification_number,
-            condition,
-            for_sale,
-            for_auction,
-            offers_enabled,
-            is_for_trade,
-            is_slab,
-            local_pickup,
-            variant_description,
-            details
-          )
+          series,
+          issue_number,
+          listed_price,
+          images,
+          cgc_grade,
+          grading_company,
+          certification_number,
+          condition,
+          owner_id,
+          is_for_trade,
+          for_sale,
+          for_auction,
+          offers_enabled,
+          is_slab,
+          local_pickup,
+          variant_description,
+          details
         `)
-        .eq("status", "active")
-        .in("type", ["fixed", "auction"])
+        .eq("listing_status", "listed")
         .limit(10);
 
+      // Apply simple filters per section
       if (filterType === "featured-grails") {
-        query = query
-          .eq("type", "fixed")
-          .order("created_at", { ascending: false });
+        query = query.eq("for_sale", true).order("listed_price", { ascending: false });
       } else if (filterType === "newly-listed") {
         query = query.order("created_at", { ascending: false });
-      } else if (filterType === "ending-soon") {
-        query = query.order("ends_at", { ascending: true, nullsFirst: false });
       } else if (filterType === "hot-week") {
-        query = query
-          .eq("type", "fixed")
-          .order("created_at", { ascending: false });
+        query = query.eq("for_sale", true).order("created_at", { ascending: false });
       } else if (filterType === "local") {
         // TODO: Add geolocation filtering based on buyer location
         query = query.order("created_at", { ascending: false });
@@ -83,6 +68,9 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
       }
 
       const { data, error } = await query;
+
+      console.timeEnd(`FETCH ${filterType}`);
+      console.log(`FETCH ${filterType} result`, { error, length: data?.length });
 
       if (error) {
         console.error(`FETCH ${filterType} error:`, error);
@@ -98,12 +86,8 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
       console.log(`FETCH ${filterType} success: ${data.length} listings`);
 
-      // Derive seller profiles from joined inventory items
-      const inventoryItems = (data || [])
-        .map((l: any) => l.inventory_items)
-        .filter(Boolean);
-
-      const ownerIds = [...new Set(inventoryItems.map((i: any) => i.owner_id).filter(Boolean))];
+      // Fetch profiles separately for each unique owner_id (same as ListingsGrid)
+      const ownerIds = [...new Set(data.map((l: any) => l.owner_id).filter(Boolean))];
 
       if (ownerIds.length === 0) {
         setListings(data.map((listing: any) => ({ ...listing, profiles: null })));
@@ -119,9 +103,9 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         console.error(`FETCH ${filterType} profiles error:`, profilesError);
       }
 
+      // Attach profile data to each listing (same as ListingsGrid)
       const listingsWithProfiles = (data || []).map((listing: any) => {
-        const inventory = listing.inventory_items;
-        const profile = profiles?.find((p: any) => p.user_id === inventory?.owner_id);
+        const profile = profiles?.find((p: any) => p.user_id === listing.owner_id);
         return {
           ...listing,
           profiles: profile || null,
@@ -161,33 +145,32 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             </>
           ) : listings.length > 0 ? (
             listings.map((listing) => {
-              const inventory = listing.inventory_items || listing;
-              const priceSource = inventory ? { ...inventory, ...listing } : listing;
-              const price = resolvePrice(priceSource);
               const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+              const displayTitle = listing.title || `${listing.series || "Unknown"} #${listing.issue_number || "?"}`;
+              
               return (
                 <div key={listing.id} className="w-[230px] flex-shrink-0 snap-center">
                   <ItemCard
                     id={listing.id}
-                    title={inventory.title || inventory.series || listing.title || "Untitled"}
-                    price={price === null ? undefined : price}
-                    condition={inventory.condition || inventory.cgc_grade || "Unknown"}
-                    image={getListingImageUrl(inventory)}
+                    title={displayTitle}
+                    price={listing.listed_price || 0}
+                    condition={listing.cgc_grade || listing.condition || "Raw"}
+                    image={getListingImageUrl(listing)}
                     category="comic"
-                    isAuction={inventory.for_auction}
-                    showMakeOffer={inventory.offers_enabled}
-                    showTradeBadge={inventory.is_for_trade}
+                    isAuction={listing.for_auction}
+                    showMakeOffer={listing.offers_enabled}
+                    showTradeBadge={listing.is_for_trade}
                     sellerName={profile?.username}
                     sellerCity={undefined}
                     isVerifiedSeller={profile?.is_verified_seller}
                     completedSalesCount={profile?.completed_sales_count || 0}
-                    isSlab={inventory.is_slab}
-                    grade={inventory.cgc_grade}
-                    gradingCompany={inventory.grading_company}
-                    certificationNumber={inventory.certification_number}
-                    series={inventory.series}
-                    issueNumber={inventory.issue_number}
-                    keyInfo={inventory.variant_description || inventory.details}
+                    isSlab={listing.is_slab}
+                    grade={listing.cgc_grade}
+                    gradingCompany={listing.grading_company}
+                    certificationNumber={listing.certification_number}
+                    series={listing.series}
+                    issueNumber={listing.issue_number}
+                    keyInfo={listing.variant_description || listing.details}
                   />
                 </div>
               );
@@ -210,33 +193,32 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
           ) : listings.length > 0 ? (
             <div className="flex gap-4 min-w-min">
               {listings.map((listing) => {
-                const inventory = listing.inventory_items || listing;
-                const priceSource = inventory ? { ...inventory, ...listing } : listing;
-                const price = resolvePrice(priceSource);
                 const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+                const displayTitle = listing.title || `${listing.series || "Unknown"} #${listing.issue_number || "?"}`;
+                
                 return (
                   <div key={listing.id} className="w-[200px] flex-shrink-0">
                     <ItemCard
                       id={listing.id}
-                      title={inventory.title || inventory.series || listing.title || "Untitled"}
-                      price={price === null ? undefined : price}
-                      condition={inventory.condition || inventory.cgc_grade || "Unknown"}
-                      image={getListingImageUrl(inventory)}
+                      title={displayTitle}
+                      price={listing.listed_price || 0}
+                      condition={listing.cgc_grade || listing.condition || "Raw"}
+                      image={getListingImageUrl(listing)}
                       category="comic"
-                      isAuction={inventory.for_auction}
-                      showMakeOffer={inventory.offers_enabled}
-                      showTradeBadge={inventory.is_for_trade}
+                      isAuction={listing.for_auction}
+                      showMakeOffer={listing.offers_enabled}
+                      showTradeBadge={listing.is_for_trade}
                       sellerName={profile?.username}
                       sellerCity={undefined}
                       isVerifiedSeller={profile?.is_verified_seller}
                       completedSalesCount={profile?.completed_sales_count || 0}
-                      isSlab={inventory.is_slab}
-                      grade={inventory.cgc_grade}
-                      gradingCompany={inventory.grading_company}
-                      certificationNumber={inventory.certification_number}
-                      series={inventory.series}
-                      issueNumber={inventory.issue_number}
-                      keyInfo={inventory.variant_description || inventory.details}
+                      isSlab={listing.is_slab}
+                      grade={listing.cgc_grade}
+                      gradingCompany={listing.grading_company}
+                      certificationNumber={listing.certification_number}
+                      series={listing.series}
+                      issueNumber={listing.issue_number}
+                      keyInfo={listing.variant_description || listing.details}
                     />
                   </div>
                 );
