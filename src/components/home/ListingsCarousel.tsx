@@ -13,66 +13,34 @@ interface ListingsCarouselProps {
   showViewAll?: boolean;
 }
 
-const getCarouselLabel = (filterType: ListingsCarouselProps["filterType"]): string => `CAROUSEL ${filterType}`;
-export function ListingsCarousel({ title, filterType, showViewAll = true, deferMs = 0 }: ListingsCarouselProps & { deferMs?: number }) {
+export function ListingsCarousel({ title, filterType, showViewAll = true }: ListingsCarouselProps) {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (deferMs > 0) {
-      const timer = setTimeout(() => {
-        fetchListings();
-      }, deferMs);
-      return () => clearTimeout(timer);
-    } else {
-      fetchListings();
-    }
-  }, [filterType, deferMs]);
+    fetchListings();
+  }, [filterType]);
 
   const fetchListings = async () => {
-    const cacheKey = `gs-home-${filterType}`;
-    const label = getCarouselLabel(filterType);
-    const cached = sessionStorage.getItem(cacheKey);
-
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        const { data: cachedData, timestamp } = parsed;
-        if (Array.isArray(cachedData) && typeof timestamp === "number" && Date.now() - timestamp < 5 * 60 * 1000) {
-          console.log(`✓ ${label} from cache (instant):`, { count: cachedData.length });
-          setListings(cachedData);
-          setLoading(false);
-          // Still refresh in background to keep things fresh
-          fetchFreshData(cacheKey);
-          return;
-        }
-      } catch (e) {
-        console.warn(`Cache parse error for ${label}, ignoring cached value`, e);
-        // Invalid cache, continue with network fetch
-      }
-    }
-
     setLoading(true);
-    setError(null);
-
-    console.time(label);
-    const queryStart = performance.now();
-
+    console.log(`FETCH ${filterType} start`);
     try {
-      // SINGLE QUERY with profiles joined via inventory_items
+      // All homepage sections now use listings table with joined inventory data
+      // Join directly to inventory_items table (has public SELECT policy) to get all fields needed
       let query = supabase
         .from("listings")
         .select(`
           id,
+          title,
           price,
           price_cents,
           status,
           type,
           created_at,
-          ends_at,
+          inventory_item_id,
           inventory_items!inventory_item_id (
             id,
+            owner_id,
             title,
             series,
             issue_number,
@@ -81,34 +49,34 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
             grading_company,
             certification_number,
             condition,
-            is_slab,
-            local_pickup,
+            for_sale,
             for_auction,
             offers_enabled,
             is_for_trade,
-            profiles!owner_id (
-              user_id,
-              username,
-              seller_tier,
-              is_verified_seller,
-              completed_sales_count
-            )
+            is_slab,
+            local_pickup,
+            variant_description,
+            details
           )
         `)
         .eq("status", "active")
         .in("type", ["fixed", "auction"])
-        .limit(6);
+        .limit(10);
 
-      // Apply filters
       if (filterType === "featured-grails") {
-        query = query.eq("type", "fixed").order("created_at", { ascending: false });
+        query = query
+          .eq("type", "fixed")
+          .order("created_at", { ascending: false });
       } else if (filterType === "newly-listed") {
         query = query.order("created_at", { ascending: false });
       } else if (filterType === "ending-soon") {
         query = query.order("ends_at", { ascending: true, nullsFirst: false });
       } else if (filterType === "hot-week") {
-        query = query.eq("type", "fixed").order("created_at", { ascending: false });
+        query = query
+          .eq("type", "fixed")
+          .order("created_at", { ascending: false });
       } else if (filterType === "local") {
+        // TODO: Add geolocation filtering based on buyer location
         query = query.order("created_at", { ascending: false });
       } else {
         query = query.order("created_at", { ascending: false });
@@ -116,118 +84,56 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
 
       const { data, error } = await query;
 
-      const duration = performance.now() - queryStart;
-      console.timeEnd(label);
-      if (duration > 8000) {
-        console.warn(`WARN ${label} slow query: ${Math.round(duration)} ms`);
-      }
-
       if (error) {
-        console.error(`ERROR ${label}`, error);
-        setError("Error loading listings");
+        console.error(`FETCH ${filterType} error:`, error);
         setListings([]);
         return;
       }
 
       if (!data || data.length === 0) {
-        console.log(`✓ ${label}: 0 items`);
+        console.log(`FETCH ${filterType} success: 0 listings`);
         setListings([]);
         return;
       }
 
-      console.log(`success: ${label} ${data.length} listings`, {
-        count: data.length,
-        sample: data[0],
-      });
+      console.log(`FETCH ${filterType} success: ${data.length} listings`);
 
-      // Cache the results only on success with data
-      try {
-        sessionStorage.setItem(
-          cacheKey,
-          JSON.stringify({
-            data,
-            timestamp: Date.now(),
-          })
-        );
-      } catch (e) {
-        // Quota exceeded or other storage issue; ignore cache write
-        console.warn(`Cache write error for ${label}`, e);
+      // Derive seller profiles from joined inventory items
+      const inventoryItems = (data || [])
+        .map((l: any) => l.inventory_items)
+        .filter(Boolean);
+
+      const ownerIds = [...new Set(inventoryItems.map((i: any) => i.owner_id).filter(Boolean))];
+
+      if (ownerIds.length === 0) {
+        setListings(data.map((listing: any) => ({ ...listing, profiles: null })));
+        return;
       }
 
-      setListings(data);
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, username, seller_tier, is_verified_seller, completed_sales_count")
+        .in("user_id", ownerIds);
+
+      if (profilesError) {
+        console.error(`FETCH ${filterType} profiles error:`, profilesError);
+      }
+
+      const listingsWithProfiles = (data || []).map((listing: any) => {
+        const inventory = listing.inventory_items;
+        const profile = profiles?.find((p: any) => p.user_id === inventory?.owner_id);
+        return {
+          ...listing,
+          profiles: profile || null,
+        };
+      });
+
+      setListings(listingsWithProfiles);
     } catch (error) {
-      console.error(`ERROR ${label} unexpected:`, error);
-      setError("Error loading listings");
+      console.error(`Error in ${filterType} fetchListings:`, error);
       setListings([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchFreshData = async (cacheKey: string) => {
-    try {
-      let query = supabase
-        .from("listings")
-        .select(`
-          id,
-          price,
-          price_cents,
-          status,
-          type,
-          created_at,
-          inventory_items!inventory_item_id (
-            id,
-            title,
-            series,
-            issue_number,
-            images,
-            cgc_grade,
-            grading_company,
-            certification_number,
-            condition,
-            is_slab,
-            local_pickup,
-            for_auction,
-            offers_enabled,
-            is_for_trade,
-            profiles!owner_id (
-              user_id,
-              username,
-              seller_tier,
-              is_verified_seller,
-              completed_sales_count
-            )
-          )
-        `)
-        .eq("status", "active")
-        .in("type", ["fixed", "auction"])
-        .limit(6);
-
-      if (filterType === "featured-grails") {
-        query = query.eq("type", "fixed").order("created_at", { ascending: false });
-      } else if (filterType === "newly-listed") {
-        query = query.order("created_at", { ascending: false });
-      } else if (filterType === "ending-soon") {
-        query = query.order("ends_at", { ascending: true, nullsFirst: false });
-      } else if (filterType === "hot-week") {
-        query = query.eq("type", "fixed").order("created_at", { ascending: false });
-      } else if (filterType === "local") {
-        query = query.order("created_at", { ascending: false });
-      } else {
-        query = query.order("created_at", { ascending: false });
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data && data.length > 0) {
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          data,
-          timestamp: Date.now()
-        }));
-        setListings(data);
-      }
-    } catch (error) {
-      // Silent fail for background refresh
     }
   };
 
@@ -256,10 +162,9 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
           ) : listings.length > 0 ? (
             listings.map((listing) => {
               const inventory = listing.inventory_items || listing;
-              const profile = inventory?.profiles;
               const priceSource = inventory ? { ...inventory, ...listing } : listing;
               const price = resolvePrice(priceSource);
-              
+              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
               return (
                 <div key={listing.id} className="w-[230px] flex-shrink-0 snap-center">
                   <ItemCard
@@ -282,8 +187,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
                     certificationNumber={inventory.certification_number}
                     series={inventory.series}
                     issueNumber={inventory.issue_number}
-                    keyInfo={null}
-                    showFavoriteButton={false}
+                    keyInfo={inventory.variant_description || inventory.details}
                   />
                 </div>
               );
@@ -307,10 +211,9 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
             <div className="flex gap-4 min-w-min">
               {listings.map((listing) => {
                 const inventory = listing.inventory_items || listing;
-                const profile = inventory?.profiles;
                 const priceSource = inventory ? { ...inventory, ...listing } : listing;
                 const price = resolvePrice(priceSource);
-                
+                const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
                 return (
                   <div key={listing.id} className="w-[200px] flex-shrink-0">
                     <ItemCard
@@ -333,8 +236,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
                       certificationNumber={inventory.certification_number}
                       series={inventory.series}
                       issueNumber={inventory.issue_number}
-                      keyInfo={null}
-                      showFavoriteButton={false}
+                      keyInfo={inventory.variant_description || inventory.details}
                     />
                   </div>
                 );

@@ -16,7 +16,6 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
-import { getListingImageUrl } from "@/lib/sellerUtils";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -110,51 +109,17 @@ export default function ListingDetail() {
 
   const fetchListing = async () => {
     try {
-      console.log('FETCH listing detail start', id);
       // First try to fetch from listings table
       const { data: listingData, error: listingError } = await supabase
         .from("listings")
         .select(`
-          id,
-          title,
-          price,
-          price_cents,
-          status,
-          type,
-          details,
-          condition_notes,
-          image_url,
-          issue_number,
-          user_id,
-          created_at,
-          inventory_item_id,
-          inventory_items!inventory_item_id (
-            id,
-            owner_id,
-            title,
-            series,
-            issue_number,
-            images,
-            cgc_grade,
-            grading_company,
-            certification_number,
-            condition,
-            for_sale,
-            for_auction,
-            offers_enabled,
-            is_for_trade,
-            is_slab,
-            local_pickup,
-            variant_description,
-            details,
-            comicvine_issue_id
-          )
+          *,
+          inventory_items_public(*)
         `)
         .eq("id", id)
         .maybeSingle();
 
       if (listingData) {
-        console.log('FETCH listing detail success', listingData);
         // Fetch profile separately
         const { data: profileData } = await supabase
           .from("profiles")
@@ -167,8 +132,6 @@ export default function ListingDetail() {
         setLoading(false);
         return;
       }
-      
-      console.log('FETCH listing detail: not found in listings table, trying inventory_items');
 
       // If not found in listings, try inventory_items (for items marked for_sale but not in listings table)
       const { data: inventoryData, error: inventoryError } = await supabase
@@ -208,7 +171,7 @@ export default function ListingDetail() {
         user_id: inventoryData.owner_id || inventoryData.user_id,
         type: inventoryData.for_auction ? "auction" : "fixed",
         status: "active",
-        inventory_items: inventoryData,
+        inventory_items_public: inventoryData,
       };
 
       // Fetch profile for inventory item
@@ -221,7 +184,7 @@ export default function ListingDetail() {
       setListing(transformedListing);
       setSeller(profileData);
     } catch (error) {
-      console.error("FETCH listing detail error:", error);
+      console.error("Error fetching listing:", error);
       toast.error("Listing not found");
       navigate("/market");
     } finally {
@@ -298,13 +261,9 @@ export default function ListingDetail() {
     return null;
   }
 
-  // Get inventory item from listing
-  const inventory = listing.inventory_items || listing.inventory_items_public || listing;
-  const title = listing.title || inventory?.title || inventory?.series || "Comic Listing";
+  const title = listing.title || listing.inventory_items_public?.title || "Comic Listing";
   const description = `${title}${listing.issue_number ? ` #${listing.issue_number}` : ""} - ${formatCents(listing.price_cents)} - Available now on our marketplace`;
-  
-  // Use the same image resolution logic as ItemCard
-  const imageUrl = getListingImageUrl(inventory);
+  const imageUrl = listing.image_url || listing.inventory_items_public?.images?.[0]?.url || "";
   const canonicalUrl = `${window.location.origin}/l/${id}`;
   const sellerName = seller?.display_name || seller?.username || "Seller";
   const sellerSlug = seller?.username?.toLowerCase().replace(/\s+/g, '-');
@@ -359,15 +318,13 @@ export default function ListingDetail() {
                   src={imageUrl}
                   alt={title}
                   className="aspect-[2/3] w-full object-cover rounded-lg mb-4"
-                  width={600}
-                  height={900}
                 />
               ) : (
                 <div className="aspect-[2/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
                   <span className="text-muted-foreground">No image available</span>
                 </div>
               )}
-              {inventory?.comicvine_issue_id && (
+              {listing.inventory_items_public?.comicvine_issue_id && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="h-4 w-4" />
                   Verified Scan
@@ -460,10 +417,10 @@ export default function ListingDetail() {
                 </div>
               )}
               
-              {inventory?.is_slab && inventory?.certification_number && (
+              {listing.inventory_items_public?.is_slab && listing.inventory_items_public?.certification_number && (
                 <div className="mb-6">
                   <h3 className="font-semibold mb-2">Certification Number</h3>
-                  <p className="text-sm text-muted-foreground">{inventory.certification_number}</p>
+                  <p className="text-sm text-muted-foreground">{listing.inventory_items_public.certification_number}</p>
                 </div>
               )}
 
