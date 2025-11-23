@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
+import { fetchListingsBase } from "@/lib/listingsQuery";
 
 interface ListingsCarouselProps {
   title: string;
@@ -23,77 +23,14 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
   const fetchListings = async () => {
     try {
-      // Optimized query - only select fields actually used
-      let query = supabase
-        .from("inventory_items")
-        .select(`
-          id,
-          title,
-          series,
-          issue_number,
-          listed_price,
-          condition,
-          cgc_grade,
-          grading_company,
-          certification_number,
-          for_auction,
-          for_sale,
-          is_for_trade,
-          offers_enabled,
-          is_slab,
-          variant_description,
-          details,
-          images,
-          owner_id,
-          created_at,
-          listing_status
-        `)
-        .in("listing_status", ["active", "listed"])
-        .limit(10);
-
-      if (filterType === "featured-grails") {
-        query = query
-          .eq("for_sale", true)
-          .gt("listed_price", 0)
-          .order("created_at", { ascending: false });
-      } else if (filterType === "newly-listed") {
-        query = query
-          .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
-          .order("created_at", { ascending: false });
-      } else if (filterType === "ending-soon") {
-        query = query
-          .eq("for_auction", true)
-          .order("created_at", { ascending: true });
-      } else if (filterType === "hot-week") {
-        query = query
-          .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
-          .eq("is_featured", true);
-      } else if (filterType === "local") {
-        query = query.or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true");
-      } else {
-        query = query.or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true");
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Fetch profiles separately for each unique owner_id
-      const ownerIds = [...new Set((data || []).map(l => l.owner_id).filter(Boolean))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, username, is_verified_seller, completed_sales_count")
-        .in("user_id", ownerIds);
-
-      // Attach profile data to each listing
-      const listingsWithProfiles = (data || []).map(listing => ({
-        ...listing,
-        profiles: profiles?.find(p => p.user_id === listing.owner_id)
-      }));
-
-      setListings(listingsWithProfiles);
+      const data = await fetchListingsBase({ 
+        filterType: filterType as any, 
+        limit: 10 
+      });
+      setListings(data);
     } catch (error) {
-      console.error("Error fetching listings:", error);
+      console.error(`Error fetching ${filterType} listings:`, error);
+      setListings([]);
     } finally {
       setLoading(false);
     }
@@ -124,9 +61,9 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
               const price = resolvePrice(listing);
               const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
               return (
-                <div key={listing.id} className="w-[280px] sm:w-64 flex-shrink-0 snap-center">
+                <div key={listing.listing_id} className="w-[280px] sm:w-64 flex-shrink-0 snap-center">
                   <ItemCard
-                    id={listing.id}
+                    id={listing.listing_id}
                     title={listing.title || listing.series || "Untitled"}
                     price={price === null ? undefined : price}
                     condition={listing.condition || listing.cgc_grade || "Unknown"}
