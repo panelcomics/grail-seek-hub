@@ -13,9 +13,11 @@ interface ListingsCarouselProps {
   showViewAll?: boolean;
 }
 
+const getCarouselLabel = (filterType: ListingsCarouselProps["filterType"]): string => `CAROUSEL ${filterType}`;
 export function ListingsCarousel({ title, filterType, showViewAll = true, deferMs = 0 }: ListingsCarouselProps & { deferMs?: number }) {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (deferMs > 0) {
@@ -30,26 +32,33 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
 
   const fetchListings = async () => {
     const cacheKey = `gs-home-${filterType}`;
+    const label = getCarouselLabel(filterType);
     const cached = sessionStorage.getItem(cacheKey);
-    
+
     if (cached) {
       try {
-        const { data: cachedData, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < 5 * 60 * 1000) {
-          console.log(`✓ ${filterType} from cache (instant)`);
+        const parsed = JSON.parse(cached);
+        const { data: cachedData, timestamp } = parsed;
+        if (Array.isArray(cachedData) && typeof timestamp === "number" && Date.now() - timestamp < 5 * 60 * 1000) {
+          console.log(`✓ ${label} from cache (instant):`, { count: cachedData.length });
           setListings(cachedData);
           setLoading(false);
+          // Still refresh in background to keep things fresh
           fetchFreshData(cacheKey);
           return;
         }
       } catch (e) {
-        // Invalid cache, continue with fetch
+        console.warn(`Cache parse error for ${label}, ignoring cached value`, e);
+        // Invalid cache, continue with network fetch
       }
     }
 
     setLoading(true);
-    console.time(`⏱️ ${filterType}`);
-    
+    setError(null);
+
+    console.time(label);
+    const queryStart = performance.now();
+
     try {
       // SINGLE QUERY with profiles joined via inventory_items
       let query = supabase
@@ -61,6 +70,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
           status,
           type,
           created_at,
+          ends_at,
           inventory_items!inventory_item_id (
             id,
             title,
@@ -105,35 +115,49 @@ export function ListingsCarousel({ title, filterType, showViewAll = true, deferM
       }
 
       const { data, error } = await query;
-      console.timeEnd(`⏱️ ${filterType}`);
+
+      const duration = performance.now() - queryStart;
+      console.timeEnd(label);
+      if (duration > 8000) {
+        console.warn(`WARN ${label} slow query: ${Math.round(duration)} ms`);
+      }
 
       if (error) {
-        console.error(`❌ ${filterType}:`, error);
+        console.error(`ERROR ${label}`, error);
+        setError("Error loading listings");
         setListings([]);
         return;
       }
 
       if (!data || data.length === 0) {
-        console.log(`✓ ${filterType}: 0 items`);
+        console.log(`✓ ${label}: 0 items`);
         setListings([]);
         return;
       }
 
-      console.log(`✓ ${filterType}: ${data.length} items`);
-      
-      // Cache the results
+      console.log(`success: ${label} ${data.length} listings`, {
+        count: data.length,
+        sample: data[0],
+      });
+
+      // Cache the results only on success with data
       try {
-        sessionStorage.setItem(cacheKey, JSON.stringify({
-          data,
-          timestamp: Date.now()
-        }));
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            data,
+            timestamp: Date.now(),
+          })
+        );
       } catch (e) {
-        // Quota exceeded, ignore
+        // Quota exceeded or other storage issue; ignore cache write
+        console.warn(`Cache write error for ${label}`, e);
       }
-      
+
       setListings(data);
     } catch (error) {
-      console.error(`Error fetching ${filterType}:`, error);
+      console.error(`ERROR ${label} unexpected:`, error);
+      setError("Error loading listings");
       setListings([]);
     } finally {
       setLoading(false);
