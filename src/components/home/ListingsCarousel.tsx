@@ -25,7 +25,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
     try {
       const data = await fetchListingsBase({ 
         filterType: filterType as any, 
-        limit: 10 
+        limit: 8 // Limit to 8 items for faster loading
       });
       setListings(data);
     } catch (error) {
