@@ -16,6 +16,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
+import { getListingImageUrl } from "@/lib/sellerUtils";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -263,7 +264,8 @@ export default function ListingDetail() {
 
   const title = listing.title || listing.inventory_items_public?.title || "Comic Listing";
   const description = `${title}${listing.issue_number ? ` #${listing.issue_number}` : ""} - ${formatCents(listing.price_cents)} - Available now on our marketplace`;
-  const imageUrl = listing.image_url || listing.inventory_items_public?.images?.[0]?.url || "";
+  // Use the same image helper as cards for consistency
+  const imageUrl = getListingImageUrl(listing.inventory_items_public || listing);
   const canonicalUrl = `${window.location.origin}/l/${id}`;
   const sellerName = seller?.display_name || seller?.username || "Seller";
   const sellerSlug = seller?.username?.toLowerCase().replace(/\s+/g, '-');

@@ -24,7 +24,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
   const fetchListings = async () => {
     setLoading(true);
     console.time(`CAROUSEL ${filterType}`);
-    console.log(`CAROUSEL ${filterType} start`);
+    console.log(`CAROUSEL ${filterType} start - mobile check:`, window.innerWidth < 768);
     
     try {
       // Use the shared helper that matches the working Marketplace page query
@@ -46,7 +46,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         return;
       }
 
-      console.log("HOME BASE LISTINGS COUNT:", allListings.length);
+      console.log("HOME BASE LISTINGS COUNT:", allListings.length, "| Mobile:", window.innerWidth < 768);
 
       // Filter in-memory based on section type (no extra Supabase queries)
       let filteredListings = allListings;
