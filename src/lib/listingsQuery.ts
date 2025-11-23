@@ -13,7 +13,8 @@ export interface ListingsQueryOptions {
 export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
   const { filterType = 'all', limit = 10 } = options;
   
-  console.time(`FETCH ${filterType}`);
+  const startTime = performance.now();
+  console.log(`[HOMEPAGE] FETCH ${filterType} started at ${startTime.toFixed(2)}ms`);
   
   try {
     // Optimized query - only select fields needed for cards
@@ -92,19 +93,20 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
 
     const { data, error } = await query;
 
-    console.timeEnd(`FETCH ${filterType}`);
-
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    
     if (error) {
-      console.error(`FETCH ${filterType} error:`, error);
+      console.error(`[HOMEPAGE] FETCH ${filterType} ERROR in ${duration.toFixed(2)}ms:`, error);
       throw error;
     }
 
     if (!data || data.length === 0) {
-      console.log(`FETCH ${filterType} success: 0 listings`);
+      console.log(`[HOMEPAGE] FETCH ${filterType} success in ${duration.toFixed(2)}ms: 0 listings`);
       return [];
     }
 
-    console.log(`FETCH ${filterType} success: ${data.length} listings`);
+    console.log(`[HOMEPAGE] FETCH ${filterType} success in ${duration.toFixed(2)}ms: ${data.length} listings`);
 
     // Fetch profiles separately for each unique user_id
     const userIds = [...new Set(data.map(l => l.user_id).filter(Boolean))];
@@ -131,8 +133,9 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
 
     return transformedData;
   } catch (error) {
-    console.timeEnd(`FETCH ${filterType}`);
-    console.error(`FETCH ${filterType} failed:`, error);
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    console.error(`[HOMEPAGE] FETCH ${filterType} FAILED in ${duration.toFixed(2)}ms:`, error);
     throw error;
   }
 }
