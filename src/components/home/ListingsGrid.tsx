@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fetchListingsBase } from "@/lib/listingsQuery";
+import { resolvePrice } from "@/lib/listingPriceUtils";
+import { getListingImageUrl } from "@/lib/sellerUtils";
 
 interface ListingsGridProps {
   filterType: string;
@@ -20,85 +22,38 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
   const fetchListings = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from("inventory_items")
-        .select(`
-          id,
-          title,
-          series,
-          issue_number,
-          listed_price,
-          images,
-          cgc_grade,
-          grading_company,
-          certification_number,
-          condition,
-          owner_id,
-          is_for_trade,
-          for_sale,
-          for_auction,
-          offers_enabled,
-          is_featured,
-          local_pickup,
-          is_slab,
-          variant_description,
-          details
-        `)
-        .eq("listing_status", "listed")
-        .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
-
-      // Apply filters based on active tab
+      // Map filter types to the unified query format
+      let queryFilterType: any = 'all';
+      
       switch (filterType) {
         case "featured":
-          query = query.eq("is_featured", true);
+          queryFilterType = "featured-grails";
           break;
         case "auctions":
-          query = query.eq("for_auction", true);
+          queryFilterType = "ending-soon";
           break;
         case "buy-now":
-          query = query.eq("for_sale", true);
+          queryFilterType = "newly-listed";
           break;
         case "offers":
-          query = query.eq("offers_enabled", true);
-          break;
         case "trade":
-          query = query.eq("is_for_trade", true);
-          break;
         case "local":
-          // TODO: Add geolocation filtering
+          queryFilterType = filterType;
           break;
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch profiles separately for each unique owner_id
-      const ownerIds = [...new Set((data || []).map(l => l.owner_id).filter(Boolean))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, username, seller_tier, is_verified_seller, completed_sales_count")
-        .in("user_id", ownerIds);
-
-      // Attach profile data to each listing
-      const listingsWithProfiles = (data || []).map(listing => ({
-        ...listing,
-        profiles: profiles?.find(p => p.user_id === listing.owner_id)
-      }));
-
-      setListings(listingsWithProfiles);
+      const data = await fetchListingsBase({ 
+        filterType: queryFilterType, 
+        limit: ITEMS_PER_PAGE 
+      });
+      
+      setListings(data);
     } catch (error) {
       console.error("Error fetching listings:", error);
+      setListings([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const getImageUrl = (item: any) => {
-    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-      return item.images[0].url || item.images[0];
-    }
-    return "/placeholder.svg";
   };
 
   if (loading) {
@@ -128,14 +83,15 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
       {listings.map((item) => {
         const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
         const displayTitle = item.title || `${item.series || "Unknown"} #${item.issue_number || "?"}`;
+        const price = resolvePrice(item);
         
         return (
           <ItemCard
-            key={item.id}
-            id={item.id}
+            key={item.listing_id}
+            id={item.listing_id}
             title={displayTitle}
-            price={item.listed_price || 0}
-            image={getImageUrl(item)}
+            price={price === null ? undefined : price}
+            image={getListingImageUrl(item)}
             condition={item.cgc_grade || item.condition || "Raw"}
             sellerName={profile?.username}
             sellerCity={undefined}

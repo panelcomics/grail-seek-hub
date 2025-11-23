@@ -46,6 +46,7 @@ interface ItemCardProps {
   series?: string | null; // Series name
   issueNumber?: string | null; // Issue number
   keyInfo?: string | null; // Key info from details/variant
+  showFavorite?: boolean; // Show favorite button (default false to prevent extra queries on homepage)
 }
 
 const ItemCard = ({ 
@@ -86,6 +87,7 @@ const ItemCard = ({
   series = null,
   issueNumber = null,
   keyInfo = null,
+  showFavorite = false, // Default to false to prevent extra queries on homepage
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -160,10 +162,12 @@ const ItemCard = ({
             loading="lazy"
           />
           
-          {/* Top-right: Favorite button only */}
-          <div className="absolute top-2 right-2">
-            <FavoriteButton listingId={id} showCount />
-          </div>
+          {/* Top-right: Favorite button (only if enabled) */}
+          {showFavorite && (
+            <div className="absolute top-2 right-2">
+              <FavoriteButton listingId={id} showCount />
+            </div>
+          )}
 
           {/* Bottom: Auction countdown */}
           {isAuction && countdown > 0 && (
