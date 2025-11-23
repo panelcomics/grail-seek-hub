@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { getListingImageUrl } from "@/lib/sellerUtils";
+import { fetchLiveListings } from "@/lib/fetchListings";
+import { resolvePrice } from "@/lib/listingPriceUtils";
 
 interface ListingsCarouselProps {
   title: string;
@@ -22,99 +23,72 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
 
   const fetchListings = async () => {
     setLoading(true);
-    console.time(`FETCH ${filterType}`);
-    console.log(`FETCH ${filterType} start`);
+    console.time(`CAROUSEL ${filterType}`);
+    console.log(`CAROUSEL ${filterType} start`);
     
     try {
-      // Use the same base query as ListingsGrid.tsx (working browse page)
-      let query = supabase
-        .from("inventory_items")
-        .select(`
-          id,
-          title,
-          series,
-          issue_number,
-          listed_price,
-          images,
-          cgc_grade,
-          grading_company,
-          certification_number,
-          condition,
-          owner_id,
-          is_for_trade,
-          for_sale,
-          for_auction,
-          offers_enabled,
-          is_slab,
-          local_pickup,
-          variant_description,
-          details
-        `)
-        .eq("listing_status", "listed")
-        .limit(10);
-
-      // Apply simple filters per section
-      if (filterType === "featured-grails") {
-        query = query.eq("for_sale", true).order("listed_price", { ascending: false });
-      } else if (filterType === "newly-listed") {
-        query = query.order("created_at", { ascending: false });
-      } else if (filterType === "hot-week") {
-        query = query.eq("for_sale", true).order("created_at", { ascending: false });
-      } else if (filterType === "local") {
-        // TODO: Add geolocation filtering based on buyer location
-        query = query.order("created_at", { ascending: false });
-      } else {
-        query = query.order("created_at", { ascending: false });
-      }
-
-      const { data, error } = await query;
-
-      console.timeEnd(`FETCH ${filterType}`);
-      console.log(`FETCH ${filterType} result`, { error, length: data?.length });
+      // Use the shared helper that matches the working Marketplace page query
+      const { data: allListings, error } = await fetchLiveListings({ limit: 100 });
 
       if (error) {
-        console.error(`FETCH ${filterType} error:`, error);
+        console.error(`CAROUSEL ${filterType} error:`, error);
+        console.timeEnd(`CAROUSEL ${filterType}`);
         setListings([]);
+        setLoading(false);
         return;
       }
 
-      if (!data || data.length === 0) {
-        console.log(`FETCH ${filterType} success: 0 listings`);
+      if (!allListings || allListings.length === 0) {
+        console.log(`CAROUSEL ${filterType}: BASE QUERY returned 0 listings`);
+        console.timeEnd(`CAROUSEL ${filterType}`);
         setListings([]);
+        setLoading(false);
         return;
       }
 
-      console.log(`FETCH ${filterType} success: ${data.length} listings`);
+      console.log("HOME BASE LISTINGS COUNT:", allListings.length);
 
-      // Fetch profiles separately for each unique owner_id (same as ListingsGrid)
-      const ownerIds = [...new Set(data.map((l: any) => l.owner_id).filter(Boolean))];
+      // Filter in-memory based on section type (no extra Supabase queries)
+      let filteredListings = allListings;
 
-      if (ownerIds.length === 0) {
-        setListings(data.map((listing: any) => ({ ...listing, profiles: null })));
-        return;
+      if (filterType === "featured-grails") {
+        // Featured Grails: highest priced items that are for sale
+        filteredListings = allListings
+          .filter(l => l.for_sale && l.price_cents)
+          .sort((a, b) => (b.price_cents || 0) - (a.price_cents || 0))
+          .slice(0, 10);
+      } else if (filterType === "newly-listed") {
+        // Newly Listed: most recent items by created_at
+        filteredListings = allListings
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 10);
+      } else if (filterType === "local") {
+        // Local Deals: items with local_pickup enabled
+        filteredListings = allListings
+          .filter(l => l.local_pickup)
+          .slice(0, 10);
+        
+        // Fallback if no local items: show recent items
+        if (filteredListings.length === 0) {
+          filteredListings = allListings.slice(0, 10);
+        }
+      } else if (filterType === "hot-week") {
+        // Hot this week: recent for_sale items
+        filteredListings = allListings
+          .filter(l => l.for_sale)
+          .slice(0, 10);
+      } else {
+        // Default: just take first 10
+        filteredListings = allListings.slice(0, 10);
       }
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("user_id, username, seller_tier, is_verified_seller, completed_sales_count")
-        .in("user_id", ownerIds);
-
-      if (profilesError) {
-        console.error(`FETCH ${filterType} profiles error:`, profilesError);
-      }
-
-      // Attach profile data to each listing (same as ListingsGrid)
-      const listingsWithProfiles = (data || []).map((listing: any) => {
-        const profile = profiles?.find((p: any) => p.user_id === listing.owner_id);
-        return {
-          ...listing,
-          profiles: profile || null,
-        };
-      });
-
-      setListings(listingsWithProfiles);
+      console.log("CAROUSEL", filterType, "COUNT:", filteredListings.length);
+      console.timeEnd(`CAROUSEL ${filterType}`);
+      
+      setListings(filteredListings);
     } catch (error) {
-      console.error(`Error in ${filterType} fetchListings:`, error);
+      console.error(`CAROUSEL ${filterType} exception:`, error);
+      console.timeEnd(`CAROUSEL ${filterType}`);
       setListings([]);
     } finally {
       setLoading(false);
@@ -145,15 +119,16 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
             </>
           ) : listings.length > 0 ? (
             listings.map((listing) => {
-              const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+              const profile = listing.profiles;
               const displayTitle = listing.title || `${listing.series || "Unknown"} #${listing.issue_number || "?"}`;
+              const price = resolvePrice(listing);
               
               return (
-                <div key={listing.id} className="w-[230px] flex-shrink-0 snap-center">
+                <div key={listing.listing_id} className="w-[230px] flex-shrink-0 snap-center">
                   <ItemCard
-                    id={listing.id}
+                    id={listing.listing_id}
                     title={displayTitle}
-                    price={listing.listed_price || 0}
+                    price={price === null ? undefined : price}
                     condition={listing.cgc_grade || listing.condition || "Raw"}
                     image={getListingImageUrl(listing)}
                     category="comic"
@@ -193,15 +168,16 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
           ) : listings.length > 0 ? (
             <div className="flex gap-4 min-w-min">
               {listings.map((listing) => {
-                const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+                const profile = listing.profiles;
                 const displayTitle = listing.title || `${listing.series || "Unknown"} #${listing.issue_number || "?"}`;
+                const price = resolvePrice(listing);
                 
                 return (
-                  <div key={listing.id} className="w-[200px] flex-shrink-0">
+                  <div key={listing.listing_id} className="w-[200px] flex-shrink-0">
                     <ItemCard
-                      id={listing.id}
+                      id={listing.listing_id}
                       title={displayTitle}
-                      price={listing.listed_price || 0}
+                      price={price === null ? undefined : price}
                       condition={listing.cgc_grade || listing.condition || "Raw"}
                       image={getListingImageUrl(listing)}
                       category="comic"
