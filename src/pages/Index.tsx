@@ -65,9 +65,6 @@ export default function Index() {
         <PremiumDealerCarousel sellerName="Kiss Komixx" />
 
         <FeaturedShops />
-        
-        {/* Featured Shop - Premium Dealer Carousel */}
-        <PremiumDealerCarousel sellerName="Panel Comics" />
 
         <BenefitBlocks />
       </main>
