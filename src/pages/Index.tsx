@@ -61,7 +61,9 @@ export default function Index() {
           onCategoryChange={setActiveCategory} 
         />
 
+        {/* Featured Shop - Premium Dealer */}
         <PremiumDealerCarousel sellerName="Panel Comics" />
+
         <PremiumDealerCarousel sellerName="Kiss Komixx" />
 
         <FeaturedShops />
