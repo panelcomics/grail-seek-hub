@@ -33,7 +33,7 @@ export default function Index() {
         {/* 2. Comic Stack Hero */}
         <HeroSection />
         
-        {/* 3. Featured Grails — Buy It Now (fetch immediately) */}
+        {/* 3. Featured Grails — Buy It Now */}
         <ListingsCarousel title="✨ Featured Grails — Buy It Now" filterType="featured-grails" deferMs={0} />
         
         {/* 4. Start Hunting Grails / Browse Local Deals buttons + search */}
@@ -42,14 +42,14 @@ export default function Index() {
         {/* 5. Stats row (500+ / New / Verified) */}
         <SocialProof />
 
-        {/* 6. Hot Auctions Ending Soon (defer 300ms) */}
-        <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" deferMs={300} />
+        {/* 6. Newly Listed */}
+        <ListingsCarousel title="Newly Listed" filterType="newly-listed" deferMs={0} />
         
-        {/* 7. Local Deals Near You (defer 400ms) */}
-        <ListingsCarousel title="Local Deals Near You" filterType="local" deferMs={400} />
+        {/* 7. Local Deals Near You */}
+        <ListingsCarousel title="Local Deals Near You" filterType="local" deferMs={0} />
         
-        {/* 8. Newly Listed (defer 500ms) */}
-        <ListingsCarousel title="Newly Listed" filterType="newly-listed" deferMs={500} />
+        {/* 8. Hot Auctions Ending Soon */}
+        <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" deferMs={0} />
         
         {/* Everything else */}
         <SafetySection />
@@ -66,7 +66,7 @@ export default function Index() {
 
         <FeaturedShops />
         
-        <ListingsCarousel title="Hot This Week" filterType="hot-week" deferMs={600} />
+        <ListingsCarousel title="Hot This Week" filterType="hot-week" deferMs={0} />
 
         <BenefitBlocks />
       </main>
