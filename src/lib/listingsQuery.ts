@@ -16,11 +16,17 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
   console.time(`FETCH ${filterType}`);
   
   try {
-    // Core query - matches Marketplace.tsx exactly
+    // Optimized query - only select fields needed for cards
     let query = supabase
       .from("listings")
       .select(`
-        *,
+        id,
+        type,
+        price_cents,
+        status,
+        created_at,
+        updated_at,
+        user_id,
         inventory_items!inner(
           id,
           title,
@@ -31,14 +37,14 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
           grading_company,
           certification_number,
           is_slab,
-          details,
           variant_description,
           images,
           for_sale,
           for_auction,
           is_for_trade,
           offers_enabled,
-          user_id
+          user_id,
+          details
         )
       `)
       .eq("status", "active");
@@ -81,7 +87,7 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
         break;
     }
 
-    // Apply limit
+    // Apply limit (default to 10 for performance)
     query = query.limit(limit);
 
     const { data, error } = await query;
