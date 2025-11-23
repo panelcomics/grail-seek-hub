@@ -66,7 +66,8 @@ export default function Index() {
 
         <FeaturedShops />
         
-        <ListingsCarousel title="Hot This Week" filterType="hot-week" />
+        {/* Featured Shop - Premium Dealer Carousel */}
+        <PremiumDealerCarousel sellerName="Panel Comics" />
 
         <BenefitBlocks />
       </main>
