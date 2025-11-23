@@ -13,7 +13,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageManagement } from "@/components/ImageManagement";
 import { Separator } from "@/components/ui/separator";
-import { getListingImageUrl } from "@/lib/sellerUtils";
 
 export default function ManageBook() {
   const { id } = useParams();
@@ -263,7 +262,7 @@ export default function ManageBook() {
           price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
           shipping_price: shippingPrice,
           status: "active",
-          type: formData.for_auction ? "auction" : "fixed",
+          type: "sale",
           details: formData.details,
           issue_number: formData.issue_number,
           volume_name: formData.series,
@@ -323,17 +322,9 @@ export default function ManageBook() {
       // Refresh listing status after save
       await fetchActiveListing(item.id);
       console.log("🔍 SAVE HANDLER COMPLETE");
-    } catch (error: any) {
-      console.error("❌ FULL ERROR OBJECT:", error);
-      console.error("❌ Error message:", error?.message);
-      console.error("❌ Error details:", error?.details);
-      console.error("❌ Error hint:", error?.hint);
-      console.error("❌ Error code:", error?.code);
-      
-      // Show more specific error message to user
-      const errorMessage = error?.message || "Failed to update book";
-      const errorDetails = error?.details ? ` (${error.details})` : "";
-      toast.error(`${errorMessage}${errorDetails}`);
+    } catch (error) {
+      console.error("❌ ERROR in handleSave:", error);
+      toast.error("Failed to update book");
     } finally {
       setSaving(false);
     }
@@ -390,17 +381,25 @@ export default function ManageBook() {
           {/* LEFT: Image Gallery */}
           <div className="space-y-4">
             {/* Primary Image Display */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
-                  <img
-                    src={getListingImageUrl(item)}
-                    alt={formData.title || "Book cover"}
-                    className="w-full h-auto object-cover max-h-[600px] mx-auto rounded-lg"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {(listingImages.length > 0 || item.images) && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
+                    <img
+                      src={
+                        listingImages.find(img => img.is_primary)?.url ||
+                        listingImages[0]?.url ||
+                        (item.images && Array.isArray(item.images) && item.images.length > 0 
+                          ? (typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url)
+                          : '/placeholder.svg')
+                      }
+                      alt={formData.title || "Book cover"}
+                      className="w-full h-auto object-contain max-h-[600px] mx-auto"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             
             {/* Photo Management */}
             <Card>

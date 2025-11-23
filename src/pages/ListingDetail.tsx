@@ -16,7 +16,6 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
-import { getListingImageUrl } from "@/lib/sellerUtils";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -110,79 +109,25 @@ export default function ListingDetail() {
 
   const fetchListing = async () => {
     try {
-      // First try to fetch from listings table
-      const { data: listingData, error: listingError } = await supabase
+      const { data, error } = await supabase
         .from("listings")
         .select(`
           *,
           inventory_items_public(*)
         `)
         .eq("id", id)
-        .maybeSingle();
+        .single();
 
-      if (listingData) {
-        // Fetch profile separately
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller")
-          .eq("user_id", listingData.user_id)
-          .maybeSingle();
+      if (error) throw error;
 
-        setListing(listingData);
-        setSeller(profileData);
-        setLoading(false);
-        return;
-      }
-
-      // If not found in listings, try inventory_items (for items marked for_sale but not in listings table)
-      const { data: inventoryData, error: inventoryError } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("id", id)
-        .in("listing_status", ["active", "listed"])
-        .maybeSingle();
-
-      if (inventoryError) throw inventoryError;
-
-      if (!inventoryData) {
-        throw new Error("Listing not found");
-      }
-
-      // Extract image URL from images field
-      let imageUrl = "";
-      if (inventoryData.images) {
-        const images = inventoryData.images as any;
-        if (typeof images === "object" && !Array.isArray(images) && images.front) {
-          imageUrl = images.front;
-        } else if (Array.isArray(images) && images.length > 0) {
-          imageUrl = images[0]?.url || images[0];
-        }
-      }
-
-      // Transform inventory item to listing format
-      const transformedListing = {
-        id: inventoryData.id,
-        title: inventoryData.title || inventoryData.series,
-        price: inventoryData.listed_price,
-        price_cents: inventoryData.listed_price ? Math.round(inventoryData.listed_price * 100) : null,
-        details: inventoryData.details,
-        condition_notes: inventoryData.condition,
-        image_url: imageUrl,
-        issue_number: inventoryData.issue_number,
-        user_id: inventoryData.owner_id || inventoryData.user_id,
-        type: inventoryData.for_auction ? "auction" : "fixed",
-        status: "active",
-        inventory_items_public: inventoryData,
-      };
-
-      // Fetch profile for inventory item
+      // Fetch profile separately
       const { data: profileData } = await supabase
         .from("profiles")
         .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller")
-        .eq("user_id", transformedListing.user_id)
-        .maybeSingle();
+        .eq("user_id", data.user_id)
+        .single();
 
-      setListing(transformedListing);
+      setListing(data);
       setSeller(profileData);
     } catch (error) {
       console.error("Error fetching listing:", error);
@@ -264,8 +209,7 @@ export default function ListingDetail() {
 
   const title = listing.title || listing.inventory_items_public?.title || "Comic Listing";
   const description = `${title}${listing.issue_number ? ` #${listing.issue_number}` : ""} - ${formatCents(listing.price_cents)} - Available now on our marketplace`;
-  // Use the same image helper as cards for consistency
-  const imageUrl = getListingImageUrl(listing.inventory_items_public || listing);
+  const imageUrl = listing.image_url || listing.inventory_items_public?.images?.[0]?.url || "";
   const canonicalUrl = `${window.location.origin}/l/${id}`;
   const sellerName = seller?.display_name || seller?.username || "Seller";
   const sellerSlug = seller?.username?.toLowerCase().replace(/\s+/g, '-');
