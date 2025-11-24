@@ -16,6 +16,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
+import { getListingImageUrl } from "@/lib/sellerUtils";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -109,11 +110,43 @@ export default function ListingDetail() {
 
   const fetchListing = async () => {
     try {
+      // Use the same query structure as the working listings cards
       const { data, error } = await supabase
         .from("listings")
         .select(`
-          *,
-          inventory_items_public(*)
+          id,
+          type,
+          price_cents,
+          status,
+          created_at,
+          updated_at,
+          user_id,
+          title,
+          details,
+          condition_notes,
+          image_url,
+          issue_number,
+          inventory_item_id,
+          inventory_items!inner(
+            id,
+            title,
+            series,
+            issue_number,
+            condition,
+            cgc_grade,
+            grading_company,
+            certification_number,
+            is_slab,
+            variant_description,
+            images,
+            for_sale,
+            for_auction,
+            is_for_trade,
+            offers_enabled,
+            user_id,
+            details,
+            comicvine_issue_id
+          )
         `)
         .eq("id", id)
         .single();
@@ -207,9 +240,10 @@ export default function ListingDetail() {
     return null;
   }
 
-  const title = listing.title || listing.inventory_items_public?.title || "Comic Listing";
+  const title = listing.title || listing.inventory_items?.title || "Comic Listing";
   const description = `${title}${listing.issue_number ? ` #${listing.issue_number}` : ""} - ${formatCents(listing.price_cents)} - Available now on our marketplace`;
-  const imageUrl = listing.image_url || listing.inventory_items_public?.images?.[0]?.url || "";
+  // Use the same image resolution logic as the working cards
+  const imageUrl = getListingImageUrl(listing.inventory_items || listing);
   const canonicalUrl = `${window.location.origin}/l/${id}`;
   const sellerName = seller?.display_name || seller?.username || "Seller";
   const sellerSlug = seller?.username?.toLowerCase().replace(/\s+/g, '-');
@@ -259,18 +293,18 @@ export default function ListingDetail() {
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
             <div>
-              {imageUrl ? (
+              {imageUrl && imageUrl !== "/placeholder.svg" ? (
                 <img
                   src={imageUrl}
                   alt={title}
-                  className="aspect-[2/3] w-full object-cover rounded-lg mb-4"
+                  className="aspect-[2/3] w-full object-contain p-4 rounded-lg mb-4 bg-muted"
                 />
               ) : (
                 <div className="aspect-[2/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
                   <span className="text-muted-foreground">No image available</span>
                 </div>
               )}
-              {listing.inventory_items_public?.comicvine_issue_id && (
+              {listing.inventory_items?.comicvine_issue_id && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="h-4 w-4" />
                   Verified Scan
@@ -363,10 +397,10 @@ export default function ListingDetail() {
                 </div>
               )}
               
-              {listing.inventory_items_public?.is_slab && listing.inventory_items_public?.certification_number && (
+              {listing.inventory_items?.is_slab && listing.inventory_items?.certification_number && (
                 <div className="mb-6">
                   <h3 className="font-semibold mb-2">Certification Number</h3>
-                  <p className="text-sm text-muted-foreground">{listing.inventory_items_public.certification_number}</p>
+                  <p className="text-sm text-muted-foreground">{listing.inventory_items.certification_number}</p>
                 </div>
               )}
 
