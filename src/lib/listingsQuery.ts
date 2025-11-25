@@ -10,11 +10,82 @@ export interface ListingsQueryOptions {
  * Unified listings query - matches the Browse Marketplace query exactly.
  * This is the single source of truth for fetching listings across the app.
  */
+/**
+ * Fetch listings for a specific seller by user_id
+ */
+export async function fetchSellerListings(userId: string, limit: number = 10) {
+  const startTime = performance.now();
+  console.log(`[HOMEPAGE] FETCH seller-listings (${userId.substring(0, 8)}...) started`);
+
+  try {
+    const { data, error } = await supabase
+      .from("listings")
+      .select(`
+        id,
+        type,
+        price_cents,
+        status,
+        created_at,
+        updated_at,
+        user_id,
+        inventory_items!inner(
+          id,
+          title,
+          series,
+          issue_number,
+          condition,
+          cgc_grade,
+          grading_company,
+          certification_number,
+          is_slab,
+          variant_description,
+          images,
+          for_sale,
+          for_auction,
+          is_for_trade,
+          offers_enabled,
+          user_id,
+          details
+        )
+      `)
+      .eq("status", "active")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+
+    if (error) {
+      console.error(`[HOMEPAGE] FETCH seller-listings ERROR in ${duration.toFixed(2)}ms:`, error);
+      throw error;
+    }
+
+    console.log(`[HOMEPAGE] FETCH seller-listings success in ${duration.toFixed(2)}ms: ${data?.length || 0} listings`);
+
+    // Transform data to match expected format
+    const transformedData = (data || []).map(listing => ({
+      ...listing,
+      ...listing.inventory_items,
+      listing_id: listing.id,
+      price_cents: listing.price_cents,
+      inventory_items: listing.inventory_items,
+    }));
+
+    return transformedData;
+  } catch (error) {
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    console.error(`[HOMEPAGE] FETCH seller-listings FAILED in ${duration.toFixed(2)}ms:`, error);
+    return [];
+  }
+}
+
 export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
   const { filterType = 'all', limit = 10 } = options;
   
   const startTime = performance.now();
-  console.log(`[HOMEPAGE] FETCH ${filterType} started at ${startTime.toFixed(2)}ms`);
+  console.log(`[HOMEPAGE] FETCH ${filterType} started`);
   
   try {
     // Optimized query - only select fields needed for cards
