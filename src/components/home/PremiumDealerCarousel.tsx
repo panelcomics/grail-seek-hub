@@ -31,8 +31,8 @@ export function PremiumDealerCarousel({ sellerId, sellerName }: PremiumDealerCar
       if (sellerId) {
         console.log('[FEATURED_SHOP] Querying by sellerId:', sellerId);
         const { data, error } = await supabase
-          .from("profiles")
-          .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
+          .from("public_profiles")
+          .select("user_id, username, display_name, seller_tier, profile_image_url")
           .eq("user_id", sellerId)
           .maybeSingle();
 
@@ -52,16 +52,16 @@ export function PremiumDealerCarousel({ sellerId, sellerName }: PremiumDealerCar
         
         // Try exact match first
         let { data, error } = await supabase
-          .from("profiles")
-          .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
+          .from("public_profiles")
+          .select("user_id, username, display_name, seller_tier, profile_image_url")
           .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
           .maybeSingle();
 
         if (!data) {
           // Try case-insensitive partial match
           const { data: fuzzyData } = await supabase
-            .from("profiles")
-            .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
+            .from("public_profiles")
+            .select("user_id, username, display_name, seller_tier, profile_image_url")
             .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
             .limit(1)
             .maybeSingle();
@@ -138,7 +138,7 @@ export function PremiumDealerCarousel({ sellerId, sellerName }: PremiumDealerCar
             <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
               <SellerBadge tier={sellerProfile?.seller_tier || "premium"} />
               <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">Premium Dealer</span>
-              <VerifiedSellerBadge salesCount={sellerProfile?.completed_sales_count || 0} size="sm" />
+              <VerifiedSellerBadge salesCount={0} size="sm" />
             </div>
           </div>
           <a 
