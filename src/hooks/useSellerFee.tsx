@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { STANDARD_SELLER_FEE_RATE } from "@/config/feesConfig";
 
 interface SellerFeeInfo {
   isFoundingSeller: boolean;
@@ -9,7 +10,7 @@ interface SellerFeeInfo {
 
 export function useSellerFee(userId: string | undefined): SellerFeeInfo {
   const [isFoundingSeller, setIsFoundingSeller] = useState(false);
-  const [feeRate, setFeeRate] = useState(0.0375); // Default to standard fee
+  const [feeRate, setFeeRate] = useState(STANDARD_SELLER_FEE_RATE);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export function useSellerFee(userId: string | undefined): SellerFeeInfo {
 
         if (!error && data) {
           setIsFoundingSeller(data.is_founding_seller || false);
-          setFeeRate(data.custom_fee_rate || 0.0375);
+          setFeeRate(data.custom_fee_rate || STANDARD_SELLER_FEE_RATE);
         }
       } catch (error) {
         console.error('Error fetching seller fee:', error);

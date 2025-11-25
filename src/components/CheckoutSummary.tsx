@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ShieldCheck, Package, Truck, DollarSign } from "lucide-react";
+import { INTRO_SELLER_FEE_RATE, BUYER_PROTECTION_FEE, FEE_DISPLAY_TEXT } from "@/config/feesConfig";
 
 interface CheckoutSummaryProps {
   itemPrice: number;
@@ -14,8 +15,8 @@ interface CheckoutSummaryProps {
 export const CheckoutSummary = ({
   itemPrice,
   shippingCost,
-  platformFeeRate = 0.065,
-  protectionFee = 1.99,
+  platformFeeRate = INTRO_SELLER_FEE_RATE,
+  protectionFee = BUYER_PROTECTION_FEE,
   itemTitle = "Item",
 }: CheckoutSummaryProps) => {
   const subtotal = itemPrice + shippingCost;
@@ -88,7 +89,7 @@ export const CheckoutSummary = ({
                 ${total.toFixed(2)}
               </span>
               <p className="text-xs text-muted-foreground mt-1">
-                Flat 6.5% selling fee (including payment processing). No extra fees.
+                Flat {FEE_DISPLAY_TEXT.INTRO_RATE} selling fee (including payment processing). No extra fees.
               </p>
             </div>
           </div>

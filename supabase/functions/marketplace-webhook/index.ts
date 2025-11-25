@@ -2,6 +2,13 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+// ==========================================================================
+// FEE CONFIGURATION - Must match src/config/feesConfig.ts
+// ==========================================================================
+const STRIPE_PERCENTAGE_FEE = 0.029;
+const STRIPE_FIXED_FEE_CENTS = 30;
+// ==========================================================================
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
@@ -139,9 +146,9 @@ serve(async (req) => {
     } else if (event.type === "charge.refunded") {
       const charge = event.data.object;
       
-      // Calculate Stripe processing fee: 2.9% + $0.30
+      // Calculate Stripe processing fee using central config
       const originalAmount = charge.amount; // in cents
-      const stripeFee = Math.round(originalAmount * 0.029 + 30);
+      const stripeFee = Math.round(originalAmount * STRIPE_PERCENTAGE_FEE) + STRIPE_FIXED_FEE_CENTS;
       const refundAmount = charge.amount_refunded; // Amount actually refunded (in cents)
       
       console.log("Refund details:", {

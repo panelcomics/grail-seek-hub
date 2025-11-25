@@ -6,14 +6,15 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { INTRO_SELLER_FEE_RATE, LOCAL_PICKUP_FEE_RATE, FEE_DISPLAY_TEXT } from "@/config/feesConfig";
 
 export const calculateSellerFee = (itemPrice: number, shippingMethod: 'local_pickup' | 'ship_nationwide'): number => {
   if (shippingMethod === 'local_pickup') {
-    return 0;
+    return itemPrice * LOCAL_PICKUP_FEE_RATE;
   }
   
-  // Flat 6.5% selling fee (including payment processing)
-  return itemPrice * 0.065;
+  // Use current intro rate from central config
+  return itemPrice * INTRO_SELLER_FEE_RATE;
 };
 
 interface PricingCalculatorProps {
@@ -92,7 +93,7 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
               <Label htmlFor="ship" className="flex-1 cursor-pointer">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Ship Nationwide</span>
-                  <Badge variant="outline">6.5% Total</Badge>
+                  <Badge variant="outline">{FEE_DISPLAY_TEXT.INTRO_RATE} Total</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Includes payment processing • No extra fees
@@ -139,7 +140,7 @@ export default function PricingCalculator({ defaultPrice = 50, onCalculate }: Pr
             <div className="flex gap-2">
               <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-700 dark:text-blue-300">
-                Flat 6.5% selling fee (including payment processing). No extra percentage fees. Our cut comes out of that, not on top of it.
+                Flat {FEE_DISPLAY_TEXT.INTRO_RATE} selling fee (including payment processing). No extra percentage fees. Our cut comes out of that, not on top of it.
               </p>
             </div>
           </div>
