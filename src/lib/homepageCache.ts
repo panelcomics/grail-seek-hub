@@ -3,6 +3,8 @@
  * Reduces flicker on refresh and improves perceived performance
  */
 
+import { homeDebugCacheHit, homeDebugCacheMiss, homeDebugNetworkSuccess, homeDebugNetworkError, homeDebugStaleData } from './homeDebug';
+
 export type HomepageSectionKey =
   | 'featured-grails'
   | 'ending-soon'
@@ -46,12 +48,14 @@ export async function getHomepageCached<T>(
     const age = now - cached.fetchedAt;
     const itemCount = Array.isArray(cached.data) ? cached.data.length : '?';
     console.log(`[HOMEPAGE_CACHE] ${key} → cache hit (${itemCount} items, age=${age}ms)`);
+    homeDebugCacheHit(key, { count: itemCount, age });
     return { data: cached.data, fromCache: true };
   }
 
   // Fetch from network
   try {
     console.log(`[HOMEPAGE_CACHE] ${key} → network fetch`);
+    homeDebugCacheMiss(key);
     const data = await fetcher();
     
     // Store in cache
@@ -72,16 +76,19 @@ export async function getHomepageCached<T>(
 
     const itemCount = Array.isArray(data) ? data.length : '?';
     console.log(`[HOMEPAGE_CACHE] ${key} → cached ${itemCount} items`);
+    homeDebugNetworkSuccess(key, { count: itemCount });
     
     return { data, fromCache: false };
   } catch (error) {
     console.error(`[HOMEPAGE_CACHE] ${key} → fetch error:`, error);
+    homeDebugNetworkError(key, error);
 
     // If we have stale cache, return it rather than failing
     if (cached) {
       const age = now - cached.fetchedAt;
       const itemCount = Array.isArray(cached.data) ? cached.data.length : '?';
       console.log(`[HOMEPAGE_CACHE] ${key} → returning stale cache (${itemCount} items, age=${age}ms)`);
+      homeDebugStaleData(key, { count: itemCount, age });
       return { data: cached.data, fromCache: true };
     }
 

@@ -8,6 +8,7 @@ import { getListingImageUrl } from "@/lib/sellerUtils";
 import { fetchListingsBase, fetchHomepageListings } from "@/lib/listingsQuery";
 import { Listing } from "@/types/listing";
 import { HomepageSectionKey } from "@/lib/homepageCache";
+import { homeDebugStart, homeDebugRender } from "@/lib/homeDebug";
 
 interface ListingsCarouselProps {
   title: string;
@@ -36,6 +37,11 @@ export function ListingsCarousel({
     try {
       setError(null);
       
+      // Debug: fetch start
+      if (useCache && cacheKey) {
+        homeDebugStart(cacheKey);
+      }
+      
       let data: Listing[];
       if (useCache && cacheKey) {
         // Use cached version for homepage
@@ -53,6 +59,11 @@ export function ListingsCarousel({
       
       console.log('[HOMEPAGE] CAROUSEL', filterType, 'received', data.length, 'listings');
       setListings(data || []);
+      
+      // Debug: render
+      if (useCache && cacheKey) {
+        homeDebugRender(cacheKey, { count: data?.length || 0 });
+      }
     } catch (err) {
       console.error(`[HOMEPAGE] CAROUSEL ${filterType} error:`, err);
       setError(err as Error);

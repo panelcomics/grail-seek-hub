@@ -9,6 +9,7 @@ import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getSellerSlug, getListingImageUrl } from "@/lib/sellerUtils";
 import { fetchSellerListings, fetchHomepageSellerListings } from "@/lib/listingsQuery";
 import { HomepageSectionKey } from "@/lib/homepageCache";
+import { homeDebugStart, homeDebugRender } from "@/lib/homeDebug";
 
 interface PremiumDealerCarouselProps {
   sellerId?: string; // Preferred: direct seller UUID for fast, reliable queries
@@ -33,6 +34,11 @@ export function PremiumDealerCarousel({
 
   const fetchSellerAndListings = async () => {
     try {
+      // Debug: fetch start
+      if (useCache && cacheKey) {
+        homeDebugStart(cacheKey);
+      }
+      
       let profileData: any = null;
 
       // PREFERRED PATH: Direct lookup by seller ID (fast, reliable)
@@ -113,6 +119,11 @@ export function PremiumDealerCarousel({
       
       setListings(listingsData || []);
       console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username);
+      
+      // Debug: render
+      if (useCache && cacheKey) {
+        homeDebugRender(cacheKey, { count: listingsData?.length || 0 });
+      }
     } catch (error) {
       console.error("[FEATURED_SHOP] Error fetching premium dealer listings:", error);
       setSellerProfile(null);
