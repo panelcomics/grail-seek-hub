@@ -88,10 +88,10 @@ function generateQueryVariants(searchText: string, publisher?: string): Array<{ 
   return variants;
 }
 
-async function queryComicVineVolumes(apiKey: string, query: string): Promise<any[]> {
-  const url = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(query)}&field_list=id,name,publisher,start_year&limit=20`;
+async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, limit = 20): Promise<{ results: any[]; totalResults: number }> {
+  const url = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(query)}&field_list=id,name,publisher,start_year&limit=${limit}&offset=${offset}`;
   
-  console.log('[MANUAL-SEARCH] 🔍 ComicVine Volume Query:', query);
+  console.log('[MANUAL-SEARCH] 🔍 ComicVine Volume Query:', query, `(offset: ${offset}, limit: ${limit})`);
   
   const response = await fetch(url, {
     headers: { "User-Agent": "GrailSeeker/1.0 (panelcomics.com)" }
@@ -102,7 +102,10 @@ async function queryComicVineVolumes(apiKey: string, query: string): Promise<any
   }
   
   const data = await response.json();
-  return data.results || [];
+  return {
+    results: data.results || [],
+    totalResults: data.number_of_total_results || 0
+  };
 }
 
 async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber: string): Promise<any[]> {
@@ -171,7 +174,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { searchText, publisher } = body;
+    const { searchText, publisher, offset = 0, limit = 20 } = body;
 
     if (!searchText || typeof searchText !== 'string') {
       return new Response(JSON.stringify({ 
@@ -206,16 +209,18 @@ serve(async (req) => {
 
     const results: any[] = [];
     let successfulQuery: string | null = null;
+    let totalResults = 0;
 
     // Try each query variant until we get results
     for (const variant of queryVariants) {
       console.log('[MANUAL-SEARCH] Trying query variant:', variant.type, '->', variant.query);
       
       try {
-        const volumes = await queryComicVineVolumes(COMICVINE_API_KEY, variant.query);
+        const { results: volumes, totalResults: total } = await queryComicVineVolumes(COMICVINE_API_KEY, variant.query, offset, limit);
+        totalResults = total;
         
         if (volumes.length > 0) {
-          console.log('[MANUAL-SEARCH] Found', volumes.length, 'volumes with query type:', variant.type);
+          console.log('[MANUAL-SEARCH] Found', volumes.length, 'volumes with query type:', variant.type, '(total available:', totalResults, ')');
           successfulQuery = variant.query;
           
           // If user specified an issue number, search for that specific issue
@@ -336,7 +341,11 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       ok: true,
-      results: results.slice(0, 20), // Limit to top 20
+      results,
+      totalResults,
+      offset,
+      limit,
+      hasMore: offset + results.length < totalResults,
       query: searchText,
       parsed
     }), {
