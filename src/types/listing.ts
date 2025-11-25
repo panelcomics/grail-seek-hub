@@ -40,6 +40,9 @@ export interface InventoryItem {
   user_id: string;
   details: string | null;
   comicvine_issue_id?: string | null;
+  sold_off_platform?: boolean | null;
+  sold_off_platform_date?: string | null;
+  sold_off_platform_channel?: string | null;
 }
 
 /**
@@ -79,6 +82,9 @@ export interface Listing {
   details: string | null;
   local_pickup?: boolean | null;
   comicvine_issue_id?: string | null;
+  sold_off_platform?: boolean | null;
+  sold_off_platform_date?: string | null;
+  sold_off_platform_channel?: string | null;
   
   // Keep nested for backwards compatibility
   inventory_items: InventoryItem;

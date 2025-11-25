@@ -120,7 +120,10 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
           details
         )
       `)
-      .eq("status", "active");
+    // Exclude sold off-platform items from all public-facing carousels
+    query = query
+      .eq("listings.status", "active")
+      .eq("inventory_items.sold_off_platform", false);
 
     // Apply filters based on type
     switch (filterType) {

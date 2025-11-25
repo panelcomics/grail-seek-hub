@@ -151,7 +151,10 @@ export default function ListingDetail() {
             offers_enabled,
             user_id,
             details,
-            comicvine_issue_id
+            comicvine_issue_id,
+            sold_off_platform,
+            sold_off_platform_date,
+            sold_off_platform_channel
           )
         `)
         .eq("id", id)
@@ -499,7 +502,26 @@ export default function ListingDetail() {
                 </div>
               )}
 
-              {!checkoutMode ? (
+              {/* Purchase Section */}
+              {listing.inventory_items?.sold_off_platform ? (
+                <Card className="mb-6 border-orange-500/20 bg-orange-500/5">
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <Badge variant="outline" className="mb-3 border-orange-500 text-orange-600">
+                        Sold Off-Platform
+                      </Badge>
+                      <p className="text-sm text-muted-foreground">
+                        This item was sold outside of GrailSeeker
+                        {listing.inventory_items.sold_off_platform_channel && ` via ${listing.inventory_items.sold_off_platform_channel.replace('_', ' ')}`}
+                        {listing.inventory_items.sold_off_platform_date && ` on ${new Date(listing.inventory_items.sold_off_platform_date).toLocaleDateString()}`}.
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        This listing is kept for historical reference.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : !checkoutMode ? (
                 <Card>
                   <CardContent className="p-4 md:p-6 space-y-4">
                     <h3 className="font-semibold">Shipping Method</h3>

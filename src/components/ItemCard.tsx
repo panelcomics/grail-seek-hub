@@ -11,6 +11,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { useWatchAuction } from "@/hooks/useWatchAuction";
+import { SoldOffPlatformBadge } from "@/components/SoldOffPlatformBadge";
 
 interface ItemCardProps {
   id: string;
@@ -53,6 +54,7 @@ interface ItemCardProps {
   issueNumber?: string | null; // Issue number
   keyInfo?: string | null; // Key info from details/variant
   showFavorite?: boolean; // Show favorite button (default false to prevent extra queries on homepage)
+  soldOffPlatform?: boolean; // If item was sold outside GrailSeeker
 }
 
 const ItemCard = ({ 
@@ -96,6 +98,7 @@ const ItemCard = ({
   issueNumber = null,
   keyInfo = null,
   showFavorite = false, // Default to false to prevent extra queries on homepage
+  soldOffPlatform = false,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -197,6 +200,13 @@ const ItemCard = ({
               {isVerifiedSeller && completedSalesCount >= 10 && (
                 <VerifiedSellerBadge size="sm" showText={false} salesCount={completedSalesCount} />
               )}
+            </div>
+          )}
+
+          {/* Sold off-platform badge - top center */}
+          {soldOffPlatform && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2">
+              <SoldOffPlatformBadge />
             </div>
           )}
         </div>

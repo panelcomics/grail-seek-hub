@@ -1193,6 +1193,9 @@ export type Database = {
           series: string | null
           shipping_price: number | null
           sold_at: string | null
+          sold_off_platform: boolean | null
+          sold_off_platform_channel: string | null
+          sold_off_platform_date: string | null
           storage_container_id: string | null
           title: string | null
           trade_notes: string | null
@@ -1249,6 +1252,9 @@ export type Database = {
           series?: string | null
           shipping_price?: number | null
           sold_at?: string | null
+          sold_off_platform?: boolean | null
+          sold_off_platform_channel?: string | null
+          sold_off_platform_date?: string | null
           storage_container_id?: string | null
           title?: string | null
           trade_notes?: string | null
@@ -1305,6 +1311,9 @@ export type Database = {
           series?: string | null
           shipping_price?: number | null
           sold_at?: string | null
+          sold_off_platform?: boolean | null
+          sold_off_platform_channel?: string | null
+          sold_off_platform_date?: string | null
           storage_container_id?: string | null
           title?: string | null
           trade_notes?: string | null
