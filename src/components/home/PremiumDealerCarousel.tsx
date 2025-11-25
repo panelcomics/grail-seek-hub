@@ -24,12 +24,24 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
 
   const fetchSellerAndListings = async () => {
     try {
-      // Find seller by username or display name
-      const { data: profileData, error: profileError } = await supabase
+      // Find seller by username or display name - try exact match first, then fuzzy
+      let { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
-        .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
+        .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
         .maybeSingle();
+
+      // If exact match fails, try case-insensitive partial match
+      if (!profileData) {
+        const { data: fuzzyData } = await supabase
+          .from("profiles")
+          .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
+          .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
+          .limit(1)
+          .maybeSingle();
+        
+        profileData = fuzzyData;
+      }
 
       if (profileError || !profileData) {
         console.error("Premium dealer not found:", sellerName);
@@ -54,8 +66,8 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
     }
   };
 
-  // Don't render if no listings
-  if (!loading && listings.length === 0) {
+  // Don't render if seller not found or no listings
+  if (!loading && (!sellerProfile || listings.length === 0)) {
     return null;
   }
 
