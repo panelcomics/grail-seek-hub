@@ -11,9 +11,12 @@ export const useFavorites = (listingId?: string) => {
 
   useEffect(() => {
     if (listingId) {
+      // Non-blocking: load favorites after render
       checkFavoriteStatus();
       getFavoritesCount();
       subscribeToFavorites();
+    } else {
+      setLoading(false);
     }
   }, [user, listingId]);
 
@@ -31,10 +34,17 @@ export const useFavorites = (listingId?: string) => {
         .eq("listing_id", listingId)
         .single();
 
-      if (error && error.code !== "PGRST116") throw error;
-      setIsFavorite(!!data);
+      if (error && error.code !== "PGRST116") {
+        // Log but don't throw - fail gracefully
+        console.error("Error checking favorite status:", error);
+        setIsFavorite(false);
+      } else {
+        setIsFavorite(!!data);
+      }
     } catch (error) {
+      // Non-blocking: Log error and default to unfavorited state
       console.error("Error checking favorite status:", error);
+      setIsFavorite(false);
     } finally {
       setLoading(false);
     }
@@ -49,36 +59,49 @@ export const useFavorites = (listingId?: string) => {
         .select("*", { count: "exact", head: true })
         .eq("listing_id", listingId);
 
-      if (error) throw error;
-      setFavoritesCount(count || 0);
+      if (error) {
+        // Log but don't throw - fail gracefully
+        console.error("Error getting favorites count:", error);
+        setFavoritesCount(0);
+      } else {
+        setFavoritesCount(count || 0);
+      }
     } catch (error) {
+      // Non-blocking: Log error and default to 0
       console.error("Error getting favorites count:", error);
+      setFavoritesCount(0);
     }
   };
 
   const subscribeToFavorites = () => {
     if (!listingId) return;
 
-    const channel = supabase
-      .channel(`favorites-${listingId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "favorites",
-          filter: `listing_id=eq.${listingId}`,
-        },
-        () => {
-          getFavoritesCount();
-          if (user) checkFavoriteStatus();
-        }
-      )
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel(`favorites-${listingId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "favorites",
+            filter: `listing_id=eq.${listingId}`,
+          },
+          () => {
+            // Non-blocking: Refresh counts on changes
+            getFavoritesCount();
+            if (user) checkFavoriteStatus();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (error) {
+      // Non-blocking: Log subscription errors but don't break UI
+      console.error("Error subscribing to favorites:", error);
+    }
   };
 
   const toggleFavorite = async () => {

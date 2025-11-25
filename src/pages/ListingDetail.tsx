@@ -17,6 +17,7 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
 import { getListingImageUrl } from "@/lib/sellerUtils";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -293,17 +294,23 @@ export default function ListingDetail() {
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
             <div>
-              {imageUrl && imageUrl !== "/placeholder.svg" ? (
-                <img
-                  src={imageUrl}
-                  alt={title}
-                  className="aspect-[2/3] w-full object-contain p-4 rounded-lg mb-4 bg-muted"
-                />
-              ) : (
-                <div className="aspect-[2/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
-                  <span className="text-muted-foreground">No image available</span>
+              <div className="relative">
+                {imageUrl && imageUrl !== "/placeholder.svg" ? (
+                  <img
+                    src={imageUrl}
+                    alt={title}
+                    className="aspect-[2/3] w-full object-contain p-4 rounded-lg mb-4 bg-muted"
+                  />
+                ) : (
+                  <div className="aspect-[2/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
+                    <span className="text-muted-foreground">No image available</span>
+                  </div>
+                )}
+                {/* Favorite button overlay */}
+                <div className="absolute top-2 right-2">
+                  <FavoriteButton listingId={id} showCount />
                 </div>
-              )}
+              </div>
               {listing.inventory_items?.comicvine_issue_id && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="h-4 w-4" />

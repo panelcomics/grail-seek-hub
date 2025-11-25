@@ -465,6 +465,7 @@ export default function SellerProfile() {
                         grade={listing.cgc_grade}
                         gradingCompany={listing.grading_company}
                         certificationNumber={listing.certification_number}
+                        showFavorite={true}
                       />
                     );
                   })}
