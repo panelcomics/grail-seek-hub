@@ -1,27 +1,24 @@
-// Marketplace fee calculation - Grail Seeker v3.0
-// Founding Sellers (First 100): 2% GrailSeeker fee
-// Standard Sellers: 3.75% GrailSeeker fee
-// Stripe processing fees (2.9% + $0.30) apply separately
-// Trades: Tiered based on total trade value (unchanged)
+/**
+ * LEGACY FEE UTILITIES
+ * ============================================================================
+ * This file contains fee calculation utilities and types.
+ * For fee CONSTANTS, import from src/config/feesConfig.ts
+ * ============================================================================
+ */
 
-export const MARKETPLACE_FEE_RATE = 0.0375; // Standard 3.75% rate
-export const FOUNDING_SELLER_FEE_RATE = 0.02; // Founding seller 2% rate
-export const STRIPE_RATE = 0.029;
-export const STRIPE_FIXED_CENTS = 30;
+import {
+  STANDARD_SELLER_FEE_RATE,
+  FOUNDING_SELLER_FEE_RATE,
+  STRIPE_PERCENTAGE_FEE,
+  STRIPE_FIXED_FEE_CENTS,
+  TRADE_FEE_TIERS,
+} from "@/config/feesConfig";
 
-// Trade fee tiers based on total trade value (item_a + item_b)
-export const TRADE_FEE_TIERS = [
-  { min: 0, max: 50, total: 2, each: 1 },
-  { min: 51, max: 100, total: 5, each: 2.5 },
-  { min: 101, max: 250, total: 12, each: 6 },
-  { min: 251, max: 500, total: 22, each: 11 },
-  { min: 501, max: 1000, total: 35, each: 17.5 },
-  { min: 1001, max: 2000, total: 45, each: 22.5 },
-  { min: 2001, max: 4000, total: 55, each: 27.5 },
-  { min: 4001, max: 5000, total: 60, each: 30 },
-  { min: 5001, max: 10000, total: 200, each: 100 },
-  { min: 10001, max: null, total: 200, each: 100 },
-];
+// Re-export for backwards compatibility (DEPRECATED - import from feesConfig instead)
+export const MARKETPLACE_FEE_RATE = STANDARD_SELLER_FEE_RATE;
+export const STRIPE_RATE = STRIPE_PERCENTAGE_FEE;
+export const STRIPE_FIXED_CENTS = STRIPE_FIXED_FEE_CENTS;
+export { FOUNDING_SELLER_FEE_RATE, TRADE_FEE_TIERS };
 
 export interface FeeCalculation {
   fee_cents: number;

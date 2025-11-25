@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { FEE_DISPLAY_TEXT } from "@/config/feesConfig";
 
 export function FoundingSellersBanner() {
   const [isVisible, setIsVisible] = useState(false);
@@ -43,7 +44,7 @@ export function FoundingSellersBanner() {
       <div className="container mx-auto max-w-6xl">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[9px] sm:text-xs font-semibold flex-1 leading-tight pr-1">
-            Founding Sellers (First 100): Lifetime 2% Fee • Stripe fees apply (2.9% + $0.30)
+            Founding Sellers (First 100): Lifetime {FEE_DISPLAY_TEXT.FOUNDING_RATE} Fee • Stripe fees apply ({FEE_DISPLAY_TEXT.STRIPE_RATE})
           </p>
           <Button
             variant="ghost"

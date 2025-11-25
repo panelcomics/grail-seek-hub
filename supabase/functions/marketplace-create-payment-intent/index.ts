@@ -2,6 +2,14 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+// ==========================================================================
+// FEE CONFIGURATION - Must match src/config/feesConfig.ts
+// ==========================================================================
+const STANDARD_SELLER_FEE_RATE = 0.0375;
+const STRIPE_PERCENTAGE_FEE = 0.029;
+const STRIPE_FIXED_FEE_CENTS = 30;
+// ==========================================================================
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -61,8 +69,8 @@ serve(async (req) => {
       throw new Error("Seller has not completed payout setup");
     }
 
-    // Determine fee rate: use custom_fee_rate if set, otherwise default to 3.75%
-    const feeRate = sellerProfile.custom_fee_rate ?? 0.0375;
+    // Determine fee rate: use custom_fee_rate if set, otherwise default to standard rate
+    const feeRate = sellerProfile.custom_fee_rate ?? STANDARD_SELLER_FEE_RATE;
 
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {
@@ -79,7 +87,7 @@ serve(async (req) => {
     // Calculate platform fee using seller's custom rate
     // Total fee is capped at the seller's rate (e.g., 2% for founding sellers, 3.75% for standard)
     const max_total_fee_cents = Math.round(amount_cents * feeRate);
-    const estimated_stripe_fee_cents = Math.round(amount_cents * 0.029) + 30;
+    const estimated_stripe_fee_cents = Math.round(amount_cents * STRIPE_PERCENTAGE_FEE) + STRIPE_FIXED_FEE_CENTS;
     // Platform gets what's left after Stripe takes their cut
     const platform_fee_cents = Math.max(0, max_total_fee_cents - estimated_stripe_fee_cents);
 

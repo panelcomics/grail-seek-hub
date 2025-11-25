@@ -2,6 +2,13 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+// ==========================================================================
+// FEE CONFIGURATION - Must match src/config/feesConfig.ts
+// ==========================================================================
+const STRIPE_PERCENTAGE_FEE = 0.029;
+const STRIPE_FIXED_FEE_CENTS = 30;
+// ==========================================================================
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -56,9 +63,9 @@ serve(async (req) => {
       throw new Error("No charge ID found for this order");
     }
 
-    // Calculate refund amount (total minus Stripe fee: 2.9% + $0.30)
+    // Calculate refund amount (total minus Stripe fee)
     const totalCents = Math.round(order.total * 100);
-    const stripeFee = Math.round(totalCents * 0.029 + 30);
+    const stripeFee = Math.round(totalCents * STRIPE_PERCENTAGE_FEE) + STRIPE_FIXED_FEE_CENTS;
     const refundAmountCents = totalCents - stripeFee;
 
     console.log("Refund calculation:", {

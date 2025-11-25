@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { calculateMarketplaceFeeWithCustomRate, formatCents, formatFeeRate } from "@/lib/fees";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { FEE_DISPLAY_TEXT } from "@/config/feesConfig";
 
 interface ListItemModalProps {
   open: boolean;
@@ -123,8 +124,8 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
             />
             <p className="text-xs text-muted-foreground mt-1">
               {isFoundingSeller 
-                ? "Your seller fee: 2% GrailSeeker fee + Stripe processing" 
-                : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing"}
+                ? `Your seller fee: ${FEE_DISPLAY_TEXT.FOUNDING_RATE} GrailSeeker fee + Stripe processing` 
+                : `Your seller fee: ${FEE_DISPLAY_TEXT.STANDARD_RATE} GrailSeeker fee + Stripe processing`}
             </p>
           </div>
 

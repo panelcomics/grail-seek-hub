@@ -16,6 +16,7 @@ import { PricingHelper } from "./scanner/PricingHelper";
 import { extractKeyNotes } from "@/lib/scanHistoryUtils";
 import { ImageManagement } from "./ImageManagement";
 import { useSellerFee } from "@/hooks/useSellerFee";
+import { FEE_DISPLAY_TEXT } from "@/config/feesConfig";
 
 interface ComicVinePick {
   id: number;
@@ -641,8 +642,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
               />
               <p className="text-xs text-muted-foreground">
                 {isFoundingSeller 
-                  ? "Your seller fee: 2% GrailSeeker fee + Stripe processing (2.9% + $0.30)" 
-                  : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing (2.9% + $0.30)"}
+                  ? `Your seller fee: ${FEE_DISPLAY_TEXT.FOUNDING_RATE} GrailSeeker fee + Stripe processing (${FEE_DISPLAY_TEXT.STRIPE_RATE})` 
+                  : `Your seller fee: ${FEE_DISPLAY_TEXT.STANDARD_RATE} GrailSeeker fee + Stripe processing (${FEE_DISPLAY_TEXT.STRIPE_RATE})`}
               </p>
             </div>
             

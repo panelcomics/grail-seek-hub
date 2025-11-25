@@ -1,6 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.78.0";
 import Stripe from "https://esm.sh/stripe@17.5.0?target=deno";
 
+// ==========================================================================
+// FEE CONFIGURATION - Must match src/config/feesConfig.ts
+// ==========================================================================
+const INTRO_SELLER_FEE_RATE = 0.065;
+const BUYER_PROTECTION_FEE = 1.99;
+const STRIPE_PERCENTAGE_FEE = 0.029;
+const STRIPE_FIXED_FEE_CENTS = 30;
+// ==========================================================================
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -50,8 +59,8 @@ Deno.serve(async (req) => {
     }
 
     // Calculate fees
-    const protectionFee = order.buyer_protection_fee || 1.99;
-    const platformFeeRate = 0.065; // Flat 6.5% Intro Rate (includes payment processing)
+    const protectionFee = order.buyer_protection_fee || BUYER_PROTECTION_FEE;
+    const platformFeeRate = INTRO_SELLER_FEE_RATE;
     const platformFeeAmount = Math.round((order.amount + order.shipping_amount) * platformFeeRate * 100) / 100;
     const total = order.amount + order.shipping_amount + protectionFee;
     

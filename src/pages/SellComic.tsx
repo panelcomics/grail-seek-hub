@@ -16,6 +16,7 @@ import { formatComicDisplay } from "@/lib/comics/format";
 import { ComicImageCarousel } from "@/components/ComicImageCarousel";
 import { ImageManagement } from "@/components/ImageManagement";
 import { useSellerFee } from "@/hooks/useSellerFee";
+import { FEE_DISPLAY_TEXT, STRIPE_PERCENTAGE_FEE, STRIPE_FIXED_FEE_CENTS } from "@/config/feesConfig";
 
 export default function SellComic() {
   const { comicId } = useParams();
@@ -406,13 +407,13 @@ function SellComicLegacy() {
                               <div className="space-y-1">
                                 <p className="text-xs text-muted-foreground">
                                   {isFoundingSeller 
-                                    ? "Your seller fee: 2% GrailSeeker fee + Stripe processing (2.9% + $0.30)" 
-                                    : "Your seller fee: 3.75% GrailSeeker fee + Stripe processing (2.9% + $0.30)"}
+                                    ? `Your seller fee: ${FEE_DISPLAY_TEXT.FOUNDING_RATE} GrailSeeker fee + Stripe processing (${FEE_DISPLAY_TEXT.STRIPE_RATE})` 
+                                    : `Your seller fee: ${FEE_DISPLAY_TEXT.STANDARD_RATE} GrailSeeker fee + Stripe processing (${FEE_DISPLAY_TEXT.STRIPE_RATE})`}
                                 </p>
                                 {price && parseFloat(price) > 0 && (() => {
                                   const priceNum = parseFloat(price);
                                   const platformFee = (feeRate * priceNum).toFixed(2);
-                                  const stripeFee = (0.029 * priceNum + 0.30).toFixed(2);
+                                  const stripeFee = (STRIPE_PERCENTAGE_FEE * priceNum + STRIPE_FIXED_FEE_CENTS / 100).toFixed(2);
                                   const totalFees = (parseFloat(platformFee) + parseFloat(stripeFee)).toFixed(2);
                                   const payout = (priceNum - parseFloat(totalFees)).toFixed(2);
                                   
