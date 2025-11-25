@@ -237,6 +237,7 @@ export default function Marketplace() {
                   series={listing.series}
                   issueNumber={listing.issue_number}
                   keyInfo={listing.variant_description || listing.details}
+                  showFavorite={true}
                 />
               );
             })}

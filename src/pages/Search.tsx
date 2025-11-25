@@ -563,6 +563,7 @@ export default function SearchPage() {
                   grade={item.cgc_grade}
                   gradingCompany={item.grading_company}
                   certificationNumber={item.certification_number}
+                  showFavorite={true}
                 />
               ))}
             </div>
