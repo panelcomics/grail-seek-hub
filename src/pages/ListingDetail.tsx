@@ -17,6 +17,9 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
 import { getListingImageUrl } from "@/lib/sellerUtils";
+import { SellerBadge } from "@/components/SellerBadge";
+import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
+import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Listing, ListingProfile } from "@/types/listing";
 
@@ -158,7 +161,7 @@ export default function ListingDetail() {
       // Fetch profile separately
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller")
+        .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller, seller_tier, is_featured_seller")
         .eq("user_id", data.user_id)
         .single();
 
@@ -350,18 +353,9 @@ export default function ListingDetail() {
                           {sellerName}
                         </Link>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          {seller.is_verified_seller && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
-                              <Shield className="h-3 w-3" />
-                              Verified
-                            </Badge>
-                          )}
-                          {seller.completed_sales_count >= 10 && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20 flex items-center gap-1">
-                              <Shield className="h-3 w-3 fill-current" />
-                              Pro
-                            </Badge>
-                          )}
+                          {seller.is_featured_seller && <FeaturedSellerBadge />}
+                          {seller.seller_tier && <SellerBadge tier={seller.seller_tier} />}
+                          <VerifiedSellerBadge salesCount={seller.completed_sales_count || 0} size="sm" />
                         </div>
                         {seller.completed_sales_count > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">

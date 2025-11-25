@@ -10,6 +10,8 @@ export interface ListingProfile {
   avatar_url: string | null;
   is_verified_seller: boolean | null;
   completed_sales_count: number | null;
+  seller_tier: string | null;
+  is_featured_seller: boolean | null;
 }
 
 export type ListingImages = {

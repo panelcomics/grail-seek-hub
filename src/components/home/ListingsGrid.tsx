@@ -99,6 +99,8 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             sellerBadge={profile?.seller_tier}
             isVerifiedSeller={profile?.is_verified_seller}
             completedSalesCount={profile?.completed_sales_count || 0}
+            sellerTier={profile?.seller_tier}
+            isFeaturedSeller={profile?.is_featured_seller}
             category="comic"
             showTradeBadge={item.is_for_trade}
             isAuction={item.for_auction}
