@@ -36,19 +36,23 @@ export default function Index() {
         {/* 3. Featured Grails — Buy It Now */}
         <ListingsCarousel title="✨ Featured Grails — Buy It Now" filterType="featured-grails" />
         
-        {/* 4. Start Hunting Grails / Browse Local Deals buttons + search */}
+        {/* 4. Featured Shop - Premium Dealers */}
+        <PremiumDealerCarousel sellerName="Panel Comics" />
+        <PremiumDealerCarousel sellerName="Kiss Komixx" />
+        
+        {/* 5. Start Hunting Grails / Browse Local Deals buttons + search */}
         <TrustSection />
         
-        {/* 5. Stats row (500+ / New / Verified) */}
+        {/* 6. Stats row (500+ / New / Verified) */}
         <SocialProof />
 
-        {/* 6. Hot Auctions Ending Soon */}
+        {/* 7. Hot Auctions Ending Soon */}
         <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" />
         
-        {/* 7. Local Deals Near You */}
+        {/* 8. Local Deals Near You */}
         <ListingsCarousel title="Local Deals Near You" filterType="local" />
         
-        {/* 8. Newly Listed */}
+        {/* 9. Newly Listed */}
         <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
         
         {/* Everything else */}
@@ -60,11 +64,6 @@ export default function Index() {
           activeCategory={activeCategory} 
           onCategoryChange={setActiveCategory} 
         />
-
-        {/* Featured Shop - Premium Dealer */}
-        <PremiumDealerCarousel sellerName="Panel Comics" />
-
-        <PremiumDealerCarousel sellerName="Kiss Komixx" />
 
         <FeaturedShops />
 
