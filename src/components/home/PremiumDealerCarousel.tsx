@@ -10,48 +10,83 @@ import { getSellerSlug, getListingImageUrl } from "@/lib/sellerUtils";
 import { fetchSellerListings } from "@/lib/listingsQuery";
 
 interface PremiumDealerCarouselProps {
-  sellerName: string;
+  sellerId?: string; // Preferred: direct seller UUID for fast, reliable queries
+  sellerName?: string; // Fallback: look up seller by name (slower, less reliable)
 }
 
-export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps) {
+export function PremiumDealerCarousel({ sellerId, sellerName }: PremiumDealerCarouselProps) {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sellerProfile, setSellerProfile] = useState<any>(null);
 
   useEffect(() => {
     fetchSellerAndListings();
-  }, [sellerName]);
+  }, [sellerId, sellerName]);
 
   const fetchSellerAndListings = async () => {
     try {
-      // Find seller by username or display name - try exact match first, then fuzzy
-      let { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
-        .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
-        .maybeSingle();
+      let profileData: any = null;
 
-      // If exact match fails, try case-insensitive partial match
-      if (!profileData) {
-        const { data: fuzzyData } = await supabase
+      // PREFERRED PATH: Direct lookup by seller ID (fast, reliable)
+      if (sellerId) {
+        console.log('[FEATURED_SHOP] Querying by sellerId:', sellerId);
+        const { data, error } = await supabase
           .from("profiles")
           .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
-          .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
-          .limit(1)
+          .eq("user_id", sellerId)
           .maybeSingle();
-        
-        profileData = fuzzyData;
+
+        if (error) {
+          console.error('[FEATURED_SHOP] Error querying by sellerId:', error);
+        } else if (!data) {
+          console.error('[FEATURED_SHOP] No seller found with sellerId:', sellerId);
+        } else {
+          profileData = data;
+          console.log('[FEATURED_SHOP] Found seller by ID:', data.display_name || data.username);
+        }
       }
 
-      if (profileError || !profileData) {
-        console.error("Premium dealer not found:", sellerName);
+      // FALLBACK PATH: Lookup by name (slower, less reliable)
+      if (!profileData && sellerName) {
+        console.log('[FEATURED_SHOP] Falling back to name lookup:', sellerName);
+        
+        // Try exact match first
+        let { data, error } = await supabase
+          .from("profiles")
+          .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
+          .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
+          .maybeSingle();
+
+        if (!data) {
+          // Try case-insensitive partial match
+          const { data: fuzzyData } = await supabase
+            .from("profiles")
+            .select("user_id, username, display_name, seller_tier, avatar_url, completed_sales_count")
+            .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
+            .limit(1)
+            .maybeSingle();
+          
+          profileData = fuzzyData;
+        } else {
+          profileData = data;
+        }
+
+        if (!profileData) {
+          console.error('[FEATURED_SHOP] Seller not found by name:', sellerName);
+        } else {
+          console.log('[FEATURED_SHOP] Found seller by name:', profileData.display_name || profileData.username);
+        }
+      }
+
+      if (!profileData) {
+        console.error('[FEATURED_SHOP] Failed to find seller. sellerId:', sellerId, 'sellerName:', sellerName);
         setLoading(false);
         return;
       }
 
       // Verify or set as premium tier
       if (profileData.seller_tier !== 'premium') {
-        console.warn(`Seller ${sellerName} is not marked as premium tier, displaying anyway`);
+        console.warn(`[FEATURED_SHOP] Seller not marked as premium tier:`, profileData.display_name || profileData.username);
       }
 
       setSellerProfile(profileData);
@@ -59,8 +94,9 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
       // Use unified query helper for consistent data fetching and logging
       const listingsData = await fetchSellerListings(profileData.user_id, 10);
       setListings(listingsData || []);
+      console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username);
     } catch (error) {
-      console.error("Error fetching premium dealer listings:", error);
+      console.error("[FEATURED_SHOP] Error fetching premium dealer listings:", error);
     } finally {
       setLoading(false);
     }
@@ -68,6 +104,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
 
   // Don't render if seller not found or no listings
   if (!loading && (!sellerProfile || listings.length === 0)) {
+    console.log('[FEATURED_SHOP] Not rendering: sellerProfile=', !!sellerProfile, 'listings.length=', listings.length);
     return null;
   }
 
@@ -96,7 +133,7 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
-              Featured Shop: {sellerProfile?.display_name || sellerProfile?.username || sellerName}
+              Featured Shop: {sellerProfile?.display_name || sellerProfile?.username || sellerName || 'Premium Dealer'}
             </h2>
             <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
               <SellerBadge tier={sellerProfile?.seller_tier || "premium"} />

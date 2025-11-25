@@ -8,6 +8,7 @@ import { ListingsCarousel } from "@/components/home/ListingsCarousel";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
+import { FEATURED_SELLERS } from "@/config/featuredSellers";
 
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import FeaturedShops from "@/components/FeaturedShops";
@@ -37,7 +38,10 @@ export default function Index() {
         <ListingsCarousel title="✨ Featured Grails — Buy It Now" filterType="featured-grails" />
         
         {/* 4. Featured Shop: Panel Comics */}
-        <PremiumDealerCarousel sellerName="Panel Comics" />
+        <PremiumDealerCarousel 
+          sellerId={FEATURED_SELLERS.PANEL_COMICS.sellerId}
+          sellerName={FEATURED_SELLERS.PANEL_COMICS.displayName}
+        />
         
         {/* 5. Ending Soon — Last Chance to Bid */}
         <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" />
@@ -49,7 +53,10 @@ export default function Index() {
         <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
         
         {/* Additional sections */}
-        <PremiumDealerCarousel sellerName="Kiss Komixx" />
+        <PremiumDealerCarousel 
+          sellerId={FEATURED_SELLERS.KISS_KOMIXX.sellerId}
+          sellerName={FEATURED_SELLERS.KISS_KOMIXX.displayName}
+        />
         
         <TrustSection />
         
