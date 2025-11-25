@@ -211,6 +211,6 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
     const endTime = performance.now();
     const duration = endTime - startTime;
     console.error(`[HOMEPAGE] FETCH ${filterType} FAILED in ${duration.toFixed(2)}ms:`, error);
-    throw error;
+    return [];
   }
 }
