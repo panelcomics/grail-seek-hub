@@ -7,6 +7,7 @@ import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { ChevronRight } from "lucide-react";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getSellerSlug, getListingImageUrl } from "@/lib/sellerUtils";
+import { fetchSellerListings } from "@/lib/listingsQuery";
 
 interface PremiumDealerCarouselProps {
   sellerName: string;
@@ -43,17 +44,8 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
 
       setSellerProfile(profileData);
 
-      // Fetch active listings from this seller
-      const { data: listingsData, error: listingsError } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("user_id", profileData.user_id)
-        .in("listing_status", ["active", "listed"])
-        .or("for_sale.eq.true,for_auction.eq.true,is_for_trade.eq.true")
-        .limit(10)
-        .order("created_at", { ascending: false });
-
-      if (listingsError) throw listingsError;
+      // Use unified query helper for consistent data fetching and logging
+      const listingsData = await fetchSellerListings(profileData.user_id, 10);
       setListings(listingsData || []);
     } catch (error) {
       console.error("Error fetching premium dealer listings:", error);
@@ -113,9 +105,9 @@ export function PremiumDealerCarousel({ sellerName }: PremiumDealerCarouselProps
           {listings.slice(0, 6).map((listing) => {
             const price = resolvePrice(listing);
             return (
-              <div key={listing.id} className="w-[280px] sm:w-64 flex-shrink-0 snap-center">
+              <div key={listing.listing_id || listing.id} className="w-[280px] sm:w-64 flex-shrink-0 snap-center">
                 <ItemCard
-                  id={listing.id}
+                  id={listing.listing_id || listing.id}
                   title={listing.title || listing.series || "Untitled"}
                   price={price === null ? undefined : price}
                   condition={listing.condition || "Unknown"}
