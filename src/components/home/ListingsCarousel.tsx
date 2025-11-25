@@ -28,6 +28,7 @@ export function ListingsCarousel({ title, filterType, showViewAll = true }: List
         filterType: filterType as any, 
         limit: 8 // Limit to 8 items for faster loading
       });
+      console.log('[HOMEPAGE] CAROUSEL', filterType, 'received', data.length, 'listings');
       setListings(data);
     } catch (error) {
       console.error(`Error fetching ${filterType} listings:`, error);
