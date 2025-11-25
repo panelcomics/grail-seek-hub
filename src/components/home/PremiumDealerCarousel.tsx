@@ -29,6 +29,7 @@ export function PremiumDealerCarousel({
   const [sellerProfile, setSellerProfile] = useState<any>(null);
 
   useEffect(() => {
+    console.log(`[HOMEPAGE] PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}`);
     fetchSellerAndListings();
   }, [sellerId, sellerName, useCache, cacheKey]);
 

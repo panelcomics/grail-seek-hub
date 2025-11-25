@@ -30,6 +30,7 @@ export function ListingsCarousel({
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    console.log(`[HOMEPAGE] ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}`);
     fetchListings();
   }, [filterType, useCache, cacheKey]);
 
