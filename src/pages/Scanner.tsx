@@ -74,6 +74,14 @@ export default function Scanner() {
   const [volumeResults, setVolumeResults] = useState<any[]>([]);
   const [searchSource, setSearchSource] = useState<'local' | 'live' | null>(null);
   
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    offset: 0,
+    limit: 20,
+    totalResults: 0,
+    hasMore: false
+  });
+  
   // Selected state
   const [selectedPick, setSelectedPick] = useState<ComicVinePick | null>(null);
   const [prefillData, setPrefillData] = useState<PrefillData | null>(null);
@@ -403,7 +411,7 @@ export default function Scanner() {
   };
 
   // Manual search - tries local cache first, then fallback to live ComicVine
-  const handleManualSearch = async () => {
+  const handleManualSearch = async (appendResults = false) => {
     if (!manualSearchQuery.trim()) {
       toast({
         title: "Enter a search term",
@@ -415,45 +423,56 @@ export default function Scanner() {
 
     setManualSearchLoading(true);
     setError(null);
-    setVolumeResults([]);
-    setSearchResults([]);
+    
+    // Only clear results if this is a new search (not pagination)
+    if (!appendResults) {
+      setVolumeResults([]);
+      setSearchResults([]);
+      setPagination({ offset: 0, limit: 20, totalResults: 0, hasMore: false });
+    }
 
     try {
-      // Try local volume cache first
-      const localParams = new URLSearchParams({
-        q: manualSearchQuery,
-      });
+      const currentOffset = appendResults ? pagination.offset + pagination.limit : 0;
       
-      if (debugData.extracted?.publisher) {
-        localParams.append('publisher', debugData.extracted.publisher);
-      }
-      if (debugData.extracted?.year) {
-        localParams.append('year', debugData.extracted.year.toString());
-      }
-
+      // Try local volume cache first
       const { data: localData, error: localError } = await supabase.functions.invoke('volumes-suggest', {
         body: {
           q: manualSearchQuery,
           publisher: debugData.extracted?.publisher,
           year: debugData.extracted?.year,
-          limit: 20
+          limit: 20,
+          offset: currentOffset
         }
       });
 
       if (!localError && localData?.results && localData.results.length > 0) {
         // Found results in local cache
-        setVolumeResults(localData.results);
+        const newResults = appendResults 
+          ? [...volumeResults, ...localData.results]
+          : localData.results;
+        
+        setVolumeResults(newResults);
         setSearchSource('local');
         setStatus("results");
+        
+        setPagination({
+          offset: currentOffset,
+          limit: 20,
+          totalResults: localData.totalResults || newResults.length,
+          hasMore: localData.hasMore || false
+        });
         
         setDebugData(prev => ({
           ...prev,
           status: "success",
           comicvineQuery: manualSearchQuery,
-          queryParams: { source: 'local', ...localData.filters }
+          queryParams: { source: 'local', ...localData.filters, offset: currentOffset }
         }));
         
-        sonnerToast.success(`Found ${localData.results.length} volumes in local cache`);
+        const message = appendResults 
+          ? `Loaded ${localData.results.length} more volumes`
+          : `Found ${localData.totalResults || localData.results.length} volumes in local cache`;
+        sonnerToast.success(message);
         return;
       }
 
@@ -462,6 +481,8 @@ export default function Scanner() {
         body: {
           searchText: manualSearchQuery,
           publisher: debugData.extracted?.publisher,
+          offset: currentOffset,
+          limit: 20,
           filters: {
             notReprint: filterNotReprint,
             wrongYear: filterWrongYear,
@@ -479,23 +500,37 @@ export default function Scanner() {
         results = filterReprints(results);
       }
 
-      setSearchResults(results);
+      const newResults = appendResults 
+        ? [...searchResults, ...results]
+        : results;
+
+      setSearchResults(newResults);
       setSearchSource('live');
       setStatus("results");
+      
+      setPagination({
+        offset: currentOffset,
+        limit: 20,
+        totalResults: data.totalResults || newResults.length,
+        hasMore: data.hasMore || false
+      });
       
       setDebugData(prev => ({
         ...prev,
         status: "success",
         comicvineQuery: manualSearchQuery,
-        queryParams: { source: 'live', searchText: manualSearchQuery, filters: { filterNotReprint, filterWrongYear, filterSlabbed } }
+        queryParams: { source: 'live', searchText: manualSearchQuery, filters: { filterNotReprint, filterWrongYear, filterSlabbed }, offset: currentOffset }
       }));
 
-      if (results.length === 0) {
+      if (newResults.length === 0) {
         sonnerToast.info("No results found", {
           description: "Try a simpler search like just the title"
         });
       } else {
-        sonnerToast.info(`Found ${results.length} results from live ComicVine search`);
+        const message = appendResults 
+          ? `Loaded ${results.length} more results`
+          : `Found ${data.totalResults || results.length} results from live ComicVine search`;
+        sonnerToast.info(message);
       }
     } catch (err: any) {
       console.error('Manual search error:', err);
@@ -975,11 +1010,11 @@ export default function Scanner() {
                 placeholder="e.g., Amazing Spider-Man #129 (1974) Marvel"
                 value={manualSearchQuery}
                 onChange={(e) => setManualSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
+                onKeyDown={(e) => e.key === 'Enter' && handleManualSearch(false)}
                 disabled={manualSearchLoading}
               />
               <Button
-                onClick={handleManualSearch}
+                onClick={() => handleManualSearch(false)}
                 disabled={manualSearchLoading || !manualSearchQuery.trim()}
               >
                 {manualSearchLoading ? (
@@ -1006,13 +1041,42 @@ export default function Scanner() {
 
       {/* Volume/Issue Picker - Local Cache Results */}
       {volumeResults.length > 0 && searchSource === 'local' && (
-        <VolumeIssuePicker
-          volumes={volumeResults}
-          loading={manualSearchLoading}
-          onSelectIssue={handleSelectIssue}
-          onClose={() => setVolumeResults([])}
-          initialIssueNumber={extractIssueNumber(manualSearchQuery)}
-        />
+        <div className="space-y-4">
+          <VolumeIssuePicker
+            volumes={volumeResults}
+            loading={manualSearchLoading}
+            onSelectIssue={handleSelectIssue}
+            onClose={() => setVolumeResults([])}
+            initialIssueNumber={extractIssueNumber(manualSearchQuery)}
+          />
+          
+          {/* Pagination for local cache results */}
+          {pagination.hasMore && (
+            <Card>
+              <CardContent className="py-4 text-center">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Showing {volumeResults.length} of {pagination.totalResults} volumes
+                </p>
+                <Button
+                  onClick={() => handleManualSearch(true)}
+                  disabled={manualSearchLoading}
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  {manualSearchLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    `Load more volumes (${pagination.totalResults - volumeResults.length} remaining)`
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Error State */}
@@ -1036,6 +1100,33 @@ export default function Scanner() {
             onSelectComic={handleSelectComic}
             onCoverClick={(url, title) => setZoomImage({ url, title })}
           />
+          
+          {/* Pagination for live results */}
+          {pagination.hasMore && (
+            <Card>
+              <CardContent className="py-4 text-center">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Showing {searchResults.length} of {pagination.totalResults} results
+                </p>
+                <Button
+                  onClick={() => handleManualSearch(true)}
+                  disabled={manualSearchLoading}
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  {manualSearchLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    `Load more results (${pagination.totalResults - searchResults.length} remaining)`
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

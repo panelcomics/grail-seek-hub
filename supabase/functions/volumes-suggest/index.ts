@@ -39,6 +39,7 @@ serve(async (req) => {
     let publisher: string | null = null;
     let year: number | null = null;
     let limit = 20;
+    let offset = 0;
 
     // Try to read JSON body first
     if (req.method !== "GET") {
@@ -49,6 +50,7 @@ serve(async (req) => {
           publisher = body.publisher ? String(body.publisher) : null;
           year = body.year ? parseInt(String(body.year)) : null;
           limit = body.limit ? parseInt(String(body.limit)) : 20;
+          offset = body.offset ? parseInt(String(body.offset)) : 0;
         }
       } catch {
         // Ignore body parse errors, fall back to URL params
@@ -61,6 +63,7 @@ serve(async (req) => {
       publisher = url.searchParams.get("publisher") || null;
       year = url.searchParams.get("year") ? parseInt(url.searchParams.get("year")!) : null;
       limit = parseInt(url.searchParams.get("limit") || "20");
+      offset = parseInt(url.searchParams.get("offset") || "0");
     }
 
     const normalizedQuery = normalizeTitle(query);
@@ -86,8 +89,8 @@ serve(async (req) => {
         dbQuery = dbQuery.ilike("publisher", `%${publisher}%`);
       }
 
-      // We fetch a wider set, then score in-memory
-      dbQuery = dbQuery.limit(100);
+      // We fetch a wider set for in-memory scoring, apply pagination after
+      dbQuery = dbQuery.limit(200);
 
       const { data: volumes, error } = await dbQuery;
 
@@ -134,9 +137,13 @@ serve(async (req) => {
         });
 
         scoredResults.sort((a: any, b: any) => a.score - b.score);
-        const topResults = scoredResults.slice(0, limit);
-        results = topResults;
-        bestScore = topResults[0]?.score ?? Infinity;
+        
+        // Apply pagination after scoring
+        const totalAvailable = scoredResults.length;
+        const paginatedResults = scoredResults.slice(offset, offset + limit);
+        
+        results = paginatedResults;
+        bestScore = scoredResults[0]?.score ?? Infinity;
       }
 
        // --- Live ComicVine fallback when local cache has no strong matches ---
@@ -149,12 +156,14 @@ serve(async (req) => {
              filter: `name:${query}`,
              sort: "start_year:asc",
              limit: String(limit),
+             offset: String(offset),
            });
 
            const resp = await fetch(`https://comicvine.gamespot.com/api/volumes/?${params.toString()}`);
            if (resp.ok) {
              const json = await resp.json();
              const apiResults = json.results || [];
+             const totalFromAPI = json.number_of_total_results || 0;
 
              const scoredResults = apiResults.map((v: any) => {
                const normalizedTitle = normalizeTitle(v.name || "");
@@ -198,9 +207,23 @@ serve(async (req) => {
              });
 
              scoredResults.sort((a: any, b: any) => a.score - b.score);
-             results = scoredResults.slice(0, limit);
+             results = scoredResults;
              bestScore = results[0]?.score ?? Infinity;
              source = "live";
+             
+             return new Response(
+               JSON.stringify({
+                 results,
+                 totalResults: totalFromAPI,
+                 offset,
+                 limit,
+                 hasMore: offset + results.length < totalFromAPI,
+                 query: normalizedQuery,
+                 filters: { publisher, year },
+                 source,
+               }),
+               { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+             );
            }
          }
        }
@@ -208,7 +231,11 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        results: results.slice(0, limit),
+        results,
+        totalResults: results.length,
+        offset,
+        limit,
+        hasMore: false,
         query: normalizedQuery,
         filters: { publisher, year },
         source,
