@@ -21,6 +21,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { Share2, Copy } from "lucide-react";
 import { Listing, ListingProfile } from "@/types/listing";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
@@ -395,9 +396,87 @@ export default function ListingDetail() {
                 </p>
               )}
 
-              <div className="text-2xl md:text-3xl font-bold text-primary mb-6">
+              <div className="text-2xl md:text-3xl font-bold text-primary mb-4">
                 {listing.price_cents ? formatCents(listing.price_cents) : listing.price ? `$${listing.price.toFixed(2)}` : '$0.00'}
               </div>
+
+              {/* Share Section */}
+              <Card className="mb-6">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Share2 className="h-4 w-4" />
+                    Share This Listing
+                  </h3>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        const grade = listing.inventory_items?.cgc_grade 
+                          ? `${listing.inventory_items.grading_company || 'CGC'} ${listing.inventory_items.cgc_grade}`
+                          : listing.condition || '';
+                        const priceText = listing.price_cents ? formatCents(listing.price_cents) : '$0.00';
+                        const shareText = `${title}${grade ? ` - ${grade}` : ''} - ${priceText}. See details and buy here: ${window.location.href}`;
+                        
+                        try {
+                          await navigator.clipboard.writeText(shareText);
+                          toast.success("Share text copied to clipboard!");
+                        } catch (err) {
+                          toast.error("Failed to copy to clipboard");
+                        }
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Share Text
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const shareUrl = encodeURIComponent(window.location.href);
+                        const shareTitle = encodeURIComponent(title);
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareTitle}`, '_blank', 'width=600,height=400');
+                      }}
+                    >
+                      <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      Facebook
+                    </Button>
+
+                    {navigator.share && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const grade = listing.inventory_items?.cgc_grade 
+                            ? `${listing.inventory_items.grading_company || 'CGC'} ${listing.inventory_items.cgc_grade}`
+                            : listing.condition || '';
+                          const priceText = listing.price_cents ? formatCents(listing.price_cents) : '$0.00';
+                          const shareText = `${title}${grade ? ` - ${grade}` : ''} - ${priceText}`;
+                          
+                          try {
+                            await navigator.share({
+                              title: title,
+                              text: shareText,
+                              url: window.location.href,
+                            });
+                          } catch (err) {
+                            // User cancelled or share failed
+                          }
+                        }}
+                      >
+                        <Share2 className="h-4 w-4 mr-2" />
+                        More
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Share to Facebook groups, Twitter, or copy the text to paste anywhere
+                  </p>
+                </CardContent>
+              </Card>
 
               {listing.details && (
                 <div className="mb-6">
