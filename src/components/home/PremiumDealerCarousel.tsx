@@ -7,21 +7,29 @@ import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { ChevronRight } from "lucide-react";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getSellerSlug, getListingImageUrl } from "@/lib/sellerUtils";
-import { fetchSellerListings } from "@/lib/listingsQuery";
+import { fetchSellerListings, fetchHomepageSellerListings } from "@/lib/listingsQuery";
+import { HomepageSectionKey } from "@/lib/homepageCache";
 
 interface PremiumDealerCarouselProps {
   sellerId?: string; // Preferred: direct seller UUID for fast, reliable queries
   sellerName?: string; // Fallback: look up seller by name (slower, less reliable)
+  useCache?: boolean; // Enable caching (homepage only)
+  cacheKey?: HomepageSectionKey; // Required when useCache is true
 }
 
-export function PremiumDealerCarousel({ sellerId, sellerName }: PremiumDealerCarouselProps) {
+export function PremiumDealerCarousel({ 
+  sellerId, 
+  sellerName,
+  useCache = false,
+  cacheKey
+}: PremiumDealerCarouselProps) {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sellerProfile, setSellerProfile] = useState<any>(null);
 
   useEffect(() => {
     fetchSellerAndListings();
-  }, [sellerId, sellerName]);
+  }, [sellerId, sellerName, useCache, cacheKey]);
 
   const fetchSellerAndListings = async () => {
     try {
@@ -94,7 +102,15 @@ export function PremiumDealerCarousel({ sellerId, sellerName }: PremiumDealerCar
       setSellerProfile(profileData);
 
       // Use unified query helper for consistent data fetching and logging
-      const listingsData = await fetchSellerListings(profileData.user_id, 10);
+      let listingsData: any[];
+      if (useCache && cacheKey) {
+        // Use cached version for homepage
+        listingsData = await fetchHomepageSellerListings(cacheKey, profileData.user_id, 10);
+      } else {
+        // Direct fetch for non-homepage pages
+        listingsData = await fetchSellerListings(profileData.user_id, 10);
+      }
+      
       setListings(listingsData || []);
       console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username);
     } catch (error) {

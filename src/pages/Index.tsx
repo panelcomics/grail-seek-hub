@@ -35,22 +35,44 @@ export default function Index() {
         <HeroSection />
         
         {/* 3. Featured Grails — Buy It Now */}
-        <ListingsCarousel title="✨ Featured Grails — Buy It Now" filterType="featured-grails" />
+        <ListingsCarousel 
+          title="✨ Featured Grails — Buy It Now" 
+          filterType="featured-grails"
+          useCache
+          cacheKey="featured-grails"
+        />
         
         {/* 4. Featured Shop: Panel Comics */}
         <PremiumDealerCarousel 
           sellerId={FEATURED_SELLERS.PANEL_COMICS.sellerId}
           sellerName={FEATURED_SELLERS.PANEL_COMICS.displayName}
+          useCache
+          cacheKey="featured-shop-panel-comics"
         />
         
         {/* 5. Ending Soon — Last Chance to Bid */}
-        <ListingsCarousel title="Ending Soon — Last Chance to Bid" filterType="ending-soon" />
+        <ListingsCarousel 
+          title="Ending Soon — Last Chance to Bid" 
+          filterType="ending-soon"
+          useCache
+          cacheKey="ending-soon"
+        />
         
         {/* 6. Local Deals Near You */}
-        <ListingsCarousel title="Local Deals Near You" filterType="local" />
+        <ListingsCarousel 
+          title="Local Deals Near You" 
+          filterType="local"
+          useCache
+          cacheKey="local-deals"
+        />
         
         {/* 7. Newly Listed */}
-        <ListingsCarousel title="Newly Listed" filterType="newly-listed" />
+        <ListingsCarousel 
+          title="Newly Listed" 
+          filterType="newly-listed"
+          useCache
+          cacheKey="newly-listed"
+        />
         
         {/* Additional sections */}
         <PremiumDealerCarousel 
