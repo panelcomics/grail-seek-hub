@@ -223,6 +223,7 @@ export default function MyInventory() {
     switch (status) {
       case "listed": return "bg-success/10 border-success";
       case "sold": return "bg-destructive/10 border-destructive";
+      case "sold_off_platform": return "bg-orange-500/10 border-orange-500";
       default: return "bg-background";
     }
   };
@@ -290,6 +291,7 @@ export default function MyInventory() {
                         <SelectItem value="not_listed">Not Listed</SelectItem>
                         <SelectItem value="listed">Listed</SelectItem>
                         <SelectItem value="sold">Sold</SelectItem>
+                        <SelectItem value="sold_off_platform">Sold (Off-Platform)</SelectItem>
                       </SelectContent>
                     </Select>
 

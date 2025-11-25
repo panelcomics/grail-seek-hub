@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ImageManagement } from "@/components/ImageManagement";
 import { Separator } from "@/components/ui/separator";
+import { MarkSoldOffPlatformModal } from "@/components/MarkSoldOffPlatformModal";
 
 export default function ManageBook() {
   const { id } = useParams();
@@ -23,6 +24,7 @@ export default function ManageBook() {
   const [item, setItem] = useState<any>(null);
   const [listingImages, setListingImages] = useState<any[]>([]);
   const [activeListing, setActiveListing] = useState<any>(null);
+  const [markSoldModalOpen, setMarkSoldModalOpen] = useState(false);
 
   // Form state for all fields
   const [formData, setFormData] = useState({
@@ -373,8 +375,26 @@ export default function ManageBook() {
           Back to My Collection
         </Button>
 
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">{getDisplayTitle()}</h1>
+        <div className="mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">{getDisplayTitle()}</h1>
+            {item.sold_off_platform && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                Sold off-platform via {item.sold_off_platform_channel?.replace('_', ' ')} on{' '}
+                {new Date(item.sold_off_platform_date).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+          
+          {!item.sold_off_platform && (
+            <Button
+              variant="outline"
+              onClick={() => setMarkSoldModalOpen(true)}
+              className="ml-4"
+            >
+              Mark Sold (Off-Platform)
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -814,9 +834,17 @@ export default function ManageBook() {
                 )}
               </div>
             </div>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
-  );
-}
+
+        <MarkSoldOffPlatformModal
+          open={markSoldModalOpen}
+          onOpenChange={setMarkSoldModalOpen}
+          itemId={item.id}
+          itemTitle={getDisplayTitle()}
+          onSuccess={fetchItem}
+        />
+      </main>
+    );
+  }
