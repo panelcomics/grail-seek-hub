@@ -5,31 +5,52 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
-import { fetchListingsBase } from "@/lib/listingsQuery";
+import { fetchListingsBase, fetchHomepageListings } from "@/lib/listingsQuery";
 import { Listing } from "@/types/listing";
+import { HomepageSectionKey } from "@/lib/homepageCache";
 
 interface ListingsCarouselProps {
   title: string;
   filterType: "newly-listed" | "ending-soon" | "hot-week" | "local" | "recommended" | "featured-grails";
   showViewAll?: boolean;
+  useCache?: boolean; // Enable caching (homepage only)
+  cacheKey?: HomepageSectionKey; // Required when useCache is true
 }
 
-export function ListingsCarousel({ title, filterType, showViewAll = true }: ListingsCarouselProps) {
+export function ListingsCarousel({ 
+  title, 
+  filterType, 
+  showViewAll = true,
+  useCache = false,
+  cacheKey
+}: ListingsCarouselProps) {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     fetchListings();
-  }, [filterType]);
+  }, [filterType, useCache, cacheKey]);
 
   const fetchListings = async () => {
     try {
       setError(null);
-      const data = await fetchListingsBase({ 
-        filterType: filterType as any, 
-        limit: 8 // Limit to 8 items for faster loading
-      });
+      
+      let data: Listing[];
+      if (useCache && cacheKey) {
+        // Use cached version for homepage
+        data = await fetchHomepageListings(cacheKey, { 
+          filterType: filterType as any, 
+          limit: 8 
+        });
+      } else {
+        // Direct fetch for non-homepage pages
+        data = await fetchListingsBase({ 
+          filterType: filterType as any, 
+          limit: 8 
+        });
+      }
+      
       console.log('[HOMEPAGE] CAROUSEL', filterType, 'received', data.length, 'listings');
       setListings(data || []);
     } catch (err) {

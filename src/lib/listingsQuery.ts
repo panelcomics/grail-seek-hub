@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Listing } from "@/types/listing";
+import { getHomepageCached, HomepageSectionKey } from "./homepageCache";
 
 export interface ListingsQueryOptions {
   filterType?: 'featured-grails' | 'newly-listed' | 'ending-soon' | 'hot-week' | 'local' | 'all';
@@ -213,4 +214,29 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
     console.error(`[HOMEPAGE] FETCH ${filterType} FAILED in ${duration.toFixed(2)}ms:`, error);
     return [];
   }
+}
+
+/**
+ * Homepage-specific wrapper for fetchListingsBase with caching
+ * Use this ONLY on the homepage Index.tsx
+ */
+export async function fetchHomepageListings(
+  cacheKey: HomepageSectionKey,
+  options: ListingsQueryOptions = {}
+): Promise<Listing[]> {
+  const { data } = await getHomepageCached(cacheKey, () => fetchListingsBase(options));
+  return data;
+}
+
+/**
+ * Homepage-specific wrapper for fetchSellerListings with caching
+ * Use this ONLY on the homepage Index.tsx
+ */
+export async function fetchHomepageSellerListings(
+  cacheKey: HomepageSectionKey,
+  userId: string,
+  limit: number = 10
+): Promise<Listing[]> {
+  const { data } = await getHomepageCached(cacheKey, () => fetchSellerListings(userId, limit));
+  return data;
 }
