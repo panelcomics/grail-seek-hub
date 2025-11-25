@@ -5,9 +5,12 @@ import { Card } from "@/components/ui/card";
 import { MapPin, Heart, Clock, Shield, Star } from "lucide-react";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Link } from "react-router-dom";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useWatchAuction } from "@/hooks/useWatchAuction";
+import { getListingImageUrl } from "@/lib/sellerUtils";
 import { Listing } from "@/types/listing";
+import { SellerBadge } from "@/components/SellerBadge";
+import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
+import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
+import { useWatchAuction } from "@/hooks/useWatchAuction";
 
 interface ItemCardProps {
   id: string;
@@ -22,6 +25,8 @@ interface ItemCardProps {
   sellerBadge?: string | null;
   isVerifiedSeller?: boolean;
   completedSalesCount?: number;
+  sellerTier?: string | null;
+  isFeaturedSeller?: boolean;
   category: "comic" | "card" | "art";
   isAuction?: boolean;
   timeRemaining?: number; // in seconds
@@ -63,6 +68,8 @@ const ItemCard = ({
   sellerBadge,
   isVerifiedSeller = false,
   completedSalesCount = 0,
+  sellerTier = null,
+  isFeaturedSeller = false,
   category,
   isAuction = false,
   timeRemaining = 0,
@@ -179,6 +186,17 @@ const ItemCard = ({
             }`}>
               <Clock className="h-3.5 w-3.5" />
               Ends in {formatTime(countdown)}
+            </div>
+          )}
+
+          {/* Seller badges - top left */}
+          {(isFeaturedSeller || sellerTier || (isVerifiedSeller && completedSalesCount >= 10)) && (
+            <div className="absolute top-2 left-2 flex gap-1">
+              {isFeaturedSeller && <FeaturedSellerBadge showLabel={false} />}
+              {sellerTier && <SellerBadge tier={sellerTier} />}
+              {isVerifiedSeller && completedSalesCount >= 10 && (
+                <VerifiedSellerBadge size="sm" showText={false} salesCount={completedSalesCount} />
+              )}
             </div>
           )}
         </div>
