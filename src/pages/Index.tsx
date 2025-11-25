@@ -38,9 +38,6 @@ export default function Index() {
         <ListingsCarousel title="✨ Featured Grails — Buy It Now" filterType="featured-grails" />
         
         {/* 4. Featured Shop: Panel Comics */}
-        <div data-test-id="featured-shop-debug" className="text-xs text-red-600 text-center py-1">
-          DEBUG: Featured Shop section is mounted
-        </div>
         <PremiumDealerCarousel 
           sellerId={FEATURED_SELLERS.PANEL_COMICS.sellerId}
           sellerName={FEATURED_SELLERS.PANEL_COMICS.displayName}
