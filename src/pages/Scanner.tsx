@@ -200,18 +200,28 @@ export default function Scanner() {
     setError(null);
     
     try {
-      // Compress image
-      const compressed = await compressImageDataUrl(imageData, 2000, 0.85);
+      sonnerToast.loading("Uploading cover...", { id: "scanner-upload" });
+      
+      // Compress image to max 1200px for mobile-friendly uploads
+      const compressed = await compressImageDataUrl(imageData, 1200, 0.85);
       const thumbnail = await createThumbnail(imageData, 400);
       
       setImageUrl(compressed);
+      setPreviewImage(compressed); // Use compressed for preview
+      
+      sonnerToast.loading("Matching with ComicVine...", { id: "scanner-upload" });
       
       // Call scan-item edge function for OCR + ComicVine matching
       const { data, error } = await supabase.functions.invoke('scan-item', {
         body: { imageData: compressed }
       });
 
-      if (error) throw error;
+      if (error) {
+        sonnerToast.dismiss("scanner-upload");
+        throw error;
+      }
+      
+      sonnerToast.dismiss("scanner-upload");
 
       if (data.ok && data.picks && data.picks.length > 0) {
         const topPick = data.picks[0];
@@ -355,13 +365,17 @@ export default function Scanner() {
       }
     } catch (err: any) {
       console.error('Scan error:', err);
-      setError(err.message || 'Failed to process image');
+      sonnerToast.dismiss("scanner-upload");
+      
+      const errorMsg = "We couldn't scan this cover. Try a clearer photo or use manual search below.";
+      setError(errorMsg);
       setStatus("results");
       setDebugData(prev => ({ ...prev, status: "error" }));
-      toast({
-        title: "Scan failed",
-        description: err.message || "Please try again",
-        variant: "destructive"
+      
+      // Non-blocking error - show but don't prevent manual entry
+      sonnerToast.error("Scan incomplete", {
+        description: errorMsg,
+        duration: 5000
       });
     } finally {
       setLoading(false);
@@ -889,13 +903,17 @@ export default function Scanner() {
       {previewImage && status !== "idle" && status !== "processing" && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <img
-                src={previewImage}
-                alt="Scanned comic"
-                className="w-32 h-48 object-cover rounded-lg border"
-              />
-              <div className="flex-1 space-y-2">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
+              <div className="w-full sm:w-48 mx-auto sm:mx-0">
+                <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden border-2 border-primary/20">
+                  <img
+                    src={previewImage}
+                    alt="Scanned comic"
+                    className="absolute inset-0 w-full h-full object-contain p-2"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 space-y-2 w-full">
                 <p className="text-sm font-medium">Your Image</p>
                 {confidence !== null && (
                   <div className="flex items-center gap-2">

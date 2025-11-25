@@ -20,9 +20,9 @@ export interface CompressionResult {
   };
 }
 
-const DEFAULT_MAX_DIM = 1600;
-const DEFAULT_QUALITY = 0.82;
-const DEFAULT_THUMB_DIM = 320;
+const DEFAULT_MAX_DIM = 1200;
+const DEFAULT_QUALITY = 0.85;
+const DEFAULT_THUMB_DIM = 400;
 const MAX_SIZE_BYTES = 1.5 * 1024 * 1024; // 1.5MB
 const MAX_PAYLOAD_BYTES = 4 * 1024 * 1024; // 4MB
 

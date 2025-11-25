@@ -355,12 +355,14 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
             {imageUrl && (
               <div className="space-y-2">
                 <Label className="text-base font-semibold">Your Photo (Primary Listing Image)</Label>
-                <div className="relative aspect-[2/3] bg-muted rounded-lg overflow-hidden border-4 border-primary/30 shadow-lg">
-                  <img
-                    src={imageUrl}
-                    alt="Your comic photo"
-                    className="h-full w-full object-cover"
-                  />
+                <div className="relative w-full max-w-xs mx-auto bg-muted rounded-lg overflow-hidden border-4 border-primary/30 shadow-lg">
+                  <div className="aspect-[2/3] relative">
+                    <img
+                      src={imageUrl}
+                      alt="Your comic photo"
+                      className="absolute inset-0 w-full h-full object-contain p-2"
+                    />
+                  </div>
                   <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
                     <ImageIcon className="inline w-3 h-3 mr-1" />
                     Your Photo
@@ -375,12 +377,14 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                 <Label className="text-base font-semibold text-muted-foreground">
                   {imageUrl ? "ComicVine Reference Cover" : "Reference Cover"}
                 </Label>
-                <div className="aspect-[2/3] bg-muted rounded-lg overflow-hidden border-2 border-border opacity-70">
-                  <img
-                    src={selectedCover}
-                    alt="ComicVine reference"
-                    className="h-full w-full object-cover"
-                  />
+                <div className="w-full max-w-xs mx-auto bg-muted rounded-lg overflow-hidden border-2 border-border opacity-70">
+                  <div className="aspect-[2/3] relative">
+                    <img
+                      src={selectedCover}
+                      alt="ComicVine reference"
+                      className="absolute inset-0 w-full h-full object-contain p-2"
+                    />
+                  </div>
                 </div>
                 {imageUrl && (
                   <Alert className="mt-2">
