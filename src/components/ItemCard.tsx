@@ -7,6 +7,7 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useWatchAuction } from "@/hooks/useWatchAuction";
+import { Listing } from "@/types/listing";
 
 interface ItemCardProps {
   id: string;

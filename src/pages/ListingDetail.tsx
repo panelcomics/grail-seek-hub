@@ -18,6 +18,7 @@ import { ReportListingButton } from "@/components/ReportListingButton";
 import { ShippingRateSelector } from "@/components/ShippingRateSelector";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { Listing, ListingProfile } from "@/types/listing";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -74,8 +75,8 @@ export default function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [listing, setListing] = useState<any>(null);
-  const [seller, setSeller] = useState<any>(null);
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [seller, setSeller] = useState<ListingProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [clientSecret, setClientSecret] = useState("");

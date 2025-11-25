@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { Listing } from "@/types/listing";
 
 export interface ListingsQueryOptions {
   filterType?: 'featured-grails' | 'newly-listed' | 'ending-soon' | 'hot-week' | 'local' | 'all';
@@ -13,7 +14,7 @@ export interface ListingsQueryOptions {
 /**
  * Fetch listings for a specific seller by user_id
  */
-export async function fetchSellerListings(userId: string, limit: number = 10) {
+export async function fetchSellerListings(userId: string, limit: number = 10): Promise<Listing[]> {
   const startTime = performance.now();
   console.log(`[HOMEPAGE] FETCH seller-listings (${userId.substring(0, 8)}...) started`);
 
@@ -81,7 +82,7 @@ export async function fetchSellerListings(userId: string, limit: number = 10) {
   }
 }
 
-export async function fetchListingsBase(options: ListingsQueryOptions = {}) {
+export async function fetchListingsBase(options: ListingsQueryOptions = {}): Promise<Listing[]> {
   const { filterType = 'all', limit = 10 } = options;
   
   const startTime = performance.now();

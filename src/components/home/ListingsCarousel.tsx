@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 import { fetchListingsBase } from "@/lib/listingsQuery";
+import { Listing } from "@/types/listing";
 
 interface ListingsCarouselProps {
   title: string;
@@ -14,7 +15,7 @@ interface ListingsCarouselProps {
 }
 
 export function ListingsCarousel({ title, filterType, showViewAll = true }: ListingsCarouselProps) {
-  const [listings, setListings] = useState<any[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

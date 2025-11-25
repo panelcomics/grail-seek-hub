@@ -4,13 +4,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchListingsBase } from "@/lib/listingsQuery";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
+import { Listing } from "@/types/listing";
 
 interface ListingsGridProps {
   filterType: string;
 }
 
 export function ListingsGrid({ filterType }: ListingsGridProps) {
-  const [listings, setListings] = useState<any[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 24;
