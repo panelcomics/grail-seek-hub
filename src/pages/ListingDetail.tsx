@@ -161,7 +161,18 @@ export default function ListingDetail() {
         .eq("user_id", data.user_id)
         .single();
 
-      setListing(data);
+      // CRITICAL: Transform data the same way as fetchListingsBase does
+      // This ensures getListingImageUrl receives the same structure as cards
+      const transformedListing = {
+        ...data,                    // Spread listing fields (id, type, price_cents, etc.)
+        ...data.inventory_items,    // Spread inventory_items fields to top level (images, title, series, etc.)
+        listing_id: data.id,
+        price_cents: data.price_cents,
+        // Keep nested for backwards compatibility
+        inventory_items: data.inventory_items,
+      };
+      
+      setListing(transformedListing);
       setSeller(profileData);
     } catch (error) {
       console.error("Error fetching listing:", error);
@@ -243,8 +254,11 @@ export default function ListingDetail() {
 
   const title = listing.title || listing.inventory_items?.title || "Comic Listing";
   const description = `${title}${listing.issue_number ? ` #${listing.issue_number}` : ""} - ${formatCents(listing.price_cents)} - Available now on our marketplace`;
-  // Use the same image resolution logic as the working cards
-  const imageUrl = getListingImageUrl(listing.inventory_items || listing);
+  
+  // CRITICAL: Pass listing directly (not nested) since we transformed it above
+  // This matches exactly how ListingsCarousel calls getListingImageUrl(listing)
+  const imageUrl = getListingImageUrl(listing);
+  
   const canonicalUrl = `${window.location.origin}/l/${id}`;
   const sellerName = seller?.display_name || seller?.username || "Seller";
   const sellerSlug = seller?.username?.toLowerCase().replace(/\s+/g, '-');
