@@ -62,6 +62,7 @@ import TradeOffers from "./pages/TradeOffers";
 import Sell from "./pages/Sell";
 import About from "./pages/About";
 import ManageBook from "./pages/ManageBook";
+import MyOffersAndTrades from "./pages/MyOffersAndTrades";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -140,6 +141,7 @@ const AppContent = () => {
             <Route path="/trades" element={<TradingPost />} />
             <Route path="/trade/:id" element={<TradeDetail />} />
             <Route path="/trade-offers" element={<TradeOffers />} />
+            <Route path="/account/offers" element={<MyOffersAndTrades />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
