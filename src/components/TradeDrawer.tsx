@@ -9,12 +9,14 @@ import { updateTradeStatus, type TradeStatus } from "@/lib/trades/updateTradeSta
 import { sendTradeNotification } from "@/lib/notifications/sendTradeNotification";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { TradeMessageThread } from "./TradeMessageThread";
 
 interface TradeDrawerProps {
   trade: {
     id: string;
     listing_id: string;
     buyer_id: string;
+    seller_id: string;
     status: string;
     created_at: string;
     message?: string | null;
@@ -202,6 +204,17 @@ export function TradeDrawer({ trade, open, onClose, onTradeUpdated }: TradeDrawe
             <Calendar className="h-4 w-4" />
             <span>Received {new Date(trade.created_at).toLocaleString()}</span>
           </div>
+
+          <Separator />
+
+          {/* Message Thread */}
+          <TradeMessageThread 
+            tradeId={trade.id}
+            buyerId={trade.buyer_id}
+            sellerId={trade.seller_id}
+          />
+
+          <Separator />
 
           {/* Action Buttons */}
           {trade.status.toLowerCase() === "pending" && (
