@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Debug flag used across all functions
+const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
+
 function cleanSearchText(input: string): string {
   return input
     .trim()
@@ -91,7 +94,6 @@ function generateQueryVariants(searchText: string, publisher?: string): Array<{ 
 async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, limit = 20): Promise<{ results: any[]; totalResults: number }> {
   const url = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(query)}&field_list=id,name,publisher,start_year&limit=${limit}&offset=${offset}`;
   
-  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
   if (isDebug) {
     console.log('[MANUAL-SEARCH] 🔍 ComicVine Volume Query:', query, `(offset: ${offset}, limit: ${limit})`);
   }
@@ -120,7 +122,6 @@ async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, 
 async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber: string): Promise<any[]> {
   const url = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${volumeId},issue_number:${issueNumber}&field_list=id,name,issue_number,volume,cover_date,image,person_credits&limit=10`;
   
-  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
   if (isDebug) {
     console.log('[MANUAL-SEARCH] 🔍 ComicVine Issue Query for volume', volumeId, 'issue', issueNumber);
   }
@@ -177,8 +178,6 @@ function extractCreatorCredits(personCredits: any[]): { writer: string | null; a
 }
 
 serve(async (req) => {
-  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
-  
   if (isDebug) {
     console.log('[MANUAL-SEARCH] Function invoked');
   }
