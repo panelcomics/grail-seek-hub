@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getSessionId } from "@/lib/session";
+import { getConfidenceLabel } from "@/lib/comicVineMatchingStrategy";
 
 interface ComicVinePick {
   id: number;
@@ -130,20 +131,28 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
             const isSelected = selectedId === pick.id;
             const sourceLabel = pick.source === 'cache' ? 'Verified' : pick.source === 'gcd' ? 'GCD' : 'ComicVine';
             const confidencePercent = Math.round(pick.score * 100);
+            const confidenceLabel = getConfidenceLabel(pick.score);
+            
+            // Determine badge variant based on confidence label
+            const getBadgeVariant = (label: string): "default" | "secondary" | "outline" => {
+              if (label === "Excellent" || label === "High") return "default";
+              if (label === "Good" || label === "Moderate") return "secondary";
+              return "outline";
+            };
             
             return (
               <button
                 key={pick.id}
                 onClick={() => setSelectedId(pick.id)}
                 className={`
-                  relative flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left
+                  relative flex items-start gap-3 p-4 rounded-lg border-2 transition-all text-left
                   ${isSelected 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-border hover:border-primary/50 hover:bg-accent'
+                    ? 'border-primary bg-primary/10 shadow-md' 
+                    : 'border-border hover:border-primary/50 hover:bg-accent/50'
                   }
                 `}
               >
-                <div className="flex-shrink-0 w-16 h-24 bg-muted rounded overflow-hidden">
+                <div className="flex-shrink-0 w-20 h-28 bg-muted rounded overflow-hidden border border-border shadow-sm">
                   <img
                     src={pick.thumbUrl}
                     alt={`${pick.title} #${pick.issue || ''}`}
@@ -151,38 +160,42 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
                   />
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm truncate">
-                        {pick.volumeName || pick.title} {pick.issue ? `#${pick.issue}` : ''}
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {pick.publisher} {pick.year ? `• ${pick.year}` : ''}
-                      </p>
-                      {pick.variantDescription && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {pick.variantDescription}
-                        </p>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-base leading-tight">
+                      {pick.volumeName || pick.title}
+                      {pick.issue && <span className="ml-1 text-primary">#{pick.issue}</span>}
+                    </h4>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {pick.publisher && <span className="font-medium">{pick.publisher}</span>}
+                      {pick.year && (
+                        <>
+                          <span>•</span>
+                          <span>{pick.year}</span>
+                        </>
                       )}
                     </div>
-                    
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={badgeVariant} className="text-xs whitespace-nowrap">
-                        {badgeLabel}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {confidencePercent}%
-                      </span>
-                    </div>
+                    {pick.variantDescription && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                        {pick.variantDescription}
+                      </p>
+                    )}
                   </div>
                   
-                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge 
+                      variant={getBadgeVariant(confidenceLabel)} 
+                      className="text-xs font-semibold"
+                    >
+                      {confidenceLabel} Match ({confidencePercent}%)
+                    </Badge>
+                    
                     <Badge variant="outline" className="text-xs flex items-center gap-1">
                       {pick.source === 'cache' && <Star className="w-3 h-3" />}
                       {pick.source === 'gcd' && <Database className="w-3 h-3" />}
                       {sourceLabel}
                     </Badge>
+                    
                     {pick.isReprint && (
                       <Badge variant="secondary" className="text-xs">
                         Reprint
@@ -193,7 +206,9 @@ export function ComicVinePicker({ picks, onSelect }: ComicVinePickerProps) {
                 
                 {isSelected && (
                   <div className="flex-shrink-0 flex items-center">
-                    <Check className="w-5 h-5 text-primary" />
+                    <div className="rounded-full bg-primary p-1">
+                      <Check className="w-4 h-4 text-primary-foreground" />
+                    </div>
                   </div>
                 )}
               </button>
