@@ -209,6 +209,13 @@ export default function Scanner() {
     setLoading(true);
     setError(null);
     
+    if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+      console.log('[SCANNER-DEBUG] upload-start', {
+        imageSize: imageData.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     try {
       sonnerToast.loading("Uploading cover...", { id: "scanner-upload" });
       
@@ -232,6 +239,14 @@ export default function Scanner() {
       }
       
       sonnerToast.dismiss("scanner-upload");
+
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[SCANNER-DEBUG] comicvine-search-success', {
+          resultsCount: data.picks?.length || 0,
+          confidence: data.picks?.[0]?.score || 0,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       if (data.ok && data.picks && data.picks.length > 0) {
         const topPick = data.picks[0];
@@ -377,10 +392,18 @@ export default function Scanner() {
       console.error('Scan error:', err);
       sonnerToast.dismiss("scanner-upload");
       
-      const errorMsg = "We couldn't scan this cover. Try a clearer photo or use manual search below.";
+      const errorMsg = "We couldn't reach ComicVine right now. You can still list your book by filling in the details manually below.";
       setError(errorMsg);
       setStatus("results");
       setDebugData(prev => ({ ...prev, status: "error" }));
+      
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[SCANNER-DEBUG] Scan error details:', {
+          message: err.message,
+          stack: err.stack,
+          timestamp: new Date().toISOString()
+        });
+      }
       
       // Non-blocking error - show but don't prevent manual entry
       sonnerToast.error("Scan incomplete", {
@@ -389,6 +412,14 @@ export default function Scanner() {
       });
     } finally {
       setLoading(false);
+      
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[SCANNER-DEBUG] Scan complete', {
+          status: 'finished',
+          hasResults: searchResults.length > 0,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   };
 
@@ -412,7 +443,6 @@ export default function Scanner() {
     }
   };
 
-  // Manual search - tries local cache first, then fallback to live ComicVine
   const handleManualSearch = async (appendResults = false) => {
     if (!manualSearchQuery.trim()) {
       toast({
@@ -425,6 +455,17 @@ export default function Scanner() {
 
     setManualSearchLoading(true);
     setError(null);
+    
+    if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+      console.log('[SCANNER-DEBUG] manual-search-start', {
+        query: manualSearchQuery,
+        issue: manualSearchIssue,
+        year: manualSearchYear,
+        appendResults,
+        offset: appendResults ? pagination.offset + pagination.limit : 0,
+        timestamp: new Date().toISOString()
+      });
+    }
     
     // Only clear results if this is a new search (not pagination)
     if (!appendResults) {
@@ -449,9 +490,12 @@ export default function Scanner() {
       });
 
       if (!localError && localData?.results && localData.results.length > 0) {
-        // Found results in local cache
+        // Found results in local cache - avoid duplicates
+        const existingIds = new Set(volumeResults.map((v: any) => v.id));
+        const newItems = localData.results.filter((v: any) => !existingIds.has(v.id));
+        
         const newResults = appendResults 
-          ? [...volumeResults, ...localData.results]
+          ? [...volumeResults, ...newItems]
           : localData.results;
         
         setVolumeResults(newResults);
@@ -472,8 +516,19 @@ export default function Scanner() {
           queryParams: { source: 'local', ...localData.filters, offset: currentOffset }
         }));
         
+        if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+          console.log('[SCANNER-DEBUG] local-cache-success', {
+            resultsCount: localData.results.length,
+            totalResults: localData.totalResults,
+            hasMore: localData.hasMore,
+            offset: currentOffset,
+            deduped: localData.results.length - newItems.length,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
         const message = appendResults 
-          ? `Loaded ${localData.results.length} more volumes`
+          ? `Loaded ${newItems.length} more volumes`
           : `Found ${localData.totalResults || localData.results.length} volumes in local cache`;
         sonnerToast.success(message);
         return;
@@ -496,7 +551,13 @@ export default function Scanner() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || 'ComicVine search failed');
+      }
+      
+      if (!data || !data.ok) {
+        throw new Error(data?.error || 'ComicVine returned invalid data');
+      }
 
       let results = data.results || [];
       
@@ -505,8 +566,12 @@ export default function Scanner() {
         results = filterReprints(results);
       }
 
+      // Avoid duplicates when appending
+      const existingIds = new Set(searchResults.map((r: any) => r.id));
+      const newItems = results.filter((r: any) => !existingIds.has(r.id));
+
       const newResults = appendResults 
-        ? [...searchResults, ...results]
+        ? [...searchResults, ...newItems]
         : results;
 
       setSearchResults(newResults);
@@ -527,26 +592,55 @@ export default function Scanner() {
         queryParams: { source: 'live', searchText: manualSearchQuery, filters: { filterNotReprint, filterWrongYear, filterSlabbed }, offset: currentOffset }
       }));
 
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[SCANNER-DEBUG] live-comicvine-success', {
+          resultsCount: results.length,
+          totalResults: data.totalResults,
+          hasMore: data.hasMore,
+          offset: currentOffset,
+          deduped: results.length - newItems.length,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       if (newResults.length === 0) {
-        sonnerToast.info("No results found", {
-          description: "Try a simpler search like just the title"
+        sonnerToast.info("No matches found", {
+          description: "Try filling in the details manually below"
         });
       } else {
         const message = appendResults 
-          ? `Loaded ${results.length} more results`
+          ? `Loaded ${newItems.length} more results`
           : `Found ${data.totalResults || results.length} results from live ComicVine search`;
         sonnerToast.info(message);
       }
     } catch (err: any) {
       console.error('Manual search error:', err);
-      setError(err.message || 'Search failed');
+      
+      const friendlyError = "We couldn't reach ComicVine right now. You can still create a listing by filling in the details manually below.";
+      setError(friendlyError);
+      
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[SCANNER-DEBUG] manual-search-error', {
+          message: err.message,
+          query: manualSearchQuery,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       toast({
-        title: "Search failed",
-        description: err.message || "Please try again",
+        title: "Search unavailable",
+        description: friendlyError,
         variant: "destructive"
       });
     } finally {
       setManualSearchLoading(false);
+      
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[SCANNER-DEBUG] manual-search-complete', {
+          resultsCount: searchResults.length + volumeResults.length,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   };
 
@@ -946,8 +1040,8 @@ export default function Scanner() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-start gap-4">
-              <div className="w-full sm:w-48 mx-auto sm:mx-0">
-                <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden border-2 border-primary/20">
+              <div className="w-full sm:w-48 mx-auto sm:mx-0 flex-shrink-0">
+                <div className="aspect-[2/3] relative bg-muted rounded-lg overflow-hidden border-2 border-primary/20 max-h-[280px] sm:max-h-none">
                   <img
                     src={previewImage}
                     alt="Scanned comic"
@@ -1094,7 +1188,17 @@ export default function Scanner() {
                   Showing {volumeResults.length} of {pagination.totalResults} volumes
                 </p>
                 <Button
-                  onClick={() => handleManualSearch(true)}
+                  onClick={() => {
+                    if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+                      console.log('[SCANNER-DEBUG] pagination-load-more', {
+                        currentCount: volumeResults.length,
+                        nextOffset: pagination.offset + pagination.limit,
+                        totalResults: pagination.totalResults,
+                        timestamp: new Date().toISOString()
+                      });
+                    }
+                    handleManualSearch(true);
+                  }}
                   disabled={manualSearchLoading}
                   variant="outline"
                   size="lg"
@@ -1145,7 +1249,17 @@ export default function Scanner() {
                   Showing {searchResults.length} of {pagination.totalResults} results
                 </p>
                 <Button
-                  onClick={() => handleManualSearch(true)}
+                  onClick={() => {
+                    if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+                      console.log('[SCANNER-DEBUG] pagination-load-more', {
+                        currentCount: searchResults.length,
+                        nextOffset: pagination.offset + pagination.limit,
+                        totalResults: pagination.totalResults,
+                        timestamp: new Date().toISOString()
+                      });
+                    }
+                    handleManualSearch(true);
+                  }}
                   disabled={manualSearchLoading}
                   variant="outline"
                   size="lg"
@@ -1167,42 +1281,45 @@ export default function Scanner() {
       )}
 
       {/* No Results - Show Manual Entry */}
-      {status === "results" && searchResults.length === 0 && !selectedPick && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-yellow-500" />
-              No Match Found
-            </CardTitle>
-            <CardDescription>
-              We couldn't find a match in our database. You can enter the details manually.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => {
-                setSelectedPick({
-                  id: 0,
-                  resource: 'issue',
-                  title: '',
-                  issue: '',
-                  year: null,
-                  publisher: '',
-                  volumeName: '',
-                  thumbUrl: '',
-                  coverUrl: '',
-                  score: 0,
-                  isReprint: false
-                });
-                setStatus("selected");
-              }}
-              size="lg"
-              className="w-full"
-            >
-              Enter Manually
-            </Button>
-          </CardContent>
-        </Card>
+      {status === "results" && searchResults.length === 0 && volumeResults.length === 0 && !selectedPick && (
+        <div className="space-y-4">
+          <Alert>
+            <AlertCircle className="h-5 w-5 text-muted-foreground" />
+            <AlertDescription>
+              <div className="space-y-1">
+                <p className="font-medium">No ComicVine matches found</p>
+                <p className="text-sm">No problem! You can create your listing by filling in the details manually below.</p>
+              </div>
+            </AlertDescription>
+          </Alert>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <Button
+                onClick={() => {
+                  setSelectedPick({
+                    id: 0,
+                    resource: 'issue',
+                    title: '',
+                    issue: '',
+                    year: null,
+                    publisher: '',
+                    volumeName: '',
+                    thumbUrl: '',
+                    coverUrl: '',
+                    score: 0,
+                    isReprint: false
+                  });
+                  setStatus("selected");
+                }}
+                size="lg"
+                className="w-full"
+              >
+                Enter Manually
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Selected Comic - Listing Form */}

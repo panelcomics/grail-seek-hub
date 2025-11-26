@@ -34,75 +34,108 @@ export function generateCacheKey(params: {
 
 /**
  * Get cached data if available and not expired
+ * Safe: never throws even if localStorage fails
  */
 export function getCached<T>(key: string): T | null {
-  const entry = cache.get(key);
-  
-  if (!entry) {
+  try {
+    const entry = cache.get(key);
+    
+    if (!entry) {
+      return null;
+    }
+    
+    const now = Date.now();
+    const age = now - entry.timestamp;
+    
+    if (age > CACHE_TTL_MS) {
+      cache.delete(key);
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[COMICVINE-CACHE] Expired:', key);
+      }
+      return null;
+    }
+    
+    if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+      console.log('[COMICVINE-CACHE] Hit:', key, `(age: ${Math.round(age / 1000)}s)`);
+    }
+    return entry.data;
+  } catch (error) {
+    console.warn('[COMICVINE-CACHE] getCached failed:', error);
     return null;
   }
-  
-  const now = Date.now();
-  const age = now - entry.timestamp;
-  
-  if (age > CACHE_TTL_MS) {
-    cache.delete(key);
-    console.log('[COMICVINE-CACHE] Expired:', key);
-    return null;
-  }
-  
-  console.log('[COMICVINE-CACHE] Hit:', key, `(age: ${Math.round(age / 1000)}s)`);
-  return entry.data;
 }
 
 /**
  * Store data in cache
  * Only caches non-empty results
+ * Safe: never throws even if localStorage fails
  */
 export function setCache<T>(key: string, data: T): void {
-  // Never cache empty results or errors
-  if (Array.isArray(data) && data.length === 0) {
-    console.log('[COMICVINE-CACHE] Skipping empty result:', key);
-    return;
+  try {
+    // Never cache empty results or errors
+    if (Array.isArray(data) && data.length === 0) {
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[COMICVINE-CACHE] Skipping empty result:', key);
+      }
+      return;
+    }
+    
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+        console.log('[COMICVINE-CACHE] Skipping invalid data:', key);
+      }
+      return;
+    }
+    
+    cache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+    
+    if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+      console.log('[COMICVINE-CACHE] Stored:', key);
+    }
+  } catch (error) {
+    console.warn('[COMICVINE-CACHE] setCache failed:', error);
   }
-  
-  if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
-    console.log('[COMICVINE-CACHE] Skipping invalid data:', key);
-    return;
-  }
-  
-  cache.set(key, {
-    data,
-    timestamp: Date.now()
-  });
-  
-  console.log('[COMICVINE-CACHE] Stored:', key);
 }
 
 /**
  * Clear entire cache (for testing or manual refresh)
+ * Safe: never throws
  */
 export function clearCache(): void {
-  cache.clear();
-  console.log('[COMICVINE-CACHE] Cleared all entries');
+  try {
+    cache.clear();
+    if (import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+      console.log('[COMICVINE-CACHE] Cleared all entries');
+    }
+  } catch (error) {
+    console.warn('[COMICVINE-CACHE] clearCache failed:', error);
+  }
 }
 
 /**
  * Clear expired entries (automatic cleanup)
+ * Safe: never throws
  */
 export function cleanupExpired(): void {
-  const now = Date.now();
-  let removed = 0;
-  
-  for (const [key, entry] of cache.entries()) {
-    if (now - entry.timestamp > CACHE_TTL_MS) {
-      cache.delete(key);
-      removed++;
+  try {
+    const now = Date.now();
+    let removed = 0;
+    
+    for (const [key, entry] of cache.entries()) {
+      if (now - entry.timestamp > CACHE_TTL_MS) {
+        cache.delete(key);
+        removed++;
+      }
     }
-  }
-  
-  if (removed > 0) {
-    console.log(`[COMICVINE-CACHE] Cleaned up ${removed} expired entries`);
+    
+    if (removed > 0 && import.meta.env.VITE_SCANNER_DEBUG === 'true') {
+      console.log(`[COMICVINE-CACHE] Cleaned up ${removed} expired entries`);
+    }
+  } catch (error) {
+    console.warn('[COMICVINE-CACHE] cleanupExpired failed:', error);
   }
 }
 

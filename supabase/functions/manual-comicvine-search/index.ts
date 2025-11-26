@@ -91,7 +91,10 @@ function generateQueryVariants(searchText: string, publisher?: string): Array<{ 
 async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, limit = 20): Promise<{ results: any[]; totalResults: number }> {
   const url = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(query)}&field_list=id,name,publisher,start_year&limit=${limit}&offset=${offset}`;
   
-  console.log('[MANUAL-SEARCH] 🔍 ComicVine Volume Query:', query, `(offset: ${offset}, limit: ${limit})`);
+  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
+  if (isDebug) {
+    console.log('[MANUAL-SEARCH] 🔍 ComicVine Volume Query:', query, `(offset: ${offset}, limit: ${limit})`);
+  }
   
   const response = await fetch(url, {
     headers: { "User-Agent": "GrailSeeker/1.0 (panelcomics.com)" }
@@ -102,16 +105,25 @@ async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, 
   }
   
   const data = await response.json();
+  
+  // Defensive: ensure data structure is valid
+  if (!data || typeof data !== 'object') {
+    throw new Error('ComicVine returned invalid data structure');
+  }
+  
   return {
-    results: data.results || [],
-    totalResults: data.number_of_total_results || 0
+    results: Array.isArray(data.results) ? data.results : [],
+    totalResults: typeof data.number_of_total_results === 'number' ? data.number_of_total_results : 0
   };
 }
 
 async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber: string): Promise<any[]> {
   const url = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${volumeId},issue_number:${issueNumber}&field_list=id,name,issue_number,volume,cover_date,image,person_credits&limit=10`;
   
-  console.log('[MANUAL-SEARCH] 🔍 ComicVine Issue Query for volume', volumeId, 'issue', issueNumber);
+  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
+  if (isDebug) {
+    console.log('[MANUAL-SEARCH] 🔍 ComicVine Issue Query for volume', volumeId, 'issue', issueNumber);
+  }
   
   const response = await fetch(url, {
     headers: { "User-Agent": "GrailSeeker/1.0 (panelcomics.com)" }
@@ -122,7 +134,13 @@ async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber
   }
   
   const data = await response.json();
-  return data.results || [];
+  
+  // Defensive: ensure data structure is valid
+  if (!data || typeof data !== 'object') {
+    throw new Error('ComicVine returned invalid data structure');
+  }
+  
+  return Array.isArray(data.results) ? data.results : [];
 }
 
 function extractCreatorCredits(personCredits: any[]): { writer: string | null; artist: string | null } {
@@ -159,7 +177,11 @@ function extractCreatorCredits(personCredits: any[]): { writer: string | null; a
 }
 
 serve(async (req) => {
-  console.log('[MANUAL-SEARCH] Function invoked');
+  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
+  
+  if (isDebug) {
+    console.log('[MANUAL-SEARCH] Function invoked');
+  }
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -203,7 +225,9 @@ serve(async (req) => {
     // STRATEGY 1: Direct ID lookup (highest priority)
     // ============================================================
     if (comicvine_issue_id && comicvine_volume_id) {
-      console.log('[MANUAL-SEARCH] Strategy: Direct ID lookup');
+      if (isDebug) {
+        console.log('[MANUAL-SEARCH] Strategy: Direct ID lookup');
+      }
       try {
         const issueUrl = `https://comicvine.gamespot.com/api/issue/4000-${comicvine_issue_id}/?api_key=${COMICVINE_API_KEY}&format=json&field_list=id,name,issue_number,volume,cover_date,image,person_credits,description`;
         
@@ -278,12 +302,14 @@ serve(async (req) => {
     const finalIssueNumber = issueNumber || parsed.issue;
     const finalYear = year;
 
-    console.log('[MANUAL-SEARCH] Strategy: Structured search', {
-      title: parsed.title,
-      issue: finalIssueNumber,
-      year: finalYear,
-      publisher
-    });
+    if (isDebug) {
+      console.log('[MANUAL-SEARCH] Strategy: Structured search', {
+        title: parsed.title,
+        issue: finalIssueNumber,
+        year: finalYear,
+        publisher
+      });
+    }
 
     // Generate multiple query variants
     const queryVariants = generateQueryVariants(searchText, publisher);
@@ -426,10 +452,12 @@ serve(async (req) => {
     // Sort by score descending
     results.sort((a, b) => b.score - a.score);
 
-    console.log('[MANUAL-SEARCH] Returning', results.length, 'results');
-    if (results.length > 0) {
-      console.log('[MANUAL-SEARCH] Top result:', results[0] ? `${results[0].title} ${results[0].issue ? '#' + results[0].issue : ''} (${results[0].score.toFixed(2)})` : 'none');
-      console.log('[MANUAL-SEARCH] Successful query:', successfulQuery);
+    if (isDebug) {
+      console.log('[MANUAL-SEARCH] Returning', results.length, 'results');
+      if (results.length > 0) {
+        console.log('[MANUAL-SEARCH] Top result:', results[0] ? `${results[0].title} ${results[0].issue ? '#' + results[0].issue : ''} (${results[0].score.toFixed(2)})` : 'none');
+        console.log('[MANUAL-SEARCH] Successful query:', successfulQuery);
+      }
     }
 
     return new Response(JSON.stringify({
@@ -447,20 +475,27 @@ serve(async (req) => {
     });
   } catch (error: any) {
     console.error('[MANUAL-SEARCH] Error:', error);
-    // Return safe empty response on error (don't throw)
-    const body = await req.json().catch(() => ({}));
+    
+    // Always return safe HTTP 200 with empty results - never crash
+    let body = {};
+    try {
+      body = await req.json();
+    } catch {
+      // Ignore body parse errors
+    }
+    
     return new Response(JSON.stringify({
-      ok: true, // Don't fail - just return empty
+      ok: true, // Always true to indicate successful HTTP response
       results: [],
       totalResults: 0,
       offset: 0,
-      limit: 0,
+      limit: 20,
       hasMore: false,
-      query: body.searchText || '',
+      query: (body as any).searchText || '',
       parsed: null,
-      error: error.message || "Search failed"
+      error: error.message || "ComicVine search temporarily unavailable"
     }), {
-      status: 200, // Return 200 to avoid breaking client
+      status: 200, // Always 200 - client handles ok:true + empty results
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -335,9 +335,29 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
             : "Fill in the details below - all fields are editable."
           }
         </CardDescription>
+        
+        {/* ComicVine Unavailable Warning */}
+        {!hasPicks && !selectedPick && confidence === null && (
+          <Alert className="mt-2">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              ComicVine data unavailable. No problem — you can still create your listing by filling in the fields below.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardHeader>
 
       <CardContent>
+        {/* ComicVine Unavailable Warning */}
+        {!hasPicks && !selectedPick && confidence === null && (
+          <Alert className="mb-6">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              ComicVine data unavailable. No problem — you can still create your listing by filling in the fields below.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* ComicVine Picker - Show if we have picks */}
         {hasPicks && (
           <div className="mb-6">
@@ -356,7 +376,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
               <div className="space-y-2">
                 <Label className="text-base font-semibold">Your Photo (Primary Listing Image)</Label>
                 <div className="relative w-full max-w-xs mx-auto bg-muted rounded-lg overflow-hidden border-4 border-primary/30 shadow-lg">
-                  <div className="aspect-[2/3] relative">
+                  <div className="aspect-[2/3] relative max-h-[320px] sm:max-h-none">
                     <img
                       src={imageUrl}
                       alt="Your comic photo"
@@ -378,7 +398,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                   {imageUrl ? "ComicVine Reference Cover" : "Reference Cover"}
                 </Label>
                 <div className="w-full max-w-xs mx-auto bg-muted rounded-lg overflow-hidden border-2 border-border opacity-70">
-                  <div className="aspect-[2/3] relative">
+                  <div className="aspect-[2/3] relative max-h-[320px] sm:max-h-none">
                     <img
                       src={selectedCover}
                       alt="ComicVine reference"
