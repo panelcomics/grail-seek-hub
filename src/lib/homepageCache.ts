@@ -20,8 +20,42 @@ interface HomepageCacheEntry<T> {
 // 60-second TTL (configurable)
 const HOMEPAGE_CACHE_TTL_MS = 60_000;
 
+// Cache version - increment to invalidate all old localStorage caches
+// Updated: 2025-01-26 after index creation to fix mobile empty state bug
+const CACHE_VERSION = 2;
+
 // In-memory cache
 const homepageCache: Record<string, HomepageCacheEntry<any>> = {};
+
+// Clear outdated localStorage on first access
+let hasCheckedCacheVersion = false;
+function ensureCacheVersion() {
+  if (hasCheckedCacheVersion || typeof window === 'undefined') return;
+  hasCheckedCacheVersion = true;
+  
+  try {
+    const storedVersion = localStorage.getItem('grailseeker:cache-version');
+    const currentVersion = String(CACHE_VERSION);
+    
+    if (storedVersion !== currentVersion) {
+      console.log(`[HOMEPAGE_CACHE] Version mismatch (stored=${storedVersion}, current=${currentVersion}), clearing all cached data`);
+      
+      // Clear all homepage cache entries
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('grailseeker:homepage:')) {
+          localStorage.removeItem(key);
+          console.log(`[HOMEPAGE_CACHE] Cleared stale cache: ${key}`);
+        }
+      });
+      
+      // Update version marker
+      localStorage.setItem('grailseeker:cache-version', currentVersion);
+    }
+  } catch (e) {
+    console.warn('[HOMEPAGE_CACHE] Could not check cache version:', e);
+  }
+}
 
 /**
  * Generic homepage cache wrapper
@@ -39,6 +73,9 @@ export async function getHomepageCached<T>(
     const data = await fetcher();
     return { data, fromCache: false };
   }
+  
+  // Ensure cache version is current (clears stale mobile data)
+  ensureCacheVersion();
 
   const now = Date.now();
   const cached = homepageCache[key];
@@ -62,11 +99,12 @@ export async function getHomepageCached<T>(
 
   // Fetch from network
   try {
-    console.log(`[HOMEPAGE_CACHE] ${key} → network fetch`);
+    console.log(`[HOMEPAGE_CACHE] ${key} → network fetch (viewport: ${window.innerWidth}px)`);
     homeDebugCacheMiss(key);
     const data = await fetcher();
     
     const itemCount = Array.isArray(data) ? data.length : '?';
+    console.log(`[HOMEPAGE_CACHE] ${key} → network returned ${itemCount} items`);
     
     // CRITICAL FIX: Only cache non-empty results to prevent poisoned cache
     // Empty arrays from timeouts/errors should not be cached
@@ -87,9 +125,9 @@ export async function getHomepageCached<T>(
         // Ignore localStorage errors (quota, privacy mode, etc.)
       }
       
-      console.log(`[HOMEPAGE_CACHE] ${key} → cached ${itemCount} items`);
+      console.log(`[HOMEPAGE_CACHE] ${key} → cached ${itemCount} items (viewport: ${window.innerWidth}px)`);
     } else {
-      console.log(`[HOMEPAGE_CACHE] ${key} → not caching empty result (${itemCount} items)`);
+      console.log(`[HOMEPAGE_CACHE] ${key} → not caching empty result (${itemCount} items, viewport: ${window.innerWidth}px)`);
     }
     
     homeDebugNetworkSuccess(key, { count: itemCount });

@@ -30,7 +30,8 @@ export function PremiumDealerCarousel({
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
-    console.log(`[HOMEPAGE] PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}`);
+    const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+    console.log(`[HOMEPAGE] PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}`);
     fetchSellerAndListings();
   }, [sellerId, sellerName, useCache, cacheKey]);
 
@@ -123,14 +124,16 @@ export function PremiumDealerCarousel({
       
       setListings(listingsData || []);
       setStatus('success');
-      console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username);
+      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+      console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username, `(viewport: ${viewport})`);
       
       // Debug: render
       if (useCache && cacheKey) {
         homeDebugRender(cacheKey, { count: listingsData?.length || 0 });
       }
     } catch (error) {
-      console.error("[FEATURED_SHOP] Error fetching premium dealer listings:", error);
+      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+      console.error("[FEATURED_SHOP] Error fetching premium dealer listings (viewport:", viewport, "):", error);
       // Don't clear seller profile or listings on error - keep showing old data if available
       setStatus('error');
     } finally {

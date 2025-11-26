@@ -30,7 +30,8 @@ export function ListingsCarousel({
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
-    console.log(`[HOMEPAGE] ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}`);
+    const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+    console.log(`[HOMEPAGE] ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}`);
     fetchListings();
   }, [filterType, useCache, cacheKey]);
 
@@ -57,7 +58,7 @@ export function ListingsCarousel({
         });
       }
       
-      console.log('[HOMEPAGE] CAROUSEL', filterType, 'received', data.length, 'listings');
+      console.log('[HOMEPAGE] CAROUSEL', filterType, 'received', data.length, 'listings', `(viewport: ${window.innerWidth}px)`);
       setListings(data || []);
       setStatus('success');
       
@@ -66,7 +67,8 @@ export function ListingsCarousel({
         homeDebugRender(cacheKey, { count: data?.length || 0 });
       }
     } catch (err) {
-      console.error(`[HOMEPAGE] CAROUSEL ${filterType} error:`, err);
+      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+      console.error(`[HOMEPAGE] CAROUSEL ${filterType} error (viewport: ${viewport}):`, err);
       // Don't clear listings on error - keep showing old data if available
       setStatus('error');
     } finally {
