@@ -27,7 +27,7 @@ export function ListingsCarousel({
 }: ListingsCarouselProps) {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     console.log(`[HOMEPAGE] ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}`);
@@ -35,9 +35,8 @@ export function ListingsCarousel({
   }, [filterType, useCache, cacheKey]);
 
   const fetchListings = async () => {
+    setStatus('loading');
     try {
-      setError(null);
-      
       // Debug: fetch start
       if (useCache && cacheKey) {
         homeDebugStart(cacheKey);
@@ -60,6 +59,7 @@ export function ListingsCarousel({
       
       console.log('[HOMEPAGE] CAROUSEL', filterType, 'received', data.length, 'listings');
       setListings(data || []);
+      setStatus('success');
       
       // Debug: render
       if (useCache && cacheKey) {
@@ -67,8 +67,8 @@ export function ListingsCarousel({
       }
     } catch (err) {
       console.error(`[HOMEPAGE] CAROUSEL ${filterType} error:`, err);
-      setError(err as Error);
-      setListings([]);
+      // Don't clear listings on error - keep showing old data if available
+      setStatus('error');
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,9 @@ export function ListingsCarousel({
       ) : (
         <div className="container mx-auto px-4">
           <p className="text-sm text-muted-foreground">
-            No listings available right now. Check back soon!
+            {status === 'error' 
+              ? 'Unable to load listings. Please try again later.' 
+              : 'No listings available right now. Check back soon!'}
           </p>
         </div>
       )}
