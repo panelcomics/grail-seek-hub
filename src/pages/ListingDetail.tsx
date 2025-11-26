@@ -82,6 +82,7 @@ export default function ListingDetail() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [seller, setSeller] = useState<ListingProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [orderId, setOrderId] = useState("");
@@ -521,8 +522,47 @@ export default function ListingDetail() {
                     </div>
                   </CardContent>
                 </Card>
+              ) : !showCheckout ? (
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => {
+                      if (!user) {
+                        toast.error("Please log in to purchase");
+                        navigate("/auth");
+                        return;
+                      }
+                      setShowCheckout(true);
+                      // Scroll to checkout form after it appears
+                      setTimeout(() => {
+                        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                      }, 100);
+                    }}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Buy It Now
+                  </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      variant="outline"
+                      size="lg"
+                      onClick={() => toast.info("Make Offer is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                    >
+                      Make Offer
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="lg"
+                      onClick={() => toast.info("Request Trade is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                    >
+                      Request Trade
+                    </Button>
+                  </div>
+                </div>
               ) : !checkoutMode ? (
-                <Card>
+                <>
+                  <h2 className="text-xl font-semibold mb-4">Complete Your Purchase</h2>
+                  <Card>
                   <CardContent className="p-4 md:p-6 space-y-4">
                     <h3 className="font-semibold">Shipping Method</h3>
                     <RadioGroup value={shippingMethod} onValueChange={(value: any) => setShippingMethod(value)}>
@@ -649,7 +689,8 @@ export default function ListingDetail() {
                       Continue to Payment
                     </Button>
                   </CardContent>
-                </Card>
+                  </Card>
+                </>
               ) : options ? (
                 <Card>
                   <CardContent className="p-4 md:p-6">
