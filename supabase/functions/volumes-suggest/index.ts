@@ -28,6 +28,8 @@ function normalizeTitle(raw: string): string {
 }
 
 serve(async (req) => {
+  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -64,6 +66,10 @@ serve(async (req) => {
       year = url.searchParams.get("year") ? parseInt(url.searchParams.get("year")!) : null;
       limit = parseInt(url.searchParams.get("limit") || "20");
       offset = parseInt(url.searchParams.get("offset") || "0");
+    }
+    
+    if (isDebug) {
+      console.log('[VOLUMES-SUGGEST] Query:', { query, publisher, year, limit, offset });
     }
 
     const normalizedQuery = normalizeTitle(query);
@@ -162,10 +168,20 @@ serve(async (req) => {
            const resp = await fetch(`https://comicvine.gamespot.com/api/volumes/?${params.toString()}`);
            if (resp.ok) {
              const json = await resp.json();
-             const apiResults = json.results || [];
-             const totalFromAPI = json.number_of_total_results || 0;
+             
+             // Defensive: validate response structure
+             if (!json || typeof json !== 'object') {
+               console.error('[VOLUMES-SUGGEST] Invalid JSON from ComicVine API');
+               // Fall through to return local results
+             } else {
+               const apiResults = Array.isArray(json.results) ? json.results : [];
+               const totalFromAPI = typeof json.number_of_total_results === 'number' ? json.number_of_total_results : 0;
 
-             const scoredResults = apiResults.map((v: any) => {
+               if (isDebug) {
+                 console.log('[VOLUMES-SUGGEST] Live API returned', apiResults.length, 'results (total:', totalFromAPI, ')');
+               }
+
+               const scoredResults = apiResults.map((v: any) => {
                const normalizedTitle = normalizeTitle(v.name || "");
 
                let score = 100;
@@ -206,28 +222,33 @@ serve(async (req) => {
                };
              });
 
-             scoredResults.sort((a: any, b: any) => a.score - b.score);
-             results = scoredResults;
-             bestScore = results[0]?.score ?? Infinity;
-             source = "live";
-             
-             return new Response(
-               JSON.stringify({
-                 results,
-                 totalResults: totalFromAPI,
-                 offset,
-                 limit,
-                 hasMore: offset + results.length < totalFromAPI,
-                 query: normalizedQuery,
-                 filters: { publisher, year },
-                 source,
-               }),
-               { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-             );
+               scoredResults.sort((a: any, b: any) => a.score - b.score);
+               results = scoredResults;
+               bestScore = results[0]?.score ?? Infinity;
+               source = "live";
+               
+               if (isDebug) {
+                 console.log('[VOLUMES-SUGGEST] Live results processed, bestScore:', bestScore);
+               }
+               
+               return new Response(
+                 JSON.stringify({
+                   results,
+                   totalResults: totalFromAPI,
+                   offset,
+                   limit,
+                   hasMore: offset + results.length < totalFromAPI,
+                   query: normalizedQuery,
+                   filters: { publisher, year },
+                   source,
+                 }),
+                 { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+               );
+             }
            }
          }
        }
-    }
+     }
 
     return new Response(
       JSON.stringify({
@@ -244,12 +265,24 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Volume suggest error:", error);
+    
+    // Always return safe HTTP 200 with empty results - never crash
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
         results: [],
+        totalResults: 0,
+        offset: 0,
+        limit: 20,
+        hasMore: false,
+        query: "",
+        filters: {},
+        source: "local",
+        error: error instanceof Error ? error.message : "ComicVine search temporarily unavailable"
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { 
+        status: 200, // Always 200 - client handles empty results gracefully
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      },
     );
   }
 });
