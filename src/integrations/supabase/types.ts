@@ -3196,6 +3196,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      update_offer_status: {
+        Args: { new_status_param: string; offer_id_param: string }
+        Returns: Json
+      }
       update_seller_favorites_total: { Args: never; Returns: undefined }
     }
     Enums: {

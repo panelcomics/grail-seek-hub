@@ -203,6 +203,11 @@ const SellerDashboard = () => {
     setTimeout(() => setSelectedOffer(null), 300);
   };
 
+  const handleOfferUpdated = () => {
+    // Refresh offers list after status update
+    fetchOffers();
+  };
+
 
   const getStatusBadge = (status: string | null) => {
     if (!status) return <Badge variant="outline">Draft</Badge>;
@@ -623,20 +628,28 @@ const SellerDashboard = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {offers.map((offer) => (
-                    <TableRow 
-                      key={offer.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => handleOfferClick(offer)}
-                    >
-                      <TableCell className="font-medium">
-                        {offer.listing_title || "Unknown Listing"}
-                      </TableCell>
-                      <TableCell>${offer.offer_amount}</TableCell>
-                      <TableCell>{getOfferStatusBadge(offer.status)}</TableCell>
-                      <TableCell>{new Date(offer.created_at).toLocaleDateString()}</TableCell>
-                    </TableRow>
-                  ))}
+                  {offers.map((offer) => {
+                    const statusLower = offer.status.toLowerCase();
+                    const rowBgClass = 
+                      statusLower === "accepted" ? "bg-green-50 dark:bg-green-950/20" :
+                      statusLower === "declined" ? "bg-red-50 dark:bg-red-950/20" :
+                      "";
+                    
+                    return (
+                      <TableRow 
+                        key={offer.id}
+                        className={`cursor-pointer hover:bg-muted/50 transition-colors ${rowBgClass}`}
+                        onClick={() => handleOfferClick(offer)}
+                      >
+                        <TableCell className="font-medium">
+                          {offer.listing_title || "Unknown Listing"}
+                        </TableCell>
+                        <TableCell>${offer.offer_amount}</TableCell>
+                        <TableCell>{getOfferStatusBadge(offer.status)}</TableCell>
+                        <TableCell>{new Date(offer.created_at).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -649,6 +662,7 @@ const SellerDashboard = () => {
         offer={selectedOffer}
         open={drawerOpen}
         onClose={handleCloseDrawer}
+        onOfferUpdated={handleOfferUpdated}
       />
 
     </div>
