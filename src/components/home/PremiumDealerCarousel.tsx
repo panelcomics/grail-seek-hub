@@ -27,6 +27,7 @@ export function PremiumDealerCarousel({
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sellerProfile, setSellerProfile] = useState<any>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     console.log(`[HOMEPAGE] PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}`);
@@ -34,6 +35,7 @@ export function PremiumDealerCarousel({
   }, [sellerId, sellerName, useCache, cacheKey]);
 
   const fetchSellerAndListings = async () => {
+    setStatus('loading');
     try {
       // Debug: fetch start
       if (useCache && cacheKey) {
@@ -96,7 +98,8 @@ export function PremiumDealerCarousel({
       if (!profileData) {
         console.error('[FEATURED_SHOP] Failed to find seller. sellerId:', sellerId, 'sellerName:', sellerName);
         setSellerProfile(null);
-        setListings([]);
+        // Don't clear listings on profile error - keep showing old data if available
+        setStatus('error');
         setLoading(false);
         return;
       }
@@ -119,6 +122,7 @@ export function PremiumDealerCarousel({
       }
       
       setListings(listingsData || []);
+      setStatus('success');
       console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username);
       
       // Debug: render
@@ -127,8 +131,8 @@ export function PremiumDealerCarousel({
       }
     } catch (error) {
       console.error("[FEATURED_SHOP] Error fetching premium dealer listings:", error);
-      setSellerProfile(null);
-      setListings([]);
+      // Don't clear seller profile or listings on error - keep showing old data if available
+      setStatus('error');
     } finally {
       setLoading(false);
     }
@@ -165,7 +169,6 @@ export function PremiumDealerCarousel({
             {sellerProfile && (
               <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
                 <SellerBadge tier={sellerProfile?.seller_tier || "premium"} />
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">Premium Dealer</span>
                 <VerifiedSellerBadge salesCount={0} size="sm" />
               </div>
             )}
@@ -213,7 +216,11 @@ export function PremiumDealerCarousel({
       ) : (
         <div className="container mx-auto px-4">
           <p className="text-sm text-muted-foreground">
-            {!sellerProfile ? 'Seller not found.' : 'No listings available from this shop right now.'}
+            {status === 'error' 
+              ? 'Unable to load shop listings. Please try again later.' 
+              : !sellerProfile 
+                ? 'Seller not found.' 
+                : 'No listings available from this shop right now.'}
           </p>
         </div>
       )}
