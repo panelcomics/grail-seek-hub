@@ -22,6 +22,7 @@ import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { MakeOfferModal } from "@/components/MakeOfferModal";
+import { RequestTradeModal } from "@/components/RequestTradeModal";
 import { Share2, Copy } from "lucide-react";
 import { Listing, ListingProfile } from "@/types/listing";
 
@@ -98,6 +99,7 @@ export default function ListingDetail() {
     country: "US",
   });
   const [showOfferModal, setShowOfferModal] = useState(false);
+  const [showTradeModal, setShowTradeModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -525,7 +527,7 @@ export default function ListingDetail() {
                       <Button 
                         variant="outline"
                         size="lg"
-                        onClick={() => toast.info("Request Trade is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                        onClick={() => setShowTradeModal(true)}
                         className="min-h-[44px] rounded-md bg-white border border-neutral-400 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-500 transition-colors"
                         aria-label="Request a trade for this listing"
                       >
@@ -761,12 +763,20 @@ export default function ListingDetail() {
       </div>
 
       {listing && (
-        <MakeOfferModal
-          isOpen={showOfferModal}
-          onClose={() => setShowOfferModal(false)}
-          listingId={listing.id}
-          itemTitle={listing.title || listing.inventory_items?.title || "Comic"}
-        />
+        <>
+          <MakeOfferModal
+            isOpen={showOfferModal}
+            onClose={() => setShowOfferModal(false)}
+            listingId={listing.id}
+            itemTitle={listing.title || listing.inventory_items?.title || "Comic"}
+          />
+          <RequestTradeModal
+            isOpen={showTradeModal}
+            onClose={() => setShowTradeModal(false)}
+            listingId={listing.id}
+            itemTitle={listing.title || listing.inventory_items?.title || "Comic"}
+          />
+        </>
       )}
     </main>
     </>
