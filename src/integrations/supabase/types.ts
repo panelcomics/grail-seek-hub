@@ -3201,6 +3201,10 @@ export type Database = {
         Returns: Json
       }
       update_seller_favorites_total: { Args: never; Returns: undefined }
+      update_trade_status: {
+        Args: { new_status_param: string; trade_id_param: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "artist"

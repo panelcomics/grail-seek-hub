@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Package, DollarSign, ShoppingBag, MessageSquare, Search, SlidersHorizontal } from "lucide-react";
+import { Package, DollarSign, ShoppingBag, MessageSquare, Search, SlidersHorizontal, ArrowRightLeft } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,12 +19,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OfferDrawer } from "@/components/OfferDrawer";
+import { TradeDrawer } from "@/components/TradeDrawer";
+
+interface Trade {
+  id: string;
+  listing_id: string;
+  status: string;
+  created_at: string;
+  offer_title: string;
+  offer_issue?: string | null;
+  message?: string | null;
+  listing_title?: string;
+  listing_image?: string | null;
+  buyer_username?: string;
+  buyer_avatar?: string | null;
+}
 
 interface SellerStats {
   activeListings: number;
   soldCount: number;
   totalSales: number;
   pendingOffers: number;
+  pendingTrades: number;
 }
 
 interface Listing {
@@ -62,12 +78,16 @@ const SellerDashboard = () => {
     soldCount: 0,
     totalSales: 0,
     pendingOffers: 0,
+    pendingTrades: 0,
   });
   const [listings, setListings] = useState<Listing[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [tradeDrawerOpen, setTradeDrawerOpen] = useState(false);
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -93,6 +113,7 @@ const SellerDashboard = () => {
       await Promise.all([
         fetchListings(),
         fetchOffers(),
+        fetchTrades(),
       ]);
     } catch (error) {
       console.error("[SELLER-DASHBOARD] Error loading dashboard:", error);
@@ -193,6 +214,65 @@ const SellerDashboard = () => {
     }
   };
 
+  const fetchTrades = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("trades")
+        .select("id, listing_id, status, created_at, offer_title, offer_issue, message, buyer_id")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error("[SELLER-DASHBOARD] Error fetching trades:", error);
+        return;
+      }
+
+      // Fetch listing details and buyer info for each trade
+      const tradesWithDetails = await Promise.all(
+        (data || []).map(async (trade) => {
+          // Fetch listing info
+          const { data: listing } = await supabase
+            .from("inventory_items")
+            .select("title, images")
+            .eq("id", trade.listing_id)
+            .single();
+
+          // Fetch buyer profile
+          const { data: buyerProfile } = await supabase
+            .from("profiles")
+            .select("username, profile_image_url")
+            .eq("user_id", trade.buyer_id)
+            .single();
+
+          // Extract front image URL
+          let listingImage = null;
+          if (listing?.images && typeof listing.images === 'object') {
+            const images = listing.images as any;
+            listingImage = images.front || null;
+          }
+          
+          return {
+            ...trade,
+            listing_title: listing?.title || "Unknown Listing",
+            listing_image: listingImage,
+            buyer_username: buyerProfile?.username || "Anonymous",
+            buyer_avatar: buyerProfile?.profile_image_url || null
+          };
+        })
+      );
+
+      setTrades(tradesWithDetails);
+
+      const pending = tradesWithDetails?.filter(t => t.status === "pending").length || 0;
+      setStats(prev => ({ ...prev, pendingTrades: pending }));
+    } catch (error) {
+      console.error("[SELLER-DASHBOARD] Error in fetchTrades:", error);
+    }
+  };
+
   const handleOfferClick = (offer: Offer) => {
     setSelectedOffer(offer);
     setDrawerOpen(true);
@@ -206,6 +286,21 @@ const SellerDashboard = () => {
   const handleOfferUpdated = () => {
     // Refresh offers list after status update
     fetchOffers();
+  };
+
+  const handleTradeClick = (trade: Trade) => {
+    setSelectedTrade(trade);
+    setTradeDrawerOpen(true);
+  };
+
+  const handleCloseTradeDrawer = () => {
+    setTradeDrawerOpen(false);
+    setTimeout(() => setSelectedTrade(null), 300);
+  };
+
+  const handleTradeUpdated = () => {
+    // Refresh trades list after status update
+    fetchTrades();
   };
 
 
@@ -229,6 +324,19 @@ const SellerDashboard = () => {
         return <Badge variant="outline">Pending</Badge>;
       case "accepted":
         return <Badge className="bg-green-500 hover:bg-green-600">Accepted</Badge>;
+      case "declined":
+        return <Badge variant="destructive">Declined</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getTradeStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return <Badge variant="outline">Pending</Badge>;
+      case "approved":
+        return <Badge className="bg-green-500 hover:bg-green-600">Approved</Badge>;
       case "declined":
         return <Badge variant="destructive">Declined</Badge>;
       default:
@@ -371,6 +479,17 @@ const SellerDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingOffers}</div>
             <p className="text-xs text-muted-foreground">Awaiting response</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Trades</CardTitle>
+            <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingTrades}</div>
+            <p className="text-xs text-muted-foreground">Trade requests</p>
           </CardContent>
         </Card>
       </div>
@@ -657,12 +776,73 @@ const SellerDashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Recent Trade Requests */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Recent Trade Requests</CardTitle>
+          <CardDescription>Comic-for-comic trade proposals from buyers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {trades.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No trade requests received yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Your Listing</TableHead>
+                    <TableHead>They Offer</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trades.map((trade) => {
+                    const statusLower = trade.status.toLowerCase();
+                    const rowBgClass = 
+                      statusLower === "approved" ? "bg-green-50 dark:bg-green-950/20" :
+                      statusLower === "declined" ? "bg-red-50 dark:bg-red-950/20" :
+                      "";
+                    
+                    return (
+                      <TableRow 
+                        key={trade.id}
+                        className={`cursor-pointer hover:bg-muted/50 transition-colors ${rowBgClass}`}
+                        onClick={() => handleTradeClick(trade)}
+                      >
+                        <TableCell className="font-medium">
+                          {trade.listing_title || "Unknown Listing"}
+                        </TableCell>
+                        <TableCell>
+                          {trade.offer_title}
+                          {trade.offer_issue && ` #${trade.offer_issue}`}
+                        </TableCell>
+                        <TableCell>{getTradeStatusBadge(trade.status)}</TableCell>
+                        <TableCell>{new Date(trade.created_at).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Offer Detail Drawer */}
       <OfferDrawer 
         offer={selectedOffer}
         open={drawerOpen}
         onClose={handleCloseDrawer}
         onOfferUpdated={handleOfferUpdated}
+      />
+
+      {/* Trade Detail Drawer */}
+      <TradeDrawer 
+        trade={selectedTrade}
+        open={tradeDrawerOpen}
+        onClose={handleCloseTradeDrawer}
+        onTradeUpdated={handleTradeUpdated}
       />
 
     </div>
