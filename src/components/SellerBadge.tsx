@@ -12,25 +12,29 @@ const tierConfig = {
     icon: Star,
     label: "Premium Dealer",
     tooltip: "Exclusive premium dealer with 0% marketplace fees",
-    className: "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-2 border-red-400",
+    className: "min-h-[28px]",
+    style: { backgroundColor: '#F4C542', color: '#111827', borderColor: 'transparent' },
   },
   pro: {
     icon: Award,
     label: "Pro Seller",
     tooltip: "Elite seller with 100+ completed sales and 4.8+ rating",
-    className: "bg-purple-500 hover:bg-purple-600 text-white",
+    className: "bg-purple-500 hover:bg-purple-600 text-white min-h-[28px]",
+    style: undefined,
   },
   verified: {
     icon: Shield,
     label: "Verified",
     tooltip: "Verified seller with proven track record",
-    className: "bg-blue-500 hover:bg-blue-600 text-white",
+    className: "min-h-[28px]",
+    style: { backgroundColor: '#1D4ED8', color: '#FFFFFF', borderColor: 'transparent' },
   },
   top: {
     icon: Star,
     label: "Top Seller",
     tooltip: "Top monthly performer",
-    className: "bg-yellow-500 hover:bg-yellow-600 text-yellow-950",
+    className: "min-h-[28px]",
+    style: { backgroundColor: '#F4C542', color: '#111827', borderColor: 'transparent' },
   },
 };
 
@@ -46,7 +50,10 @@ export const SellerBadge = ({ tier, className }: SellerBadgeProps) => {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge className={`flex items-center gap-1 ${config.className} ${className || ""}`}>
+          <Badge 
+            className={`flex items-center gap-1 ${config.className} ${className || ""}`}
+            style={config.style}
+          >
             <Icon className="h-3 w-3" />
             <span className="text-xs font-medium">{config.label}</span>
           </Badge>

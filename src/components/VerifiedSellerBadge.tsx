@@ -39,7 +39,12 @@ export function VerifiedSellerBadge({
   const badge = (
     <Badge 
       variant="secondary" 
-      className={`${badgeSizes[size]} bg-primary/10 text-primary border-primary/20 flex items-center gap-1 ${className}`}
+      className={`${badgeSizes[size]} min-h-[28px] flex items-center gap-1 ${className}`}
+      style={{ 
+        backgroundColor: '#1D4ED8',
+        color: '#FFFFFF',
+        borderColor: 'transparent'
+      }}
     >
       <ShieldCheck className={iconSizes[size]} />
       {displayText && "Verified"}
