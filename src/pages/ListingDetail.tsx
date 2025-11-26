@@ -523,7 +523,7 @@ export default function ListingDetail() {
                   </CardContent>
                 </Card>
               ) : !showCheckout ? (
-                <div className="space-y-3">
+                <div className="mt-8 space-y-4">
                   <Button 
                     onClick={() => {
                       if (!user) {
@@ -537,7 +537,7 @@ export default function ListingDetail() {
                         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                       }, 100);
                     }}
-                    className="w-full"
+                    className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-semibold shadow-md rounded-md py-6 min-h-[44px] transition-all"
                     size="lg"
                   >
                     Buy It Now
@@ -547,6 +547,7 @@ export default function ListingDetail() {
                       variant="outline"
                       size="lg"
                       onClick={() => toast.info("Make Offer is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                      className="bg-background border border-border hover:bg-muted min-h-[44px] transition-colors rounded-md"
                     >
                       Make Offer
                     </Button>
@@ -554,6 +555,7 @@ export default function ListingDetail() {
                       variant="outline"
                       size="lg"
                       onClick={() => toast.info("Request Trade is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                      className="bg-background border border-border hover:bg-muted min-h-[44px] transition-colors rounded-md"
                     >
                       Request Trade
                     </Button>
