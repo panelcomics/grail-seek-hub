@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, MessageSquare, DollarSign } from "lucide-react";
+import { Calendar, MessageSquare, DollarSign, Loader2 } from "lucide-react";
+import { updateOfferStatus, type OfferStatus } from "@/lib/offers/updateOfferStatus";
+import { toast } from "sonner";
 
 interface OfferDrawerProps {
   offer: {
@@ -20,10 +23,36 @@ interface OfferDrawerProps {
   } | null;
   open: boolean;
   onClose: () => void;
+  onOfferUpdated?: () => void;
 }
 
-export function OfferDrawer({ offer, open, onClose }: OfferDrawerProps) {
+export function OfferDrawer({ offer, open, onClose, onOfferUpdated }: OfferDrawerProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
+
   if (!offer) return null;
+
+  const handleUpdateStatus = async (newStatus: OfferStatus) => {
+    setIsUpdating(true);
+    
+    const result = await updateOfferStatus(offer.id, newStatus);
+    
+    setIsUpdating(false);
+
+    if (result.ok) {
+      const message = newStatus === "accepted" 
+        ? "Offer accepted — buyer will be notified."
+        : "Offer declined.";
+      toast.success(message);
+      
+      // Close drawer and trigger refresh
+      onClose();
+      if (onOfferUpdated) {
+        onOfferUpdated();
+      }
+    } else {
+      toast.error(result.error || "Unable to update offer status.");
+    }
+  };
 
   const getBuyerInitials = (username?: string) => {
     if (!username) return "B";
@@ -133,16 +162,32 @@ export function OfferDrawer({ offer, open, onClose }: OfferDrawerProps) {
             <div className="flex gap-3 pt-4">
               <Button
                 className="flex-1 bg-green-600 hover:bg-green-700"
-                disabled
+                disabled={isUpdating}
+                onClick={() => handleUpdateStatus("accepted")}
               >
-                Accept Offer
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Accept Offer"
+                )}
               </Button>
               <Button
                 variant="destructive"
                 className="flex-1"
-                disabled
+                disabled={isUpdating}
+                onClick={() => handleUpdateStatus("declined")}
               >
-                Decline Offer
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Decline Offer"
+                )}
               </Button>
             </div>
           )}
