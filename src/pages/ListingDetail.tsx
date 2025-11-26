@@ -357,7 +357,7 @@ export default function ListingDetail() {
                         <Link to={`/seller/${sellerSlug}`} className="font-semibold hover:underline">
                           {sellerName}
                         </Link>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           {seller.is_featured_seller && <FeaturedSellerBadge />}
                           {seller.seller_tier === 'premium_dealer' && <SellerBadge tier="premium_dealer" />}
                           {seller.is_verified_seller && (
@@ -468,7 +468,7 @@ export default function ListingDetail() {
                   </CardContent>
                 </Card>
               ) : !showCheckout ? (
-                <div className="space-y-4 mb-6">
+                <div className="space-y-3 md:space-y-7 mb-6">
                   <Button 
                     onClick={() => {
                       if (!user) {
@@ -493,25 +493,27 @@ export default function ListingDetail() {
                       Buy It Now
                     </span>
                   </Button>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline"
-                      size="lg"
-                      onClick={() => toast.info("Make Offer is coming soon! For now, use Buy It Now or contact the seller directly.")}
-                      className="min-h-[44px] rounded-md bg-white border border-neutral-300 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-400 transition-colors"
-                      aria-label="Make an offer on this listing"
-                    >
-                      Make Offer
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      size="lg"
-                      onClick={() => toast.info("Request Trade is coming soon! For now, use Buy It Now or contact the seller directly.")}
-                      className="min-h-[44px] rounded-md bg-white border border-neutral-300 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-400 transition-colors"
-                      aria-label="Request a trade for this listing"
-                    >
-                      Request Trade
-                    </Button>
+                  <div className="flex justify-center">
+                    <div className="grid grid-cols-2 gap-3 max-w-xl w-full">
+                      <Button 
+                        variant="outline"
+                        size="lg"
+                        onClick={() => toast.info("Make Offer is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                        className="min-h-[44px] rounded-md bg-white border border-neutral-400 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-500 transition-colors"
+                        aria-label="Make an offer on this listing"
+                      >
+                        Make Offer
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="lg"
+                        onClick={() => toast.info("Request Trade is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                        className="min-h-[44px] rounded-md bg-white border border-neutral-400 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-500 transition-colors"
+                        aria-label="Request a trade for this listing"
+                      >
+                        Request Trade
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : !checkoutMode ? (
