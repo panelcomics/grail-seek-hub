@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,117 +29,124 @@ export function PremiumDealerCarousel({
   const [sellerProfile, setSellerProfile] = useState<any>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
+  // Guard against React StrictMode double effects and race conditions between mobile/desktop
+  const requestIdRef = useRef(0);
+
   useEffect(() => {
     const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-    console.log(`[HOMEPAGE] PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}`);
-    fetchSellerAndListings();
-  }, [sellerId, sellerName, useCache, cacheKey]);
+    const effectRequestId = ++requestIdRef.current;
+    console.log(`[HOMEPAGE] PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}, requestId=${effectRequestId}`);
 
-  const fetchSellerAndListings = async () => {
-    setStatus('loading');
-    try {
-      // Debug: fetch start
-      if (useCache && cacheKey) {
-        homeDebugStart(cacheKey);
-      }
-      
-      let profileData: any = null;
-
-      // PREFERRED PATH: Direct lookup by seller ID (fast, reliable)
-      if (sellerId) {
-        console.log('[FEATURED_SHOP] Querying by sellerId:', sellerId);
-        const { data, error } = await supabase
-          .from("public_profiles")
-          .select("user_id, username, display_name, seller_tier, profile_image_url")
-          .eq("user_id", sellerId)
-          .maybeSingle();
-
-        if (error) {
-          console.error('[FEATURED_SHOP] Error querying by sellerId:', error);
-        } else if (!data) {
-          console.error('[FEATURED_SHOP] No seller found with sellerId:', sellerId);
-        } else {
-          profileData = data;
-          console.log('[FEATURED_SHOP] Found seller by ID:', data.display_name || data.username);
+    const fetchSellerAndListings = async () => {
+      setStatus('loading');
+      try {
+        if (useCache && cacheKey) {
+          homeDebugStart(cacheKey);
         }
-      }
-
-      // FALLBACK PATH: Lookup by name (slower, less reliable)
-      if (!profileData && sellerName) {
-        console.log('[FEATURED_SHOP] Falling back to name lookup:', sellerName);
         
-        // Try exact match first
-        let { data, error } = await supabase
-          .from("public_profiles")
-          .select("user_id, username, display_name, seller_tier, profile_image_url")
-          .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
-          .maybeSingle();
+        let profileData: any = null;
 
-        if (!data) {
-          // Try case-insensitive partial match
-          const { data: fuzzyData } = await supabase
+        if (sellerId) {
+          console.log('[FEATURED_SHOP] Querying by sellerId:', sellerId);
+          const { data, error } = await supabase
             .from("public_profiles")
             .select("user_id, username, display_name, seller_tier, profile_image_url")
-            .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
-            .limit(1)
+            .eq("user_id", sellerId)
             .maybeSingle();
+
+          if (error) {
+            console.error('[FEATURED_SHOP] Error querying by sellerId:', error);
+          } else if (!data) {
+            console.error('[FEATURED_SHOP] No seller found with sellerId:', sellerId);
+          } else {
+            profileData = data;
+            console.log('[FEATURED_SHOP] Found seller by ID:', data.display_name || data.username);
+          }
+        }
+
+        if (!profileData && sellerName) {
+          console.log('[FEATURED_SHOP] Falling back to name lookup:', sellerName);
           
-          profileData = fuzzyData;
-        } else {
-          profileData = data;
+          let { data, error } = await supabase
+            .from("public_profiles")
+            .select("user_id, username, display_name, seller_tier, profile_image_url")
+            .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
+            .maybeSingle();
+
+          if (!data) {
+            const { data: fuzzyData } = await supabase
+              .from("public_profiles")
+              .select("user_id, username, display_name, seller_tier, profile_image_url")
+              .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
+              .limit(1)
+              .maybeSingle();
+            
+            profileData = fuzzyData;
+          } else {
+            profileData = data;
+          }
+
+          if (!profileData) {
+            console.error('[FEATURED_SHOP] Seller not found by name:', sellerName);
+          } else {
+            console.log('[FEATURED_SHOP] Found seller by name:', profileData.display_name || profileData.username);
+          }
         }
 
         if (!profileData) {
-          console.error('[FEATURED_SHOP] Seller not found by name:', sellerName);
+          console.error('[FEATURED_SHOP] Failed to find seller. sellerId:', sellerId, 'sellerName:', sellerName);
+          setSellerProfile(null);
+          if (effectRequestId === requestIdRef.current) {
+            setStatus('error');
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (profileData.seller_tier !== 'premium') {
+          console.warn(`[FEATURED_SHOP] Seller not marked as premium tier:`, profileData.display_name || profileData.username);
+        }
+
+        setSellerProfile(profileData);
+
+        let listingsData: any[];
+        if (useCache && cacheKey) {
+          listingsData = await fetchHomepageSellerListings(cacheKey, profileData.user_id, 10);
         } else {
-          console.log('[FEATURED_SHOP] Found seller by name:', profileData.display_name || profileData.username);
+          listingsData = await fetchSellerListings(profileData.user_id, 10);
+        }
+
+        const rawLength = Array.isArray(listingsData) ? listingsData.length : 0;
+        const currentViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+        console.log('[FEATURED_SHOP] raw response listings=', rawLength, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
+
+        if (effectRequestId !== requestIdRef.current) {
+          console.log('[FEATURED_SHOP] Stale response ignored', `(viewport: ${currentViewport}, requestId=${effectRequestId}, currentRequestId=${requestIdRef.current})`);
+          return;
+        }
+
+        setListings(listingsData || []);
+        setStatus('success');
+        console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
+        
+        if (useCache && cacheKey) {
+          homeDebugRender(cacheKey, { count: listingsData?.length || 0 });
+        }
+      } catch (error) {
+        const errViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+        console.error("[FEATURED_SHOP] Error fetching premium dealer listings (viewport:", errViewport, ", requestId=", effectRequestId, "):", error);
+        if (effectRequestId === requestIdRef.current) {
+          setStatus('error');
+        }
+      } finally {
+        if (effectRequestId === requestIdRef.current) {
+          setLoading(false);
         }
       }
+    };
 
-      if (!profileData) {
-        console.error('[FEATURED_SHOP] Failed to find seller. sellerId:', sellerId, 'sellerName:', sellerName);
-        setSellerProfile(null);
-        // Don't clear listings on profile error - keep showing old data if available
-        setStatus('error');
-        setLoading(false);
-        return;
-      }
-
-      // Verify or set as premium tier
-      if (profileData.seller_tier !== 'premium') {
-        console.warn(`[FEATURED_SHOP] Seller not marked as premium tier:`, profileData.display_name || profileData.username);
-      }
-
-      setSellerProfile(profileData);
-
-      // Use unified query helper for consistent data fetching and logging
-      let listingsData: any[];
-      if (useCache && cacheKey) {
-        // Use cached version for homepage
-        listingsData = await fetchHomepageSellerListings(cacheKey, profileData.user_id, 10);
-      } else {
-        // Direct fetch for non-homepage pages
-        listingsData = await fetchSellerListings(profileData.user_id, 10);
-      }
-      
-      setListings(listingsData || []);
-      setStatus('success');
-      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-      console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username, `(viewport: ${viewport})`);
-      
-      // Debug: render
-      if (useCache && cacheKey) {
-        homeDebugRender(cacheKey, { count: listingsData?.length || 0 });
-      }
-    } catch (error) {
-      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-      console.error("[FEATURED_SHOP] Error fetching premium dealer listings (viewport:", viewport, "):", error);
-      // Don't clear seller profile or listings on error - keep showing old data if available
-      setStatus('error');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchSellerAndListings();
+  }, [sellerId, sellerName, useCache, cacheKey]);
 
   if (loading) {
     return (
