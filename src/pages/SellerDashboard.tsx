@@ -24,6 +24,7 @@ import { TradeDrawer } from "@/components/TradeDrawer";
 interface Trade {
   id: string;
   listing_id: string;
+  buyer_id: string;
   status: string;
   created_at: string;
   offer_title: string;
@@ -59,6 +60,7 @@ interface Listing {
 interface Offer {
   id: string;
   listing_id: string;
+  buyer_id: string;
   offer_amount: number;
   status: string;
   created_at: string;
