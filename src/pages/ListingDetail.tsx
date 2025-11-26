@@ -498,47 +498,19 @@ export default function ListingDetail() {
                       variant="outline"
                       size="lg"
                       onClick={() => toast.info("Make Offer is coming soon! For now, use Buy It Now or contact the seller directly.")}
-                      className="min-h-[44px] rounded-md flex flex-col items-center justify-center py-3 font-medium border transition-colors"
-                      style={{
-                        backgroundColor: '#E8F1FF',
-                        color: '#1A4EA3',
-                        borderColor: '#A8C3EE'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#D7E6FF';
-                        e.currentTarget.style.borderColor = '#8FB3E8';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#E8F1FF';
-                        e.currentTarget.style.borderColor = '#A8C3EE';
-                      }}
+                      className="min-h-[44px] rounded-md bg-white border border-neutral-300 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-400 transition-colors"
                       aria-label="Make an offer on this listing"
                     >
-                      <span className="font-semibold">Make Offer</span>
-                      <span className="text-xs mt-0.5" style={{ color: '#1A4EA3', opacity: 0.7 }}>Negotiate a better price</span>
+                      Make Offer
                     </Button>
                     <Button 
                       variant="outline"
                       size="lg"
                       onClick={() => toast.info("Request Trade is coming soon! For now, use Buy It Now or contact the seller directly.")}
-                      className="min-h-[44px] rounded-md flex flex-col items-center justify-center py-3 font-medium border transition-colors"
-                      style={{
-                        backgroundColor: '#FFF4E6',
-                        color: '#A35900',
-                        borderColor: '#F3C28A'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#FFE5C7';
-                        e.currentTarget.style.borderColor = '#E5A85E';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#FFF4E6';
-                        e.currentTarget.style.borderColor = '#F3C28A';
-                      }}
+                      className="min-h-[44px] rounded-md bg-white border border-neutral-300 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-400 transition-colors"
                       aria-label="Request a trade for this listing"
                     >
-                      <span className="font-semibold">Request Trade</span>
-                      <span className="text-xs mt-0.5" style={{ color: '#A35900', opacity: 0.7 }}>Propose a comic-for-comic deal</span>
+                      Request Trade
                     </Button>
                   </div>
                 </div>
