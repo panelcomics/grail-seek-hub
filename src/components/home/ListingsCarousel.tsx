@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChevronRight } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,53 +28,63 @@ export function ListingsCarousel({
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  // Guard against React StrictMode double effects and race conditions between mobile/desktop
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-    console.log(`[HOMEPAGE] ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}`);
+    const effectRequestId = ++requestIdRef.current;
+    console.log(`[HOMEPAGE] ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}, requestId=${effectRequestId}`);
+
+    const fetchListings = async () => {
+      setStatus('loading');
+      try {
+        if (useCache && cacheKey) {
+          homeDebugStart(cacheKey);
+        }
+        
+        let data: Listing[];
+        if (useCache && cacheKey) {
+          data = await fetchHomepageListings(cacheKey, { 
+            filterType: filterType as any, 
+            limit: 8 
+          });
+        } else {
+          data = await fetchListingsBase({ 
+            filterType: filterType as any, 
+            limit: 8 
+          });
+        }
+        
+        const finalLength = Array.isArray(data) ? data.length : 0;
+        const currentViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+        console.log('[HOMEPAGE] CAROUSEL raw response', filterType, 'items=', finalLength, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
+
+        // Only apply the result if this is the latest in-flight request.
+        if (effectRequestId !== requestIdRef.current) {
+          console.log('[HOMEPAGE] CAROUSEL', filterType, 'stale response ignored', `(viewport: ${currentViewport}, requestId=${effectRequestId}, currentRequestId=${requestIdRef.current})`);
+          return;
+        }
+
+        setListings(data || []);
+        setStatus('success');
+
+        if (useCache && cacheKey) {
+          homeDebugRender(cacheKey, { count: data?.length || 0 });
+        }
+      } catch (err) {
+        const errViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+        console.error(`[HOMEPAGE] CAROUSEL ${filterType} error (viewport: ${errViewport}, requestId=${effectRequestId}):`, err);
+        setStatus('error');
+      } finally {
+        if (effectRequestId === requestIdRef.current) {
+          setLoading(false);
+        }
+      }
+    };
+
     fetchListings();
   }, [filterType, useCache, cacheKey]);
-
-  const fetchListings = async () => {
-    setStatus('loading');
-    try {
-      // Debug: fetch start
-      if (useCache && cacheKey) {
-        homeDebugStart(cacheKey);
-      }
-      
-      let data: Listing[];
-      if (useCache && cacheKey) {
-        // Use cached version for homepage
-        data = await fetchHomepageListings(cacheKey, { 
-          filterType: filterType as any, 
-          limit: 8 
-        });
-      } else {
-        // Direct fetch for non-homepage pages
-        data = await fetchListingsBase({ 
-          filterType: filterType as any, 
-          limit: 8 
-        });
-      }
-      
-      console.log('[HOMEPAGE] CAROUSEL', filterType, 'received', data.length, 'listings', `(viewport: ${window.innerWidth}px)`);
-      setListings(data || []);
-      setStatus('success');
-      
-      // Debug: render
-      if (useCache && cacheKey) {
-        homeDebugRender(cacheKey, { count: data?.length || 0 });
-      }
-    } catch (err) {
-      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-      console.error(`[HOMEPAGE] CAROUSEL ${filterType} error (viewport: ${viewport}):`, err);
-      // Don't clear listings on error - keep showing old data if available
-      setStatus('error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <section className="py-4 md:py-8 px-0">

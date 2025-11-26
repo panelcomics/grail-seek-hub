@@ -1,6 +1,14 @@
 /**
- * Lightweight client-side cache for homepage listing carousels
- * Reduces flicker on refresh and improves perceived performance
+ * Lightweight client-side cache for homepage listing carousels.
+ * Mobile & desktop both use this helper so they always share the same
+ * data + versioning rules:
+ *  - We NEVER cache empty arrays from failed/timeout responses.
+ *  - Any time we see fresh non-empty data we overwrite the previous cache.
+ *  - On Supabase errors we prefer the last known non-empty data (memory or
+ *    localStorage) instead of showing an empty homepage.
+ *  *Increment CACHE_VERSION whenever cache semantics change* so old
+ *  mobile Safari localStorage entries are force-cleared and cannot
+ *  reintroduce this flaky "empty but not really" bug.
  */
 
 import { homeDebugCacheHit, homeDebugCacheMiss, homeDebugNetworkSuccess, homeDebugNetworkError, homeDebugStaleData } from './homeDebug';
@@ -84,27 +92,27 @@ export async function getHomepageCached<T>(
   // Never return cached empty arrays - always revalidate
   if (cached && (now - cached.fetchedAt) < HOMEPAGE_CACHE_TTL_MS) {
     const itemCount = Array.isArray(cached.data) ? cached.data.length : '?';
-    
-    // If cached data is non-empty, use it
+
     if (Array.isArray(cached.data) && cached.data.length > 0) {
       const age = now - cached.fetchedAt;
-      console.log(`[HOMEPAGE_CACHE] ${key} → cache hit (${itemCount} items, age=${age}ms)`);
+      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+      console.log(`[HOMEPAGE_CACHE] ${key} → cache hit (${itemCount} items, age=${age}ms, viewport=${viewport})`);
       homeDebugCacheHit(key, { count: itemCount, age });
       return { data: cached.data as T, fromCache: true };
     } else {
-      // Cached data is empty - treat as cache miss and refetch
       console.log(`[HOMEPAGE_CACHE] ${key} → cache has empty data, revalidating`);
     }
   }
 
   // Fetch from network
   try {
-    console.log(`[HOMEPAGE_CACHE] ${key} → network fetch (viewport: ${window.innerWidth}px)`);
+    const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
+    console.log(`[HOMEPAGE_CACHE] ${key} → network fetch (viewport: ${viewport})`);
     homeDebugCacheMiss(key);
     const data = await fetcher();
-    
+
     const itemCount = Array.isArray(data) ? data.length : '?';
-    console.log(`[HOMEPAGE_CACHE] ${key} → network returned ${itemCount} items`);
+    console.log(`[HOMEPAGE_CACHE] ${key} → network returned ${itemCount} items (viewport: ${viewport})`);
     
     // CRITICAL FIX: Only cache non-empty results to prevent poisoned cache
     // Empty arrays from timeouts/errors should not be cached
