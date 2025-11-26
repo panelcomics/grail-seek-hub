@@ -415,12 +415,28 @@ export default function ListingDetail() {
                     {listing.condition}
                   </Badge>
                 )}
-                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Badge 
+                  variant="outline" 
+                  className="text-xs flex items-center gap-1 min-h-[28px]"
+                  style={{ 
+                    backgroundColor: seller?.is_verified_seller ? '#E5E7EB' : 'transparent',
+                    color: '#374151',
+                    borderColor: seller?.is_verified_seller ? '#D1D5DB' : 'currentColor'
+                  }}
+                >
                   <Package className="h-3 w-3" />
                   {seller?.is_verified_seller ? 'Ships from verified seller' : 'Ships nationwide'}
                 </Badge>
                 {seller?.is_verified_seller && (
-                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs flex items-center gap-1 min-h-[28px]"
+                    style={{ 
+                      backgroundColor: '#1D4ED8',
+                      color: '#FFFFFF',
+                      borderColor: 'transparent'
+                    }}
+                  >
                     <Shield className="h-3 w-3" />
                     Verified seller
                   </Badge>
