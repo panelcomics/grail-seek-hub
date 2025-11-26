@@ -6,12 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, MessageSquare, DollarSign, Loader2 } from "lucide-react";
 import { updateOfferStatus, type OfferStatus } from "@/lib/offers/updateOfferStatus";
+import { sendOfferNotification } from "@/lib/notifications/sendOfferNotification";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface OfferDrawerProps {
   offer: {
     id: string;
     listing_id: string;
+    buyer_id: string;
     offer_amount: number;
     status: string;
     created_at: string;
@@ -43,6 +46,36 @@ export function OfferDrawer({ offer, open, onClose, onOfferUpdated }: OfferDrawe
         ? "Offer accepted — buyer will be notified."
         : "Offer declined.";
       toast.success(message);
+      
+      // Send email notification (best-effort, non-blocking)
+      if (newStatus === "accepted") {
+        try {
+          // Fetch buyer's email
+          const { data: buyerProfile } = await supabase
+            .from("profiles")
+            .select("user_id")
+            .eq("user_id", offer.buyer_id)
+            .single();
+
+          if (buyerProfile) {
+            const { data: authData } = await supabase.auth.admin.getUserById(offer.buyer_id);
+            
+            if (authData?.user?.email) {
+              sendOfferNotification({
+                buyerEmail: authData.user.email,
+                buyerName: offer.buyer_username,
+                listingTitle: offer.listing_title || "Untitled Listing",
+                offerAmount: offer.offer_amount,
+                status: newStatus,
+              }).catch(err => {
+                console.error("[NOTIFICATIONS] Email notification failed (non-blocking):", err);
+              });
+            }
+          }
+        } catch (err) {
+          console.error("[NOTIFICATIONS] Error fetching buyer info (non-blocking):", err);
+        }
+      }
       
       // Close drawer and trigger refresh
       onClose();

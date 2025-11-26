@@ -6,12 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, MessageSquare, ArrowRightLeft, Loader2 } from "lucide-react";
 import { updateTradeStatus, type TradeStatus } from "@/lib/trades/updateTradeStatus";
+import { sendTradeNotification } from "@/lib/notifications/sendTradeNotification";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface TradeDrawerProps {
   trade: {
     id: string;
     listing_id: string;
+    buyer_id: string;
     status: string;
     created_at: string;
     message?: string | null;
@@ -44,6 +47,37 @@ export function TradeDrawer({ trade, open, onClose, onTradeUpdated }: TradeDrawe
         ? "Trade approved — buyer will be notified."
         : "Trade declined.";
       toast.success(message);
+      
+      // Send email notification (best-effort, non-blocking)
+      if (newStatus === "approved") {
+        try {
+          // Fetch buyer's email
+          const { data: buyerProfile } = await supabase
+            .from("profiles")
+            .select("user_id")
+            .eq("user_id", trade.buyer_id)
+            .single();
+
+          if (buyerProfile) {
+            const { data: authData } = await supabase.auth.admin.getUserById(trade.buyer_id);
+            
+            if (authData?.user?.email) {
+              sendTradeNotification({
+                buyerEmail: authData.user.email,
+                buyerName: trade.buyer_username,
+                listingTitle: trade.listing_title || "Untitled Listing",
+                offerTitle: trade.offer_title || "Unknown Item",
+                offerIssue: trade.offer_issue,
+                status: newStatus,
+              }).catch(err => {
+                console.error("[NOTIFICATIONS] Email notification failed (non-blocking):", err);
+              });
+            }
+          }
+        } catch (err) {
+          console.error("[NOTIFICATIONS] Error fetching buyer info (non-blocking):", err);
+        }
+      }
       
       // Close drawer and trigger refresh
       onClose();
