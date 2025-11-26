@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -79,7 +80,10 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [artist, setArtist] = useState<string>("");
   const [keyNotes, setKeyNotes] = useState<string>("");
   const [price, setPrice] = useState<string>("");
-  const [cgcCert, setCgcCert] = useState<string>(""); // CGC/barcode/cert number
+  const [shippingPrice, setShippingPrice] = useState<string>("5.00");
+  const [isSlab, setIsSlab] = useState<boolean>(false);
+  const [gradingCompany, setGradingCompany] = useState<string>("CGC");
+  const [certificationNumber, setCertificationNumber] = useState<string>("");
   const [savedItemId, setSavedItemId] = useState<string | null>(null); // Track saved item for multi-image
   const [listingImages, setListingImages] = useState<any[]>([]);
   const [pendingImages, setPendingImages] = useState<File[]>([]); // Track images before save
@@ -234,8 +238,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         issue_number: issueNumber.trim() || null,
         publisher: publisher.trim() || null,
         year: year ? parseInt(year) : null,
-        grade: grade.trim() || null, // e.g., "CGC 9.8"
-        cgc_grade: cgcCert.trim() || null, // Store CGC cert/barcode number
+        grade: grade.trim() || null, // e.g., "9.8" or "VF/NM"
         condition: condition,
         details: notes.trim() || null, // User's notes/description
         comicvine_issue_id: comicvineId ? comicvineId.toString() : null,
@@ -254,6 +257,17 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
           comicvine_reference: selectedCover || null, // Store reference separately
         },
         listing_status: "not_listed",
+        // ComicVine metadata
+        writer: writer.trim() || null,
+        artist: artist.trim() || null,
+        // CGC/Slab info
+        is_slab: isSlab,
+        grading_company: isSlab ? gradingCompany : null,
+        cgc_grade: isSlab ? grade.trim() : null,
+        certification_number: isSlab ? certificationNumber.trim() : null,
+        // Pricing
+        listed_price: price ? parseFloat(price) : null,
+        shipping_price: shippingPrice ? parseFloat(shippingPrice) : null,
       };
 
       // Add pricing data if available
@@ -297,8 +311,13 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       await fetchListingImages(inventoryItem.id);
 
       toast.success("Comic added to your inventory!", {
-        description: pendingImages.length > 0 ? "Your photos have been uploaded!" : "You can add more photos below or finish"
+        description: "Redirecting to manage your book..."
       });
+
+      // Navigate to the inventory item edit page after 1 second
+      setTimeout(() => {
+        navigate(`/inventory/${inventoryItem.id}`);
+      }, 1000);
 
     } catch (error: any) {
       console.error("Error creating listing:", error);
@@ -504,22 +523,22 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="grade">Grade (if graded)</Label>
+                <Label htmlFor="writer">Writer (Optional)</Label>
                 <Input
-                  id="grade"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  placeholder="e.g., CGC 9.8, CBCS 9.6"
+                  id="writer"
+                  value={writer}
+                  onChange={(e) => setWriter(e.target.value)}
+                  placeholder="e.g., Stan Lee"
                 />
               </div>
               
               <div>
-                <Label htmlFor="cgcCert">CGC / Barcode / Cert # (Optional)</Label>
+                <Label htmlFor="artist">Artist (Optional)</Label>
                 <Input
-                  id="cgcCert"
-                  value={cgcCert}
-                  onChange={(e) => setCgcCert(e.target.value)}
-                  placeholder="e.g., 1234567890"
+                  id="artist"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  placeholder="e.g., Jack Kirby"
                 />
               </div>
             </div>
@@ -541,6 +560,57 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                   <SelectItem value="PR">Poor (PR)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            {/* Graded Slab Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isSlab"
+                  checked={isSlab}
+                  onCheckedChange={setIsSlab}
+                />
+                <Label htmlFor="isSlab" className="font-semibold">Professionally Graded (CGC/CBCS/etc.)</Label>
+              </div>
+              
+              {isSlab && (
+                <div className="grid md:grid-cols-3 gap-4 pl-6">
+                  <div>
+                    <Label htmlFor="gradingCompany">Company</Label>
+                    <Select value={gradingCompany} onValueChange={setGradingCompany}>
+                      <SelectTrigger id="gradingCompany">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CGC">CGC</SelectItem>
+                        <SelectItem value="CBCS">CBCS</SelectItem>
+                        <SelectItem value="PGX">PGX</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="grade">Grade</Label>
+                    <Input
+                      id="grade"
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      placeholder="e.g., 9.8"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="certificationNumber">Cert #</Label>
+                    <Input
+                      id="certificationNumber"
+                      value={certificationNumber}
+                      onChange={(e) => setCertificationNumber(e.target.value)}
+                      placeholder="1234567890"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
           {/* Variant & Key Details Section */}
@@ -651,24 +721,41 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
               />
           </div>
 
-          {/* Price & Pricing Helper */}
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="price">Price</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-muted-foreground">
-                {isFoundingSeller 
-                  ? `Your seller fee: ${FEE_DISPLAY_TEXT.FOUNDING_RATE} GrailSeeker fee + Stripe processing (${FEE_DISPLAY_TEXT.STRIPE_RATE})` 
-                  : `Your seller fee: ${FEE_DISPLAY_TEXT.STANDARD_RATE} GrailSeeker fee + Stripe processing (${FEE_DISPLAY_TEXT.STRIPE_RATE})`}
-              </p>
+          {/* Price & Shipping */}
+          <div className="space-y-3 pt-4 border-t">
+            <h3 className="text-lg font-semibold">Pricing (Optional)</h3>
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">Sale Price ($)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                />
+                {price && parseFloat(price) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {isFoundingSeller ? "2%" : "3.75%"} platform fee ({FEE_DISPLAY_TEXT.FOUNDING_RATE})
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="shippingPrice">Shipping ($)</Label>
+                <Input
+                  id="shippingPrice"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={shippingPrice}
+                  onChange={(e) => setShippingPrice(e.target.value)}
+                  placeholder="5.00"
+                />
+              </div>
             </div>
             
             {title && (

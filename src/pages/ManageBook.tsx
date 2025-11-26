@@ -409,6 +409,7 @@ export default function ManageBook() {
                       src={
                         listingImages.find(img => img.is_primary)?.url ||
                         listingImages[0]?.url ||
+                        (item.images && typeof item.images === 'object' && item.images.front) ||
                         (item.images && Array.isArray(item.images) && item.images.length > 0 
                           ? (typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url)
                           : '/placeholder.svg')
