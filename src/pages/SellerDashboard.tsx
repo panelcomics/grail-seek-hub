@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, DollarSign, ShoppingBag, MessageSquare } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Package, DollarSign, ShoppingBag, MessageSquare, Search, SlidersHorizontal } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -30,6 +34,9 @@ interface Listing {
   listing_status: string | null;
   created_at: string;
   images: any;
+  is_for_trade?: boolean | null;
+  grading_company?: string | null;
+  series?: string | null;
 }
 
 interface Offer {
@@ -54,6 +61,14 @@ const SellerDashboard = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [gradingFilter, setGradingFilter] = useState<string>("all");
+  const [minPrice, setMinPrice] = useState<string>("");
+  const [maxPrice, setMaxPrice] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("newest");
 
   useEffect(() => {
     if (!user) {
@@ -85,11 +100,11 @@ const SellerDashboard = () => {
     try {
       const { data, error } = await supabase
         .from("inventory_items")
-        .select("id, title, issue_number, listed_price, listing_status, created_at, images, sold_at")
+        .select("id, title, issue_number, listed_price, listing_status, created_at, images, sold_at, is_for_trade, grading_company, series")
         .eq("user_id", user.id)
-        .in("listing_status", ["listed", "active", "sold"])
+        .in("listing_status", ["listed", "active", "sold", "draft", "inactive"])
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(100);
 
       if (error) {
         console.error("[SELLER-DASHBOARD] Error fetching listings:", error);
@@ -181,6 +196,75 @@ const SellerDashboard = () => {
     }
   };
 
+  // Filtered and sorted listings
+  const filteredAndSortedListings = useMemo(() => {
+    let filtered = [...listings];
+
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((listing) => {
+        const status = listing.listing_status?.toLowerCase();
+        if (statusFilter === "for_sale") return status === "listed" || status === "active";
+        if (statusFilter === "auction") return status === "auction";
+        if (statusFilter === "for_trade") return listing.is_for_trade === true;
+        if (statusFilter === "inactive") return status === "draft" || status === "inactive";
+        return true;
+      });
+    }
+
+    // Grading filter
+    if (gradingFilter !== "all") {
+      filtered = filtered.filter((listing) => {
+        const company = listing.grading_company?.toLowerCase();
+        if (gradingFilter === "raw") return !company || company === "";
+        if (gradingFilter === "cbcs") return company === "cbcs";
+        if (gradingFilter === "cgc") return company === "cgc";
+        return true;
+      });
+    }
+
+    // Price filter
+    const min = minPrice ? parseFloat(minPrice) : null;
+    const max = maxPrice ? parseFloat(maxPrice) : null;
+    if (min !== null || max !== null) {
+      filtered = filtered.filter((listing) => {
+        const price = listing.listed_price;
+        if (price === null) return false;
+        if (min !== null && price < min) return false;
+        if (max !== null && price > max) return false;
+        return true;
+      });
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((listing) => {
+        const title = listing.title?.toLowerCase() || "";
+        const issue = listing.issue_number?.toLowerCase() || "";
+        const series = listing.series?.toLowerCase() || "";
+        return title.includes(query) || issue.includes(query) || series.includes(query);
+      });
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      if (sortBy === "price_low") {
+        return (a.listed_price || 0) - (b.listed_price || 0);
+      }
+      if (sortBy === "price_high") {
+        return (b.listed_price || 0) - (a.listed_price || 0);
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      // Default: newest
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    return filtered;
+  }, [listings, statusFilter, gradingFilter, minPrice, maxPrice, searchQuery, sortBy]);
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -258,8 +342,196 @@ const SellerDashboard = () => {
           <CardDescription>All your active and sold listings</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Desktop Filters */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div>
+              <Label htmlFor="status-filter" className="text-sm font-medium mb-1.5 block">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="status-filter">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="for_sale">For Sale</SelectItem>
+                  <SelectItem value="auction">Auction</SelectItem>
+                  <SelectItem value="for_trade">For Trade</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="grading-filter" className="text-sm font-medium mb-1.5 block">Grading</Label>
+              <Select value={gradingFilter} onValueChange={setGradingFilter}>
+                <SelectTrigger id="grading-filter">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="raw">Raw</SelectItem>
+                  <SelectItem value="cbcs">CBCS</SelectItem>
+                  <SelectItem value="cgc">CGC</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="sort-by" className="text-sm font-medium mb-1.5 block">Sort By</Label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger id="sort-by">
+                  <SelectValue placeholder="Newest Added" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest Added</SelectItem>
+                  <SelectItem value="oldest">Oldest Added</SelectItem>
+                  <SelectItem value="price_low">Price (Low → High)</SelectItem>
+                  <SelectItem value="price_high">Price (High → Low)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="search-filter" className="text-sm font-medium mb-1.5 block">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search-filter"
+                  placeholder="Title, issue, series..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="min-price" className="text-sm font-medium mb-1.5 block">Min Price</Label>
+              <Input
+                id="min-price"
+                type="number"
+                placeholder="0"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="max-price" className="text-sm font-medium mb-1.5 block">Max Price</Label>
+              <Input
+                id="max-price"
+                type="number"
+                placeholder="Any"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Mobile Filters */}
+          <div className="md:hidden mb-6">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="filters">
+                <AccordionTrigger className="text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters & Sorting
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <Label htmlFor="status-filter-mobile" className="text-sm font-medium mb-1.5 block">Status</Label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger id="status-filter-mobile">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="for_sale">For Sale</SelectItem>
+                          <SelectItem value="auction">Auction</SelectItem>
+                          <SelectItem value="for_trade">For Trade</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="grading-filter-mobile" className="text-sm font-medium mb-1.5 block">Grading</Label>
+                      <Select value={gradingFilter} onValueChange={setGradingFilter}>
+                        <SelectTrigger id="grading-filter-mobile">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="raw">Raw</SelectItem>
+                          <SelectItem value="cbcs">CBCS</SelectItem>
+                          <SelectItem value="cgc">CGC</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="sort-by-mobile" className="text-sm font-medium mb-1.5 block">Sort By</Label>
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger id="sort-by-mobile">
+                          <SelectValue placeholder="Newest Added" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="newest">Newest Added</SelectItem>
+                          <SelectItem value="oldest">Oldest Added</SelectItem>
+                          <SelectItem value="price_low">Price (Low → High)</SelectItem>
+                          <SelectItem value="price_high">Price (High → Low)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="search-filter-mobile" className="text-sm font-medium mb-1.5 block">Search</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="search-filter-mobile"
+                          placeholder="Title, issue, series..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="min-price-mobile" className="text-sm font-medium mb-1.5 block">Min Price</Label>
+                        <Input
+                          id="min-price-mobile"
+                          type="number"
+                          placeholder="0"
+                          value={minPrice}
+                          onChange={(e) => setMinPrice(e.target.value)}
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="max-price-mobile" className="text-sm font-medium mb-1.5 block">Max Price</Label>
+                        <Input
+                          id="max-price-mobile"
+                          type="number"
+                          placeholder="Any"
+                          value={maxPrice}
+                          onChange={(e) => setMaxPrice(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+
           {listings.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No listings yet. Start by creating your first listing!</p>
+          ) : filteredAndSortedListings.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No listings match your filters.</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -274,7 +546,7 @@ const SellerDashboard = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {listings.map((listing) => (
+                  {filteredAndSortedListings.map((listing) => (
                     <TableRow key={listing.id}>
                       <TableCell className="font-medium">{listing.title || "Untitled"}</TableCell>
                       <TableCell>{listing.issue_number || "—"}</TableCell>
