@@ -78,6 +78,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
   const [keyType, setKeyType] = useState<string>("");
   const [writer, setWriter] = useState<string>("");
   const [artist, setArtist] = useState<string>("");
+  const [coverArtist, setCoverArtist] = useState<string>("");
   const [keyNotes, setKeyNotes] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [shippingPrice, setShippingPrice] = useState<string>("5.00");
@@ -106,6 +107,8 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
       // Set writer and artist from ComicVine
       setWriter(selectedPick.writer || "");
       setArtist(selectedPick.artist || "");
+      // NOTE: ComicVine doesn't provide a separate "cover artist" field in their API
+      // Users will need to manually enter cover artist if it differs from interior artist
       
       // Extract key notes if available (will be passed from parent with full description)
       const description = (selectedPick as any).description;
@@ -260,6 +263,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         // ComicVine metadata
         writer: writer.trim() || null,
         artist: artist.trim() || null,
+        cover_artist: coverArtist.trim() || null,
         // CGC/Slab info
         is_slab: isSlab,
         grading_company: isSlab ? gradingCompany : null,
@@ -519,26 +523,13 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                   />
                 </div>
               </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="writer">Writer (Optional)</Label>
+                <Label htmlFor="coverArtist">Cover Artist (Optional)</Label>
                 <Input
-                  id="writer"
-                  value={writer}
-                  onChange={(e) => setWriter(e.target.value)}
-                  placeholder="e.g., Stan Lee"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="artist">Artist (Optional)</Label>
-                <Input
-                  id="artist"
-                  value={artist}
-                  onChange={(e) => setArtist(e.target.value)}
-                  placeholder="e.g., Jack Kirby"
+                  id="coverArtist"
+                  value={coverArtist}
+                  onChange={(e) => setCoverArtist(e.target.value)}
+                  placeholder="e.g., Alex Ross, J. Scott Campbell"
                 />
               </div>
             </div>
@@ -592,12 +583,37 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                   
                   <div>
                     <Label htmlFor="grade">Grade</Label>
-                    <Input
-                      id="grade"
-                      value={grade}
-                      onChange={(e) => setGrade(e.target.value)}
-                      placeholder="e.g., 9.8"
-                    />
+                    <Select value={grade} onValueChange={setGrade}>
+                      <SelectTrigger id="grade">
+                        <SelectValue placeholder="Select grade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10.0">10.0</SelectItem>
+                        <SelectItem value="9.9">9.9</SelectItem>
+                        <SelectItem value="9.8">9.8</SelectItem>
+                        <SelectItem value="9.6">9.6</SelectItem>
+                        <SelectItem value="9.4">9.4</SelectItem>
+                        <SelectItem value="9.2">9.2</SelectItem>
+                        <SelectItem value="9.0">9.0</SelectItem>
+                        <SelectItem value="8.5">8.5</SelectItem>
+                        <SelectItem value="8.0">8.0</SelectItem>
+                        <SelectItem value="7.5">7.5</SelectItem>
+                        <SelectItem value="7.0">7.0</SelectItem>
+                        <SelectItem value="6.5">6.5</SelectItem>
+                        <SelectItem value="6.0">6.0</SelectItem>
+                        <SelectItem value="5.5">5.5</SelectItem>
+                        <SelectItem value="5.0">5.0</SelectItem>
+                        <SelectItem value="4.5">4.5</SelectItem>
+                        <SelectItem value="4.0">4.0</SelectItem>
+                        <SelectItem value="3.5">3.5</SelectItem>
+                        <SelectItem value="3.0">3.0</SelectItem>
+                        <SelectItem value="2.5">2.5</SelectItem>
+                        <SelectItem value="2.0">2.0</SelectItem>
+                        <SelectItem value="1.5">1.5</SelectItem>
+                        <SelectItem value="1.0">1.0</SelectItem>
+                        <SelectItem value="0.5">0.5</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>
@@ -840,16 +856,16 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
             )}
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Button - Simplified to just Cancel + Save */}
           <div className="flex gap-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
-              onClick={() => savedItemId ? navigate("/my-inventory") : navigate("/scanner")}
+              onClick={() => navigate("/scanner")}
               disabled={submitting}
               className="flex-1"
             >
-              {savedItemId ? "Done" : "Cancel"}
+              Cancel
             </Button>
             <Button
               type="submit"
@@ -857,7 +873,7 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
               className="flex-1"
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {savedItemId ? "Update Item" : "Save to Inventory"}
+              Save
             </Button>
           </div>
         </form>

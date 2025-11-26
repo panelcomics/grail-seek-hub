@@ -44,6 +44,7 @@ export default function ManageBook() {
     key_type: "",
     writer: "",
     artist: "",
+    cover_artist: "",
     is_slab: false,
     cgc_grade: "",
     grading_company: "CGC",
@@ -111,6 +112,7 @@ export default function ManageBook() {
         key_type: data.key_type || "",
         writer: data.writer || "",
         artist: data.artist || "",
+        cover_artist: data.cover_artist || "",
         is_slab: data.is_slab || false,
         cgc_grade: data.cgc_grade || "",
         grading_company: data.grading_company || "CGC",
@@ -200,6 +202,7 @@ export default function ManageBook() {
         key_type: formData.is_key ? (formData.key_type || null) : null,
         writer: formData.writer || null,
         artist: formData.artist || null,
+        cover_artist: formData.cover_artist || null,
         is_slab: formData.is_slab,
         grading_company: formData.is_slab ? formData.grading_company : null,
         cgc_grade: formData.is_slab ? formData.cgc_grade : null,
@@ -529,7 +532,7 @@ export default function ManageBook() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div>
                     <Label htmlFor="writer">Writer</Label>
                     <Input
                       id="writer"
@@ -539,13 +542,23 @@ export default function ManageBook() {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div>
                     <Label htmlFor="artist">Artist</Label>
                     <Input
                       id="artist"
                       value={formData.artist}
                       onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
                       placeholder="John Romita Sr."
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Label htmlFor="cover_artist">Cover Artist (Optional)</Label>
+                    <Input
+                      id="cover_artist"
+                      value={formData.cover_artist}
+                      onChange={(e) => setFormData({ ...formData, cover_artist: e.target.value })}
+                      placeholder="Alex Ross, J. Scott Campbell, etc."
                     />
                   </div>
                 </div>
@@ -643,12 +656,40 @@ export default function ManageBook() {
 
                       <div>
                         <Label htmlFor="cgc_grade">Grade</Label>
-                        <Input
-                          id="cgc_grade"
+                        <Select
                           value={formData.cgc_grade}
-                          onChange={(e) => setFormData({ ...formData, cgc_grade: e.target.value })}
-                          placeholder="9.8"
-                        />
+                          onValueChange={(value) => setFormData({ ...formData, cgc_grade: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select grade" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10.0">10.0</SelectItem>
+                            <SelectItem value="9.9">9.9</SelectItem>
+                            <SelectItem value="9.8">9.8</SelectItem>
+                            <SelectItem value="9.6">9.6</SelectItem>
+                            <SelectItem value="9.4">9.4</SelectItem>
+                            <SelectItem value="9.2">9.2</SelectItem>
+                            <SelectItem value="9.0">9.0</SelectItem>
+                            <SelectItem value="8.5">8.5</SelectItem>
+                            <SelectItem value="8.0">8.0</SelectItem>
+                            <SelectItem value="7.5">7.5</SelectItem>
+                            <SelectItem value="7.0">7.0</SelectItem>
+                            <SelectItem value="6.5">6.5</SelectItem>
+                            <SelectItem value="6.0">6.0</SelectItem>
+                            <SelectItem value="5.5">5.5</SelectItem>
+                            <SelectItem value="5.0">5.0</SelectItem>
+                            <SelectItem value="4.5">4.5</SelectItem>
+                            <SelectItem value="4.0">4.0</SelectItem>
+                            <SelectItem value="3.5">3.5</SelectItem>
+                            <SelectItem value="3.0">3.0</SelectItem>
+                            <SelectItem value="2.5">2.5</SelectItem>
+                            <SelectItem value="2.0">2.0</SelectItem>
+                            <SelectItem value="1.5">1.5</SelectItem>
+                            <SelectItem value="1.0">1.0</SelectItem>
+                            <SelectItem value="0.5">0.5</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div>
