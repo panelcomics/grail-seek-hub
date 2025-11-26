@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { OfferDrawer } from "@/components/OfferDrawer";
 
 interface SellerStats {
   activeListings: number;
@@ -46,6 +47,10 @@ interface Offer {
   status: string;
   created_at: string;
   listing_title?: string;
+  message?: string | null;
+  listing_image?: string | null;
+  buyer_username?: string;
+  buyer_avatar?: string | null;
 }
 
 
@@ -61,6 +66,8 @@ const SellerDashboard = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -133,39 +140,67 @@ const SellerDashboard = () => {
     try {
       const { data, error } = await supabase
         .from("offers")
-        .select("id, listing_id, offer_amount, status, created_at")
+        .select("id, listing_id, offer_amount, status, created_at, message, buyer_id")
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(50);
 
       if (error) {
         console.error("[SELLER-DASHBOARD] Error fetching offers:", error);
         return;
       }
 
-      // Fetch listing titles for each offer
-      const offersWithTitles = await Promise.all(
+      // Fetch listing details and buyer info for each offer
+      const offersWithDetails = await Promise.all(
         (data || []).map(async (offer) => {
+          // Fetch listing info
           const { data: listing } = await supabase
             .from("inventory_items")
-            .select("title")
+            .select("title, images")
             .eq("id", offer.listing_id)
             .single();
+
+          // Fetch buyer profile
+          const { data: buyerProfile } = await supabase
+            .from("profiles")
+            .select("username, profile_image_url")
+            .eq("user_id", offer.buyer_id)
+            .single();
+
+          // Extract front image URL
+          let listingImage = null;
+          if (listing?.images && typeof listing.images === 'object') {
+            const images = listing.images as any;
+            listingImage = images.front || null;
+          }
           
           return {
             ...offer,
-            listing_title: listing?.title || "Unknown Listing"
+            listing_title: listing?.title || "Unknown Listing",
+            listing_image: listingImage,
+            buyer_username: buyerProfile?.username || "Anonymous",
+            buyer_avatar: buyerProfile?.profile_image_url || null
           };
         })
       );
 
-      setOffers(offersWithTitles);
+      setOffers(offersWithDetails);
 
-      const pending = offersWithTitles?.filter(o => o.status === "pending").length || 0;
+      const pending = offersWithDetails?.filter(o => o.status === "pending").length || 0;
       setStats(prev => ({ ...prev, pendingOffers: pending }));
     } catch (error) {
       console.error("[SELLER-DASHBOARD] Error in fetchOffers:", error);
     }
+  };
+
+  const handleOfferClick = (offer: Offer) => {
+    setSelectedOffer(offer);
+    setDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setTimeout(() => setSelectedOffer(null), 300);
   };
 
 
@@ -589,7 +624,11 @@ const SellerDashboard = () => {
                 </TableHeader>
                 <TableBody>
                   {offers.map((offer) => (
-                    <TableRow key={offer.id}>
+                    <TableRow 
+                      key={offer.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleOfferClick(offer)}
+                    >
                       <TableCell className="font-medium">
                         {offer.listing_title || "Unknown Listing"}
                       </TableCell>
@@ -604,6 +643,13 @@ const SellerDashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Offer Detail Drawer */}
+      <OfferDrawer 
+        offer={selectedOffer}
+        open={drawerOpen}
+        onClose={handleCloseDrawer}
+      />
 
     </div>
   );
