@@ -219,7 +219,7 @@ const SellerDashboard = () => {
 
     try {
       const { data, error } = await supabase
-        .from("trades")
+        .from("trade_requests")
         .select("id, listing_id, status, created_at, offer_title, offer_issue, message, buyer_id")
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false })
@@ -238,14 +238,14 @@ const SellerDashboard = () => {
             .from("inventory_items")
             .select("title, images")
             .eq("id", trade.listing_id)
-            .single();
+            .maybeSingle();
 
           // Fetch buyer profile
           const { data: buyerProfile } = await supabase
             .from("profiles")
             .select("username, profile_image_url")
             .eq("user_id", trade.buyer_id)
-            .single();
+            .maybeSingle();
 
           // Extract front image URL
           let listingImage = null;
