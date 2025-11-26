@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     }
 
     // Insert trade request
-    const { error: insertError } = await supabaseClient.from('trades').insert({
+    const { error: insertError } = await supabaseClient.from('trade_requests').insert({
       listing_id: listingId,
       buyer_id: user.id,
       seller_id: listing.user_id,
