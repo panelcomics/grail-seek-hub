@@ -302,10 +302,8 @@ export default function TradeDetail() {
         <MakeOfferModal
           isOpen={showOfferModal}
           onClose={() => setShowOfferModal(false)}
-          itemId={item.id}
+          listingId={item.id}
           itemTitle={`${item.series || item.title}${item.issue_number ? ` #${item.issue_number}` : ""}`}
-          ownerId={item.user_id}
-          currentUserId={user.id}
         />
       )}
     </>

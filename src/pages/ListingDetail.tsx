@@ -21,6 +21,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { MakeOfferModal } from "@/components/MakeOfferModal";
 import { Share2, Copy } from "lucide-react";
 import { Listing, ListingProfile } from "@/types/listing";
 
@@ -96,6 +97,7 @@ export default function ListingDetail() {
     zip: "",
     country: "US",
   });
+  const [showOfferModal, setShowOfferModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -514,7 +516,7 @@ export default function ListingDetail() {
                       <Button 
                         variant="outline"
                         size="lg"
-                        onClick={() => toast.info("Make Offer is coming soon! For now, use Buy It Now or contact the seller directly.")}
+                        onClick={() => setShowOfferModal(true)}
                         className="min-h-[44px] rounded-md bg-white border border-neutral-400 text-neutral-800 font-medium hover:bg-neutral-100 hover:border-neutral-500 transition-colors"
                         aria-label="Make an offer on this listing"
                       >
@@ -757,6 +759,15 @@ export default function ListingDetail() {
           </div>
         </div>
       </div>
+
+      {listing && (
+        <MakeOfferModal
+          isOpen={showOfferModal}
+          onClose={() => setShowOfferModal(false)}
+          listingId={listing.id}
+          itemTitle={listing.title || listing.inventory_items?.title || "Comic"}
+        />
+      )}
     </main>
     </>
   );

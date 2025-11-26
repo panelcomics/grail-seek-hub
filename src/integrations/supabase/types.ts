@@ -1740,6 +1740,39 @@ export type Database = {
         }
         Relationships: []
       }
+      offers: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          listing_id: string
+          message: string | null
+          offer_amount: number
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          message?: string | null
+          offer_amount: number
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          message?: string | null
+          offer_amount?: number
+          seller_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           amount: number
