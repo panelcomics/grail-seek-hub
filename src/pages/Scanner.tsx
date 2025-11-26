@@ -69,6 +69,8 @@ export default function Scanner() {
   
   // Search state
   const [manualSearchQuery, setManualSearchQuery] = useState("");
+  const [manualSearchIssue, setManualSearchIssue] = useState("");
+  const [manualSearchYear, setManualSearchYear] = useState("");
   const [manualSearchLoading, setManualSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<ComicVinePick[]>([]);
   const [volumeResults, setVolumeResults] = useState<any[]>([]);
@@ -433,13 +435,14 @@ export default function Scanner() {
 
     try {
       const currentOffset = appendResults ? pagination.offset + pagination.limit : 0;
+      const searchYear = manualSearchYear ? parseInt(manualSearchYear) : undefined;
       
       // Try local volume cache first
       const { data: localData, error: localError } = await supabase.functions.invoke('volumes-suggest', {
         body: {
           q: manualSearchQuery,
           publisher: debugData.extracted?.publisher,
-          year: debugData.extracted?.year,
+          year: searchYear || debugData.extracted?.year,
           limit: 20,
           offset: currentOffset
         }
@@ -476,10 +479,12 @@ export default function Scanner() {
         return;
       }
 
-      // Fallback to live ComicVine search
+      // Fallback to live ComicVine search with enhanced parameters
       const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
         body: {
           searchText: manualSearchQuery,
+          issueNumber: manualSearchIssue || undefined,
+          year: searchYear,
           publisher: debugData.extracted?.publisher,
           offset: currentOffset,
           limit: 20,
@@ -754,6 +759,8 @@ export default function Scanner() {
     setConfidence(null);
     setError(null);
     setManualSearchQuery("");
+    setManualSearchIssue("");
+    setManualSearchYear("");
     setFilterNotReprint(false);
     setFilterWrongYear(false);
     setFilterSlabbed(false);
@@ -998,29 +1005,58 @@ export default function Scanner() {
           <CardHeader>
             <CardTitle className="text-lg">Didn't find the right comic?</CardTitle>
             <CardDescription className="space-y-1">
-              <span className="block">Refine the search below. Try "Amazing Spider-Man 129" or just the title.</span>
+              <span className="block">Refine your search with series title, issue number, and optional year</span>
               <span className="block text-xs text-muted-foreground">
                 Searching local ComicVine index first for speed & accuracy
               </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="grid md:grid-cols-3 gap-2">
+              <div className="md:col-span-2">
+                <Input
+                  placeholder="Series title (e.g., Amazing Spider-Man)"
+                  value={manualSearchQuery}
+                  onChange={(e) => setManualSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleManualSearch(false)}
+                  disabled={manualSearchLoading}
+                />
+              </div>
               <Input
-                placeholder="e.g., Amazing Spider-Man #129 (1974) Marvel"
-                value={manualSearchQuery}
-                onChange={(e) => setManualSearchQuery(e.target.value)}
+                placeholder="Issue # (e.g., 300)"
+                value={manualSearchIssue}
+                onChange={(e) => setManualSearchIssue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleManualSearch(false)}
                 disabled={manualSearchLoading}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Year (optional, e.g., 1988)"
+                value={manualSearchYear}
+                onChange={(e) => setManualSearchYear(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleManualSearch(false)}
+                disabled={manualSearchLoading}
+                type="number"
+                min="1930"
+                max={new Date().getFullYear() + 1}
+                className="max-w-[200px]"
               />
               <Button
                 onClick={() => handleManualSearch(false)}
                 disabled={manualSearchLoading || !manualSearchQuery.trim()}
+                className="flex-shrink-0"
               >
                 {manualSearchLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Searching...
+                  </>
                 ) : (
-                  <Search className="h-4 w-4" />
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Search
+                  </>
                 )}
               </Button>
             </div>

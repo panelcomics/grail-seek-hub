@@ -174,17 +174,17 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { searchText, publisher, offset = 0, limit = 20 } = body;
-
-    if (!searchText || typeof searchText !== 'string') {
-      return new Response(JSON.stringify({ 
-        ok: false, 
-        error: "searchText is required" 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { 
+      searchText, 
+      publisher, 
+      offset = 0, 
+      limit = 20,
+      // Multi-strategy matching inputs
+      comicvine_volume_id,
+      comicvine_issue_id,
+      issueNumber,
+      year
+    } = body;
 
     const COMICVINE_API_KEY = Deno.env.get("COMICVINE_API_KEY");
     
@@ -199,9 +199,91 @@ serve(async (req) => {
       });
     }
 
+    // ============================================================
+    // STRATEGY 1: Direct ID lookup (highest priority)
+    // ============================================================
+    if (comicvine_issue_id && comicvine_volume_id) {
+      console.log('[MANUAL-SEARCH] Strategy: Direct ID lookup');
+      try {
+        const issueUrl = `https://comicvine.gamespot.com/api/issue/4000-${comicvine_issue_id}/?api_key=${COMICVINE_API_KEY}&format=json&field_list=id,name,issue_number,volume,cover_date,image,person_credits,description`;
+        
+        const response = await fetch(issueUrl, {
+          headers: { "User-Agent": "GrailSeeker/1.0 (panelcomics.com)" }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results) {
+            const issue = data.results;
+            const credits = extractCreatorCredits(issue.person_credits);
+            
+            const result = {
+              id: issue.id,
+              resource: 'issue' as const,
+              title: issue.volume?.name || issue.name,
+              issue: issue.issue_number,
+              year: issue.cover_date ? parseInt(issue.cover_date.slice(0, 4)) : null,
+              publisher: issue.volume?.publisher?.name || null,
+              volumeName: issue.volume?.name,
+              volumeId: comicvine_volume_id,
+              thumbUrl: issue.image?.small_url || "",
+              coverUrl: issue.image?.original_url || "",
+              writer: credits.writer,
+              artist: credits.artist,
+              score: 1.0, // Perfect match via ID
+              scoreBreakdown: { title: 0, publisher: 0, issue: 0 },
+              source: 'comicvine' as const,
+              isReprint: false
+            };
+            
+            console.log('[MANUAL-SEARCH] Direct ID match found');
+            return new Response(JSON.stringify({
+              ok: true,
+              results: [result],
+              totalResults: 1,
+              offset: 0,
+              limit: 1,
+              hasMore: false,
+              query: `ID:${comicvine_issue_id}`,
+              parsed: null
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[MANUAL-SEARCH] Direct ID lookup failed:', error);
+        // Fall through to other strategies
+      }
+    }
+
+    // ============================================================
+    // STRATEGY 2: Structured search (title + issue + year)
+    // ============================================================
+    if (!searchText || typeof searchText !== 'string') {
+      return new Response(JSON.stringify({ 
+        ok: false, 
+        error: "searchText is required for non-ID search" 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Parse the user's input
     const parsed = parseManualInput(searchText);
     console.log('[MANUAL-SEARCH] Parsed input:', parsed);
+
+    // Use explicit issue number if provided, otherwise use parsed
+    const finalIssueNumber = issueNumber || parsed.issue;
+    const finalYear = year;
+
+    console.log('[MANUAL-SEARCH] Strategy: Structured search', {
+      title: parsed.title,
+      issue: finalIssueNumber,
+      year: finalYear,
+      publisher
+    });
 
     // Generate multiple query variants
     const queryVariants = generateQueryVariants(searchText, publisher);
@@ -224,9 +306,9 @@ serve(async (req) => {
           successfulQuery = variant.query;
           
           // If user specified an issue number, search for that specific issue
-          if (parsed.issue) {
+          if (finalIssueNumber) {
             for (const volume of volumes.slice(0, 10)) {
-              const issues = await queryComicVineIssue(COMICVINE_API_KEY, volume.id, parsed.issue);
+              const issues = await queryComicVineIssue(COMICVINE_API_KEY, volume.id, finalIssueNumber);
               
               for (const issue of issues) {
                 const volumePub = volume.publisher?.name || publisher || "";
@@ -235,28 +317,39 @@ serve(async (req) => {
                 
                 // Calculate score based on match quality
                 let score = 0.70; // Base score
-                const scoreBreakdown = { title: 0, publisher: 0, issue: 0 };
+                const scoreBreakdown = { title: 0, publisher: 0, issue: 0, year: 0 };
                 
-                // Title match
+                // Title match (40%)
                 const titleWords = parsed.title.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
                 const volumeNameLower = volumeName.toLowerCase();
                 const titleMatchCount = titleWords.filter((w: string) => volumeNameLower.includes(w)).length;
                 const titleMatchRatio = titleWords.length > 0 ? titleMatchCount / titleWords.length : 0;
                 scoreBreakdown.title = titleMatchRatio * 0.40;
                 
-                // Publisher match
+                // Publisher match (25%)
                 if (publisher && volumePub.toLowerCase().includes(publisher.toLowerCase())) {
-                  scoreBreakdown.publisher = 0.30;
+                  scoreBreakdown.publisher = 0.25;
                 }
                 
-                // Issue number match (exact)
-                if (issue.issue_number === parsed.issue) {
-                  scoreBreakdown.issue = 0.30;
+                // Issue number match (25%)
+                if (issue.issue_number === finalIssueNumber) {
+                  scoreBreakdown.issue = 0.25;
                 }
                 
-                score = scoreBreakdown.title + scoreBreakdown.publisher + scoreBreakdown.issue;
+                // Year match (10%)
+                if (finalYear && issue.cover_date) {
+                  const issueYear = parseInt(issue.cover_date.slice(0, 4));
+                  const yearDiff = Math.abs(finalYear - issueYear);
+                  if (yearDiff === 0) {
+                    scoreBreakdown.year = 0.10;
+                  } else if (yearDiff <= 2) {
+                    scoreBreakdown.year = 0.05;
+                  }
+                }
                 
-                // Bonus: if all three match well
+                score = scoreBreakdown.title + scoreBreakdown.publisher + scoreBreakdown.issue + scoreBreakdown.year;
+                
+                // Bonus: if all signals match well
                 if (scoreBreakdown.title >= 0.30 && scoreBreakdown.publisher > 0 && scoreBreakdown.issue > 0) {
                   score = Math.min(0.98, score + 0.10);
                 }
@@ -347,17 +440,27 @@ serve(async (req) => {
       limit,
       hasMore: offset + results.length < totalResults,
       query: searchText,
-      parsed
+      parsed,
+      strategy: comicvine_issue_id ? 'id_lookup' : 'structured_search'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
     console.error('[MANUAL-SEARCH] Error:', error);
+    // Return safe empty response on error (don't throw)
+    const body = await req.json().catch(() => ({}));
     return new Response(JSON.stringify({
-      ok: false,
-      error: error.message || "Internal server error"
+      ok: true, // Don't fail - just return empty
+      results: [],
+      totalResults: 0,
+      offset: 0,
+      limit: 0,
+      hasMore: false,
+      query: body.searchText || '',
+      parsed: null,
+      error: error.message || "Search failed"
     }), {
-      status: 500,
+      status: 200, // Return 200 to avoid breaking client
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
