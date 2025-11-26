@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AppHeader() {
@@ -175,6 +175,10 @@ export function AppHeader() {
                       <DropdownLink href="/my-orders" onClick={() => setIsOpen(false)}>
                         <ShoppingBag className="mr-2 h-4 w-4" />
                         My Orders
+                      </DropdownLink>
+                      <DropdownLink href="/account/offers" onClick={() => setIsOpen(false)}>
+                        <HandshakeIcon className="mr-2 h-4 w-4" />
+                        My Offers & Trades
                       </DropdownLink>
                       <DropdownLink href="/messages" onClick={() => setIsOpen(false)}>
                         <MessageSquare className="mr-2 h-4 w-4" />
