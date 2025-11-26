@@ -498,21 +498,47 @@ export default function ListingDetail() {
                       variant="outline"
                       size="lg"
                       onClick={() => toast.info("Make Offer is coming soon! For now, use Buy It Now or contact the seller directly.")}
-                      className="bg-background border border-border hover:bg-muted min-h-[44px] transition-colors rounded-md flex flex-col items-center justify-center py-3"
+                      className="min-h-[44px] rounded-md flex flex-col items-center justify-center py-3 font-medium border transition-colors"
+                      style={{
+                        backgroundColor: '#E8F1FF',
+                        color: '#1A4EA3',
+                        borderColor: '#A8C3EE'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#D7E6FF';
+                        e.currentTarget.style.borderColor = '#8FB3E8';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#E8F1FF';
+                        e.currentTarget.style.borderColor = '#A8C3EE';
+                      }}
                       aria-label="Make an offer on this listing"
                     >
                       <span className="font-semibold">Make Offer</span>
-                      <span className="text-xs text-muted-foreground mt-0.5">Negotiate a better price</span>
+                      <span className="text-xs mt-0.5" style={{ color: '#1A4EA3', opacity: 0.7 }}>Negotiate a better price</span>
                     </Button>
                     <Button 
                       variant="outline"
                       size="lg"
                       onClick={() => toast.info("Request Trade is coming soon! For now, use Buy It Now or contact the seller directly.")}
-                      className="bg-background border border-border hover:bg-muted min-h-[44px] transition-colors rounded-md flex flex-col items-center justify-center py-3"
+                      className="min-h-[44px] rounded-md flex flex-col items-center justify-center py-3 font-medium border transition-colors"
+                      style={{
+                        backgroundColor: '#FFF4E6',
+                        color: '#A35900',
+                        borderColor: '#F3C28A'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFE5C7';
+                        e.currentTarget.style.borderColor = '#E5A85E';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFF4E6';
+                        e.currentTarget.style.borderColor = '#F3C28A';
+                      }}
                       aria-label="Request a trade for this listing"
                     >
                       <span className="font-semibold">Request Trade</span>
-                      <span className="text-xs text-muted-foreground mt-0.5">Propose a comic-for-comic deal</span>
+                      <span className="text-xs mt-0.5" style={{ color: '#A35900', opacity: 0.7 }}>Propose a comic-for-comic deal</span>
                     </Button>
                   </div>
                 </div>
