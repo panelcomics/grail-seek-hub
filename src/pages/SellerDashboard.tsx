@@ -25,6 +25,7 @@ interface Trade {
   id: string;
   listing_id: string;
   buyer_id: string;
+  seller_id: string;
   status: string;
   created_at: string;
   offer_title: string;
@@ -222,7 +223,7 @@ const SellerDashboard = () => {
     try {
       const { data, error } = await supabase
         .from("trade_requests")
-        .select("id, listing_id, status, created_at, offer_title, offer_issue, message, buyer_id")
+        .select("id, listing_id, buyer_id, seller_id, status, created_at, offer_title, offer_issue, message")
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
