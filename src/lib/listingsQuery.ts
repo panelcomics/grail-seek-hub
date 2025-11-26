@@ -225,7 +225,8 @@ export async function fetchHomepageListings(
   options: ListingsQueryOptions = {}
 ): Promise<Listing[]> {
   const { data } = await getHomepageCached(cacheKey, () => fetchListingsBase(options));
-  return data;
+  // Safety: always return array, never null/undefined
+  return Array.isArray(data) ? data : [];
 }
 
 /**
@@ -238,5 +239,6 @@ export async function fetchHomepageSellerListings(
   limit: number = 10
 ): Promise<Listing[]> {
   const { data } = await getHomepageCached(cacheKey, () => fetchSellerListings(userId, limit));
-  return data;
+  // Safety: always return array, never null/undefined
+  return Array.isArray(data) ? data : [];
 }
