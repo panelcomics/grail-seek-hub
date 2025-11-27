@@ -11,7 +11,7 @@ import { ArrowLeft, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ImageManagement } from "@/components/ImageManagement";
+import { ComicImagesManager } from "@/components/ComicImagesManager";
 import { Separator } from "@/components/ui/separator";
 import { MarkSoldOffPlatformModal } from "@/components/MarkSoldOffPlatformModal";
 import { GRADE_OPTIONS } from "@/types/draftItem";
@@ -23,7 +23,6 @@ export default function ManageBook() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [item, setItem] = useState<any>(null);
-  const [listingImages, setListingImages] = useState<any[]>([]);
   const [activeListing, setActiveListing] = useState<any>(null);
   const [markSoldModalOpen, setMarkSoldModalOpen] = useState(false);
 
@@ -245,7 +244,8 @@ export default function ManageBook() {
 
       toast.success("Book updated successfully");
       
-      // Refresh listing status after save (read-only, safe)
+      // Refresh item data after save
+      await fetchItem();
       await fetchActiveListing(item.id);
       console.log("🔍 SAVE HANDLER COMPLETE");
     } catch (error: any) {
@@ -328,21 +328,15 @@ export default function ManageBook() {
           {/* LEFT: Image Gallery */}
           <div className="space-y-4">
             {/* Primary Image Display */}
-            {(listingImages.length > 0 || item.images) && (
+            {item.images && (item.images.primary || item.images.others?.length > 0) && (
               <Card>
                 <CardContent className="pt-6">
                   <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
                     <img
                       src={
-                        listingImages.find(img => img.is_primary)?.url ||
-                        listingImages[0]?.url ||
-                        (item.images && typeof item.images === 'object' && (item.images.primary || item.images.front)) ||
-                        (item.images && typeof item.images === 'object' && Array.isArray(item.images.others) && item.images.others.length > 0
-                          ? item.images.others[0]
-                          : undefined) ||
-                        (item.images && Array.isArray(item.images) && item.images.length > 0 
-                          ? (typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url)
-                          : '/placeholder.svg')
+                        item.images.primary || 
+                        item.images.others?.[0] || 
+                        '/placeholder.svg'
                       }
                       alt={formData.title || "Book cover"}
                       className="w-full h-auto object-contain max-h-[600px] mx-auto"
@@ -352,17 +346,17 @@ export default function ManageBook() {
               </Card>
             )}
             
-            {/* Photo Management */}
+            {/* Photo Management - Unified JSONB system */}
             <Card>
               <CardContent className="pt-6">
                 <Label className="text-base font-semibold mb-3 block">Photos (up to 8)</Label>
                 <p className="text-sm text-muted-foreground mb-4">
                   Add multiple photos: front, back, spine, defects, etc.
                 </p>
-                <ImageManagement
-                  listingId={id!}
-                  images={listingImages}
-                  onImagesChange={() => fetchListingImages(id!)}
+                <ComicImagesManager
+                  inventoryItemId={id!}
+                  images={item.images || { primary: null, others: [] }}
+                  onImagesChange={() => fetchItem()}
                   maxImages={8}
                 />
               </CardContent>
