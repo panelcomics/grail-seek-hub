@@ -47,7 +47,9 @@ export async function fetchSellerListings(userId: string, limit: number = 10): P
           is_for_trade,
           offers_enabled,
           user_id,
-          details
+          details,
+          listed_price,
+          shipping_price
         )
       `)
       .eq("status", "active")
@@ -118,7 +120,9 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
           is_for_trade,
           offers_enabled,
           user_id,
-          details
+          details,
+          listed_price,
+          shipping_price
         )
       `)
     // Filter active listings and exclude sold off-platform items
