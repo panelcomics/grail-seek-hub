@@ -65,6 +65,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
         .insert({
           inventory_item_id: inventoryItem.id,
           user_id: inventoryItem.user_id || inventoryItem.owner_id,
+          type: "buy_now", // Required by listings_type_check constraint
           price_cents: priceCents,
           fee_cents,
           payout_cents,
@@ -73,6 +74,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
           title: inventoryItem.title,
           issue_number: inventoryItem.issue_number,
         } as any);
+
 
       if (error) throw error;
 
