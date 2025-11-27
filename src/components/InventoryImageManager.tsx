@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { externalSupabase } from "@/lib/externalSupabase";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Trash2, Star } from "lucide-react";
@@ -64,22 +63,40 @@ export function InventoryImageManager({
           continue;
         }
 
-        // Upload to external Supabase storage
-        const timestamp = Date.now();
-        const filename = `${timestamp}-${file.name}`;
-        const filePath = `inventory/${inventoryItemId}/${filename}`;
+        // Use edge function proxy for uploads (same as scanner)
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('itemId', inventoryItemId);
 
-        const { data, error } = await externalSupabase.storage
-          .from("images")
-          .upload(filePath, file);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast.error("Please log in to upload images");
+          continue;
+        }
 
-        if (error) throw error;
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-scanner-image`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: formData,
+          }
+        );
 
-        const { data: { publicUrl } } = externalSupabase.storage
-          .from("images")
-          .getPublicUrl(filePath);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("[IMAGE-MANAGER] ❌ Upload failed:", errorText);
+          throw new Error(`Upload failed: ${response.status}`);
+        }
 
-        uploadedUrls.push(publicUrl);
+        const result = await response.json();
+        if (result.compressed?.publicUrl) {
+          uploadedUrls.push(result.compressed.publicUrl);
+        } else {
+          throw new Error("No public URL returned");
+        }
       }
 
       console.log("[IMAGE-MANAGER] ✅ Uploaded URLs:", uploadedUrls);
