@@ -73,6 +73,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
           status: "active",
           title: inventoryItem.title,
           issue_number: inventoryItem.issue_number,
+          image_url: inventoryItem.images?.primary || null, // Transfer primary image from inventory
         } as any);
 
 
