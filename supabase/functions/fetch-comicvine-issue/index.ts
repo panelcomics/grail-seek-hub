@@ -29,7 +29,11 @@ interface IssueDetails {
     name: string;
     role: string;
   }>;
+  character_credits?: Array<{
+    name: string;
+  }>;
   description: string | null;
+  deck: string | null;
 }
 
 serve(async (req) => {
@@ -50,7 +54,7 @@ serve(async (req) => {
     if (!finalIssueId && volume_id && issue_number) {
       console.log(`Searching for issue: volume ${volume_id}, issue #${issue_number}`);
       
-      const searchUrl = `${COMICVINE_BASE_URL}/issues/?api_key=${COMICVINE_API_KEY}&format=json&filter=volume:${volume_id},issue_number:${issue_number}&field_list=id,name,issue_number,cover_date,image,volume,description`;
+      const searchUrl = `${COMICVINE_BASE_URL}/issues/?api_key=${COMICVINE_API_KEY}&format=json&filter=volume:${volume_id},issue_number:${issue_number}&field_list=id,name,issue_number,cover_date,image,volume,description,deck,person_credits,character_credits`;
       
       const searchResponse = await fetch(searchUrl, {
         headers: { 'User-Agent': 'GrailSeek/1.0' }
@@ -83,9 +87,9 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the issue details
+    // Fetch the issue details with ALL metadata fields
     console.log(`Fetching issue details for ID: ${finalIssueId}`);
-    const issueUrl = `${COMICVINE_BASE_URL}/issue/4000-${finalIssueId}/?api_key=${COMICVINE_API_KEY}&format=json&field_list=id,name,issue_number,cover_date,image,volume,publisher,person_credits,description`;
+    const issueUrl = `${COMICVINE_BASE_URL}/issue/4000-${finalIssueId}/?api_key=${COMICVINE_API_KEY}&format=json&field_list=id,name,issue_number,cover_date,image,volume,publisher,person_credits,character_credits,description,deck`;
     
     const issueResponse = await fetch(issueUrl, {
       headers: { 'User-Agent': 'GrailSeek/1.0' }
@@ -103,20 +107,58 @@ serve(async (req) => {
 
     const issue = issueData.results as IssueDetails;
 
-    // Extract writer and artist from person_credits
-    const writers = issue.person_credits
-      ?.filter(credit => credit.role?.toLowerCase().includes('writer'))
-      .map(c => c.name)
-      .slice(0, 3)
-      .join(', ') || null;
+    // Extract ALL credits from person_credits
+    const writers: string[] = [];
+    const artists: string[] = [];
+    const coverArtists: string[] = [];
+    
+    if (issue.person_credits && Array.isArray(issue.person_credits)) {
+      issue.person_credits.forEach((credit) => {
+        const role = credit.role?.toLowerCase() || '';
+        if (role.includes('writer') || role.includes('script')) {
+          writers.push(credit.name);
+        } else if (role.includes('cover')) {
+          coverArtists.push(credit.name);
+        } else if (
+          role.includes('artist') || 
+          role.includes('penciler') || 
+          role.includes('inker') || 
+          role.includes('illustrator')
+        ) {
+          artists.push(credit.name);
+        }
+      });
+    }
 
-    const artists = issue.person_credits
-      ?.filter(credit => credit.role?.toLowerCase().includes('artist') || credit.role?.toLowerCase().includes('penciler'))
-      .map(c => c.name)
-      .slice(0, 3)
-      .join(', ') || null;
+    // Extract character names for key issue detection
+    const characters = issue.character_credits && Array.isArray(issue.character_credits)
+      ? issue.character_credits.map((c) => c.name).join(', ')
+      : null;
 
-    // Return formatted issue details
+    // Extract key issue notes from deck/description
+    const keyText = [issue.deck || '', issue.description || '', characters || ''].join(' ');
+    const keyPatterns = [
+      /1st\s+(?:appearance|app\.?)\s+(?:of\s+)?([^.,;]+)/gi,
+      /first\s+appearance\s+(?:of\s+)?([^.,;]+)/gi,
+      /origin\s+(?:of\s+)?([^.,;]+)/gi,
+      /debut\s+(?:of\s+)?([^.,;]+)/gi,
+      /introduces?\s+([^.,;]+)/gi,
+    ];
+
+    const keyNotes: string[] = [];
+    for (const pattern of keyPatterns) {
+      let match;
+      while ((match = pattern.exec(keyText)) !== null) {
+        if (match[1]) {
+          const note = match[1].trim().substring(0, 80);
+          if (note && !keyNotes.some(n => n.toLowerCase() === note.toLowerCase())) {
+            keyNotes.push(note);
+          }
+        }
+      }
+    }
+
+    // Return formatted issue details with ALL metadata
     return new Response(
       JSON.stringify({
         id: issue.id,
@@ -128,9 +170,13 @@ serve(async (req) => {
         volume_id: issue.volume.id,
         volume_name: issue.volume.name,
         publisher: issue.publisher?.name,
-        writer: writers,
-        artist: artists,
+        writer: writers.join(', ') || null,
+        artist: artists.join(', ') || null,
+        coverArtist: coverArtists.join(', ') || null,
+        characters,
+        keyNotes: keyNotes.join('; ') || null,
         description: issue.description,
+        deck: issue.deck,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
