@@ -347,7 +347,20 @@ export default function ManageBook() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setImageRotation(rotateLeft(imageRotation))}
+                      onClick={async () => {
+                        const newRotation = rotateLeft(imageRotation);
+                        setImageRotation(newRotation);
+                        // Auto-save rotation immediately
+                        try {
+                          await supabase
+                            .from("inventory_items")
+                            .update({ primary_image_rotation: newRotation })
+                            .eq("id", item.id);
+                          toast.success("Rotation saved");
+                        } catch (error) {
+                          toast.error("Failed to save rotation");
+                        }
+                      }}
                       className="flex items-center gap-1.5"
                     >
                       <RotateCcw className="h-4 w-4" />
@@ -357,7 +370,20 @@ export default function ManageBook() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setImageRotation(rotateRight(imageRotation))}
+                      onClick={async () => {
+                        const newRotation = rotateRight(imageRotation);
+                        setImageRotation(newRotation);
+                        // Auto-save rotation immediately
+                        try {
+                          await supabase
+                            .from("inventory_items")
+                            .update({ primary_image_rotation: newRotation })
+                            .eq("id", item.id);
+                          toast.success("Rotation saved");
+                        } catch (error) {
+                          toast.error("Failed to save rotation");
+                        }
+                      }}
                       className="flex items-center gap-1.5"
                     >
                       <RotateCw className="h-4 w-4" />
