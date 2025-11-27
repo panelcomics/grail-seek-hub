@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { ImageManagement } from "@/components/ImageManagement";
 import { Separator } from "@/components/ui/separator";
 import { MarkSoldOffPlatformModal } from "@/components/MarkSoldOffPlatformModal";
+import { GRADE_OPTIONS } from "@/types/draftItem";
 
 export default function ManageBook() {
   const { id } = useParams();
@@ -198,7 +199,9 @@ export default function ManageBook() {
         variant_type: formData.variant_type || null,
         variant_details: formData.variant_details || null,
         variant_notes: formData.variant_notes || null,
+        key_issue: formData.is_key,
         is_key: formData.is_key,
+        key_details: formData.is_key ? formData.key_type : null,
         key_type: formData.is_key ? (formData.key_type || null) : null,
         writer: formData.writer || null,
         artist: formData.artist || null,
@@ -206,16 +209,19 @@ export default function ManageBook() {
         is_slab: formData.is_slab,
         grading_company: formData.is_slab ? formData.grading_company : null,
         cgc_grade: formData.is_slab ? formData.cgc_grade : null,
+        grade: formData.is_slab ? formData.cgc_grade : null,
         certification_number: formData.certification_number || null,
         listed_price: formData.listed_price ? parseFloat(formData.listed_price) : null,
         shipping_price: formData.shipping_price ? parseFloat(formData.shipping_price) : null,
         for_sale: formData.for_sale,
+        is_for_sale: formData.for_sale,
         for_auction: formData.for_auction,
         is_for_trade: formData.is_for_trade,
-        in_search_of: formData.is_for_trade ? formData.in_search_of.trim() : null,
-        trade_notes: formData.is_for_trade ? formData.trade_notes.trim() : null,
+        in_search_of: formData.is_for_trade ? formData.in_search_of?.trim() : null,
+        trade_notes: formData.is_for_trade ? formData.trade_notes?.trim() : null,
         private_notes: formData.private_notes || null,
         private_location: formData.private_location || null,
+        storage_location: formData.private_location || null,
         listing_status: formData.for_sale ? "listed" : "not_listed",
         updated_at: new Date().toISOString(),
       };
@@ -585,30 +591,9 @@ export default function ManageBook() {
                             <SelectValue placeholder="Select grade" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="10.0">10.0</SelectItem>
-                            <SelectItem value="9.9">9.9</SelectItem>
-                            <SelectItem value="9.8">9.8</SelectItem>
-                            <SelectItem value="9.6">9.6</SelectItem>
-                            <SelectItem value="9.4">9.4</SelectItem>
-                            <SelectItem value="9.2">9.2</SelectItem>
-                            <SelectItem value="9.0">9.0</SelectItem>
-                            <SelectItem value="8.5">8.5</SelectItem>
-                            <SelectItem value="8.0">8.0</SelectItem>
-                            <SelectItem value="7.5">7.5</SelectItem>
-                            <SelectItem value="7.0">7.0</SelectItem>
-                            <SelectItem value="6.5">6.5</SelectItem>
-                            <SelectItem value="6.0">6.0</SelectItem>
-                            <SelectItem value="5.5">5.5</SelectItem>
-                            <SelectItem value="5.0">5.0</SelectItem>
-                            <SelectItem value="4.5">4.5</SelectItem>
-                            <SelectItem value="4.0">4.0</SelectItem>
-                            <SelectItem value="3.5">3.5</SelectItem>
-                            <SelectItem value="3.0">3.0</SelectItem>
-                            <SelectItem value="2.5">2.5</SelectItem>
-                            <SelectItem value="2.0">2.0</SelectItem>
-                            <SelectItem value="1.5">1.5</SelectItem>
-                            <SelectItem value="1.0">1.0</SelectItem>
-                            <SelectItem value="0.5">0.5</SelectItem>
+                            {GRADE_OPTIONS.map((g) => (
+                              <SelectItem key={g} value={g}>{g}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

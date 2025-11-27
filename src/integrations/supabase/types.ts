@@ -1173,7 +1173,10 @@ export type Database = {
           is_key: boolean | null
           is_reprint: boolean | null
           is_slab: boolean | null
+          issue_id: string | null
           issue_number: string | null
+          key_details: string | null
+          key_issue: boolean | null
           key_type: string | null
           listed_price: number | null
           listing_status: string | null
@@ -1198,6 +1201,7 @@ export type Database = {
           sold_off_platform_channel: string | null
           sold_off_platform_date: string | null
           storage_container_id: string | null
+          storage_location: string | null
           title: string | null
           trade_notes: string | null
           updated_at: string
@@ -1206,6 +1210,7 @@ export type Database = {
           variant_details: string | null
           variant_notes: string | null
           variant_type: string | null
+          volume_id: string | null
           volume_name: string | null
           writer: string | null
           year: number | null
@@ -1233,7 +1238,10 @@ export type Database = {
           is_key?: boolean | null
           is_reprint?: boolean | null
           is_slab?: boolean | null
+          issue_id?: string | null
           issue_number?: string | null
+          key_details?: string | null
+          key_issue?: boolean | null
           key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
@@ -1258,6 +1266,7 @@ export type Database = {
           sold_off_platform_channel?: string | null
           sold_off_platform_date?: string | null
           storage_container_id?: string | null
+          storage_location?: string | null
           title?: string | null
           trade_notes?: string | null
           updated_at?: string
@@ -1266,6 +1275,7 @@ export type Database = {
           variant_details?: string | null
           variant_notes?: string | null
           variant_type?: string | null
+          volume_id?: string | null
           volume_name?: string | null
           writer?: string | null
           year?: number | null
@@ -1293,7 +1303,10 @@ export type Database = {
           is_key?: boolean | null
           is_reprint?: boolean | null
           is_slab?: boolean | null
+          issue_id?: string | null
           issue_number?: string | null
+          key_details?: string | null
+          key_issue?: boolean | null
           key_type?: string | null
           listed_price?: number | null
           listing_status?: string | null
@@ -1318,6 +1331,7 @@ export type Database = {
           sold_off_platform_channel?: string | null
           sold_off_platform_date?: string | null
           storage_container_id?: string | null
+          storage_location?: string | null
           title?: string | null
           trade_notes?: string | null
           updated_at?: string
@@ -1326,6 +1340,7 @@ export type Database = {
           variant_details?: string | null
           variant_notes?: string | null
           variant_type?: string | null
+          volume_id?: string | null
           volume_name?: string | null
           writer?: string | null
           year?: number | null
