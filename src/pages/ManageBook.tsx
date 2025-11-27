@@ -234,100 +234,12 @@ export default function ManageBook() {
 
       console.log("✅ inventory_items updated successfully");
 
-      // Handle listing creation/update/deactivation based on for_sale flag
-      if (formData.for_sale && formData.listed_price) {
-        const listedPrice = formData.listed_price ? parseFloat(formData.listed_price) : null;
-        const shippingPrice = formData.shipping_price ? parseFloat(formData.shipping_price) : null;
-        
-        console.log("💰 Processing listing creation/update", {
-          inventoryId: item.id,
-          for_sale: formData.for_sale,
-          listedPrice,
-          listedPriceCents: listedPrice ? Math.round(listedPrice * 100) : null,
-          shippingPrice,
-          title: formData.title || formData.series,
-        });
-
-        // Check if listing already exists
-        const { data: existingListing, error: existingError } = await supabase
-          .from("listings")
-          .select("id")
-          .eq("inventory_item_id", item.id)
-          .maybeSingle();
-
-        if (existingError) {
-          console.error("❌ Error checking for existing listing:", existingError);
-        }
-
-        console.log("🔎 Existing listing check:", existingListing);
-
-        const listingPayload = {
-          title: formData.title || formData.series || "Untitled",
-          price: listedPrice,
-          price_cents: listedPrice ? Math.round(listedPrice * 100) : null,
-          shipping_price: shippingPrice,
-          status: "active",
-          type: "sale",
-          details: formData.details,
-          issue_number: formData.issue_number,
-          volume_name: formData.series,
-          quantity: 1,
-          updated_at: new Date().toISOString(),
-        };
-
-        console.log("📦 Listing payload prepared:", listingPayload);
-
-        if (existingListing) {
-          console.log("🔄 Updating existing listing:", existingListing.id);
-          const { error: updateError } = await supabase
-            .from("listings")
-            .update(listingPayload)
-            .eq("id", existingListing.id);
-          
-          if (updateError) {
-            console.error("❌ Listing update failed:", updateError);
-            throw updateError;
-          }
-          console.log("✅ Listing updated successfully");
-        } else {
-          console.log("➕ Creating new listing");
-          const { data: insertedListing, error: insertError } = await supabase
-            .from("listings")
-            .insert({
-              user_id: user.id,
-              inventory_item_id: item.id,
-              ...listingPayload,
-            })
-            .select();
-          
-          if (insertError) {
-            console.error("❌ Listing insert failed:", insertError);
-            throw insertError;
-          }
-          console.log("✅ Listing created successfully:", insertedListing);
-        }
-      } else if (!formData.for_sale) {
-        console.log("🚫 for_sale is false, deactivating existing listings");
-        // Deactivate any existing listing without attempting to create new ones
-        const { error: deactivateError } = await supabase
-          .from("listings")
-          .update({ status: "inactive" })
-          .eq("inventory_item_id", item.id)
-          .in("status", ["active", "live", "listed"]);
-        
-        if (deactivateError) {
-          console.error("❌ Listing deactivation failed:", deactivateError);
-          // Don't throw—deactivation failure is non-critical
-        } else {
-          console.log("✅ Listings deactivated");
-        }
-      } else {
-        console.log("⚠️ for_sale is true but listed_price is missing, skipping listing creation");
-      }
+      // Inventory updates are intentionally isolated from listings.
+      // Listing creation and status changes now live only on the /sell/{id} flow.
 
       toast.success("Book updated successfully");
       
-      // Refresh listing status after save
+      // Refresh listing status after save (read-only, safe)
       await fetchActiveListing(item.id);
       console.log("🔍 SAVE HANDLER COMPLETE");
     } catch (error: any) {
@@ -418,7 +330,10 @@ export default function ManageBook() {
                       src={
                         listingImages.find(img => img.is_primary)?.url ||
                         listingImages[0]?.url ||
-                        (item.images && typeof item.images === 'object' && item.images.front) ||
+                        (item.images && typeof item.images === 'object' && (item.images.primary || item.images.front)) ||
+                        (item.images && typeof item.images === 'object' && Array.isArray(item.images.others) && item.images.others.length > 0
+                          ? item.images.others[0]
+                          : undefined) ||
                         (item.images && Array.isArray(item.images) && item.images.length > 0 
                           ? (typeof item.images[0] === 'string' ? item.images[0] : item.images[0]?.url)
                           : '/placeholder.svg')
