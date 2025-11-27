@@ -193,7 +193,7 @@ function SellComicLegacy() {
           inventory_item_id: comic.id,
           comic_id: null, // Legacy field - now optional
           type: listingType === "fixed" ? "buy_now" : "auction",
-          image_url: comic.images?.front || null,
+          image_url: comic.images?.primary || null,
           title: listingTitle,
           issue_number: comic.issue_number || null,
           volume_name: comic.series || null, // Optional series name
