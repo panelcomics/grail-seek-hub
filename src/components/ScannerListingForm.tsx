@@ -563,15 +563,26 @@ export function ScannerListingForm({
 
           {/* Graded Slab Section */}
           <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between py-3 px-4 rounded-lg border-2 transition-all"
+              style={{
+                borderColor: isSlab ? 'hsl(var(--destructive))' : 'hsl(var(--border))',
+                backgroundColor: isSlab ? 'hsl(var(--destructive) / 0.15)' : 'hsl(var(--muted) / 0.3)',
+                fontWeight: isSlab ? '700' : '500'
+              }}>
+              <div className="flex-1">
+                <Label htmlFor="isSlab" className="text-base font-bold cursor-pointer" style={{ color: isSlab ? 'hsl(var(--destructive))' : 'inherit' }}>
+                  Professionally Graded / Graded Slab
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  This comic is professionally graded by CGC, CBCS, or PGX
+                </p>
+              </div>
               <Switch
                 id="isSlab"
                 checked={isSlab}
                 onCheckedChange={setIsSlab}
+                className="data-[state=checked]:bg-destructive"
               />
-              <Label htmlFor="isSlab" className="font-semibold">
-                Professionally Graded (CGC/CBCS/PGX)
-              </Label>
             </div>
             
             {isSlab && (
@@ -582,7 +593,7 @@ export function ScannerListingForm({
                     <SelectTrigger id="gradingCompany">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-50">
                       <SelectItem value="CGC">CGC</SelectItem>
                       <SelectItem value="CBCS">CBCS</SelectItem>
                       <SelectItem value="PGX">PGX</SelectItem>
@@ -597,7 +608,7 @@ export function ScannerListingForm({
                     <SelectTrigger id="grade">
                       <SelectValue placeholder="Select grade" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-50">
                       {GRADE_OPTIONS.map((g) => (
                         <SelectItem key={g} value={g}>{g}</SelectItem>
                       ))}
@@ -620,15 +631,26 @@ export function ScannerListingForm({
 
           {/* Key Issue Section */}
           <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-between py-3 px-4 rounded-lg border-2 transition-all"
+              style={{
+                borderColor: draft.keyIssue ? 'hsl(var(--destructive))' : 'hsl(var(--border))',
+                backgroundColor: draft.keyIssue ? 'hsl(var(--destructive) / 0.15)' : 'hsl(var(--muted) / 0.3)',
+                fontWeight: draft.keyIssue ? '700' : '500'
+              }}>
+              <div className="flex-1">
+                <Label htmlFor="key-issue" className="text-base font-bold cursor-pointer" style={{ color: draft.keyIssue ? 'hsl(var(--destructive))' : 'inherit' }}>
+                  Key Issue
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  First appearance, origin story, death, or other significant event
+                </p>
+              </div>
               <Switch
-                id="isKey"
-                checked={isKey}
-                onCheckedChange={setIsKey}
+                id="key-issue"
+                checked={draft.keyIssue}
+                onCheckedChange={(checked) => updateDraft({ keyIssue: checked })}
+                className="data-[state=checked]:bg-destructive"
               />
-              <Label htmlFor="isKey" className="font-semibold">
-                Key Issue
-              </Label>
             </div>
 
             {isKey && (
@@ -672,16 +694,20 @@ export function ScannerListingForm({
                 <Label htmlFor="variantType">Variant Type</Label>
                 <Select value={variantType} onValueChange={setVariantType}>
                   <SelectTrigger id="variantType">
-                    <SelectValue placeholder="Select..." />
+                    <SelectValue placeholder="Select variant type (optional)" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Variant Cover">Variant Cover</SelectItem>
-                    <SelectItem value="Direct">Direct</SelectItem>
-                    <SelectItem value="Newsstand">Newsstand</SelectItem>
-                    <SelectItem value="Price Variant">Price Variant</SelectItem>
-                    <SelectItem value="Canadian">Canadian</SelectItem>
-                    <SelectItem value="2nd Print">2nd Print</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="variant_cover">Variant Cover</SelectItem>
+                    <SelectItem value="newsstand">Newsstand</SelectItem>
+                    <SelectItem value="direct">Direct</SelectItem>
+                    <SelectItem value="price_variant">Price Variant</SelectItem>
+                    <SelectItem value="2nd_print">2nd Print</SelectItem>
+                    <SelectItem value="3rd_print">3rd Print</SelectItem>
+                    <SelectItem value="incentive">Incentive</SelectItem>
+                    <SelectItem value="con_exclusive">Convention Exclusive</SelectItem>
+                    <SelectItem value="store_exclusive">Store Exclusive</SelectItem>
+                    <SelectItem value="limited">Limited Edition</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

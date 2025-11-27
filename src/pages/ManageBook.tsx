@@ -475,12 +475,25 @@ export default function ManageBook() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_key">Key Issue</Label>
+                  <div className="flex items-center justify-between py-3 px-4 rounded-lg border-2 transition-all"
+                    style={{
+                      borderColor: formData.is_key ? 'hsl(var(--destructive))' : 'hsl(var(--border))',
+                      backgroundColor: formData.is_key ? 'hsl(var(--destructive) / 0.15)' : 'hsl(var(--muted) / 0.3)',
+                      fontWeight: formData.is_key ? '700' : '500'
+                    }}>
+                    <div className="flex-1">
+                      <Label htmlFor="is_key" className="text-base font-bold cursor-pointer" style={{ color: formData.is_key ? 'hsl(var(--destructive))' : 'inherit' }}>
+                        Key Issue
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        First appearance, origin story, death, or other significant event
+                      </p>
+                    </div>
                     <Switch
                       id="is_key"
                       checked={formData.is_key}
                       onCheckedChange={(checked) => setFormData({ ...formData, is_key: checked })}
+                      className="data-[state=checked]:bg-destructive"
                     />
                   </div>
 
@@ -502,12 +515,27 @@ export default function ManageBook() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="variant_type">Variant Type</Label>
-                    <Input
-                      id="variant_type"
+                    <Select
                       value={formData.variant_type}
-                      onChange={(e) => setFormData({ ...formData, variant_type: e.target.value })}
-                      placeholder="Newsstand, Direct, Incentive, etc."
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, variant_type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select variant type (optional)" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="variant_cover">Variant Cover</SelectItem>
+                        <SelectItem value="newsstand">Newsstand</SelectItem>
+                        <SelectItem value="direct">Direct</SelectItem>
+                        <SelectItem value="price_variant">Price Variant</SelectItem>
+                        <SelectItem value="2nd_print">2nd Print</SelectItem>
+                        <SelectItem value="3rd_print">3rd Print</SelectItem>
+                        <SelectItem value="incentive">Incentive</SelectItem>
+                        <SelectItem value="con_exclusive">Convention Exclusive</SelectItem>
+                        <SelectItem value="store_exclusive">Store Exclusive</SelectItem>
+                        <SelectItem value="limited">Limited Edition</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
@@ -535,12 +563,25 @@ export default function ManageBook() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_slab">Graded Slab</Label>
+                  <div className="flex items-center justify-between py-3 px-4 rounded-lg border-2 transition-all"
+                    style={{
+                      borderColor: formData.is_slab ? 'hsl(var(--destructive))' : 'hsl(var(--border))',
+                      backgroundColor: formData.is_slab ? 'hsl(var(--destructive) / 0.15)' : 'hsl(var(--muted) / 0.3)',
+                      fontWeight: formData.is_slab ? '700' : '500'
+                    }}>
+                    <div className="flex-1">
+                      <Label htmlFor="is_slab" className="text-base font-bold cursor-pointer" style={{ color: formData.is_slab ? 'hsl(var(--destructive))' : 'inherit' }}>
+                        Graded Slab
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        This comic is professionally graded by CGC, CBCS, or PGX
+                      </p>
+                    </div>
                     <Switch
                       id="is_slab"
                       checked={formData.is_slab}
                       onCheckedChange={(checked) => setFormData({ ...formData, is_slab: checked })}
+                      className="data-[state=checked]:bg-destructive"
                     />
                   </div>
 
@@ -773,7 +814,10 @@ export default function ManageBook() {
                       try {
                         setSaving(true);
                         
-                        // Create listing
+                        const priceInCents = Math.round(parseFloat(formData.listed_price) * 100);
+                        const shippingInDollars = formData.shipping_price ? parseFloat(formData.shipping_price) : 0;
+                        
+                        // Create listing with image from inventory
                         const { data: newListing, error: listingError } = await supabase
                           .from("listings")
                           .insert({
@@ -783,8 +827,9 @@ export default function ManageBook() {
                             title: formData.title || formData.series,
                             issue_number: formData.issue_number || null,
                             volume_name: formData.series || null,
-                            price: parseFloat(formData.listed_price),
-                            shipping_price: formData.shipping_price ? parseFloat(formData.shipping_price) : 0,
+                            price_cents: priceInCents,
+                            shipping_price: shippingInDollars,
+                            image_url: item.images?.primary || null,
                             status: "active",
                             details: formData.details || null,
                             condition_notes: formData.condition || null,

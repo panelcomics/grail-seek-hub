@@ -148,6 +148,10 @@ export default function ListingDetail() {
             grading_company,
             certification_number,
             is_slab,
+            is_key,
+            key_issue,
+            key_details,
+            key_type,
             variant_description,
             images,
             for_sale,
@@ -393,13 +397,23 @@ export default function ListingDetail() {
             </div>
 
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2 leading-tight">
                 {title}
+                {listing.issue_number && (
+                  <span className="text-primary"> #{listing.issue_number}</span>
+                )}
               </h1>
-              {listing.issue_number && (
-                <p className="text-base md:text-lg text-muted-foreground mb-4">
-                  Issue #{listing.issue_number}
-                </p>
+              
+              {/* Key Issue Badge - Prominent */}
+              {((listing.inventory_items as any)?.is_key || (listing.inventory_items as any)?.key_issue) && (listing.inventory_items as any)?.key_details && (
+                <div className="mb-4">
+                  <Badge 
+                    variant="default" 
+                    className="text-base font-bold px-4 py-2 bg-destructive text-destructive-foreground"
+                  >
+                    KEY ISSUE: {(listing.inventory_items as any).key_details}
+                  </Badge>
+                </div>
               )}
 
               <div className="text-2xl md:text-3xl font-bold text-primary mb-3">
@@ -409,13 +423,16 @@ export default function ListingDetail() {
               {/* Summary chips row */}
               <div className="flex flex-wrap gap-2 mb-6">
                 {listing.inventory_items?.is_slab && listing.inventory_items?.cgc_grade && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge 
+                    variant="secondary" 
+                    className="text-sm font-bold px-3 py-1 bg-accent text-accent-foreground"
+                  >
                     {listing.inventory_items.grading_company || 'CGC'} {listing.inventory_items.cgc_grade}
                     {listing.inventory_items.grading_company === 'CGC' && ' – Universal'}
                   </Badge>
                 )}
                 {!listing.inventory_items?.is_slab && listing.condition && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-sm font-semibold px-3 py-1">
                     {listing.condition}
                   </Badge>
                 )}
