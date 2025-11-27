@@ -235,7 +235,39 @@ export default function ManageBook() {
       }
 
       console.log("[INVENTORY-SAVE] ✅ inventory_items updated successfully");
-      console.log("[INVENTORY-SAVE] ⚠️ This update NEVER creates or touches listings table");
+
+      // Sync price/grade to linked listing if one exists
+      const { data: linkedListing } = await supabase
+        .from("listings")
+        .select("id")
+        .eq("inventory_item_id", item.id)
+        .in("status", ["active", "live", "listed"])
+        .maybeSingle();
+
+      if (linkedListing) {
+        console.log("[INVENTORY-SAVE] 🔗 Syncing price/grade to linked listing", linkedListing.id);
+        const listingUpdates: any = {};
+        
+        if (formData.listed_price) {
+          listingUpdates.price_cents = Math.round(parseFloat(formData.listed_price) * 100);
+          listingUpdates.price = parseFloat(formData.listed_price);
+        }
+        
+        if (formData.is_slab && formData.cgc_grade) {
+          listingUpdates.title = getDisplayTitle();
+        }
+
+        const { error: listingError } = await supabase
+          .from("listings")
+          .update(listingUpdates)
+          .eq("id", linkedListing.id);
+
+        if (listingError) {
+          console.error("[INVENTORY-SAVE] ⚠️ Failed to sync to listing:", listingError);
+        } else {
+          console.log("[INVENTORY-SAVE] ✅ Listing price/grade synced");
+        }
+      }
 
       toast.success("Book updated successfully");
       
