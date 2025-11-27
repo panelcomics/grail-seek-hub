@@ -444,7 +444,7 @@ export default function SellerProfile() {
                   {/* Regular Listings */}
                   {activeTab !== "claim-sales" && filteredListings.map((listing) => {
                     const price = listing.listed_price;
-                    const imageUrl = listing.images?.front || (Array.isArray(listing.images) && listing.images[0]?.url) || "/placeholder.svg";
+                    const imageUrl = listing.images?.primary || listing.images?.others?.[0] || "/placeholder.svg";
                     return (
                       <ItemCard
                         key={listing.id}
