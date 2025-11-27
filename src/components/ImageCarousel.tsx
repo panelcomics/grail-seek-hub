@@ -56,15 +56,15 @@ export function ImageCarousel({ images, className }: ImageCarouselProps) {
               <ChevronRight className="h-6 w-6" />
             </Button>
 
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
               {images.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentIndex(index)}
                   className={cn(
-                    "w-2 h-2 rounded-full transition-all",
+                    "w-1 h-1 rounded-full transition-all",
                     index === currentIndex
-                      ? "bg-primary w-6"
+                      ? "bg-primary w-3"
                       : "bg-white/50 hover:bg-white/75"
                   )}
                   aria-label={`Go to image ${index + 1}`}
