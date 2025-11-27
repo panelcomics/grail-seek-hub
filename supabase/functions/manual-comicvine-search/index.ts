@@ -91,8 +91,8 @@ function generateQueryVariants(searchText: string, publisher?: string): Array<{ 
   return variants;
 }
 
-async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, limit = 20): Promise<{ results: any[]; totalResults: number }> {
-  const url = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(query)}&field_list=id,name,publisher,start_year&limit=${limit}&offset=${offset}`;
+async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, limit = 50): Promise<{ results: any[]; totalResults: number }> {
+  const url = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(query)}&field_list=id,name,publisher,start_year,count_of_issues&limit=${limit}&offset=${offset}`;
   
   if (isDebug) {
     console.log('[MANUAL-SEARCH] 🔍 ComicVine Volume Query:', query, `(offset: ${offset}, limit: ${limit})`);
@@ -113,8 +113,20 @@ async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, 
     throw new Error('ComicVine returned invalid data structure');
   }
   
+  let results = Array.isArray(data.results) ? data.results : [];
+  
+  // Sort volumes to prioritize main runs (highest issue count first)
+  results = results.sort((a: any, b: any) => {
+    const aCount = a.count_of_issues || 0;
+    const bCount = b.count_of_issues || 0;
+    return bCount - aCount;
+  });
+  
+  console.log('[MANUAL-SEARCH] Volume results sorted by issue count:', 
+    results.slice(0, 3).map((v: any) => `${v.name} (${v.count_of_issues} issues)`));
+  
   return {
-    results: Array.isArray(data.results) ? data.results : [],
+    results,
     totalResults: typeof data.number_of_total_results === 'number' ? data.number_of_total_results : 0
   };
 }

@@ -83,6 +83,7 @@ export default function ManageBook() {
         .from("inventory_items")
         .select("*")
         .eq("id", id)
+        .eq("user_id", user?.id)
         .single();
 
       if (error) throw error;
@@ -199,7 +200,6 @@ export default function ManageBook() {
         listed_price: formData.listed_price ? parseFloat(formData.listed_price) : null,
         shipping_price: formData.shipping_price ? parseFloat(formData.shipping_price) : null,
         for_sale: formData.for_sale,
-        is_for_sale: formData.for_sale,
         for_auction: formData.for_auction,
         is_for_trade: formData.is_for_trade,
         in_search_of: formData.is_for_trade ? formData.in_search_of?.trim() : null,
@@ -752,7 +752,7 @@ export default function ManageBook() {
                   Save Changes
                 </Button>
                 
-                {activeListing && (
+                {activeListing ? (
                   <Button
                     variant="outline"
                     onClick={() => navigate(`/listing/${activeListing.id}`)}
@@ -761,7 +761,54 @@ export default function ManageBook() {
                     <ExternalLink className="mr-2 h-4 w-4" />
                     View Live Listing
                   </Button>
-                )}
+                ) : formData.for_sale && !item.sold_off_platform ? (
+                  <Button
+                    variant="default"
+                    onClick={async () => {
+                      if (!formData.listed_price || parseFloat(formData.listed_price) <= 0) {
+                        toast.error("Please set a sale price before listing");
+                        return;
+                      }
+                      
+                      try {
+                        setSaving(true);
+                        
+                        // Create listing
+                        const { data: newListing, error: listingError } = await supabase
+                          .from("listings")
+                          .insert({
+                            user_id: user!.id,
+                            inventory_item_id: item.id,
+                            type: formData.for_auction ? "auction" : "buy_now",
+                            title: formData.title || formData.series,
+                            issue_number: formData.issue_number || null,
+                            volume_name: formData.series || null,
+                            price: parseFloat(formData.listed_price),
+                            shipping_price: formData.shipping_price ? parseFloat(formData.shipping_price) : 0,
+                            status: "active",
+                            details: formData.details || null,
+                            condition_notes: formData.condition || null,
+                          })
+                          .select()
+                          .single();
+                        
+                        if (listingError) throw listingError;
+                        
+                        toast.success("Listing created successfully!");
+                        setActiveListing(newListing);
+                        navigate(`/listing/${newListing.id}`);
+                      } catch (error: any) {
+                        console.error("Error creating listing:", error);
+                        toast.error(error.message || "Failed to create listing");
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    size="lg"
+                  >
+                    Create Live Listing
+                  </Button>
+                ) : null}
               </div>
             </div>
             </div>
