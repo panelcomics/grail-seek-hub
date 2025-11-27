@@ -221,7 +221,7 @@ export default function Marketplace() {
                   title={listing.title || listing.series || "Untitled"}
                   price={price === null ? undefined : price}
                   condition={listing.condition || listing.cgc_grade || "Unknown"}
-                  image={getListingImageUrl(listing)}
+                  image={getListingImageUrl(listing.inventory_items || listing)}
                   category="comic"
                   isAuction={listing.for_auction}
                   showMakeOffer={listing.offers_enabled}

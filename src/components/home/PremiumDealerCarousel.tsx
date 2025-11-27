@@ -205,7 +205,7 @@ export function PremiumDealerCarousel({
                     title={listing.title || listing.series || "Untitled"}
                     price={price === null ? undefined : price}
                     condition={listing.condition || "Unknown"}
-                    image={getListingImageUrl(listing)}
+                    image={getListingImageUrl(listing.inventory_items || listing)}
                     category="comic"
                     isAuction={listing.for_auction}
                     showMakeOffer={listing.offers_enabled}
