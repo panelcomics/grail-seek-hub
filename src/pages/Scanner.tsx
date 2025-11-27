@@ -56,6 +56,10 @@ export default function Scanner() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  
+  // CRITICAL FIX: Store uploaded URL in ref to avoid React state timing issues
+  // This ensures the form ALWAYS has the URL even if state hasn't updated yet
+  const uploadedImageUrlRef = useRef<string | null>(null);
 
   // Core state
   const [status, setStatus] = useState<ScannerStatus>("idle");
@@ -232,7 +236,11 @@ export default function Scanner() {
       
       console.log('[SCANNER] ✅ Image uploaded to storage:', publicUrl);
       
-      setImageUrl(publicUrl); // Store the URL, not base64
+      // CRITICAL: Store in ref IMMEDIATELY to bypass React state async updates
+      // This ensures form always has URL even if state hasn't propagated yet
+      uploadedImageUrlRef.current = publicUrl;
+      
+      setImageUrl(publicUrl); // Also update state for preview/conditional rendering
       setPreviewImage(compressed); // Use compressed for local preview
       
       sonnerToast.loading("Matching with ComicVine...", { id: "scanner-upload" });
@@ -312,9 +320,9 @@ export default function Scanner() {
           // Save to recent scans
           saveToRecentScans(topPick);
           
-          // Save to database if user is logged in
-          if (user?.id && imageUrl) {
-            await saveScanToHistory(user.id, imageUrl, topPick);
+      // Save to database if user is logged in
+          if (user?.id && uploadedImageUrlRef.current) {
+            await saveScanToHistory(user.id, uploadedImageUrlRef.current, topPick);
             const dbHistory = await loadScanHistory(user.id, 10);
             if (dbHistory.length > 0) {
               setRecentScans(dbHistory);
@@ -1332,10 +1340,10 @@ export default function Scanner() {
       )}
 
       {/* Selected Comic - Listing Form */}
-      {status === "selected" && selectedPick && imageUrl && (
+      {status === "selected" && selectedPick && (uploadedImageUrlRef.current || imageUrl) && (
         <div className="space-y-6">
           <ScannerListingForm
-            imageUrl={imageUrl}
+            imageUrl={uploadedImageUrlRef.current || imageUrl}
             selectedPick={selectedPick}
             confidence={confidence}
           />
