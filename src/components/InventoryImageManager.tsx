@@ -92,8 +92,8 @@ export function InventoryImageManager({
         }
 
         const result = await response.json();
-        if (result.compressed?.publicUrl) {
-          uploadedUrls.push(result.compressed.publicUrl);
+        if (result.publicUrl) {
+          uploadedUrls.push(result.publicUrl);
         } else {
           throw new Error("No public URL returned");
         }
