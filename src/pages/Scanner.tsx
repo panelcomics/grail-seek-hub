@@ -223,8 +223,17 @@ export default function Scanner() {
       const compressed = await compressImageDataUrl(imageData, 1200, 0.85);
       const thumbnail = await createThumbnail(imageData, 400);
       
-      setImageUrl(compressed);
-      setPreviewImage(compressed); // Use compressed for preview
+      // CRITICAL FIX: Upload to storage and get URL instead of using base64
+      const blob = await fetch(compressed).then(r => r.blob());
+      const file = new File([blob], `scan-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      
+      const { uploadViaProxy } = await import("@/lib/uploadImage");
+      const { publicUrl } = await uploadViaProxy(file);
+      
+      console.log('[SCANNER] ✅ Image uploaded to storage:', publicUrl);
+      
+      setImageUrl(publicUrl); // Store the URL, not base64
+      setPreviewImage(compressed); // Use compressed for local preview
       
       sonnerToast.loading("Matching with ComicVine...", { id: "scanner-upload" });
       
