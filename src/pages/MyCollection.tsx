@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +51,7 @@ interface Comic {
 const MyCollection = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [comics, setComics] = useState<Comic[]>([]);
   const [filteredComics, setFilteredComics] = useState<Comic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,18 +78,21 @@ const MyCollection = () => {
   }, [search, comics]);
 
   const fetchComics = async () => {
+    if (!user?.id) return;
+    
     try {
       const { data, error } = await supabase
         .from("inventory_items")
-        .select("*")
+        .select("id, title, issue_number, series, cover_date, publisher, year, grade, condition, is_slab, cgc_grade, grading_company, certification_number, images, details, created_at, variant_type, variant_details, variant_notes, is_key, key_type, writer, artist")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Map inventory_items to have image from images.front
+      // Map inventory_items to have image from unified JSONB structure {primary, others}
       const comicsWithImages = (data || []).map((item) => ({
         ...item,
-        image_url: (item.images as any)?.front || null,
+        image_url: (item.images as any)?.primary || null,
         // Map fields for compatibility
         added_at: item.created_at,
         condition_notes: item.condition,
