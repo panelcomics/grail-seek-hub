@@ -52,43 +52,67 @@ serve(async (req) => {
         console.error('COMICVINE_API_KEY not configured');
       } else {
         try {
-          const cvUrl = `https://comicvine.gamespot.com/api/issues/?api_key=${comicVineKey}&format=json&filter=volume:${volumeId}&field_list=id,volume,issue_number,name,cover_date,image,person_credits&limit=500`;
-          const cvResponse = await fetch(cvUrl, {
-            headers: { 'User-Agent': 'Lovable-Scanner/1.0' }
-          });
+          // ComicVine API has a max limit of 100 per request, so we need to paginate
+          const limit = 100;
+          let offset = 0;
+          let allIssues: any[] = [];
+          let hasMoreIssues = true;
 
-          if (cvResponse.ok) {
-            const cvData = await cvResponse.json();
-            if (cvData.error === 'OK' && cvData.results) {
-              finalIssues = cvData.results.map((issue: any) => {
-                // Extract writer and artist from person_credits
-                let writer = null;
-                let artist = null;
-                if (issue.person_credits && Array.isArray(issue.person_credits)) {
-                  const writers = issue.person_credits.filter((p: any) => 
-                    p.role && p.role.toLowerCase().includes('writer')
-                  );
-                  const artists = issue.person_credits.filter((p: any) => 
-                    p.role && (p.role.toLowerCase().includes('artist') || p.role.toLowerCase().includes('penciler'))
-                  );
-                  if (writers.length > 0) writer = writers.map((w: any) => w.name).join(', ');
-                  if (artists.length > 0) artist = artists.map((a: any) => a.name).join(', ');
-                }
+          while (hasMoreIssues) {
+            const cvUrl = `https://comicvine.gamespot.com/api/issues/?api_key=${comicVineKey}&format=json&filter=volume:${volumeId}&field_list=id,volume,issue_number,name,cover_date,image,person_credits&limit=${limit}&offset=${offset}`;
+            const cvResponse = await fetch(cvUrl, {
+              headers: { 'User-Agent': 'Lovable-Scanner/1.0' }
+            });
 
-                return {
-                  id: issue.id,
-                  volume_id: issue.volume?.id || parseInt(volumeId),
-                  issue_number: issue.issue_number,
-                  name: issue.name,
-                  cover_date: issue.cover_date,
-                  image_url: issue.image?.medium_url || issue.image?.small_url,
-                  writer,
-                  artist,
-                  key_notes: null,
-                  last_synced_at: null
-                };
-              });
+            if (cvResponse.ok) {
+              const cvData = await cvResponse.json();
+              if (cvData.error === 'OK' && cvData.results) {
+                allIssues = allIssues.concat(cvData.results);
+                
+                // Check if there are more issues to fetch
+                const totalResults = cvData.number_of_total_results || 0;
+                offset += limit;
+                hasMoreIssues = offset < totalResults;
+                
+                console.log(`Fetched ${allIssues.length} of ${totalResults} issues for volume ${volumeId}`);
+              } else {
+                hasMoreIssues = false;
+              }
+            } else {
+              hasMoreIssues = false;
             }
+          }
+
+          // Map all fetched issues
+          if (allIssues.length > 0) {
+            finalIssues = allIssues.map((issue: any) => {
+              // Extract writer and artist from person_credits
+              let writer = null;
+              let artist = null;
+              if (issue.person_credits && Array.isArray(issue.person_credits)) {
+                const writers = issue.person_credits.filter((p: any) => 
+                  p.role && p.role.toLowerCase().includes('writer')
+                );
+                const artists = issue.person_credits.filter((p: any) => 
+                  p.role && (p.role.toLowerCase().includes('artist') || p.role.toLowerCase().includes('penciler'))
+                );
+                if (writers.length > 0) writer = writers.map((w: any) => w.name).join(', ');
+                if (artists.length > 0) artist = artists.map((a: any) => a.name).join(', ');
+              }
+
+              return {
+                id: issue.id,
+                volume_id: issue.volume?.id || parseInt(volumeId),
+                issue_number: issue.issue_number,
+                name: issue.name,
+                cover_date: issue.cover_date,
+                image_url: issue.image?.medium_url || issue.image?.small_url,
+                writer,
+                artist,
+                key_notes: null,
+                last_synced_at: null
+              };
+            });
           }
         } catch (cvError) {
           console.error('ComicVine API error:', cvError);
