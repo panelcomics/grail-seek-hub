@@ -39,6 +39,12 @@ export function InventoryImageManager({
       return;
     }
 
+    console.log("[IMAGE-MANAGER] 📸 Adding images", {
+      currentPrimary: images.primary,
+      currentOthersCount: images.others?.length || 0,
+      filesToAdd: files.length
+    });
+
     setIsUploading(true);
     try {
       const MAX_SIZE_MB = 10;
@@ -75,7 +81,9 @@ export function InventoryImageManager({
         uploadedUrls.push(publicUrl);
       }
 
-      // Update inventory_items.images JSONB
+      console.log("[IMAGE-MANAGER] ✅ Uploaded URLs:", uploadedUrls);
+
+      // CRITICAL: Preserve existing primary, append new uploads to others
       const updatedImages: ImageData = {
         primary: images.primary || uploadedUrls[0] || null,
         others: [
@@ -84,17 +92,26 @@ export function InventoryImageManager({
         ]
       };
 
+      console.log("[IMAGE-MANAGER] 💾 Saving to DB:", {
+        primary: updatedImages.primary,
+        othersCount: updatedImages.others.length
+      });
+
       const { error: updateError } = await supabase
         .from("inventory_items")
         .update({ images: updatedImages as any })
         .eq("id", inventoryItemId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("[IMAGE-MANAGER] ❌ Update failed:", updateError);
+        throw updateError;
+      }
 
+      console.log("[IMAGE-MANAGER] ✅ Images saved successfully");
       await onImagesChange();
       toast.success(`Uploaded ${uploadedUrls.length} image(s)`);
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("[IMAGE-MANAGER] ❌ Upload failed:", error);
       toast.error("Failed to upload images");
     } finally {
       setIsUploading(false);
