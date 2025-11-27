@@ -320,7 +320,6 @@ export function ScannerListingForm({
         
         // Status
         listing_status: "not_listed",
-        is_for_sale: false,
         for_sale: false,
         is_for_trade: false,
         
@@ -676,6 +675,7 @@ export function ScannerListingForm({
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Variant Cover">Variant Cover</SelectItem>
                     <SelectItem value="Direct">Direct</SelectItem>
                     <SelectItem value="Newsstand">Newsstand</SelectItem>
                     <SelectItem value="Price Variant">Price Variant</SelectItem>
