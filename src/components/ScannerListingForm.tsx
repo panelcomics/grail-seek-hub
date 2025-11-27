@@ -262,6 +262,19 @@ export function ScannerListingForm({
       return;
     }
 
+    // CRITICAL VALIDATION: Prevent saving without image URL
+    if (!imageUrl || imageUrl.trim() === '') {
+      console.error('[SCANNER-FORM] ❌ BLOCKED SAVE: No image URL provided', { imageUrl });
+      toast.error("Image upload in progress - please wait");
+      return;
+    }
+
+    console.log('[SCANNER-FORM] 📸 Starting inventory save with image URL:', {
+      imageUrl,
+      urlLength: imageUrl.length,
+      isValidUrl: imageUrl.startsWith('http')
+    });
+
     setSubmitting(true);
 
     try {
@@ -351,7 +364,18 @@ export function ScannerListingForm({
         .select()
         .single();
 
-      if (inventoryError) throw inventoryError;
+      if (inventoryError) {
+        console.error('[SCANNER-FORM] ❌ Inventory insert failed:', inventoryError);
+        throw inventoryError;
+      }
+
+      console.log('[SCANNER-FORM] ✅ Inventory saved successfully', {
+        id: inventoryItem.id,
+        title: inventoryItem.title,
+        imagesPrimary: (inventoryItem.images as any)?.primary,
+        imagesOthers: (inventoryItem.images as any)?.others,
+        hasImage: !!(inventoryItem.images as any)?.primary
+      });
 
       toast.success("Comic added to your inventory!");
 
