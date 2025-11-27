@@ -131,7 +131,7 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
       case "featured-grails":
         // Featured buy-it-now listings with price
         query = query
-          .eq("type", "fixed")
+          .eq("type", "buy_now")
           .gt("price_cents", 0)
           .order("created_at", { ascending: false });
         break;
