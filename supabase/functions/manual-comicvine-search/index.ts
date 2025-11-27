@@ -188,7 +188,9 @@ function extractCreatorCredits(personCredits: any[]): {
     return (
       role.includes('penciler') ||
       role.includes('pencils') ||
+      role.includes('interior artist') ||
       role.includes('inker') ||
+      role.includes('inks') ||
       role.includes('illustrator') ||
       (role.includes('artist') && !role.includes('cover'))
     );

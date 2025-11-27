@@ -304,9 +304,11 @@ export function ScannerListingForm({
         key_type: isKey ? (keyType || "Key issue") : null,
         
         // Images - ALWAYS { primary, others } format
+        // CRITICAL: Only user-uploaded photos in images structure
+        // ComicVine cover should NOT appear as a user photo
         images: {
           primary: imageUrl || null,
-          others: selectedCover ? [selectedCover] : []
+          others: [] // Never include ComicVine reference cover
         },
         
         // Variant
@@ -633,12 +635,12 @@ export function ScannerListingForm({
           <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center justify-between py-3 px-4 rounded-lg border-2 transition-all"
               style={{
-                borderColor: draft.keyIssue ? 'hsl(var(--destructive))' : 'hsl(var(--border))',
-                backgroundColor: draft.keyIssue ? 'hsl(var(--destructive) / 0.15)' : 'hsl(var(--muted) / 0.3)',
-                fontWeight: draft.keyIssue ? '700' : '500'
+                borderColor: isKey ? 'hsl(var(--destructive))' : 'hsl(var(--border))',
+                backgroundColor: isKey ? 'hsl(var(--destructive) / 0.15)' : 'hsl(var(--muted) / 0.3)',
+                fontWeight: isKey ? '700' : '500'
               }}>
               <div className="flex-1">
-                <Label htmlFor="key-issue" className="text-base font-bold cursor-pointer" style={{ color: draft.keyIssue ? 'hsl(var(--destructive))' : 'inherit' }}>
+                <Label htmlFor="key-issue" className="text-base font-bold cursor-pointer" style={{ color: isKey ? 'hsl(var(--destructive))' : 'inherit' }}>
                   Key Issue
                 </Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -647,8 +649,8 @@ export function ScannerListingForm({
               </div>
               <Switch
                 id="key-issue"
-                checked={draft.keyIssue}
-                onCheckedChange={(checked) => updateDraft({ keyIssue: checked })}
+                checked={isKey}
+                onCheckedChange={setIsKey}
                 className="data-[state=checked]:bg-destructive"
               />
             </div>
