@@ -50,9 +50,14 @@ export interface ComicVinePick {
   coverUrl: string;
   writer?: string | null;
   artist?: string | null;
+  coverArtist?: string | null;
   score: number;
   isReprint: boolean;
   source?: 'comicvine' | 'cache' | 'gcd';
+  description?: string | null;
+  deck?: string | null;
+  characters?: string | null;
+  keyNotes?: string | null;
 }
 
 export interface GroupedResults {
