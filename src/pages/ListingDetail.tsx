@@ -26,6 +26,7 @@ import { RequestTradeModal } from "@/components/RequestTradeModal";
 import { Share2, Copy } from "lucide-react";
 import { Listing, ListingProfile } from "@/types/listing";
 import { ImageCarousel } from "@/components/ImageCarousel";
+import { resolvePrice } from "@/lib/listingPriceUtils";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -164,7 +165,9 @@ export default function ListingDetail() {
             comicvine_issue_id,
             sold_off_platform,
             sold_off_platform_date,
-            sold_off_platform_channel
+            sold_off_platform_channel,
+            listed_price,
+            shipping_price
           )
         `)
         .eq("id", id)
@@ -429,7 +432,10 @@ export default function ListingDetail() {
               )}
 
               <div className="text-2xl md:text-3xl font-bold text-primary mb-3">
-                {listing.price_cents ? formatCents(listing.price_cents) : listing.price ? `$${listing.price.toFixed(2)}` : '$0.00'}
+                {(() => {
+                  const price = resolvePrice(listing);
+                  return price !== null ? `$${price.toFixed(2)}` : '$0.00';
+                })()}
               </div>
 
               {/* Summary chips row */}
@@ -533,10 +539,16 @@ export default function ListingDetail() {
                     }}
                     className="w-full bg-[#E53935] hover:bg-[#C62828] text-white font-semibold shadow-md rounded-md py-6 min-h-[44px] transition-all"
                     size="lg"
-                    aria-label={`Buy It Now for ${listing.price_cents ? formatCents(listing.price_cents) : '$0.00'}`}
+                    aria-label={`Buy It Now for ${(() => {
+                      const price = resolvePrice(listing);
+                      return price !== null ? `$${price.toFixed(2)}` : '$0.00';
+                    })()}`}
                   >
                     <span className="hidden sm:inline">
-                      Buy It Now – {listing.price_cents ? formatCents(listing.price_cents) : '$0.00'}
+                      Buy It Now – {(() => {
+                        const price = resolvePrice(listing);
+                        return price !== null ? `$${price.toFixed(2)}` : '$0.00';
+                      })()}
                     </span>
                     <span className="sm:hidden">
                       Buy It Now
