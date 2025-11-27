@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/lib/externalSupabase";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Trash2, Star } from "lucide-react";
@@ -68,13 +69,13 @@ export function InventoryImageManager({
         const filename = `${timestamp}-${file.name}`;
         const filePath = `inventory/${inventoryItemId}/${filename}`;
 
-        const { data, error } = await supabase.storage
+        const { data, error } = await externalSupabase.storage
           .from("images")
           .upload(filePath, file);
 
         if (error) throw error;
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = externalSupabase.storage
           .from("images")
           .getPublicUrl(filePath);
 
