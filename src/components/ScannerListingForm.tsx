@@ -243,21 +243,21 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
         year: year ? parseInt(year) : null,
         grade: grade.trim() || null, // e.g., "9.8" or "VF/NM"
         condition: condition,
-        details: notes.trim() || null, // User's notes/description
+        details: notes.trim() || (keyNotes.trim() || null), // Include key details when available
         comicvine_issue_id: comicvineId ? comicvineId.toString() : null,
         comicvine_volume_id: volumeId ? volumeId.toString() : null,
         variant_description: variantInfo || null, // ComicVine story title goes here (e.g., "Invasion!")
         variant_type: variantType || null, // User-selected variant type
         variant_details: variantDetails.trim() || null, // Additional variant details
         variant_notes: variantNotes.trim() || null, // Free-form variant notes
-        is_key: isKey,
-        key_type: isKey ? (keyType || null) : null,
+        is_key: isKey || Boolean(keyNotes.trim()),
+        key_type: isKey || Boolean(keyNotes.trim()) ? (keyType || "Key issue") : null,
         volume_name: series.trim() || null, // Optional volume name
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),
         images: {
-          front: finalImageUrl, // User's image from external Supabase
-          comicvine_reference: selectedCover || null, // Store reference separately
+          primary: finalImageUrl, // User's image from external Supabase
+          others: selectedCover ? [selectedCover] : [], // Reference or additional photos
         },
         listing_status: "not_listed",
         // ComicVine metadata
@@ -588,30 +588,9 @@ export function ScannerListingForm({ imageUrl, initialData = {}, confidence, com
                         <SelectValue placeholder="Select grade" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="10.0">10.0</SelectItem>
-                        <SelectItem value="9.9">9.9</SelectItem>
-                        <SelectItem value="9.8">9.8</SelectItem>
-                        <SelectItem value="9.6">9.6</SelectItem>
-                        <SelectItem value="9.4">9.4</SelectItem>
-                        <SelectItem value="9.2">9.2</SelectItem>
-                        <SelectItem value="9.0">9.0</SelectItem>
-                        <SelectItem value="8.5">8.5</SelectItem>
-                        <SelectItem value="8.0">8.0</SelectItem>
-                        <SelectItem value="7.5">7.5</SelectItem>
-                        <SelectItem value="7.0">7.0</SelectItem>
-                        <SelectItem value="6.5">6.5</SelectItem>
-                        <SelectItem value="6.0">6.0</SelectItem>
-                        <SelectItem value="5.5">5.5</SelectItem>
-                        <SelectItem value="5.0">5.0</SelectItem>
-                        <SelectItem value="4.5">4.5</SelectItem>
-                        <SelectItem value="4.0">4.0</SelectItem>
-                        <SelectItem value="3.5">3.5</SelectItem>
-                        <SelectItem value="3.0">3.0</SelectItem>
-                        <SelectItem value="2.5">2.5</SelectItem>
-                        <SelectItem value="2.0">2.0</SelectItem>
-                        <SelectItem value="1.5">1.5</SelectItem>
-                        <SelectItem value="1.0">1.0</SelectItem>
-                        <SelectItem value="0.5">0.5</SelectItem>
+                        {Array.from({ length: 96 }, (_, i) => (10.0 - i * 0.1).toFixed(1)).map((g) => (
+                          <SelectItem key={g} value={g}>{g}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
