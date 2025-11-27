@@ -12,6 +12,7 @@ import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { useWatchAuction } from "@/hooks/useWatchAuction";
 import { SoldOffPlatformBadge } from "@/components/SoldOffPlatformBadge";
+import { getRotationTransform } from "@/lib/imageRotation";
 
 interface ItemCardProps {
   id: string;
@@ -55,6 +56,7 @@ interface ItemCardProps {
   keyInfo?: string | null; // Key info from details/variant
   showFavorite?: boolean; // Show favorite button (default false to prevent extra queries on homepage)
   soldOffPlatform?: boolean; // If item was sold outside GrailSeeker
+  imageRotation?: number | null; // Rotation in degrees (0, 90, 180, 270)
 }
 
 const ItemCard = ({ 
@@ -99,6 +101,7 @@ const ItemCard = ({
   keyInfo = null,
   showFavorite = false, // Default to false to prevent extra queries on homepage
   soldOffPlatform = false,
+  imageRotation = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -171,6 +174,9 @@ const ItemCard = ({
             alt={title}
             className="w-full h-full object-contain p-2 sm:p-3 md:p-4 transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
+            style={{
+              transform: `${getRotationTransform(imageRotation)} scale(1)`
+            }}
           />
           
           {/* Top-right: Favorite button (only if enabled) */}

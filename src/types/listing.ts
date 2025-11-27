@@ -43,6 +43,7 @@ export interface InventoryItem {
   sold_off_platform?: boolean | null;
   sold_off_platform_date?: string | null;
   sold_off_platform_channel?: string | null;
+  primary_image_rotation?: number | null;
 }
 
 /**
@@ -85,6 +86,9 @@ export interface Listing {
   sold_off_platform?: boolean | null;
   sold_off_platform_date?: string | null;
   sold_off_platform_channel?: string | null;
+  primary_image_rotation?: number | null;
+  listed_price?: number | null;
+  shipping_price?: number | null;
   
   // Keep nested for backwards compatibility
   inventory_items: InventoryItem;

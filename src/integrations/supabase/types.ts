@@ -1189,6 +1189,7 @@ export type Database = {
           pricing_low: number | null
           pricing_mid: number | null
           pricing_source: string | null
+          primary_image_rotation: number | null
           private_location: string | null
           private_notes: string | null
           publisher: string | null
@@ -1254,6 +1255,7 @@ export type Database = {
           pricing_low?: number | null
           pricing_mid?: number | null
           pricing_source?: string | null
+          primary_image_rotation?: number | null
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null
@@ -1319,6 +1321,7 @@ export type Database = {
           pricing_low?: number | null
           pricing_mid?: number | null
           pricing_source?: string | null
+          primary_image_rotation?: number | null
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null

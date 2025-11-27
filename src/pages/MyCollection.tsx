@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Search, Trash2, Loader2, Edit2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useNavigate } from "react-router-dom";
+import { getRotationTransform } from "@/lib/imageRotation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ interface Comic {
   certification_number?: string | null;
   writer?: string | null;
   artist?: string | null;
+  primary_image_rotation?: number | null;
 }
 
 const MyCollection = () => {
@@ -83,7 +85,7 @@ const MyCollection = () => {
     try {
       const { data, error } = await supabase
         .from("inventory_items")
-        .select("id, title, issue_number, series, cover_date, publisher, year, grade, condition, is_slab, cgc_grade, grading_company, certification_number, images, details, created_at, variant_type, variant_details, variant_notes, is_key, key_type, writer, artist")
+        .select("id, title, issue_number, series, cover_date, publisher, year, grade, condition, is_slab, cgc_grade, grading_company, certification_number, images, details, created_at, variant_type, variant_details, variant_notes, is_key, key_type, writer, artist, primary_image_rotation")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -192,7 +194,10 @@ const MyCollection = () => {
                         <img
                           src={comic.image_url}
                           alt={comic.title}
-                          className="w-full sm:w-24 h-32 sm:h-36 object-contain rounded flex-shrink-0 mx-auto sm:mx-0"
+                          className="w-full sm:w-24 h-32 sm:h-36 object-contain rounded flex-shrink-0 mx-auto sm:mx-0 transition-transform duration-200"
+                          style={{
+                            transform: getRotationTransform(comic.primary_image_rotation)
+                          }}
                         />
                       )}
                       <div className="flex-1 min-w-0 space-y-2">

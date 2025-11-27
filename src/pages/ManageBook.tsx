@@ -15,6 +15,8 @@ import { InventoryImageManager } from "@/components/InventoryImageManager";
 import { Separator } from "@/components/ui/separator";
 import { MarkSoldOffPlatformModal } from "@/components/MarkSoldOffPlatformModal";
 import { GRADE_OPTIONS } from "@/types/draftItem";
+import { RotateCw, RotateCcw } from "lucide-react";
+import { getRotationTransform, rotateLeft, rotateRight } from "@/lib/imageRotation";
 
 export default function ManageBook() {
   const { id } = useParams();
@@ -25,6 +27,7 @@ export default function ManageBook() {
   const [item, setItem] = useState<any>(null);
   const [activeListing, setActiveListing] = useState<any>(null);
   const [markSoldModalOpen, setMarkSoldModalOpen] = useState(false);
+  const [imageRotation, setImageRotation] = useState<number>(0);
 
   // Form state for all fields
   const [formData, setFormData] = useState({
@@ -95,6 +98,9 @@ export default function ManageBook() {
       }
 
       setItem(data);
+      
+      // Set rotation from database
+      setImageRotation(data.primary_image_rotation || 0);
       
       // Populate form
       setFormData({
@@ -208,6 +214,7 @@ export default function ManageBook() {
         private_location: formData.private_location || null,
         storage_location: formData.private_location || null,
         listing_status: formData.for_sale ? "listed" : "not_listed",
+        primary_image_rotation: imageRotation,
         updated_at: new Date().toISOString(),
         // CRITICAL: DO NOT include 'images' field - it's managed separately
       };
@@ -318,7 +325,7 @@ export default function ManageBook() {
             {/* Primary Image Display */}
             {item.images && (item.images.primary || item.images.others?.length > 0) && (
               <Card>
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 space-y-4">
                   <div className="relative aspect-[3/4] bg-muted rounded-lg overflow-hidden">
                     <img
                       src={
@@ -327,8 +334,35 @@ export default function ManageBook() {
                         '/placeholder.svg'
                       }
                       alt={formData.title || "Book cover"}
-                      className="w-full h-auto object-contain max-h-[600px] mx-auto"
+                      className="w-full h-auto object-contain max-h-[600px] mx-auto transition-transform duration-200"
+                      style={{
+                        transform: getRotationTransform(imageRotation)
+                      }}
                     />
+                  </div>
+                  
+                  {/* Rotation Controls */}
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setImageRotation(rotateLeft(imageRotation))}
+                      className="flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Rotate Left 90°
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setImageRotation(rotateRight(imageRotation))}
+                      className="flex items-center gap-1.5"
+                    >
+                      <RotateCw className="h-4 w-4" />
+                      Rotate Right 90°
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
