@@ -162,12 +162,12 @@ export default function ManageBook() {
   const handleSave = async () => {
     if (!user || !item) return;
 
-    console.log("🔍 SAVE HANDLER START", {
+    console.log("[INVENTORY-SAVE] 🔍 START", {
       itemId: item.id,
       itemTitle: formData.title || formData.series,
       for_sale: formData.for_sale,
-      listed_price_string: formData.listed_price,
-      shipping_price_string: formData.shipping_price,
+      is_for_trade: formData.is_for_trade,
+      images: item.images
     });
 
     setSaving(true);
@@ -209,9 +209,13 @@ export default function ManageBook() {
         storage_location: formData.private_location || null,
         listing_status: formData.for_sale ? "listed" : "not_listed",
         updated_at: new Date().toISOString(),
+        // CRITICAL: DO NOT include 'images' field - it's managed separately
       };
 
-      console.log("📝 Updating inventory_items table", updateData);
+      console.log("[INVENTORY-SAVE] 📝 Updating inventory_items ONLY (never touches listings)", {
+        fields: Object.keys(updateData),
+        excludes: ['images']
+      });
 
       const { error } = await supabase
         .from("inventory_items")
@@ -219,23 +223,21 @@ export default function ManageBook() {
         .eq("id", item.id);
 
       if (error) {
-        console.error("❌ inventory_items update failed:", error);
+        console.error("[INVENTORY-SAVE] ❌ Update failed:", error);
         throw error;
       }
 
-      console.log("✅ inventory_items updated successfully");
-
-      // Inventory updates are intentionally isolated from listings.
-      // Listing creation and status changes now live only on the /sell/{id} flow.
+      console.log("[INVENTORY-SAVE] ✅ inventory_items updated successfully");
+      console.log("[INVENTORY-SAVE] ⚠️ This update NEVER creates or touches listings table");
 
       toast.success("Book updated successfully");
       
       // Refresh item data after save
       await fetchItem();
       await fetchActiveListing(item.id);
-      console.log("🔍 SAVE HANDLER COMPLETE");
+      console.log("[INVENTORY-SAVE] 🔍 COMPLETE");
     } catch (error: any) {
-      console.error("❌ ERROR in handleSave:", error);
+      console.error("[INVENTORY-SAVE] ❌ ERROR:", error);
       const errorMessage = error?.message 
         ? `Failed to update: ${error.message}` 
         : "Failed to update book";

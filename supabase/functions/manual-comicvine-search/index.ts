@@ -120,7 +120,7 @@ async function queryComicVineVolumes(apiKey: string, query: string, offset = 0, 
 }
 
 async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber: string): Promise<any[]> {
-  const url = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${volumeId},issue_number:${issueNumber}&field_list=id,name,issue_number,volume,cover_date,image,person_credits&limit=10`;
+  const url = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${volumeId},issue_number:${issueNumber}&field_list=id,name,issue_number,volume,cover_date,image,person_credits,character_credits,deck,description&limit=10`;
   
   if (isDebug) {
     console.log('[MANUAL-SEARCH] 🔍 ComicVine Issue Query for volume', volumeId, 'issue', issueNumber);
@@ -144,37 +144,104 @@ async function queryComicVineIssue(apiKey: string, volumeId: number, issueNumber
   return Array.isArray(data.results) ? data.results : [];
 }
 
-function extractCreatorCredits(personCredits: any[]): { writer: string | null; artist: string | null } {
+/**
+ * Extract writer, artist, and key issue info from ComicVine person_credits
+ * Uses same logic as src/lib/comicvine/metadata.ts for consistency
+ */
+function extractCreatorCredits(personCredits: any[]): { 
+  writer: string | null; 
+  artist: string | null; 
+  coverArtist: string | null;
+} {
   let writer: string | null = null;
   let artist: string | null = null;
+  let coverArtist: string | null = null;
   
   if (!personCredits || !Array.isArray(personCredits)) {
-    return { writer, artist };
+    return { writer, artist, coverArtist };
   }
   
-  // Find primary writer
-  const writerCredit = personCredits.find((credit: any) => 
-    credit.role?.toLowerCase().includes('writer') || 
-    credit.role?.toLowerCase().includes('script')
-  );
+  // Extract writer (matches writer or script role)
+  const writerCredit = personCredits.find((credit: any) => {
+    const role = credit.role?.toLowerCase() || '';
+    return role.includes('writer') || role.includes('script');
+  });
   if (writerCredit) {
     writer = writerCredit.name;
   }
   
-  // Find primary artist (prefer penciler/interior artist over cover artist)
-  const artistCredit = personCredits.find((credit: any) => {
+  // Extract artist (prefer interior artist over cover artist)
+  const interiorArtist = personCredits.find((credit: any) => {
     const role = credit.role?.toLowerCase() || '';
-    return role.includes('penciler') || role.includes('pencils') || 
-           role.includes('artist') && !role.includes('cover');
-  }) || personCredits.find((credit: any) => 
-    credit.role?.toLowerCase().includes('cover')
-  );
+    return (
+      role.includes('penciler') ||
+      role.includes('pencils') ||
+      role.includes('inker') ||
+      role.includes('illustrator') ||
+      (role.includes('artist') && !role.includes('cover'))
+    );
+  });
   
-  if (artistCredit) {
-    artist = artistCredit.name;
+  if (interiorArtist) {
+    artist = interiorArtist.name;
+  } else {
+    // Fallback to cover artist if no interior artist found
+    const coverCredit = personCredits.find((credit: any) =>
+      credit.role?.toLowerCase().includes('cover')
+    );
+    if (coverCredit) {
+      artist = coverCredit.name;
+    }
   }
   
-  return { writer, artist };
+  // Extract cover artist separately
+  const coverCredit = personCredits.find((credit: any) =>
+    credit.role?.toLowerCase().includes('cover')
+  );
+  if (coverCredit) {
+    coverArtist = coverCredit.name;
+  }
+  
+  return { writer, artist, coverArtist };
+}
+
+/**
+ * Extract key issue notes from description, deck, and character credits
+ */
+function extractKeyNotes(issue: any): string | null {
+  const keyPatterns = [
+    /1st\s+(?:appearance|app\.?)\s+(?:of\s+)?(.+?)(?:\.|,|$)/gi,
+    /first\s+appearance\s+(?:of\s+)?(.+?)(?:\.|,|$)/gi,
+    /origin\s+(?:of\s+)?(.+?)(?:\.|,|$)/gi,
+    /debut\s+(?:of\s+)?(.+?)(?:\.|,|$)/gi,
+    /introduces?\s+(.+?)(?:\.|,|$)/gi,
+  ];
+
+  const keyNotes: string[] = [];
+  const text = [
+    issue.deck || '',
+    issue.description || '',
+    (issue.character_credits || []).map((c: any) => c.name).join(', '),
+  ].join(' ');
+
+  for (const pattern of keyPatterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      if (match[1]) {
+        const note = match[1]
+          .trim()
+          .replace(/<[^>]+>/g, '') // Remove HTML tags
+          .replace(/\s+/g, ' ')
+          .substring(0, 100); // Limit length
+        
+        if (note && !keyNotes.includes(note)) {
+          keyNotes.push(note);
+        }
+      }
+    }
+  }
+
+  return keyNotes.length > 0 ? keyNotes.join('; ') : null;
 }
 
 serve(async (req) => {
@@ -239,6 +306,7 @@ serve(async (req) => {
           if (data.results) {
             const issue = data.results;
             const credits = extractCreatorCredits(issue.person_credits);
+            const keyNotes = extractKeyNotes(issue);
             
             const result = {
               id: issue.id,
@@ -253,13 +321,20 @@ serve(async (req) => {
               coverUrl: issue.image?.original_url || "",
               writer: credits.writer,
               artist: credits.artist,
+              coverArtist: credits.coverArtist,
+              keyNotes: keyNotes,
+              keyIssue: !!keyNotes,
               score: 1.0, // Perfect match via ID
               scoreBreakdown: { title: 0, publisher: 0, issue: 0 },
               source: 'comicvine' as const,
               isReprint: false
             };
             
-            console.log('[MANUAL-SEARCH] Direct ID match found');
+            console.log('[MANUAL-SEARCH] Direct ID match found with metadata:', {
+              writer: credits.writer,
+              artist: credits.artist,
+              keyNotes: keyNotes ? keyNotes.substring(0, 50) + '...' : null
+            });
             return new Response(JSON.stringify({
               ok: true,
               results: [result],
@@ -339,6 +414,7 @@ serve(async (req) => {
                 const volumePub = volume.publisher?.name || publisher || "";
                 const volumeName = issue.volume?.name || volume.name;
                 const credits = extractCreatorCredits(issue.person_credits);
+                const keyNotes = extractKeyNotes(issue);
                 
                 // Calculate score based on match quality
                 let score = 0.70; // Base score
@@ -392,6 +468,9 @@ serve(async (req) => {
                   coverUrl: issue.image?.original_url || "",
                   writer: credits.writer,
                   artist: credits.artist,
+                  coverArtist: credits.coverArtist,
+                  keyNotes: keyNotes,
+                  keyIssue: !!keyNotes,
                   score: score,
                   scoreBreakdown,
                   source: 'comicvine' as const,
