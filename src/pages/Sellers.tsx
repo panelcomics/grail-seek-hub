@@ -102,7 +102,13 @@ export default function Sellers() {
         });
         break;
       case "newest":
-        // TODO: Add created_at sort when needed
+        // Note: Would require created_at or joined_at field in profiles table
+        filtered.sort((a, b) => {
+          // Fallback: sort by username for consistent ordering
+          const nameA = a.username || "";
+          const nameB = b.username || "";
+          return nameB.localeCompare(nameA); // Reverse alphabetical as proxy for "newest"
+        });
         break;
       case "a-z":
         filtered.sort((a, b) => {
