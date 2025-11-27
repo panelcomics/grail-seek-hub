@@ -137,6 +137,7 @@ export function ListingsCarousel({
                     series={listing.series}
                     issueNumber={listing.issue_number}
                     keyInfo={listing.variant_description || listing.details}
+                    imageRotation={listing.primary_image_rotation}
                   />
                 </div>
               );

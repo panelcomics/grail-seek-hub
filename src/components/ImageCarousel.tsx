@@ -2,13 +2,15 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
+import { getRotationTransform } from "@/lib/imageRotation";
 
 interface ImageCarouselProps {
   images: Array<{ url: string; thumbnail_url?: string }>;
   className?: string;
+  rotation?: number | null;
 }
 
-export function ImageCarousel({ images, className }: ImageCarouselProps) {
+export function ImageCarousel({ images, className, rotation }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!images || images.length === 0) {
@@ -33,7 +35,10 @@ export function ImageCarousel({ images, className }: ImageCarouselProps) {
         <img
           src={images[currentIndex].url}
           alt={`Image ${currentIndex + 1}`}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain transition-transform duration-200"
+          style={{
+            transform: getRotationTransform(rotation)
+          }}
         />
         
         {images.length > 1 && (

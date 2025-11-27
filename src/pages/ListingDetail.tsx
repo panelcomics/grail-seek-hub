@@ -167,7 +167,8 @@ export default function ListingDetail() {
             sold_off_platform_date,
             sold_off_platform_channel,
             listed_price,
-            shipping_price
+            shipping_price,
+            primary_image_rotation
           )
         `)
         .eq("id", id)
@@ -346,7 +347,11 @@ export default function ListingDetail() {
             <div>
               <div className="relative">
                 {allImages.length > 0 ? (
-                  <ImageCarousel images={allImages} className="mb-4" />
+                  <ImageCarousel 
+                    images={allImages} 
+                    className="mb-4"
+                    rotation={listing.primary_image_rotation}
+                  />
                 ) : (
                   <div className="aspect-[2/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
                     <span className="text-muted-foreground">No image available</span>
