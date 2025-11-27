@@ -234,8 +234,8 @@ export default function ManageBook() {
 
       console.log("✅ inventory_items updated successfully");
 
-      // Create or update listings table entry if for_sale is true
-      if (formData.for_sale) {
+      // Handle listing creation/update/deactivation based on for_sale flag
+      if (formData.for_sale && formData.listed_price) {
         const listedPrice = formData.listed_price ? parseFloat(formData.listed_price) : null;
         const shippingPrice = formData.shipping_price ? parseFloat(formData.shipping_price) : null;
         
@@ -306,9 +306,9 @@ export default function ManageBook() {
           }
           console.log("✅ Listing created successfully:", insertedListing);
         }
-      } else {
+      } else if (!formData.for_sale) {
         console.log("🚫 for_sale is false, deactivating existing listings");
-        // If for_sale is false, deactivate any existing listing
+        // Deactivate any existing listing without attempting to create new ones
         const { error: deactivateError } = await supabase
           .from("listings")
           .update({ status: "inactive" })
@@ -317,9 +317,12 @@ export default function ManageBook() {
         
         if (deactivateError) {
           console.error("❌ Listing deactivation failed:", deactivateError);
+          // Don't throw—deactivation failure is non-critical
         } else {
           console.log("✅ Listings deactivated");
         }
+      } else {
+        console.log("⚠️ for_sale is true but listed_price is missing, skipping listing creation");
       }
 
       toast.success("Book updated successfully");
@@ -327,9 +330,12 @@ export default function ManageBook() {
       // Refresh listing status after save
       await fetchActiveListing(item.id);
       console.log("🔍 SAVE HANDLER COMPLETE");
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ ERROR in handleSave:", error);
-      toast.error("Failed to update book");
+      const errorMessage = error?.message 
+        ? `Failed to update: ${error.message}` 
+        : "Failed to update book";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
