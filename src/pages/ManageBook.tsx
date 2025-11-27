@@ -11,7 +11,7 @@ import { ArrowLeft, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ComicImagesManager } from "@/components/ComicImagesManager";
+import { InventoryImageManager } from "@/components/InventoryImageManager";
 import { Separator } from "@/components/ui/separator";
 import { MarkSoldOffPlatformModal } from "@/components/MarkSoldOffPlatformModal";
 import { GRADE_OPTIONS } from "@/types/draftItem";
@@ -128,7 +128,6 @@ export default function ManageBook() {
         private_location: data.private_location || "",
       });
       
-      await fetchListingImages(id);
       await fetchActiveListing(id);
     } catch (error) {
       console.error("Error fetching item:", error);
@@ -158,20 +157,7 @@ export default function ManageBook() {
     }
   };
 
-  const fetchListingImages = async (itemId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("listing_images")
-        .select("*")
-        .eq("listing_id", itemId)
-        .order("sort_order", { ascending: true });
-
-      if (error) throw error;
-      setListingImages(data || []);
-    } catch (error) {
-      console.error("Error fetching images:", error);
-    }
-  };
+  // Image management now uses inventory_items.images JSONB field directly
 
   const handleSave = async () => {
     if (!user || !item) return;
@@ -353,7 +339,7 @@ export default function ManageBook() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Add multiple photos: front, back, spine, defects, etc.
                 </p>
-                <ComicImagesManager
+                <InventoryImageManager
                   inventoryItemId={id!}
                   images={item.images || { primary: null, others: [] }}
                   onImagesChange={() => fetchItem()}
