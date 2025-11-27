@@ -92,7 +92,7 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
             id={item.listing_id}
             title={displayTitle}
             price={price === null ? undefined : price}
-            image={getListingImageUrl(item)}
+            image={getListingImageUrl(item.inventory_items || item)}
             condition={item.cgc_grade || item.condition || "Raw"}
             sellerName={profile?.username}
             sellerCity={undefined}
