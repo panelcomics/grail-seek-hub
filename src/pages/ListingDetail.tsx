@@ -25,6 +25,7 @@ import { MakeOfferModal } from "@/components/MakeOfferModal";
 import { RequestTradeModal } from "@/components/RequestTradeModal";
 import { Share2, Copy } from "lucide-react";
 import { Listing, ListingProfile } from "@/types/listing";
+import { ImageCarousel } from "@/components/ImageCarousel";
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
@@ -276,6 +277,21 @@ export default function ListingDetail() {
   // This matches exactly how ListingsCarousel calls getListingImageUrl(listing)
   const imageUrl = getListingImageUrl(listing);
   
+  // Build complete images array from JSONB structure
+  const allImages: Array<{ url: string }> = [];
+  if (listing.images?.primary) {
+    allImages.push({ url: listing.images.primary });
+  }
+  if (Array.isArray(listing.images?.others)) {
+    listing.images.others.forEach((url: string) => {
+      if (url) allImages.push({ url });
+    });
+  }
+  // Fallback to imageUrl if no images in JSONB
+  if (allImages.length === 0 && imageUrl && imageUrl !== "/placeholder.svg") {
+    allImages.push({ url: imageUrl });
+  }
+  
   const canonicalUrl = `${window.location.origin}/l/${id}`;
   const sellerName = seller?.display_name || seller?.username || "Seller";
   const sellerSlug = seller?.username?.toLowerCase().replace(/\s+/g, '-');
@@ -326,19 +342,15 @@ export default function ListingDetail() {
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
             <div>
               <div className="relative">
-                {imageUrl && imageUrl !== "/placeholder.svg" ? (
-                  <img
-                    src={imageUrl}
-                    alt={title}
-                    className="aspect-[2/3] w-full object-contain p-4 rounded-lg mb-4 bg-muted"
-                  />
+                {allImages.length > 0 ? (
+                  <ImageCarousel images={allImages} className="mb-4" />
                 ) : (
                   <div className="aspect-[2/3] bg-muted rounded-lg mb-4 flex items-center justify-center">
                     <span className="text-muted-foreground">No image available</span>
                   </div>
                 )}
                 {/* Favorite button overlay */}
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 z-10">
                   <FavoriteButton listingId={id} showCount />
                 </div>
               </div>
