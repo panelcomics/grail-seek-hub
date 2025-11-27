@@ -19,6 +19,7 @@ import { StorageManagement } from "@/components/StorageManagement";
 import { BulkActionsBar } from "@/components/BulkActionsBar";
 import { formatDistanceToNow } from "date-fns";
 import { CollectionSidebar } from "@/components/CollectionSidebar";
+import { BulkPhotoUpload } from "@/components/BulkPhotoUpload";
 
 interface InventoryItem {
   id: string;
@@ -243,8 +244,9 @@ export default function MyInventory() {
           {/* Main Content */}
           <div className="order-2 lg:order-1">
             <Tabs defaultValue="inventory" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="photos">Photo Upload</TabsTrigger>
             <TabsTrigger value="storage">Boxes & Shelves</TabsTrigger>
           </TabsList>
 
@@ -507,6 +509,14 @@ export default function MyInventory() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="photos">
+            <Card>
+              <CardContent className="pt-6">
+                <BulkPhotoUpload />
               </CardContent>
             </Card>
           </TabsContent>
