@@ -18,7 +18,8 @@ export type HomepageSectionKey =
   | 'ending-soon'
   | 'local-deals'
   | 'newly-listed'
-  | 'featured-shop-panel-comics';
+  | 'featured-shop-panel-comics'
+  | 'featured-shop-kiss-komixx';
 
 interface HomepageCacheEntry<T> {
   data: T;
