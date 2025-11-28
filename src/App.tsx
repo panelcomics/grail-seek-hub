@@ -63,6 +63,7 @@ import Sell from "./pages/Sell";
 import About from "./pages/About";
 import ManageBook from "./pages/ManageBook";
 import MyOffersAndTrades from "./pages/MyOffersAndTrades";
+import DevTestCheckout from "./pages/DevTestCheckout";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -131,6 +132,7 @@ const AppContent = () => {
             <Route path="/about" element={<About />} />
             <Route path="/sell" element={<Sell />} />
             <Route path="/dev/scan-test" element={<DevScanTest />} />
+            <Route path="/dev/test-checkout" element={<DevTestCheckout />} />
             <Route path="/market" element={<Marketplace />} />
             <Route path="/marketplace" element={<Marketplace />} /> {/* redirect old route */}
             <Route path="/l/:id" element={<ListingDetail />} />
