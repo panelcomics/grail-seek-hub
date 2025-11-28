@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Loader2, ChevronRight, X, Search, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, ChevronRight, X, Search, AlertCircle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Volume {
@@ -43,11 +44,13 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
   const [loadingIssues, setLoadingIssues] = useState(false);
   const [issueFilter, setIssueFilter] = useState(initialIssueNumber || "");
   const [issueError, setIssueError] = useState<string | null>(null);
+  const [displayLimit, setDisplayLimit] = useState(100); // Show 100 issues at a time
 
   const handleVolumeClick = async (volume: Volume) => {
     setSelectedVolume(volume);
     setLoadingIssues(true);
     setIssueError(null);
+    setDisplayLimit(100); // Reset display limit when switching volumes
     
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -231,15 +234,22 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
             </div>
           ) : (
             // Issue List
-            <div className="space-y-2">
-              {issues
-                .filter((issue) => {
-                  if (!issueFilter.trim()) return true;
-                  const filterNum = issueFilter.trim().toLowerCase();
-                  const issueNum = (issue.issue_number || "").toLowerCase();
-                  return issueNum.includes(filterNum);
-                })
-                .map((issue) => {
+            <>
+              <div className="space-y-2">
+                {(() => {
+                  const filteredIssues = issues.filter((issue) => {
+                    if (!issueFilter.trim()) return true;
+                    const filterNum = issueFilter.trim().toLowerCase();
+                    const issueNum = (issue.issue_number || "").toLowerCase();
+                    return issueNum.includes(filterNum);
+                  });
+                  
+                  const displayedIssues = filteredIssues.slice(0, displayLimit);
+                  const hasMore = filteredIssues.length > displayLimit;
+                  
+                  return (
+                    <>
+                      {displayedIssues.map((issue) => {
                 const year = issue.cover_date ? new Date(issue.cover_date).getFullYear() : null;
                 
                 return (
@@ -294,9 +304,34 @@ export function VolumeIssuePicker({ volumes, loading, onSelectIssue, onClose, in
                       </CardContent>
                     </Card>
                   </button>
+                      );
+                    })}
+                    {hasMore && (
+                      <div className="pt-4 pb-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setDisplayLimit(prev => prev + 100)}
+                          className="w-full"
+                        >
+                          Load More Issues ({filteredIssues.length - displayLimit} remaining)
+                        </Button>
+                      </div>
+                    )}
+                    {!issueFilter && filteredIssues.length > 50 && (
+                      <div className="pt-2 pb-2">
+                        <Alert>
+                          <Info className="h-4 w-4" />
+                          <AlertDescription className="text-xs">
+                            Tip: Use the search box above to quickly find a specific issue number
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
+                  </>
                 );
-              })}
+              })()}
             </div>
+            </>
           )}
         </ScrollArea>
       </CardContent>
