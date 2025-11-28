@@ -78,6 +78,8 @@ export default function Index() {
         <PremiumDealerCarousel 
           sellerId={FEATURED_SELLERS.KISS_KOMIXX.sellerId}
           sellerName={FEATURED_SELLERS.KISS_KOMIXX.displayName}
+          useCache
+          cacheKey="featured-shop-kiss-komixx"
         />
         
         <TrustSection />
