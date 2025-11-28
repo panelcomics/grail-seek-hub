@@ -104,7 +104,8 @@ export function PremiumDealerCarousel({
           setSellerProfile(extractedProfile);
           console.log('[FEATURED_SHOP] Profile extracted:', extractedProfile.display_name || extractedProfile.username);
         } else {
-          console.warn('[FEATURED_SHOP] No profile data in listings response');
+          console.warn('[FEATURED_SHOP] No profile data, will show fallback state');
+          setSellerProfile(null);
         }
 
         const rawLength = Array.isArray(listingsData) ? listingsData.length : 0;
