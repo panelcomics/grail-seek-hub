@@ -792,7 +792,12 @@ export default function Scanner() {
       pick.coverUrl = issueDetails.cover_url || pick.coverUrl;
       pick.writer = issueDetails.writer;
       pick.artist = issueDetails.artist;
+      pick.coverArtist = issueDetails.coverArtist;
       pick.variantDescription = issueDetails.title;
+      pick.keyNotes = issueDetails.keyNotes;
+      pick.characters = issueDetails.characters;
+      pick.deck = issueDetails.deck;
+      pick.description = issueDetails.description;
       
       // Update prefill data with detailed info
       setPrefillData({
@@ -804,6 +809,9 @@ export default function Scanner() {
         comicvineCoverUrl: issueDetails.cover_url || pick.coverUrl,
         description: issueDetails.description
       });
+      
+      // CRITICAL: Update selectedPick with the enriched data so the form receives writer/artist/keyNotes
+      setSelectedPick({ ...pick });
     }
     
     setStatus("selected");
@@ -847,7 +855,12 @@ export default function Scanner() {
     if (issueDetails) {
       scan.writer = issueDetails.writer;
       scan.artist = issueDetails.artist;
+      scan.coverArtist = issueDetails.coverArtist;
       scan.variantDescription = issueDetails.title;
+      scan.keyNotes = issueDetails.keyNotes;
+      scan.characters = issueDetails.characters;
+      scan.deck = issueDetails.deck;
+      scan.description = issueDetails.description;
       
       setPrefillData({
         title: issueDetails.volume_name || scan.volumeName || scan.title,
@@ -858,6 +871,9 @@ export default function Scanner() {
         comicvineCoverUrl: issueDetails.cover_url || scan.coverUrl,
         description: issueDetails.description
       });
+      
+      // CRITICAL: Update selectedPick with the enriched data so the form receives writer/artist/keyNotes
+      setSelectedPick({ ...scan });
     }
     
     setStatus("selected");
