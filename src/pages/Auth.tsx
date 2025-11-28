@@ -227,23 +227,34 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      await logAuthEvent('signup_google_attempt');
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         },
       });
 
-      if (error) throw error;
-      await logAuthEvent('signup_google');
+      if (error) {
+        console.error('[GOOGLE-AUTH] OAuth error:', error);
+        throw error;
+      }
+      
       // OAuth will handle the redirect automatically
+      await logAuthEvent('signup_google_success');
     } catch (error: any) {
-      await logAuthEvent('google_failed', { error: error.message });
+      console.error('[GOOGLE-AUTH] Full error:', error);
+      await logAuthEvent('google_failed', { error: error.message, status: error.status });
       
       toast({
-        title: "Google login issue",
-        description: "Please use email/password login instead",
-        variant: "default",
+        title: "Google Sign-In Unavailable",
+        description: "Google authentication needs to be configured in your backend settings. Please use email/password login.",
+        variant: "destructive",
       });
       setIsLoading(false);
     }

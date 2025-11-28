@@ -111,7 +111,7 @@ export default function ManageBook() {
         year: data.year?.toString() || "",
         cover_date: data.cover_date || "",
         condition: data.condition || "",
-        details: data.details || "",
+        details: data.key_details || "",  // Display key_details from database in "Key Info / Details" field
         variant_type: data.variant_type || "",
         variant_details: data.variant_details || "",
         variant_notes: data.variant_notes || "",
@@ -187,13 +187,13 @@ export default function ManageBook() {
         year: formData.year ? parseInt(formData.year) : null,
         cover_date: formData.cover_date || null,
         condition: formData.condition || null,
-        details: formData.details || null,
+        details: null,  // No longer used - key info now properly saved to key_details
         variant_type: formData.variant_type || null,
         variant_details: formData.variant_details || null,
         variant_notes: formData.variant_notes || null,
         key_issue: formData.is_key,
         is_key: formData.is_key,
-        key_details: formData.is_key ? formData.key_type : null,
+        key_details: formData.is_key ? formData.details : null,  // Save key info text from "Key Info / Details" field
         key_type: formData.is_key ? (formData.key_type || null) : null,
         writer: formData.writer || null,
         artist: formData.artist || null,
