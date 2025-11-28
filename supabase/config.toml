@@ -27,7 +27,7 @@ cpu_ms = 30000
 memory_mb = 1024
 
 [functions.choose-candidate]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-claim-rules]
 verify_jwt = false
@@ -96,7 +96,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.test-scan-ocr]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ebay-comps]
 verify_jwt = false
@@ -105,10 +105,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.save-verified]
-verify_jwt = false
+verify_jwt = true
 
 [functions.pricing-pipeline]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-comicvine-cache]
 verify_jwt = true
@@ -125,10 +125,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.test-upload]
-verify_jwt = false
+verify_jwt = true
 
 [functions.upload-scanner-image]
-verify_jwt = false
+verify_jwt = true
 
 [functions.update-seller-favorites]
 verify_jwt = true
