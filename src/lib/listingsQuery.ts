@@ -68,12 +68,20 @@ export async function fetchSellerListings(userId: string, limit: number = 10): P
 
     console.log(`[HOMEPAGE] FETCH seller-listings success in ${duration.toFixed(2)}ms: ${data?.length || 0} listings`);
 
+    // Fetch profile for this seller (single query)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, username, avatar_url, is_verified_seller, completed_sales_count, seller_tier, is_featured_seller")
+      .eq("user_id", userId)
+      .maybeSingle();
+
     // Transform data to match expected format
     const transformedData = (data || []).map(listing => ({
       ...listing,
       ...listing.inventory_items,
       listing_id: listing.id,
       price_cents: listing.price_cents,
+      profiles: profile,
       inventory_items: listing.inventory_items,
     }));
 
@@ -190,7 +198,7 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
 
     console.log(`[HOMEPAGE] FETCH ${filterType} success in ${duration.toFixed(2)}ms: ${data.length} listings`);
 
-    // Fetch profiles separately for each unique user_id
+    // Batch fetch profiles for all unique user_ids (already optimized with IN clause)
     const userIds = [...new Set(data.map(l => l.user_id).filter(Boolean))];
     const { data: profiles } = await supabase
       .from("profiles")
@@ -198,7 +206,6 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
       .in("user_id", userIds);
 
     // Transform data to include inventory_items properties at top level
-    // This matches the Marketplace transformation exactly
     const transformedData = data.map(listing => {
       const item = listing.inventory_items;
       const profile = profiles?.find(p => p.user_id === listing.user_id);

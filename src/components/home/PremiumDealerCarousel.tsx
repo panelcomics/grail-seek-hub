@@ -46,56 +46,44 @@ export function PremiumDealerCarousel({
         
         let profileData: any = null;
 
-        if (sellerId) {
-          console.log('[FEATURED_SHOP] Querying by sellerId:', sellerId);
+        // Optimize: Fetch listings, profile comes from single query
+        let listingsData: any[];
+        let targetUserId = sellerId;
+
+        // If no sellerId, look up by name first
+        if (!targetUserId && sellerName) {
+          console.log('[FEATURED_SHOP] Looking up seller by name:', sellerName);
           const { data, error } = await supabase
             .from("public_profiles")
-            .select("user_id, username, display_name, seller_tier, profile_image_url")
-            .eq("user_id", sellerId)
-            .maybeSingle();
-
-          if (error) {
-            console.error('[FEATURED_SHOP] Error querying by sellerId:', error);
-          } else if (!data) {
-            console.error('[FEATURED_SHOP] No seller found with sellerId:', sellerId);
-          } else {
-            profileData = data;
-            console.log('[FEATURED_SHOP] Found seller by ID:', data.display_name || data.username);
-          }
-        }
-
-        if (!profileData && sellerName) {
-          console.log('[FEATURED_SHOP] Falling back to name lookup:', sellerName);
-          
-          let { data, error } = await supabase
-            .from("public_profiles")
-            .select("user_id, username, display_name, seller_tier, profile_image_url")
+            .select("user_id")
             .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
             .maybeSingle();
 
           if (!data) {
             const { data: fuzzyData } = await supabase
               .from("public_profiles")
-              .select("user_id, username, display_name, seller_tier, profile_image_url")
+              .select("user_id")
               .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
               .limit(1)
               .maybeSingle();
-            
-            profileData = fuzzyData;
+            targetUserId = fuzzyData?.user_id;
           } else {
-            profileData = data;
+            targetUserId = data?.user_id;
           }
 
-          if (!profileData) {
+          if (!targetUserId) {
             console.error('[FEATURED_SHOP] Seller not found by name:', sellerName);
-          } else {
-            console.log('[FEATURED_SHOP] Found seller by name:', profileData.display_name || profileData.username);
+            setSellerProfile(null);
+            if (effectRequestId === requestIdRef.current) {
+              setStatus('error');
+              setLoading(false);
+            }
+            return;
           }
         }
 
-        if (!profileData) {
-          console.error('[FEATURED_SHOP] Failed to find seller. sellerId:', sellerId, 'sellerName:', sellerName);
-          setSellerProfile(null);
+        if (!targetUserId) {
+          console.error('[FEATURED_SHOP] No valid seller ID');
           if (effectRequestId === requestIdRef.current) {
             setStatus('error');
             setLoading(false);
@@ -103,17 +91,20 @@ export function PremiumDealerCarousel({
           return;
         }
 
-        if (profileData.seller_tier !== 'premium') {
-          console.warn(`[FEATURED_SHOP] Seller not marked as premium tier:`, profileData.display_name || profileData.username);
+        // Fetch listings - profile comes from query
+        if (useCache && cacheKey) {
+          listingsData = await fetchHomepageSellerListings(cacheKey, targetUserId, 10);
+        } else {
+          listingsData = await fetchSellerListings(targetUserId, 10);
         }
 
-        setSellerProfile(profileData);
-
-        let listingsData: any[];
-        if (useCache && cacheKey) {
-          listingsData = await fetchHomepageSellerListings(cacheKey, profileData.user_id, 10);
+        // Extract profile from first listing (all have same seller)
+        const extractedProfile = listingsData?.[0]?.profiles;
+        if (extractedProfile) {
+          setSellerProfile(extractedProfile);
+          console.log('[FEATURED_SHOP] Profile extracted:', extractedProfile.display_name || extractedProfile.username);
         } else {
-          listingsData = await fetchSellerListings(profileData.user_id, 10);
+          console.warn('[FEATURED_SHOP] No profile data in listings response');
         }
 
         const rawLength = Array.isArray(listingsData) ? listingsData.length : 0;
