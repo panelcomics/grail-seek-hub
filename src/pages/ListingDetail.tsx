@@ -86,6 +86,7 @@ export default function ListingDetail() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [seller, setSeller] = useState<ListingProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [processingCheckout, setProcessingCheckout] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
@@ -110,9 +111,10 @@ export default function ListingDetail() {
       checkoutMode, 
       hasClientSecret: !!clientSecret, 
       hasOrderId: !!orderId,
-      loading 
+      loading,
+      processingCheckout
     });
-  }, [showCheckout, checkoutMode, clientSecret, orderId, loading]);
+  }, [showCheckout, checkoutMode, clientSecret, orderId, loading, processingCheckout]);
 
   useEffect(() => {
     if (id) {
@@ -224,7 +226,7 @@ export default function ListingDetail() {
   };
 
   const handleBuyNow = async () => {
-    console.log("[CHECKOUT-DEBUG] Button clicked! Starting validation...");
+    console.log("[CHECKOUT-DEBUG] handleBuyNow called! Starting validation...");
     
     if (!user) {
       console.log("[CHECKOUT-DEBUG] Validation failed: No user");
@@ -254,7 +256,7 @@ export default function ListingDetail() {
     }
     console.log("[CHECKOUT-DEBUG] Shipping method validated:", shippingMethod);
 
-    setLoading(true);
+    setProcessingCheckout(true);
     console.log("[CHECKOUT] Starting payment intent creation...");
     
     try {
@@ -315,7 +317,7 @@ export default function ListingDetail() {
       // Reset checkout mode so user can try again
       setCheckoutMode(false);
     } finally {
-      setLoading(false);
+      setProcessingCheckout(false);
     }
   };
 
@@ -804,11 +806,11 @@ export default function ListingDetail() {
                         e.stopPropagation();
                         handleBuyNow();
                       }} 
-                      disabled={loading} 
+                      disabled={processingCheckout} 
                       type="button"
                       className="w-full"
                     >
-                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {processingCheckout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Continue to Payment
                     </Button>
                   </CardContent>

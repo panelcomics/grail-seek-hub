@@ -1,34 +1,55 @@
-# Checkout Flow Debug Plan
+# Checkout Flow Debug Plan - ISSUE FIXED
+
+## Root Cause Identified and Fixed
+
+The checkout button was stuck because it was using the wrong loading state. The global `loading` state (which starts as `true` during page load) was being used to disable the button, when it should have used a dedicated `processingCheckout` state.
+
+### The Fix Applied
+
+**Problem**: The "Continue to Payment" button was disabled by the `loading` state, which is meant for initial page loading. This caused the button to potentially be disabled even after the page loaded, preventing the click handler from executing.
+
+**Solution**: Created a separate `processingCheckout` state specifically for the checkout button's loading state, completely isolated from the page's initial loading state.
+
+### Files Changed
+- `src/pages/ListingDetail.tsx`:
+  - Added `const [processingCheckout, setProcessingCheckout] = useState(false);`
+  - Changed `handleBuyNow` to use `setProcessingCheckout()` instead of `setLoading()`
+  - Changed button `disabled` prop from `disabled={loading}` to `disabled={processingCheckout}`
+  - Updated state logging to include `processingCheckout`
 
 ## What I Fixed
 
 ### 1. Added Comprehensive Debug Logging
 - **Button Click Detection**: Console log fires immediately when "Continue to Payment" is clicked
 - **Validation Steps**: Each validation check now logs success/failure with actual field values
-- **State Changes**: useEffect tracks all checkout state transitions (showCheckout, checkoutMode, clientSecret, orderId)
+- **State Changes**: useEffect tracks all checkout state transitions (showCheckout, checkoutMode, clientSecret, orderId, processingCheckout)
 - **Render Path**: Logs which UI branch renders (shipping form vs payment form vs error)
 
 ### 2. Hardened Button Behavior
 - Added `type="button"` to prevent accidental form submission
 - Added `e.preventDefault()` and `e.stopPropagation()` to prevent event bubbling
 - Explicit click handler wrapper for better debugging
+- **CRITICAL FIX**: Separated checkout processing state from page loading state
 
-### 3. Files Changed
-- `src/pages/ListingDetail.tsx` - Added debug logs throughout handleBuyNow, button click, and render conditionals
+### 3. State Management Separation
+- `loading` state: ONLY for initial page/listing fetch
+- `processingCheckout` state: ONLY for checkout button and payment intent creation
+- This ensures the button is never accidentally disabled by page loading states
 
 ## Expected Console Log Sequence (Normal Flow)
 
 When you click "Continue to Payment", you should see:
 
 ```
-[CHECKOUT-DEBUG] Button clicked! Starting validation...
+[CHECKOUT-DEBUG] Continue to Payment button clicked!
+[CHECKOUT-DEBUG] handleBuyNow called! Starting validation...
 [CHECKOUT-DEBUG] User validated: cc996c89-6380-4af3-8740-15f8b49957a4
 [CHECKOUT-DEBUG] Shipping info validated
 [CHECKOUT-DEBUG] Shipping method validated: ship_nationwide (or local_pickup)
 [CHECKOUT] Starting payment intent creation...
 [CHECKOUT] Calling marketplace-create-payment-intent... {listingId: "..."}
 [CHECKOUT] Payment intent created successfully: {orderId: "..."}
-[CHECKOUT-STATE] State updated: {showCheckout: true, checkoutMode: true, hasClientSecret: true, ...}
+[CHECKOUT-STATE] State updated: {showCheckout: true, checkoutMode: true, hasClientSecret: true, processingCheckout: false, ...}
 [CHECKOUT-RENDER] Rendering Stripe Elements payment form
 ```
 
