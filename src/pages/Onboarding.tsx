@@ -18,6 +18,7 @@ const Onboarding = () => {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
 
   // Step 1: Username
   const [username, setUsername] = useState("");
@@ -33,8 +34,51 @@ const Onboarding = () => {
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
+      return;
     }
-  }, [user, authLoading, navigate]);
+
+    // Check if user has already completed onboarding
+    const checkOnboardingStatus = async () => {
+      if (!user) return;
+
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("username, postal_code, state, onboarding_completed")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error) throw error;
+
+        // If already completed, redirect to home
+        if (profile?.onboarding_completed) {
+          toast({
+            title: "You're already set up!",
+            description: "Redirecting to homepage...",
+          });
+          navigate("/");
+          return;
+        }
+
+        // Pre-fill suggested username from email
+        if (!profile?.username && user.email) {
+          const suggested = user.email
+            .split("@")[0]
+            .replace(/[^a-zA-Z0-9_]/g, "_")
+            .substring(0, 20);
+          setUsername(suggested);
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+
+    if (user) {
+      checkOnboardingStatus();
+    }
+  }, [user, authLoading, navigate, toast]);
 
   const validateUsername = (value: string): boolean => {
     setUsernameError("");
@@ -87,26 +131,27 @@ const Onboarding = () => {
   };
 
   const geocodeLocation = async () => {
-    if (!postalCode || country !== "US") return;
+    if (!postalCode || country !== "US") return { geocoded: false };
 
     try {
       const { data, error } = await supabase.functions.invoke('geocode-profile', {
         body: { 
           country, 
-          state, 
+          state: state.toUpperCase(), // Normalize to uppercase
           city, 
           postal_code: postalCode 
         }
       });
 
       if (error) {
-        console.error('[ONBOARDING] Geocoding error:', error);
+        console.warn('[ONBOARDING] Geocoding error:', error);
+        return { geocoded: false };
       }
       
-      return data;
+      return data || { geocoded: false };
     } catch (error) {
-      console.error('[ONBOARDING] Geocoding failed:', error);
-      return null;
+      console.warn('[ONBOARDING] Geocoding failed:', error);
+      return { geocoded: false };
     }
   };
 
@@ -123,16 +168,22 @@ const Onboarding = () => {
     setIsLoading(true);
     try {
       // Geocode the location
-      await geocodeLocation();
+      const geocodeResult = await geocodeLocation();
 
       // Update profile with location and mark onboarding complete
       const updateData: any = {
         country,
-        state,
+        state: state.toUpperCase(), // Normalize state
         city: city || null,
         postal_code: postalCode,
         onboarding_completed: true,
       };
+
+      // Add coordinates if geocoding succeeded
+      if (geocodeResult?.geocoded && geocodeResult.lat && geocodeResult.lng) {
+        updateData.lat = geocodeResult.lat;
+        updateData.lng = geocodeResult.lng;
+      }
 
       if (profileImageUrl) {
         updateData.profile_image_url = profileImageUrl;
@@ -145,16 +196,22 @@ const Onboarding = () => {
       
       if (error) throw error;
       
+      // Show appropriate success message
+      const coordinatesMessage = geocodeResult?.geocoded 
+        ? "Your location was saved with coordinates for Local Deals."
+        : "Your location was saved (coordinates couldn't be found, but you can still use the platform).";
+      
       toast({
-        title: "Welcome to GrailSeeker!",
-        description: "Your account is ready. Start listing your grails!",
+        title: "Profile set! You're ready to hunt Grails.",
+        description: coordinatesMessage,
       });
       
       navigate("/?onboarding_complete=true");
     } catch (error: any) {
+      console.error('[ONBOARDING] Save error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to save profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -162,7 +219,7 @@ const Onboarding = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || checkingStatus) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -200,8 +257,8 @@ const Onboarding = () => {
           </div>
           <CardTitle className="text-2xl">Welcome to GrailSeeker</CardTitle>
           <CardDescription>
-            {currentStep === 1 && "Let's set up your username"}
-            {currentStep === 2 && "Where are you located?"}
+            {currentStep === 1 && "Let's set up your profile so buyers and sellers know who you are."}
+            {currentStep === 2 && "Add your location so we can show you Local Deals near you."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -225,7 +282,7 @@ const Onboarding = () => {
                   <p className="text-sm text-destructive">{usernameError}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  One word only — no spaces. Letters, numbers, and underscores allowed.
+                  Usernames must be 1 word with letters, numbers, or underscores. No spaces.
                 </p>
               </div>
               <Button
@@ -242,6 +299,10 @@ const Onboarding = () => {
           {/* Step 2: Location & Profile Image */}
           {currentStep === 2 && (
             <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Your ZIP code powers 'Local Deals Near You' so buyers and sellers can find each other within 25/50/100 miles.
+              </p>
+              
               <div className="space-y-2">
                 <Label htmlFor="country">Country *</Label>
                 <Select value={country} onValueChange={setCountry} disabled={isLoading}>
@@ -291,6 +352,9 @@ const Onboarding = () => {
 
               <div className="space-y-2">
                 <Label>Profile Image (optional)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Add a profile image (optional) — you can skip for now and add it later.
+                </p>
                 <ProfileImageUpload
                   currentImageUrl={profileImageUrl}
                   onImageUploaded={setProfileImageUrl}
