@@ -186,7 +186,7 @@ export default function ListingDetail() {
       // Fetch profile separately with location data
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller, seller_tier, is_featured_seller, city, state, postal_code")
+        .select("user_id, username, avatar_url, completed_sales_count, is_verified_seller, seller_tier, is_featured_seller, city, state, postal_code, shipping_address")
         .eq("user_id", data.user_id)
         .single();
 
