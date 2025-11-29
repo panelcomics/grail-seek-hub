@@ -183,10 +183,10 @@ export default function ListingDetail() {
         return;
       }
 
-      // Fetch profile separately
+      // Fetch profile separately with location data
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller, seller_tier, is_featured_seller")
+        .select("user_id, username, display_name, avatar_url, completed_sales_count, is_verified_seller, seller_tier, is_featured_seller, city, state, postal_code")
         .eq("user_id", data.user_id)
         .single();
 
@@ -407,6 +407,11 @@ export default function ListingDetail() {
                             </Badge>
                           )}
                         </div>
+                        {seller?.city && seller?.state && (
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            📍 Located in {seller.city}, {seller.state}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground mt-2">
                           Payments are processed securely via Stripe.
                         </p>
@@ -688,10 +693,10 @@ export default function ListingDetail() {
                       <ShippingRateSelector
                         fromAddress={{
                           name: sellerName,
-                          street1: "123 Seller St", // Placeholder - would come from seller profile
-                          city: "San Francisco",
-                          state: "CA",
-                          zip: "94117",
+                          street1: seller?.city || "Seller Location",
+                          city: seller?.city || "Unknown",
+                          state: seller?.state || "XX",
+                          zip: seller?.postal_code || "00000",
                           country: "US",
                         }}
                         toAddress={{

@@ -12,6 +12,9 @@ export interface ListingProfile {
   completed_sales_count: number | null;
   seller_tier: string | null;
   is_featured_seller: boolean | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
 }
 
 export type ListingImages = {
