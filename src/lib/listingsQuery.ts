@@ -168,8 +168,12 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
         break;
       
       case "local":
-        // All types for now (location filtering would go here)
-        query = query.order("created_at", { ascending: false });
+        // Location-based filtering - requires viewer and seller lat/lng
+        // This case is handled differently: query remains unmodified here,
+        // filtering happens client-side after profile join in fetchListingsForLocalDeals
+        query = query
+          .eq("type", "buy_now")
+          .order("created_at", { ascending: false });
         break;
       
       case "all":

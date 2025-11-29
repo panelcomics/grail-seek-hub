@@ -5,6 +5,7 @@ import { SocialProof } from "@/components/home/SocialProof";
 import { FeesSection } from "@/components/home/FeesSection";
 import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { ListingsCarousel } from "@/components/home/ListingsCarousel";
+import { LocalDealsCarousel } from "@/components/home/LocalDealsCarousel";
 import { BenefitBlocks } from "@/components/home/BenefitBlocks";
 import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
@@ -59,12 +60,7 @@ export default function Index() {
         />
         
         {/* 6. Local Deals Near You */}
-        <ListingsCarousel 
-          title="Local Deals Near You" 
-          filterType="local"
-          useCache
-          cacheKey="local-deals"
-        />
+        <LocalDealsCarousel />
         
         {/* 7. Newly Listed */}
         <ListingsCarousel 
