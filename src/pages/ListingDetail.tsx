@@ -31,10 +31,10 @@ import { resolvePrice } from "@/lib/listingPriceUtils";
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
 if (!STRIPE_PUBLISHABLE_KEY) {
-  console.error('CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY not configured!');
+  console.error('CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY not configured! Checkout will not work.');
 }
 
-const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null);
 
 function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () => void }) {
   const stripe = useStripe();
@@ -230,6 +230,8 @@ export default function ListingDetail() {
     }
 
     setLoading(true);
+    console.log("[CHECKOUT] Starting payment intent creation...");
+    
     try {
       const requestBody: any = {
         listingId: id,
@@ -249,6 +251,8 @@ export default function ListingDetail() {
         };
       }
 
+      console.log("[CHECKOUT] Calling marketplace-create-payment-intent...", { listingId: id });
+
       const { data, error } = await supabase.functions.invoke(
         "marketplace-create-payment-intent",
         {
@@ -256,14 +260,35 @@ export default function ListingDetail() {
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("[CHECKOUT] Edge function error:", error);
+        throw error;
+      }
+
+      if (!data || !data.clientSecret || !data.orderId) {
+        console.error("[CHECKOUT] Invalid response from edge function:", data);
+        throw new Error("Invalid payment response. Please try again.");
+      }
+
+      console.log("[CHECKOUT] Payment intent created successfully:", { orderId: data.orderId });
 
       setClientSecret(data.clientSecret);
       setOrderId(data.orderId);
       setCheckoutMode(true);
+      
+      // Scroll to payment form
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }, 100);
     } catch (error: any) {
-      console.error("Error creating payment intent:", error);
-      toast.error(error.message || "Failed to start checkout");
+      console.error("[CHECKOUT] Error creating payment intent:", error);
+      
+      // Show user-friendly error message
+      const errorMsg = error.message || error.error || "Unable to process checkout. Please try again.";
+      toast.error(errorMsg);
+      
+      // Reset checkout mode so user can try again
+      setCheckoutMode(false);
     } finally {
       setLoading(false);
     }
@@ -754,10 +779,11 @@ export default function ListingDetail() {
                   </CardContent>
                   </Card>
                 </>
-              ) : options ? (
+              ) : clientSecret && stripePromise ? (
                 <Card>
                   <CardContent className="p-4 md:p-6">
-                    <Elements stripe={stripePromise} options={options}>
+                    <h3 className="text-lg font-semibold mb-4">Complete Your Purchase</h3>
+                    <Elements stripe={stripePromise} options={{ clientSecret }}>
                       <CheckoutForm
                         orderId={orderId}
                         onSuccess={() => navigate(`/orders/${orderId}`)}
@@ -765,7 +791,22 @@ export default function ListingDetail() {
                     </Elements>
                   </CardContent>
                 </Card>
-            ) : null}
+              ) : checkoutMode ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <p className="text-destructive mb-4">Payment setup failed. Please try again.</p>
+                      <Button onClick={() => {
+                        setCheckoutMode(false);
+                        setClientSecret("");
+                        setOrderId("");
+                      }}>
+                        Back to Shipping Info
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
 
               {/* Share Section - moved after action buttons */}
               <Card className="mb-6">
