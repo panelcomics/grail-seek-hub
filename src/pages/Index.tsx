@@ -14,12 +14,15 @@ import { FEATURED_SELLERS } from "@/config/featuredSellers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Check, Camera } from "lucide-react";
+import { useOnboardingCheck } from "@/hooks/useOnboardingCheck";
 
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import FeaturedShops from "@/components/FeaturedShops";
 import { SafetySection } from "@/components/home/SafetySection";
 
 export default function Index() {
+  useOnboardingCheck(); // Check if user needs onboarding
+  
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchParams, setSearchParams] = useSearchParams();
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);

@@ -69,6 +69,23 @@ const Auth = () => {
       }
 
       await logAuthEvent('login_success', { email: signInEmail });
+
+      // Check if user needs onboarding
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed, username, postal_code")
+          .eq("user_id", user.id)
+          .single();
+
+        // Redirect to onboarding if not completed
+        if (!profile?.onboarding_completed || !profile?.username || !profile?.postal_code) {
+          navigate("/onboarding");
+          return;
+        }
+      }
+
       navigate("/");
     } catch (error: any) {
       toast({
