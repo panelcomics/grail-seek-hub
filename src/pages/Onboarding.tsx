@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ProfileImageUpload } from "@/components/ProfileImageUpload";
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -27,13 +28,7 @@ const Onboarding = () => {
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
-
-  // Step 3: Shipping (optional)
-  const [fullName, setFullName] = useState("");
-  const [streetAddress, setStreetAddress] = useState("");
-  const [shippingCity, setShippingCity] = useState("");
-  const [shippingState, setShippingState] = useState("");
-  const [shippingZip, setShippingZip] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -116,10 +111,10 @@ const Onboarding = () => {
   };
 
   const handleStep2Submit = async () => {
-    if (!country || !state || !city || !postalCode) {
+    if (!country || !state || !postalCode) {
       toast({
         title: "Location Required",
-        description: "Please fill in all location fields",
+        description: "Please fill in country, state, and ZIP code",
         variant: "destructive",
       });
       return;
@@ -130,53 +125,22 @@ const Onboarding = () => {
       // Geocode the location
       await geocodeLocation();
 
-      // Update profile with location
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          country,
-          state,
-          city,
-          postal_code: postalCode,
-        })
-        .eq("user_id", user!.id);
-      
-      if (error) throw error;
-      
-      setCurrentStep(3);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // Update profile with location and mark onboarding complete
+      const updateData: any = {
+        country,
+        state,
+        city: city || null,
+        postal_code: postalCode,
+        onboarding_completed: true,
+      };
 
-  const handleStep3Submit = async (skip: boolean = false) => {
-    setIsLoading(true);
-    try {
-      let shippingData = null;
-      
-      if (!skip && fullName && streetAddress && shippingCity && shippingState && shippingZip) {
-        shippingData = {
-          name: fullName,
-          street: streetAddress,
-          city: shippingCity,
-          state: shippingState,
-          zip: shippingZip,
-          country: country,
-        };
+      if (profileImageUrl) {
+        updateData.profile_image_url = profileImageUrl;
       }
 
       const { error } = await supabase
         .from("profiles")
-        .update({
-          shipping_address: shippingData,
-          onboarding_completed: true,
-        })
+        .update(updateData)
         .eq("user_id", user!.id);
       
       if (error) throw error;
@@ -211,7 +175,7 @@ const Onboarding = () => {
       <Card className="w-full max-w-lg shadow-xl">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-between mb-4">
-            {[1, 2, 3].map((step) => (
+            {[1, 2].map((step) => (
               <div key={step} className="flex items-center flex-1">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
@@ -224,7 +188,7 @@ const Onboarding = () => {
                 >
                   {step < currentStep ? <Check className="h-5 w-5" /> : step}
                 </div>
-                {step < 3 && (
+                {step < 2 && (
                   <div
                     className={`flex-1 h-1 mx-2 rounded-full transition-all ${
                       step < currentStep ? "bg-primary" : "bg-muted"
@@ -238,7 +202,6 @@ const Onboarding = () => {
           <CardDescription>
             {currentStep === 1 && "Let's set up your username"}
             {currentStep === 2 && "Where are you located?"}
-            {currentStep === 3 && "Add shipping info (optional)"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -276,7 +239,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {/* Step 2: Location */}
+          {/* Step 2: Location & Profile Image */}
           {currentStep === 2 && (
             <div className="space-y-4">
               <div className="space-y-2">
@@ -298,30 +261,40 @@ const Onboarding = () => {
                     id="state"
                     placeholder="CA"
                     value={state}
-                    onChange={(e) => setState(e.target.value)}
+                    onChange={(e) => setState(e.target.value.toUpperCase())}
+                    maxLength={2}
                     disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
+                  <Label htmlFor="postalCode">ZIP Code *</Label>
                   <Input
-                    id="city"
-                    placeholder="Los Angeles"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    id="postalCode"
+                    placeholder="90210"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
                     disabled={isLoading}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="postalCode">ZIP Code *</Label>
+                <Label htmlFor="city">City (optional)</Label>
                 <Input
-                  id="postalCode"
-                  placeholder="90210"
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
+                  id="city"
+                  placeholder="Los Angeles"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
                   disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Profile Image (optional)</Label>
+                <ProfileImageUpload
+                  currentImageUrl={profileImageUrl}
+                  onImageUploaded={setProfileImageUrl}
+                  userId={user?.id || ""}
                 />
               </div>
 
@@ -336,92 +309,7 @@ const Onboarding = () => {
                 <Button
                   className="flex-1"
                   onClick={handleStep2Submit}
-                  disabled={isLoading || !country || !state || !city || !postalCode}
-                >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Continue
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Shipping (Optional) */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <div className="bg-muted/50 p-4 rounded-lg mb-4">
-                <p className="text-sm text-muted-foreground">
-                  Shipping info is optional now, but required before you can sell items. You can skip this step and add it later in your profile settings.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="streetAddress">Street Address</Label>
-                <Input
-                  id="streetAddress"
-                  placeholder="123 Main St"
-                  value={streetAddress}
-                  onChange={(e) => setStreetAddress(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="shippingCity">City</Label>
-                  <Input
-                    id="shippingCity"
-                    placeholder="Los Angeles"
-                    value={shippingCity}
-                    onChange={(e) => setShippingCity(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shippingState">State</Label>
-                  <Input
-                    id="shippingState"
-                    placeholder="CA"
-                    value={shippingState}
-                    onChange={(e) => setShippingState(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="shippingZip">ZIP Code</Label>
-                <Input
-                  id="shippingZip"
-                  placeholder="90210"
-                  value={shippingZip}
-                  onChange={(e) => setShippingZip(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleStep3Submit(true)}
-                  disabled={isLoading}
-                >
-                  Skip for Now
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={() => handleStep3Submit(false)}
-                  disabled={isLoading}
+                  disabled={isLoading || !country || !state || !postalCode}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Complete Setup
