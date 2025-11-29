@@ -95,6 +95,7 @@ serve(async (req) => {
     const orderData: any = {
       listing_id: listingId,
       buyer_id: user.id,
+      seller_id: listing.user_id,
       amount_cents,
       status: "requires_payment",
       shipping_name: shipping.name,
