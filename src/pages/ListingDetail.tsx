@@ -103,6 +103,17 @@ export default function ListingDetail() {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [showTradeModal, setShowTradeModal] = useState(false);
 
+  // Debug state changes
+  useEffect(() => {
+    console.log("[CHECKOUT-STATE] State updated:", { 
+      showCheckout, 
+      checkoutMode, 
+      hasClientSecret: !!clientSecret, 
+      hasOrderId: !!orderId,
+      loading 
+    });
+  }, [showCheckout, checkoutMode, clientSecret, orderId, loading]);
+
   useEffect(() => {
     if (id) {
       fetchListing();
@@ -213,21 +224,35 @@ export default function ListingDetail() {
   };
 
   const handleBuyNow = async () => {
+    console.log("[CHECKOUT-DEBUG] Button clicked! Starting validation...");
+    
     if (!user) {
+      console.log("[CHECKOUT-DEBUG] Validation failed: No user");
       toast.error("Please log in to purchase");
       navigate("/auth");
       return;
     }
+    console.log("[CHECKOUT-DEBUG] User validated:", user.id);
 
     if (!shippingName || !shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip) {
+      console.log("[CHECKOUT-DEBUG] Validation failed: Missing shipping info", {
+        shippingName,
+        line1: shippingAddress.line1,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        zip: shippingAddress.zip
+      });
       toast.error("Please fill in all shipping information");
       return;
     }
+    console.log("[CHECKOUT-DEBUG] Shipping info validated");
 
     if (shippingMethod === "ship_nationwide" && !selectedRate) {
+      console.log("[CHECKOUT-DEBUG] Validation failed: No shipping rate selected");
       toast.error("Please select a shipping method");
       return;
     }
+    console.log("[CHECKOUT-DEBUG] Shipping method validated:", shippingMethod);
 
     setLoading(true);
     console.log("[CHECKOUT] Starting payment intent creation...");
@@ -772,7 +797,17 @@ export default function ListingDetail() {
                       </>
                     )}
 
-                    <Button onClick={handleBuyNow} disabled={loading} className="w-full">
+                    <Button 
+                      onClick={(e) => {
+                        console.log("[CHECKOUT-DEBUG] Continue to Payment button clicked!");
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleBuyNow();
+                      }} 
+                      disabled={loading} 
+                      type="button"
+                      className="w-full"
+                    >
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Continue to Payment
                     </Button>
@@ -780,32 +815,38 @@ export default function ListingDetail() {
                   </Card>
                 </>
               ) : clientSecret && stripePromise ? (
-                <Card>
-                  <CardContent className="p-4 md:p-6">
-                    <h3 className="text-lg font-semibold mb-4">Complete Your Purchase</h3>
-                    <Elements stripe={stripePromise} options={{ clientSecret }}>
-                      <CheckoutForm
-                        orderId={orderId}
-                        onSuccess={() => navigate(`/orders/${orderId}`)}
-                      />
-                    </Elements>
-                  </CardContent>
-                </Card>
+                <>
+                  {console.log("[CHECKOUT-RENDER] Rendering Stripe Elements payment form")}
+                  <Card>
+                    <CardContent className="p-4 md:p-6">
+                      <h3 className="text-lg font-semibold mb-4">Complete Your Purchase</h3>
+                      <Elements stripe={stripePromise} options={{ clientSecret }}>
+                        <CheckoutForm
+                          orderId={orderId}
+                          onSuccess={() => navigate(`/orders/${orderId}`)}
+                        />
+                      </Elements>
+                    </CardContent>
+                  </Card>
+                </>
               ) : checkoutMode ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="text-center">
-                      <p className="text-destructive mb-4">Payment setup failed. Please try again.</p>
-                      <Button onClick={() => {
-                        setCheckoutMode(false);
-                        setClientSecret("");
-                        setOrderId("");
-                      }}>
-                        Back to Shipping Info
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <>
+                  {console.log("[CHECKOUT-RENDER] Rendering payment failed fallback")}
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <p className="text-destructive mb-4">Payment setup failed. Please try again.</p>
+                        <Button onClick={() => {
+                          setCheckoutMode(false);
+                          setClientSecret("");
+                          setOrderId("");
+                        }}>
+                          Back to Shipping Info
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               ) : null}
 
               {/* Share Section - moved after action buttons */}
