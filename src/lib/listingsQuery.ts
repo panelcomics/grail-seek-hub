@@ -71,7 +71,7 @@ export async function fetchSellerListings(userId: string, limit: number = 10): P
     // Fetch profile for this seller (single query)
     const { data: profile } = await supabase
       .from("profiles")
-      .select("user_id, display_name, username, avatar_url, is_verified_seller, completed_sales_count, seller_tier, is_featured_seller")
+      .select("user_id, username, avatar_url, is_verified_seller, completed_sales_count, seller_tier, is_featured_seller")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -206,7 +206,7 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
     const userIds = [...new Set(data.map(l => l.user_id).filter(Boolean))];
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("user_id, display_name, username, avatar_url, is_verified_seller, completed_sales_count, seller_tier, is_featured_seller")
+      .select("user_id, username, avatar_url, is_verified_seller, completed_sales_count, seller_tier, is_featured_seller")
       .in("user_id", userIds);
 
     // Transform data to include inventory_items properties at top level

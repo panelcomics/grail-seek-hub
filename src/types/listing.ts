@@ -5,7 +5,7 @@
 
 export interface ListingProfile {
   user_id: string;
-  display_name: string | null;
+  display_name?: string | null; // Optional - not in database, fallback to username
   username: string | null;
   avatar_url: string | null;
   is_verified_seller: boolean | null;

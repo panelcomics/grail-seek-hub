@@ -107,7 +107,7 @@ export default function SellerProfile() {
       const { data: profileData, error: profileError } = await supabase
         .from("public_profiles")
         .select("*")
-        .or(`username.eq.${decodedSlug},username.ilike.${usernameVariant},display_name.ilike.${usernameVariant}`)
+        .or(`username.eq.${decodedSlug},username.ilike.${usernameVariant}`)
         .maybeSingle();
 
       if (profileError) throw profileError;
@@ -219,7 +219,7 @@ export default function SellerProfile() {
   };
 
   const canonicalUrl = `${window.location.origin}/seller/${slug}`;
-  const sellerName = profile.display_name || profile.username?.split('@')[0] || "Seller";
+  const sellerName = profile.username?.split('@')[0] || "Seller";
   const sellerImageUrl = profile.profile_image_url || profile.avatar_url;
   const description = `${sellerName}'s shop - ${profile.seller_level} seller. Browse their collection of comics and collectibles.`;
 

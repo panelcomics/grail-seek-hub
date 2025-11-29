@@ -1,14 +1,14 @@
 /**
  * Generate a URL-friendly slug for a seller profile.
- * Prioritizes display_name over username for readability.
+ * Uses username for URL generation.
  * Handles email addresses and special characters.
  */
 export function getSellerSlug(profile: {
   username?: string | null;
   display_name?: string | null;
 }): string {
-  // Prefer display_name if available (more user-friendly)
-  const name = profile.display_name || profile.username || 'seller';
+  // Use username for slug generation
+  const name = profile.username || 'seller';
   
   // If it's an email address, use the part before @
   if (name.includes('@')) {

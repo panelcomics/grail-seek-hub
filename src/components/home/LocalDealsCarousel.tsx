@@ -145,7 +145,19 @@ export function LocalDealsCarousel() {
               })}
             </div>
           </div>
-        ) : null}
+        ) : !userLocation.hasLocation ? (
+          <div className="container mx-auto px-4">
+            <p className="text-sm text-muted-foreground py-4">
+              Add your city and ZIP code in your profile settings to see local deals near you.
+            </p>
+          </div>
+        ) : (
+          <div className="container mx-auto px-4">
+            <p className="text-sm text-muted-foreground py-4">
+              No listings found within {selectedRadius} miles. Try increasing your search radius.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

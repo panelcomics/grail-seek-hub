@@ -56,14 +56,14 @@ export function PremiumDealerCarousel({
           const { data, error } = await supabase
             .from("public_profiles")
             .select("user_id")
-            .or(`username.eq.${sellerName},display_name.eq.${sellerName}`)
+            .eq("username", sellerName)
             .maybeSingle();
 
           if (!data) {
             const { data: fuzzyData } = await supabase
               .from("public_profiles")
               .select("user_id")
-              .or(`username.ilike.%${sellerName}%,display_name.ilike.%${sellerName}%`)
+              .ilike("username", `%${sellerName}%`)
               .limit(1)
               .maybeSingle();
             targetUserId = fuzzyData?.user_id;
@@ -102,7 +102,7 @@ export function PremiumDealerCarousel({
         const extractedProfile = listingsData?.[0]?.profiles;
         if (extractedProfile) {
           setSellerProfile(extractedProfile);
-          console.log('[FEATURED_SHOP] Profile extracted:', extractedProfile.display_name || extractedProfile.username);
+          console.log('[FEATURED_SHOP] Profile extracted:', extractedProfile.username);
         } else {
           console.warn('[FEATURED_SHOP] No profile data, will show fallback state');
           setSellerProfile(null);
@@ -119,7 +119,7 @@ export function PremiumDealerCarousel({
 
         setListings(listingsData || []);
         setStatus('success');
-        console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', profileData.display_name || profileData.username, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
+        console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', extractedProfile?.username || sellerName, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
         
         if (useCache && cacheKey) {
           homeDebugRender(cacheKey, { count: listingsData?.length || 0 });
@@ -166,7 +166,7 @@ export function PremiumDealerCarousel({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">
-              Featured Shop: {sellerProfile?.display_name || sellerProfile?.username || sellerName || 'Premium Dealer'}
+              Featured Shop: {sellerProfile?.username || sellerName || 'Premium Dealer'}
             </h2>
             {sellerProfile && (
               <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
