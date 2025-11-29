@@ -19,40 +19,51 @@ interface GeocodeResponse {
 }
 
 /**
- * Geocodes a US postal code using the US Census Bureau Geocoding API
- * Free, no API key required, accurate for US addresses
+ * Geocodes a US postal code using Nominatim (OpenStreetMap)
+ * Free, no API key required, specifically supports ZIP code lookups
  */
 async function geocodeUSPostalCode(postal_code: string, state?: string): Promise<GeocodeResponse | null> {
   try {
-    // US Census Bureau Geocoding API - free, no API key
-    // Format: https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=20001&benchmark=2020&format=json
-    const address = state ? `${postal_code}, ${state}` : postal_code;
-    const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(address)}&benchmark=2020&format=json`;
+    // Nominatim API from OpenStreetMap - free, no API key, good ZIP support
+    // We search for postal code within the US
+    const searchQuery = state 
+      ? `${postal_code}, ${state}, USA`
+      : `${postal_code}, USA`;
     
-    console.log('[GEOCODE] Querying US Census Bureau:', url);
+    const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postal_code)}&country=US&format=json&limit=1`;
     
-    const response = await fetch(url);
+    console.log('[GEOCODE] Input:', { postal_code, state, searchQuery });
+    console.log('[GEOCODE] Querying Nominatim (OSM):', url);
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'GrailSeeker-Marketplace/1.0' // Required by Nominatim usage policy
+      }
+    });
+    
     if (!response.ok) {
-      console.error('[GEOCODE] US Census API error:', response.status, response.statusText);
+      console.error('[GEOCODE] Nominatim API error:', response.status, response.statusText);
       return null;
     }
 
     const data = await response.json();
+    console.log('[GEOCODE] Raw response:', JSON.stringify(data, null, 2));
     
-    if (data.result?.addressMatches && data.result.addressMatches.length > 0) {
-      const match = data.result.addressMatches[0];
-      const coords = match.coordinates;
+    if (data && data.length > 0) {
+      const match = data[0];
+      const lat = parseFloat(match.lat);
+      const lng = parseFloat(match.lon);
       
       console.log('[GEOCODE] Success:', {
-        lat: coords.y,
-        lng: coords.x,
-        address: match.matchedAddress
+        lat,
+        lng,
+        display_name: match.display_name
       });
       
       return {
-        lat: coords.y,
-        lng: coords.x,
-        formatted_address: match.matchedAddress
+        lat,
+        lng,
+        formatted_address: match.display_name
       };
     }
     
