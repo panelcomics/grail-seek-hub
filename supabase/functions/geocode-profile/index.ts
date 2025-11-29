@@ -24,20 +24,53 @@ interface GeocodeResponse {
  */
 async function geocodeUSPostalCode(postal_code: string, state?: string): Promise<GeocodeResponse | null> {
   try {
-    // Nominatim API from OpenStreetMap - free, no API key, good ZIP support
-    // We search for postal code within the US
-    const searchQuery = state 
-      ? `${postal_code}, ${state}, USA`
-      : `${postal_code}, USA`;
+    // Normalize state to uppercase if provided
+    const normalizedState = state?.toUpperCase().trim();
     
-    const url = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postal_code)}&country=US&format=json&limit=1`;
+    console.log('[GEOCODE] Input:', { postal_code, state: normalizedState });
     
-    console.log('[GEOCODE] Input:', { postal_code, state, searchQuery });
-    console.log('[GEOCODE] Querying Nominatim (OSM):', url);
+    // Try with state first if provided
+    if (normalizedState) {
+      const stateUrl = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postal_code)}&state=${encodeURIComponent(normalizedState)}&country=US&format=json&limit=1`;
+      console.log('[GEOCODE] Querying with state:', stateUrl);
+      
+      const stateResponse = await fetch(stateUrl, {
+        headers: {
+          'User-Agent': 'GrailSeeker-Marketplace/1.0'
+        }
+      });
+      
+      if (stateResponse.ok) {
+        const stateData = await stateResponse.json();
+        if (stateData && stateData.length > 0) {
+          const match = stateData[0];
+          const lat = parseFloat(match.lat);
+          const lng = parseFloat(match.lon);
+          
+          console.log('[GEOCODE] Success with state:', {
+            lat,
+            lng,
+            display_name: match.display_name
+          });
+          
+          return {
+            lat,
+            lng,
+            formatted_address: match.display_name
+          };
+        }
+      }
+      
+      console.log('[GEOCODE] No match with state, falling back to ZIP-only');
+    }
     
-    const response = await fetch(url, {
+    // Fallback: Try ZIP-only
+    const zipUrl = `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(postal_code)}&country=US&format=json&limit=1`;
+    console.log('[GEOCODE] Querying ZIP-only:', zipUrl);
+    
+    const response = await fetch(zipUrl, {
       headers: {
-        'User-Agent': 'GrailSeeker-Marketplace/1.0' // Required by Nominatim usage policy
+        'User-Agent': 'GrailSeeker-Marketplace/1.0'
       }
     });
     
@@ -47,14 +80,14 @@ async function geocodeUSPostalCode(postal_code: string, state?: string): Promise
     }
 
     const data = await response.json();
-    console.log('[GEOCODE] Raw response:', JSON.stringify(data, null, 2));
+    console.log('[GEOCODE] ZIP-only response:', JSON.stringify(data, null, 2));
     
     if (data && data.length > 0) {
       const match = data[0];
       const lat = parseFloat(match.lat);
       const lng = parseFloat(match.lon);
       
-      console.log('[GEOCODE] Success:', {
+      console.log('[GEOCODE] Success with ZIP-only:', {
         lat,
         lng,
         display_name: match.display_name
@@ -117,43 +150,58 @@ Deno.serve(async (req) => {
 
     let geocodeResult: GeocodeResponse | null = null;
 
-    // Currently only support US geocoding via Census Bureau API
-    if (country.toUpperCase() === 'US') {
-      geocodeResult = await geocodeUSPostalCode(postal_code, state);
+    // Currently only support US geocoding
+    if (country.toUpperCase() === 'US' || country.toUpperCase() === 'UNITED STATES') {
+      // Normalize state to uppercase
+      const normalizedState = state?.toUpperCase().trim() || undefined;
+      geocodeResult = await geocodeUSPostalCode(postal_code, normalizedState);
     } else {
-      console.log('[GEOCODE] Country not supported yet:', country);
+      console.warn('[GEOCODE] Country not supported yet:', country);
+      // Still update profile with location fields even if we can't geocode
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          city: city || null,
+          state: state?.toUpperCase().trim() || null,
+          country: country.toUpperCase(),
+          postal_code: postal_code
+        })
+        .eq('user_id', user.id);
+        
+      if (updateError) {
+        console.error('[GEOCODE] Error updating profile:', updateError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to update profile' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: 'Only US geocoding is currently supported',
-          country_requested: country 
+          success: true,
+          geocoded: false,
+          message: 'Location saved without coordinates (country not supported)'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!geocodeResult) {
-      console.log('[GEOCODE] Geocoding failed for:', postal_code, state);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Could not geocode postal code',
-          postal_code,
-          state 
-        }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Update user's profile - always save location fields even if geocoding failed
+    const updateData: any = {
+      city: city || null,
+      state: state?.toUpperCase().trim() || null,
+      country: country.toUpperCase(),
+      postal_code: postal_code
+    };
+    
+    if (geocodeResult) {
+      updateData.lat = geocodeResult.lat;
+      updateData.lng = geocodeResult.lng;
     }
-
-    // Update user's profile with lat/lng
+    
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({
-        lat: geocodeResult.lat,
-        lng: geocodeResult.lng,
-        city: city || null,
-        state: state || null,
-        country: country.toUpperCase(),
-        postal_code: postal_code
-      })
+      .update(updateData)
       .eq('user_id', user.id);
 
     if (updateError) {
@@ -164,14 +212,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('[GEOCODE] Profile updated successfully for user:', user.id);
+    console.log('[GEOCODE] Profile updated successfully for user:', user.id, { geocoded: !!geocodeResult });
 
+    // Return success even if geocoding failed - non-blocking
     return new Response(
       JSON.stringify({ 
         success: true,
-        lat: geocodeResult.lat,
-        lng: geocodeResult.lng,
-        formatted_address: geocodeResult.formatted_address
+        geocoded: !!geocodeResult,
+        lat: geocodeResult?.lat,
+        lng: geocodeResult?.lng,
+        formatted_address: geocodeResult?.formatted_address,
+        message: geocodeResult 
+          ? 'Location saved with coordinates'
+          : 'Location saved without coordinates (geocoding failed)'
       }),
       { 
         status: 200, 

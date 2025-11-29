@@ -134,7 +134,12 @@ export function ProfileEditForm({ userId }: ProfileEditFormProps) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
-            throw new Error("No active session");
+            console.warn("[PROFILE] No active session for geocoding");
+            toast({
+              title: "Profile updated",
+              description: "Profile saved without location geocoding",
+            });
+            return;
           }
 
           const response = await fetch(
@@ -157,20 +162,25 @@ export function ProfileEditForm({ userId }: ProfileEditFormProps) {
           const geocodeResult = await response.json();
 
           if (!response.ok) {
-            console.warn("[PROFILE] Geocoding failed:", geocodeResult.error);
+            console.warn("[PROFILE] Geocoding request failed:", geocodeResult);
             toast({
               title: "Location saved (without coordinates)",
               description: "We couldn't find exact coordinates for this ZIP code, but your profile was updated.",
-              variant: "default",
             });
-          } else {
+          } else if (geocodeResult.geocoded) {
             toast({
               title: "Profile updated successfully",
-              description: "Your profile and location have been saved",
+              description: "Your profile and location have been saved with coordinates",
+            });
+          } else {
+            console.warn("[PROFILE] Geocoding did not find coordinates");
+            toast({
+              title: "Location saved (without coordinates)",
+              description: "We couldn't find exact coordinates for this ZIP code, but your profile was updated.",
             });
           }
         } catch (geocodeError) {
-          console.error("[PROFILE] Geocoding error:", geocodeError);
+          console.warn("[PROFILE] Geocoding error:", geocodeError);
           // Don't fail the whole update if geocoding fails
           toast({
             title: "Profile updated",
