@@ -39,12 +39,12 @@ export function AppHeader() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name')
+        .select('username')
         .eq('user_id', user.id)
         .single();
       
-      if (data?.display_name) {
-        setDisplayName(data.display_name);
+      if (data?.username) {
+        setDisplayName(data.username);
       } else {
         setDisplayName(user.email?.split('@')[0] || "User");
       }
