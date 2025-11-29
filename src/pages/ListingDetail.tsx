@@ -700,17 +700,18 @@ export default function ListingDetail() {
                             shippingAddr.state && 
                             shippingAddr.zip;
                           
-                          if (!hasValidShipping && (!seller?.city || !seller?.state || !seller?.postal_code)) {
+                          // If seller hasn't completed full ship-from address, don't attempt Shippo rates
+                          if (!hasValidShipping) {
                             return (
                               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-sm">
                                 <p className="text-yellow-700 dark:text-yellow-400">
-                                  ⚠️ This seller hasn't completed their shipping address setup. Please contact the seller directly or choose local pickup.
+                                  ⚠️ This seller hasn't completed their shipping address setup. Please choose local pickup or contact the seller directly.
                                 </p>
                               </div>
                             );
                           }
-
-                          const fromAddress = hasValidShipping ? {
+  
+                          const fromAddress = {
                             name: shippingAddr.name || sellerName,
                             street1: shippingAddr.street1,
                             street2: shippingAddr.street2,
@@ -718,13 +719,6 @@ export default function ListingDetail() {
                             state: shippingAddr.state,
                             zip: shippingAddr.zip,
                             country: shippingAddr.country || "US",
-                          } : {
-                            name: sellerName,
-                            street1: "123 Main St",
-                            city: seller.city,
-                            state: seller.state,
-                            zip: seller.postal_code,
-                            country: "US",
                           };
 
                           return (
