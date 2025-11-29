@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSellerOnboarding } from "@/hooks/useSellerOnboarding";
 
 export function AppHeader() {
   const [user, setUser] = useState<any>(null);
@@ -12,6 +13,7 @@ export function AppHeader() {
   const [displayName, setDisplayName] = useState<string>("");
   const [newDealsCount, setNewDealsCount] = useState(0);
   const navigate = useNavigate();
+  const { needsOnboarding, loading: onboardingLoading } = useSellerOnboarding();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -89,6 +91,20 @@ export function AppHeader() {
     navigate('/');
   };
 
+  const handleSellClick = () => {
+    if (!user) {
+      navigate('/auth?redirect=/seller-setup');
+      return;
+    }
+    
+    if (!onboardingLoading && needsOnboarding) {
+      navigate('/seller-setup?returnTo=/my-inventory');
+      return;
+    }
+    
+    navigate('/my-inventory');
+  };
+
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -135,10 +151,13 @@ export function AppHeader() {
             </Link>
           </Button>
 
-          <Button variant="ghost" asChild className="hidden md:inline-flex" aria-label="Sell">
-            <Link to="/sell">
-              Sell on GrailSeeker
-            </Link>
+          <Button 
+            variant="ghost" 
+            className="hidden md:inline-flex" 
+            aria-label="Sell"
+            onClick={handleSellClick}
+          >
+            Sell on GrailSeeker
           </Button>
 
           {user ? (

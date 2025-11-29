@@ -34,6 +34,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Parse request body to get returnTo parameter
+    const { returnTo } = await req.json().catch(() => ({ returnTo: null }));
+
     // Check if user already has a Stripe account
     const { data: profile } = await supabase
       .from("profiles")
@@ -64,11 +67,18 @@ Deno.serve(async (req) => {
       console.log(`Created new Stripe Connect account: ${accountId} for user ${user.id}`);
     }
 
+    // Build return URL with optional returnTo parameter
+    const origin = req.headers.get("origin");
+    const baseReturnUrl = `${origin}/seller-setup`;
+    const returnUrl = returnTo 
+      ? `${baseReturnUrl}?success=true&returnTo=${encodeURIComponent(returnTo)}`
+      : `${baseReturnUrl}?success=true`;
+
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${req.headers.get("origin")}/settings?refresh=true`,
-      return_url: `${req.headers.get("origin")}/settings?success=true`,
+      refresh_url: `${origin}/seller-setup${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`,
+      return_url: returnUrl,
       type: "account_onboarding",
     });
 
