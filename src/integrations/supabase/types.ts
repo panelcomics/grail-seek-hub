@@ -2082,8 +2082,10 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          city: string | null
           completed_purchases_count: number | null
           completed_sales_count: number | null
+          country: string | null
           created_at: string
           custom_fee_rate: number | null
           display_name: string | null
@@ -2094,11 +2096,15 @@ export type Database = {
           is_founding_seller: boolean | null
           is_verified_seller: boolean | null
           joined_at: string | null
+          lat: number | null
+          lng: number | null
           notify_auction_ending: boolean | null
           notify_new_posts: boolean | null
           notify_via_email: boolean | null
+          postal_code: string | null
           profile_image_url: string | null
           seller_tier: string | null
+          state: string | null
           stripe_account_id: string | null
           stripe_account_verified: boolean | null
           stripe_onboarding_complete: boolean | null
@@ -2114,8 +2120,10 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           completed_purchases_count?: number | null
           completed_sales_count?: number | null
+          country?: string | null
           created_at?: string
           custom_fee_rate?: number | null
           display_name?: string | null
@@ -2126,11 +2134,15 @@ export type Database = {
           is_founding_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
+          lat?: number | null
+          lng?: number | null
           notify_auction_ending?: boolean | null
           notify_new_posts?: boolean | null
           notify_via_email?: boolean | null
+          postal_code?: string | null
           profile_image_url?: string | null
           seller_tier?: string | null
+          state?: string | null
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
@@ -2146,8 +2158,10 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           completed_purchases_count?: number | null
           completed_sales_count?: number | null
+          country?: string | null
           created_at?: string
           custom_fee_rate?: number | null
           display_name?: string | null
@@ -2158,11 +2172,15 @@ export type Database = {
           is_founding_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
+          lat?: number | null
+          lng?: number | null
           notify_auction_ending?: boolean | null
           notify_new_posts?: boolean | null
           notify_via_email?: boolean | null
+          postal_code?: string | null
           profile_image_url?: string | null
           seller_tier?: string | null
+          state?: string | null
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
