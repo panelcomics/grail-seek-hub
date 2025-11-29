@@ -17,6 +17,7 @@ import { MarkSoldOffPlatformModal } from "@/components/MarkSoldOffPlatformModal"
 import { GRADE_OPTIONS } from "@/types/draftItem";
 import { RotateCw, RotateCcw } from "lucide-react";
 import { getRotationTransform, rotateLeft, rotateRight } from "@/lib/imageRotation";
+import { useSellerOnboarding } from "@/hooks/useSellerOnboarding";
 
 export default function ManageBook() {
   const { id } = useParams();
@@ -28,6 +29,7 @@ export default function ManageBook() {
   const [activeListing, setActiveListing] = useState<any>(null);
   const [markSoldModalOpen, setMarkSoldModalOpen] = useState(false);
   const [imageRotation, setImageRotation] = useState<number>(0);
+  const { needsOnboarding, loading: onboardingLoading } = useSellerOnboarding();
 
   // Form state for all fields
   const [formData, setFormData] = useState({
@@ -898,6 +900,13 @@ export default function ManageBook() {
                   <Button
                     variant="default"
                     onClick={async () => {
+                      // Check if seller has completed Stripe onboarding
+                      if (!onboardingLoading && needsOnboarding) {
+                        toast.info("Complete your seller setup to create listings");
+                        navigate(`/seller-setup?returnTo=/inventory/${id}`);
+                        return;
+                      }
+                      
                       if (!formData.listed_price || parseFloat(formData.listed_price) <= 0) {
                         toast.error("Please set a sale price before listing");
                         return;

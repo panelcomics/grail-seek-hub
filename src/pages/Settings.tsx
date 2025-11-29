@@ -3,6 +3,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { PaymentSettings } from "@/components/PaymentSettings";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
 import { TrustSettings } from "@/components/TrustSettings";
+import { SellerPayoutStatus } from "@/components/SellerPayoutStatus";
 import { useDiscount } from "@/hooks/useDiscount";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings as SettingsIcon, Paintbrush, Database } from "lucide-react";
@@ -45,6 +46,8 @@ const Settings = () => {
           </Card>
 
           <TrustSettings />
+          
+          <SellerPayoutStatus />
           
           <PaymentSettings />
           

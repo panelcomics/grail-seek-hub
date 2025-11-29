@@ -65,6 +65,7 @@ import ManageBook from "./pages/ManageBook";
 import MyOffersAndTrades from "./pages/MyOffersAndTrades";
 import DevTestCheckout from "./pages/DevTestCheckout";
 import Onboarding from "./pages/Onboarding";
+import SellerSetup from "./pages/SellerSetup";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -83,6 +84,7 @@ const AppContent = () => {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/seller-setup" element={<SellerSetup />} />
             <Route path="/search" element={<Search />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/scanner/result" element={<ResultDetail />} />
