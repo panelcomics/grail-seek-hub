@@ -136,9 +136,9 @@ const Auth = () => {
 
       await logAuthEvent('signup_email', { email: signUpEmail });
       
-      // If user is automatically signed in (auto-confirm enabled), redirect
+      // If user is automatically signed in (auto-confirm enabled), redirect to onboarding
       if (data.session) {
-        navigate("/");
+        navigate("/onboarding");
       } else {
         // Only show toast if email verification is required
         toast({
