@@ -176,9 +176,20 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
     
-    // Return generic error message to client
+    // Provide helpful error messages for specific cases
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    let clientError = "Unable to process payment. Please try again later.";
+    
+    if (errorMessage.includes("Seller has not completed payout setup")) {
+      clientError = "This seller hasn't completed their payout setup yet and cannot accept payments. Please contact the seller or try another listing.";
+    } else if (errorMessage.includes("Listing not found")) {
+      clientError = "This listing is no longer available.";
+    } else if (errorMessage.includes("out of stock")) {
+      clientError = "This item is currently out of stock.";
+    }
+    
     return new Response(
-      JSON.stringify({ error: "Unable to process payment. Please try again later." }),
+      JSON.stringify({ error: clientError }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
