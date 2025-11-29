@@ -238,7 +238,7 @@ export function ProfileEditForm({ userId }: ProfileEditFormProps) {
               <p className="text-sm text-destructive">{errors.username}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              3-20 characters, letters, numbers, and underscores only
+              One word only — no spaces. Letters, numbers, and underscores allowed.
             </p>
           </div>
 
