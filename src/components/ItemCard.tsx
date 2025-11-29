@@ -57,6 +57,7 @@ interface ItemCardProps {
   showFavorite?: boolean; // Show favorite button (default false to prevent extra queries on homepage)
   soldOffPlatform?: boolean; // If item was sold outside GrailSeeker
   imageRotation?: number | null; // Rotation in degrees (0, 90, 180, 270)
+  priority?: boolean; // Load image with high priority (for above-the-fold content)
 }
 
 const ItemCard = ({ 
@@ -102,6 +103,7 @@ const ItemCard = ({
   showFavorite = false, // Default to false to prevent extra queries on homepage
   soldOffPlatform = false,
   imageRotation = null,
+  priority = false,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -173,7 +175,9 @@ const ItemCard = ({
             src={image}
             alt={title}
             className="w-full h-full object-contain p-2 sm:p-3 md:p-4 transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={priority ? "high" : "auto"}
             style={{
               transform: `${getRotationTransform(imageRotation)} scale(1)`
             }}
