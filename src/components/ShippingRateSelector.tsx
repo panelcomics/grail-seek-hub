@@ -64,6 +64,8 @@ export const ShippingRateSelector = ({
   const fetchShippingRates = async () => {
     try {
       setIsLoading(true);
+      console.log("[SHIPPING] Fetching rates with addresses:", { fromAddress, toAddress, parcel });
+      
       const { data, error } = await supabase.functions.invoke("get-shipping-rates", {
         body: {
           fromAddress,
@@ -72,9 +74,15 @@ export const ShippingRateSelector = ({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[SHIPPING] Edge function error:", error);
+        throw error;
+      }
+
+      console.log("[SHIPPING] Response data:", data);
 
       if (data?.rates) {
+        console.log(`[SHIPPING] Found ${data.rates.length} rates`);
         setRates(data.rates);
         // Auto-select cheapest rate
         if (data.rates.length > 0) {
@@ -82,9 +90,11 @@ export const ShippingRateSelector = ({
           setSelectedRateId(cheapest.rate_id);
           onRateSelected(cheapest);
         }
+      } else {
+        console.warn("[SHIPPING] No rates in response");
       }
     } catch (error) {
-      console.error("Error fetching shipping rates:", error);
+      console.error("[SHIPPING] Error fetching shipping rates:", error);
       toast.error("Failed to load shipping rates. Please try again.");
     } finally {
       setIsLoading(false);
