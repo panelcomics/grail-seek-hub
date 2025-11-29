@@ -30,8 +30,8 @@ interface HomepageCacheEntry<T> {
 const HOMEPAGE_CACHE_TTL_MS = 60_000;
 
 // Cache version - increment to invalidate all old localStorage caches
-// Updated: 2025-01-26 after index creation to fix mobile empty state bug
-const CACHE_VERSION = 2;
+// Updated: 2025-11-29 to fix desktop not showing newly added listings
+const CACHE_VERSION = 3;
 
 // In-memory cache
 const homepageCache: Record<string, HomepageCacheEntry<any>> = {};
