@@ -81,13 +81,14 @@ export function ListingsGrid({ filterType }: ListingsGridProps) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {listings.map((item) => {
+      {listings.map((item, index) => {
         const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
         const displayTitle = item.title || `${item.series || "Unknown"} #${item.issue_number || "?"}`;
         const price = resolvePrice(item);
         
         return (
           <ItemCard
+            priority={index < 6}
             key={item.listing_id}
             id={item.listing_id}
             title={displayTitle}

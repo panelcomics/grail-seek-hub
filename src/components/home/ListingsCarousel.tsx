@@ -109,12 +109,13 @@ export function ListingsCarousel({
       ) : listings.length > 0 ? (
         <div className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
           <div className="flex gap-3 md:gap-4 px-4 min-w-min">
-            {listings.map((listing) => {
+            {listings.map((listing, index) => {
               const price = resolvePrice(listing);
               const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
               return (
                 <div key={listing.listing_id} className="w-[280px] sm:w-64 flex-shrink-0 snap-center">
                   <ItemCard
+                    priority={index < 3}
                     id={listing.listing_id}
                     title={listing.title || listing.series || "Untitled"}
                     price={price === null ? undefined : price}
