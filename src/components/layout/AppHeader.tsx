@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSellerOnboarding } from "@/hooks/useSellerOnboarding";
 import { toast } from "sonner";
 
 export function AppHeader() {
@@ -14,7 +13,6 @@ export function AppHeader() {
   const [displayName, setDisplayName] = useState<string>("");
   const [newDealsCount, setNewDealsCount] = useState(0);
   const navigate = useNavigate();
-  const { needsOnboarding, loading: onboardingLoading } = useSellerOnboarding();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -92,16 +90,39 @@ export function AppHeader() {
     navigate('/');
   };
 
-  const handleSellClick = () => {
+  const handleSellClick = async () => {
     if (!user) {
       navigate('/auth?redirect=/seller-setup');
       return;
     }
     
-    if (!onboardingLoading && needsOnboarding) {
-      toast.info("Complete your seller setup (payouts + shipping address) to start listing");
-      navigate('/seller-setup?returnTo=/my-inventory');
-      return;
+    // Check seller onboarding ONLY when user clicks Sell (lazy check)
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("stripe_account_id, stripe_onboarding_complete, shipping_address")
+        .eq("user_id", user.id)
+        .single();
+      
+      const hasAccount = !!profile?.stripe_account_id;
+      const isComplete = profile?.stripe_onboarding_complete || false;
+      const hasShipping = !!(profile?.shipping_address && 
+        typeof profile.shipping_address === 'object' && 
+        profile.shipping_address !== null &&
+        (profile.shipping_address as any).street1 &&
+        (profile.shipping_address as any).city &&
+        (profile.shipping_address as any).state &&
+        (profile.shipping_address as any).zip);
+      
+      const needsOnboarding = !hasAccount || !isComplete || !hasShipping;
+      
+      if (needsOnboarding) {
+        toast.info("Complete your seller setup (payouts + shipping address) to start listing");
+        navigate('/seller-setup?returnTo=/my-inventory');
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking seller onboarding:", error);
     }
     
     navigate('/my-inventory');
