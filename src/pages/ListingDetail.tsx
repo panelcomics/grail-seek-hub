@@ -690,33 +690,44 @@ export default function ListingDetail() {
                      shippingAddress.city && 
                      shippingAddress.state && 
                      shippingAddress.zip && (
-                      <ShippingRateSelector
-                        fromAddress={{
-                          name: sellerName,
-                          street1: seller?.city || "Seller Location",
-                          city: seller?.city || "Unknown",
-                          state: seller?.state || "XX",
-                          zip: seller?.postal_code || "00000",
-                          country: "US",
-                        }}
-                        toAddress={{
-                          name: shippingName || "Buyer",
-                          street1: shippingAddress.line1,
-                          city: shippingAddress.city,
-                          state: shippingAddress.state,
-                          zip: shippingAddress.zip,
-                          country: shippingAddress.country,
-                        }}
-                        parcel={{
-                          length: "12",
-                          width: "9",
-                          height: "3",
-                          distance_unit: "in",
-                          weight: "2",
-                          mass_unit: "lb",
-                        }}
-                        onRateSelected={setSelectedRate}
-                      />
+                      <>
+                        {/* Verify seller has valid location data */}
+                        {!seller?.city || !seller?.state || !seller?.postal_code ? (
+                          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-sm">
+                            <p className="text-yellow-700 dark:text-yellow-400">
+                              ⚠️ This seller hasn't completed their location setup. Shipping rates may not be accurate. Please contact the seller directly or choose local pickup.
+                            </p>
+                          </div>
+                        ) : (
+                          <ShippingRateSelector
+                            fromAddress={{
+                              name: sellerName,
+                              street1: "123 Main St", // Placeholder - Shippo uses city/state/zip for rate calculation
+                              city: seller.city,
+                              state: seller.state,
+                              zip: seller.postal_code,
+                              country: "US",
+                            }}
+                            toAddress={{
+                              name: shippingName || "Buyer",
+                              street1: shippingAddress.line1,
+                              city: shippingAddress.city,
+                              state: shippingAddress.state,
+                              zip: shippingAddress.zip,
+                              country: shippingAddress.country,
+                            }}
+                            parcel={{
+                              length: "12",
+                              width: "9",
+                              height: "3",
+                              distance_unit: "in",
+                              weight: "2",
+                              mass_unit: "lb",
+                            }}
+                            onRateSelected={setSelectedRate}
+                          />
+                        )}
+                      </>
                     )}
 
                     <Button onClick={handleBuyNow} disabled={loading} className="w-full">
