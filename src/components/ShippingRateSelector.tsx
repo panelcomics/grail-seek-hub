@@ -59,10 +59,18 @@ export const ShippingRateSelector = ({
 
   useEffect(() => {
     fetchShippingRates();
-  }, []);
+  }, [fromAddress, toAddress, parcel]);
 
   const fetchShippingRates = async () => {
     try {
+      // Basic validation to avoid calling Shippo with incomplete addresses
+      if (!toAddress?.zip || toAddress.zip.trim().length < 5) {
+        console.warn("[SHIPPING] Skipping rate fetch, incomplete destination ZIP:", toAddress);
+        setRates([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       console.log("[SHIPPING] Fetching rates with addresses:", { fromAddress, toAddress, parcel });
       
