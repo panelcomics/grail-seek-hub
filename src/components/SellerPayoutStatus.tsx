@@ -25,7 +25,12 @@ export function SellerPayoutStatus() {
       if (error) throw error;
 
       if (data?.url) {
-        window.location.href = data.url;
+        const newWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+        if (newWindow) {
+          newWindow.location.href = data.url;
+        } else {
+          window.location.href = data.url;
+        }
       } else {
         throw new Error("No onboarding URL received");
       }
