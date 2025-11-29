@@ -68,9 +68,9 @@ export async function fetchSellerListings(userId: string, limit: number = 10): P
 
     console.log(`[HOMEPAGE] FETCH seller-listings success in ${duration.toFixed(2)}ms: ${data?.length || 0} listings`);
 
-    // Fetch profile for this seller (single query)
+    // Fetch public profile for this seller (single query)
     const { data: profile } = await supabase
-      .from("profiles")
+      .from("public_profiles")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
@@ -81,7 +81,7 @@ export async function fetchSellerListings(userId: string, limit: number = 10): P
       ...listing.inventory_items,
       listing_id: listing.id,
       price_cents: listing.price_cents,
-      profiles: profile,
+      profiles: profile ? { ...profile, completed_sales_count: 0 } : undefined,
       inventory_items: listing.inventory_items,
     }));
 
@@ -202,10 +202,10 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
 
     console.log(`[HOMEPAGE] FETCH ${filterType} success in ${duration.toFixed(2)}ms: ${data.length} listings`);
 
-    // Batch fetch profiles for all unique user_ids (already optimized with IN clause)
+    // Batch fetch public profiles for all unique user_ids
     const userIds = [...new Set(data.map(l => l.user_id).filter(Boolean))];
     const { data: profiles } = await supabase
-      .from("profiles")
+      .from("public_profiles")
       .select("*")
       .in("user_id", userIds);
 
@@ -218,7 +218,7 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
         ...item,
         listing_id: listing.id,
         price_cents: listing.price_cents,
-        profiles: profile,
+        profiles: profile ? { ...profile, completed_sales_count: 0 } : undefined,
         // Keep nested for backwards compatibility
         inventory_items: item,
       };
