@@ -900,9 +900,9 @@ export default function ManageBook() {
                   <Button
                     variant="default"
                     onClick={async () => {
-                      // Check if seller has completed Stripe onboarding
+                      // Check if seller has completed full setup (Stripe + Shipping)
                       if (!onboardingLoading && needsOnboarding) {
-                        toast.info("Complete your seller setup to create listings");
+                        toast.info("Complete your seller setup (payouts + shipping address) to create listings");
                         navigate(`/seller-setup?returnTo=/inventory/${id}`);
                         return;
                       }

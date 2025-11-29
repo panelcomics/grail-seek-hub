@@ -15,6 +15,7 @@ export interface ListingProfile {
   city?: string | null;
   state?: string | null;
   postal_code?: string | null;
+  shipping_address?: any | null; // JSONB field containing full shipping address
 }
 
 export type ListingImages = {

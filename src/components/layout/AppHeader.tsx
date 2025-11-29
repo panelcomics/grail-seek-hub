@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSellerOnboarding } from "@/hooks/useSellerOnboarding";
+import { toast } from "sonner";
 
 export function AppHeader() {
   const [user, setUser] = useState<any>(null);
@@ -98,6 +99,7 @@ export function AppHeader() {
     }
     
     if (!onboardingLoading && needsOnboarding) {
+      toast.info("Complete your seller setup (payouts + shipping address) to start listing");
       navigate('/seller-setup?returnTo=/my-inventory');
       return;
     }

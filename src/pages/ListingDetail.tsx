@@ -691,42 +691,65 @@ export default function ListingDetail() {
                      shippingAddress.state && 
                      shippingAddress.zip && (
                       <>
-                        {/* Verify seller has valid location data */}
-                        {!seller?.city || !seller?.state || !seller?.postal_code ? (
-                          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-sm">
-                            <p className="text-yellow-700 dark:text-yellow-400">
-                              ⚠️ This seller hasn't completed their location setup. Shipping rates may not be accurate. Please contact the seller directly or choose local pickup.
-                            </p>
-                          </div>
-                        ) : (
-                          <ShippingRateSelector
-                            fromAddress={{
-                              name: sellerName,
-                              street1: "123 Main St", // Placeholder - Shippo uses city/state/zip for rate calculation
-                              city: seller.city,
-                              state: seller.state,
-                              zip: seller.postal_code,
-                              country: "US",
-                            }}
-                            toAddress={{
-                              name: shippingName || "Buyer",
-                              street1: shippingAddress.line1,
-                              city: shippingAddress.city,
-                              state: shippingAddress.state,
-                              zip: shippingAddress.zip,
-                              country: shippingAddress.country,
-                            }}
-                            parcel={{
-                              length: "12",
-                              width: "9",
-                              height: "3",
-                              distance_unit: "in",
-                              weight: "2",
-                              mass_unit: "lb",
-                            }}
-                            onRateSelected={setSelectedRate}
-                          />
-                        )}
+                        {/* Use seller's shipping_address if available, otherwise fall back to profile location */}
+                        {(() => {
+                          const shippingAddr = seller?.shipping_address as any;
+                          const hasValidShipping = shippingAddr && 
+                            shippingAddr.street1 && 
+                            shippingAddr.city && 
+                            shippingAddr.state && 
+                            shippingAddr.zip;
+                          
+                          if (!hasValidShipping && (!seller?.city || !seller?.state || !seller?.postal_code)) {
+                            return (
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-sm">
+                                <p className="text-yellow-700 dark:text-yellow-400">
+                                  ⚠️ This seller hasn't completed their shipping address setup. Please contact the seller directly or choose local pickup.
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          const fromAddress = hasValidShipping ? {
+                            name: shippingAddr.name || sellerName,
+                            street1: shippingAddr.street1,
+                            street2: shippingAddr.street2,
+                            city: shippingAddr.city,
+                            state: shippingAddr.state,
+                            zip: shippingAddr.zip,
+                            country: shippingAddr.country || "US",
+                          } : {
+                            name: sellerName,
+                            street1: "123 Main St",
+                            city: seller.city,
+                            state: seller.state,
+                            zip: seller.postal_code,
+                            country: "US",
+                          };
+
+                          return (
+                            <ShippingRateSelector
+                              fromAddress={fromAddress}
+                              toAddress={{
+                                name: shippingName || "Buyer",
+                                street1: shippingAddress.line1,
+                                city: shippingAddress.city,
+                                state: shippingAddress.state,
+                                zip: shippingAddress.zip,
+                                country: shippingAddress.country,
+                              }}
+                              parcel={{
+                                length: "12",
+                                width: "9",
+                                height: "3",
+                                distance_unit: "in",
+                                weight: "2",
+                                mass_unit: "lb",
+                              }}
+                              onRateSelected={setSelectedRate}
+                            />
+                          );
+                        })()}
                       </>
                     )}
 
