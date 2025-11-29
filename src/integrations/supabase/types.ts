@@ -2101,9 +2101,11 @@ export type Database = {
           notify_auction_ending: boolean | null
           notify_new_posts: boolean | null
           notify_via_email: boolean | null
+          onboarding_completed: boolean | null
           postal_code: string | null
           profile_image_url: string | null
           seller_tier: string | null
+          shipping_address: Json | null
           state: string | null
           stripe_account_id: string | null
           stripe_account_verified: boolean | null
@@ -2139,9 +2141,11 @@ export type Database = {
           notify_auction_ending?: boolean | null
           notify_new_posts?: boolean | null
           notify_via_email?: boolean | null
+          onboarding_completed?: boolean | null
           postal_code?: string | null
           profile_image_url?: string | null
           seller_tier?: string | null
+          shipping_address?: Json | null
           state?: string | null
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
@@ -2177,9 +2181,11 @@ export type Database = {
           notify_auction_ending?: boolean | null
           notify_new_posts?: boolean | null
           notify_via_email?: boolean | null
+          onboarding_completed?: boolean | null
           postal_code?: string | null
           profile_image_url?: string | null
           seller_tier?: string | null
+          shipping_address?: Json | null
           state?: string | null
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
