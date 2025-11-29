@@ -143,10 +143,10 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
     // Apply filters based on type
     switch (filterType) {
       case "featured-grails":
-        // Featured buy-it-now listings with price
+        // Featured buy-it-now listings priced $149+
         query = query
           .eq("type", "buy_now")
-          .gt("price_cents", 0)
+          .gte("price_cents", 14900)
           .order("created_at", { ascending: false });
         break;
       
