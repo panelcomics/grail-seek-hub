@@ -172,9 +172,16 @@ export default function ListingDetail() {
           )
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      
+      if (!data) {
+        console.warn(`[LISTING_DETAIL] No listing found for id=${id}`);
+        toast.error("This listing is no longer available");
+        navigate("/market");
+        return;
+      }
 
       // Fetch profile separately
       const { data: profileData } = await supabase
