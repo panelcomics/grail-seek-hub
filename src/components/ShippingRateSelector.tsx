@@ -59,7 +59,27 @@ export const ShippingRateSelector = ({
 
   useEffect(() => {
     fetchShippingRates();
-  }, [fromAddress, toAddress, parcel]);
+  }, [
+    fromAddress.name,
+    fromAddress.street1,
+    fromAddress.city,
+    fromAddress.state,
+    fromAddress.zip,
+    fromAddress.country,
+    toAddress.name,
+    toAddress.street1,
+    toAddress.city,
+    toAddress.state,
+    toAddress.zip,
+    toAddress.country,
+    parcel.length,
+    parcel.width,
+    parcel.height,
+    parcel.distance_unit,
+    parcel.weight,
+    parcel.mass_unit,
+  ]);
+
 
   const fetchShippingRates = async () => {
     try {
