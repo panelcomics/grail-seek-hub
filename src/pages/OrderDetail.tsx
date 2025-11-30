@@ -51,7 +51,6 @@ const OrderDetail = () => {
         `,
         )
         .eq("id", id)
-        .or(`buyer_id.eq.${user?.id},seller_id.eq.${user?.id}`)
         .maybeSingle();
 
       if (error) {
