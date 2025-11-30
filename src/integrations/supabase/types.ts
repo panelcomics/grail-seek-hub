@@ -1417,6 +1417,67 @@ export type Database = {
           },
         ]
       }
+      listing_price_changes: {
+        Row: {
+          changed_at: string
+          id: string
+          listing_id: string
+          new_price_cents: number
+          old_price_cents: number
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          listing_id: string
+          new_price_cents: number
+          old_price_cents: number
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          listing_id?: string
+          new_price_cents?: number
+          old_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_price_changes_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_views: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_views_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           comic_id: string | null
@@ -1437,6 +1498,7 @@ export type Database = {
           private_notes: string | null
           quantity: number | null
           reserve: number | null
+          seller_notes: string | null
           shipping_price: number | null
           start_bid: number | null
           status: string
@@ -1465,6 +1527,7 @@ export type Database = {
           private_notes?: string | null
           quantity?: number | null
           reserve?: number | null
+          seller_notes?: string | null
           shipping_price?: number | null
           start_bid?: number | null
           status?: string
@@ -1493,6 +1556,7 @@ export type Database = {
           private_notes?: string | null
           quantity?: number | null
           reserve?: number | null
+          seller_notes?: string | null
           shipping_price?: number | null
           start_bid?: number | null
           status?: string
@@ -2380,6 +2444,33 @@ export type Database = {
           id?: string
           rank?: number
           seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seller_policies: {
+        Row: {
+          created_at: string
+          id: string
+          return_policy: string | null
+          seller_id: string
+          shipping_policy: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          return_policy?: string | null
+          seller_id: string
+          shipping_policy?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          return_policy?: string | null
+          seller_id?: string
+          shipping_policy?: string | null
           updated_at?: string
         }
         Relationships: []
