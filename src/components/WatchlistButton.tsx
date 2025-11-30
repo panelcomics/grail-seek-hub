@@ -37,7 +37,7 @@ export const WatchlistButton = ({
         aria-label={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
         className={cn(
           "absolute top-3 right-3 z-10",
-          "p-2 rounded-full bg-white/90 backdrop-blur-sm",
+          "p-1.5 rounded-full bg-white/90 backdrop-blur-sm",
           "transition-all duration-200 ease-out",
           "hover:bg-white hover:scale-105",
           "active:scale-95",
