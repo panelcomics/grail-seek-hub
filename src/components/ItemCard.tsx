@@ -202,15 +202,7 @@ const ItemCard = ({
             </div>
           )}
 
-          {/* Seller badges - top left (excluding Premium Dealer which moved to metadata row) */}
-          {(sellerTier || (isVerifiedSeller && completedSalesCount >= 10)) && (
-            <div className="absolute top-2 left-2 flex gap-1">
-              {sellerTier && <SellerBadge tier={sellerTier} />}
-              {isVerifiedSeller && completedSalesCount >= 10 && (
-                <VerifiedSellerBadge size="sm" showText={false} salesCount={completedSalesCount} />
-              )}
-            </div>
-          )}
+          {/* No badges over image - all dealer badges moved to bottom metadata row */}
 
           {/* Sold off-platform badge - top center */}
           {soldOffPlatform && (
@@ -259,12 +251,16 @@ const ItemCard = ({
               )}
             </div>
 
-            {/* Center: Premium Dealer badge */}
-            {isFeaturedSeller && (
-              <div className="flex-shrink-0">
-                <FeaturedSellerBadge showLabel={true} className="text-xs" />
-              </div>
-            )}
+            {/* Center: Single dealer badge (Premium Dealer or Top Dealer) */}
+            {isFeaturedSeller ? (
+              <span className="inline-block text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
+                Premium Dealer
+              </span>
+            ) : (isVerifiedSeller && completedSalesCount >= 10) ? (
+              <span className="inline-block text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
+                Top Dealer
+              </span>
+            ) : null}
 
             {/* Right: Grade pill */}
             {getGradeText() && (
