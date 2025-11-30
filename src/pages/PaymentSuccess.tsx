@@ -68,9 +68,15 @@ const PaymentSuccess = () => {
           payment_status: order.payment_status
         });
 
-        // If order has Shippo rate, generate label automatically
+        // NOTE: Shippo automatic label generation removed until shipments table is implemented
+        // When implementing Shippo:
+        // 1. Create shipments table migration with: order_id, tracking_number, label_url, status
+        // 2. Uncomment and update the purchase-shipping-label edge function call
+        // 3. Store shipment record after successful label purchase
+        
+        /* SHIPPO INTEGRATION - COMMENTED OUT UNTIL SHIPMENTS TABLE EXISTS
         if (order.shippo_rate_id && order.label_cost_cents) {
-          console.log("Generating shipping label...");
+          console.log("[PAYMENT-SUCCESS] Generating shipping label...");
           try {
             const { error: labelError } = await supabase.functions.invoke(
               "purchase-shipping-label",
@@ -86,16 +92,15 @@ const PaymentSuccess = () => {
             );
 
             if (labelError) {
-              console.error("Failed to generate label:", labelError);
-              // Don't fail the whole payment, just log it
+              console.error("[PAYMENT-SUCCESS] Failed to generate label:", labelError);
             } else {
-              console.log("Label generated successfully!");
+              console.log("[PAYMENT-SUCCESS] Label generated successfully!");
             }
           } catch (labelError) {
-            console.error("Label generation error:", labelError);
-            // Don't fail the payment
+            console.error("[PAYMENT-SUCCESS] Label generation error:", labelError);
           }
         }
+        */
 
         toast.success("Payment successful!");
       } catch (error: any) {

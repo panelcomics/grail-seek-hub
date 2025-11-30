@@ -15,6 +15,9 @@ interface OrderDetailRecord {
   payment_status: string | null;
   created_at: string;
   paid_at: string | null;
+  buyer_id: string;
+  seller_id: string;
+  shipping_name?: string | null;
   listing?: {
     title?: string | null;
   } | null;
@@ -42,6 +45,7 @@ const OrderDetail = () => {
 
     try {
       setIsLoading(true);
+      console.log("[ORDER-DETAIL] Fetching order:", { orderId: id, userId: user?.id });
 
       const { data, error } = await supabase
         .from("orders")
@@ -64,6 +68,15 @@ const OrderDetail = () => {
         navigate("/orders");
         return;
       }
+
+      console.log("[ORDER-DETAIL] Order loaded successfully:", {
+        orderId: data.id,
+        buyer_id: data.buyer_id,
+        seller_id: data.seller_id,
+        status: data.status,
+        payment_status: data.payment_status,
+        amount_cents: data.amount_cents
+      });
 
       setOrder(data as OrderDetailRecord);
     } catch (err) {
@@ -91,12 +104,14 @@ const OrderDetail = () => {
   }
 
   const status = order.payment_status || order.status;
+  const isBuyer = user?.id === order.buyer_id;
+  const isSeller = user?.id === order.seller_id;
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-3xl">
       <div className="mb-6">
         <Button variant="outline" onClick={() => navigate("/orders")}>
-           Back to Orders
+           Back to Orders
         </Button>
       </div>
 
@@ -108,6 +123,12 @@ const OrderDetail = () => {
               <p className="text-sm text-muted-foreground">
                 {new Date(order.created_at).toLocaleDateString()}
               </p>
+              {isBuyer && (
+                <Badge variant="outline" className="mt-2">You are the Buyer</Badge>
+              )}
+              {isSeller && (
+                <Badge variant="outline" className="mt-2">You are the Seller</Badge>
+              )}
             </div>
             <Badge
               variant={
@@ -128,13 +149,18 @@ const OrderDetail = () => {
               <h3 className="font-semibold mb-1">
                 {order.listing?.title || "Marketplace order"}
               </h3>
+              {order.shipping_name && (
+                <p className="text-sm text-muted-foreground">
+                  Ship to: {order.shipping_name}
+                </p>
+              )}
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Item Total</span>
+                  <span className="text-sm">Order Total</span>
                 </div>
                 <span className="font-semibold">
                   ${(order.amount_cents / 100).toFixed(2)}
@@ -146,14 +172,26 @@ const OrderDetail = () => {
                   <p className="text-sm font-semibold text-success">
                     Payment received on {new Date(order.paid_at).toLocaleDateString()}
                   </p>
+                  {isSeller && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Payout will be processed after delivery confirmation
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {status === "requires_payment" && isBuyer && (
+                <div className="mt-4 p-3 bg-warning/10 rounded-lg border border-warning/40">
+                  <p className="text-sm font-semibold text-warning">
+                    Payment not completed. Please complete checkout to confirm this order.
+                  </p>
                 </div>
               )}
 
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  <strong>Note:</strong> This page currently shows a simplified
-                  view of your order. Shipping and detailed fee breakdowns will
-                  be added here as we finalize the marketplace checkout flow.
+                  <strong>Note:</strong> Shipping tracking and detailed fee breakdowns will
+                  be added here as we finalize the marketplace shipping flow.
                 </p>
               </div>
             </div>
