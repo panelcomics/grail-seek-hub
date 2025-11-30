@@ -159,7 +159,6 @@ serve(async (req) => {
     const { error: updateError } = await supabaseClient
       .from("orders")
       .update({ 
-        stripe_payment_intent: paymentIntent.id,
         payment_intent_id: paymentIntent.id 
       })
       .eq("id", order.id);
