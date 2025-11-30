@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -7,336 +6,135 @@ import { ArrowLeft, AlertTriangle } from "lucide-react";
 
 export default function Terms() {
   return (
-    <AppLayout>
-      <main className="container mx-auto px-4 py-8 mt-20 max-w-4xl">
-        <div className="mb-6">
-          <Link to="/">
-            <Button variant="ghost" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
-        </div>
+    <main className="container mx-auto px-4 py-8 mt-20 max-w-4xl">
+      <div className="mb-6">
+        <Link to="/">
+          <Button variant="ghost" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl">Terms of Service</CardTitle>
-            <p className="text-sm text-muted-foreground mt-2">
-              Last Updated: {new Date().toLocaleDateString()}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-3xl">Terms of Service</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Last Updated: {new Date().toLocaleDateString()}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6 text-sm">
+          {/* Important Notice */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <p className="font-semibold text-amber-700 dark:text-amber-400">
+                  Important Legal Notice
+                </p>
+                <p className="text-amber-700/90 dark:text-amber-300/90">
+                  Please read these terms carefully. By using Grail Seeker, you agree to be bound by these terms.
+                  If you do not agree, do not use this platform.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              By accessing and using Grail Seeker, you accept and agree to be bound by the terms and provision of this agreement.
             </p>
-          </CardHeader>
-          <CardContent className="space-y-6 text-sm">
-            {/* Important Notice */}
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="font-semibold text-amber-700 dark:text-amber-400">
-                    Important Legal Notice
-                  </p>
-                  <p className="text-amber-700/90 dark:text-amber-300/90">
-                    Please read these terms carefully. By using Grail Seeker, you agree to be bound by these terms. 
-                    If you do not agree, do not use this platform.
-                  </p>
-                </div>
-              </div>
-            </div>
+          </section>
 
-            <Separator />
+          <Separator />
 
-            {/* 1. Acceptance of Terms */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                By accessing or using Grail Seeker ("the Service", "the Platform"), you agree to be bound by these 
-                Terms of Service. These terms constitute a legally binding agreement between you and Grail Seeker. 
-                If you do not agree to these terms, you must immediately cease using the Service.
-              </p>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">2. Use License</h2>
+            <p className="text-muted-foreground leading-relaxed mb-3">
+              Permission is granted to temporarily access the materials on Grail Seeker for personal, non-commercial transitory viewing only.
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
+              <li>This is the grant of a license, not a transfer of title</li>
+              <li>You may not modify or copy the materials</li>
+              <li>You may not use the materials for any commercial purpose</li>
+              <li>You may not attempt to decompile or reverse engineer any software</li>
+            </ul>
+          </section>
 
-            <Separator />
+          <Separator />
 
-            {/* 2. Liability Disclaimer */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">2. Limitation of Liability</h2>
-              <div className="space-y-3 text-muted-foreground leading-relaxed">
-                <p className="font-medium text-foreground">
-                  Grail Seeker is a marketplace platform that facilitates connections between buyers and sellers. 
-                  We are NOT responsible for:
-                </p>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>
-                    <strong>Meetup Safety:</strong> Any injuries, theft, fraud, assault, or other incidents that occur during 
-                    in-person meetups or local pickups. Users assume all risks associated with meeting strangers. Grail Seeker 
-                    has ZERO liability for any harm, injury, or loss occurring during in-person transactions.
-                  </li>
-                  <li>
-                    <strong>Shipping Losses:</strong> Lost, damaged, stolen, or destroyed items during shipping. While we 
-                    facilitate transactions, we do not guarantee delivery or condition of items. Users are responsible for 
-                    purchasing their own shipping insurance if desired (see Section 2.1 below).
-                  </li>
-                  <li>
-                    <strong>Item Authenticity:</strong> The authenticity, condition, grade, or quality of items listed on the 
-                    platform. Sellers are solely responsible for accurate descriptions. Grail Seeker does not verify or 
-                    authenticate items.
-                  </li>
-                  <li>
-                    <strong>Financial Disputes:</strong> Any payment disputes, chargebacks, refunds, or financial losses arising 
-                    from transactions between users. All transactions are between users directly.
-                  </li>
-                  <li>
-                    <strong>User Conduct:</strong> The actions, behavior, communications, or criminal activity of other users 
-                    on the platform.
-                  </li>
-                </ul>
-                
-                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mt-4">
-                  <p className="font-bold text-foreground">
-                    MAXIMUM LIABILITY CAP: $100
-                  </p>
-                  <p className="mt-2">
-                    IN NO EVENT SHALL GRAIL SEEKER'S TOTAL LIABILITY TO YOU FOR ALL DAMAGES, LOSSES, AND CAUSES OF ACTION 
-                    EXCEED ONE HUNDRED DOLLARS ($100.00). This cap applies regardless of the nature of the claim, whether in 
-                    contract, tort, warranty, or otherwise.
-                  </p>
-                </div>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">3. Disclaimer</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              The materials on Grail Seeker are provided on an 'as is' basis. Grail Seeker makes no warranties, expressed or implied,
+              and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of
+              merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+            </p>
+          </section>
 
-                <p className="font-medium text-foreground mt-4">
-                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, GRAIL SEEKER SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, 
-                  INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF THE SERVICE, INCLUDING BUT 
-                  NOT LIMITED TO: LOST PROFITS, LOST DATA, PERSONAL INJURY, PROPERTY DAMAGE, OR ANY OTHER LOSSES.
-                </p>
+          <Separator />
 
-                <h3 className="font-semibold text-foreground mt-4">2.1 Shipping Insurance</h3>
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                  <p className="font-medium text-foreground mb-2">
-                    Optional Shipping Insurance Available
-                  </p>
-                  <p>
-                    For nationwide shipping transactions, we strongly recommend that sellers purchase shipping insurance to 
-                    protect against loss, damage, or theft during transit. Insurance options are typically available through 
-                    shipping carriers (USPS, UPS, FedEx) or third-party insurance providers.
-                  </p>
-                  <ul className="list-disc pl-6 space-y-1 mt-2 text-sm">
-                    <li>Sellers are responsible for purchasing and managing shipping insurance</li>
-                    <li>Insurance costs can be built into the item price or charged separately</li>
-                    <li>Grail Seeker does not provide shipping insurance or handle claims</li>
-                    <li>For high-value items ($100+), insurance is highly recommended</li>
-                  </ul>
-                </div>
-              </div>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">4. Limitations</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              In no event shall Grail Seeker or its suppliers be liable for any damages (including, without limitation, damages for loss of
+              data or profit, or due to business interruption) arising out of the use or inability to use the materials on Grail Seeker.
+            </p>
+          </section>
 
-            <Separator />
+          <Separator />
 
-            {/* 3. Warranty Disclaimer */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">3. Warranty Disclaimer</h2>
-              <div className="space-y-3 text-muted-foreground leading-relaxed">
-                <p className="font-medium text-foreground">
-                  THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND.
-                </p>
-                <p>
-                  We make no representations or warranties of any kind, express or implied, including but not limited to:
-                </p>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>The accuracy, reliability, or completeness of any content or information on the platform</li>
-                  <li>The availability or uninterrupted operation of the Service</li>
-                  <li>The security of data transmission or storage</li>
-                  <li>The fitness of the Service for any particular purpose</li>
-                  <li>That the Service will be error-free or that defects will be corrected</li>
-                </ul>
-                <p className="mt-4">
-                  You acknowledge that you use the Service at your own risk. Grail Seeker disclaims all warranties, 
-                  whether express, implied, or statutory, including warranties of merchantability, fitness for a 
-                  particular purpose, and non-infringement.
-                </p>
-              </div>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">5. Accuracy of Materials</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              The materials appearing on Grail Seeker could include technical, typographical, or photographic errors. Grail Seeker does not
+              warrant that any of the materials on its website are accurate, complete or current.
+            </p>
+          </section>
 
-            <Separator />
+          <Separator />
 
-            {/* 4. Indemnification */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">4. Indemnification</h2>
-              <div className="space-y-3 text-muted-foreground leading-relaxed">
-                <p>
-                  You agree to indemnify, defend, and hold harmless Grail Seeker, its officers, directors, employees, 
-                  agents, and affiliates from and against any and all claims, liabilities, damages, losses, costs, 
-                  expenses, or fees (including reasonable attorneys' fees) arising from:
-                </p>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Your use or misuse of the Service</li>
-                  <li>Your violation of these Terms of Service</li>
-                  <li>Your violation of any rights of another party</li>
-                  <li>Any disputes between you and other users</li>
-                  <li>Any content you post or submit to the Service</li>
-                  <li>Any transaction or interaction with other users</li>
-                  <li>Any claims arising from meetups, shipping, or item exchanges</li>
-                </ul>
-                <p className="mt-4 font-medium text-foreground">
-                  This indemnification obligation will survive the termination of your account and your use of the Service.
-                </p>
-              </div>
-            </section>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">6. Links</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Grail Seeker has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site.
+              The inclusion of any link does not imply endorsement by Grail Seeker of the site. Use of any such linked website is at the user's own risk.
+            </p>
+          </section>
 
-            <Separator />
+          <Separator />
 
-            {/* 5. Arbitration Clause */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">5. Dispute Resolution & Arbitration</h2>
-              <div className="space-y-3 text-muted-foreground leading-relaxed">
-                <p className="font-medium text-foreground">
-                  PLEASE READ THIS SECTION CAREFULLY. IT AFFECTS YOUR LEGAL RIGHTS.
-                </p>
-                
-                <h3 className="font-semibold text-foreground mt-4">5.1 Binding Arbitration</h3>
-                <p>
-                  Except as provided below, any dispute, claim, or controversy arising out of or relating to these 
-                  Terms or the Service shall be resolved by binding arbitration rather than in court. This includes 
-                  disputes relating to the interpretation, applicability, enforceability, or formation of these Terms.
-                </p>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">7. Modifications</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Grail Seeker may revise these terms of service at any time without notice. By using this website you are agreeing to be bound by
+              the then current version of these terms of service.
+            </p>
+          </section>
 
-                <h3 className="font-semibold text-foreground mt-4">5.2 Arbitration Procedures</h3>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>
-                    Arbitration shall be conducted by a neutral arbitrator in accordance with the American Arbitration 
-                    Association (AAA) Consumer Arbitration Rules
-                  </li>
-                  <li>The arbitration will take place in the United States in a location convenient to you</li>
-                  <li>Each party shall bear its own costs and expenses, including attorney fees</li>
-                  <li>The arbitrator's decision will be final and binding</li>
-                  <li>Judgment on the award may be entered in any court of competent jurisdiction</li>
-                </ul>
+          <Separator />
 
-                <h3 className="font-semibold text-foreground mt-4">5.3 Class Action Waiver</h3>
-                <p className="font-medium text-foreground">
-                  YOU AGREE THAT DISPUTES WILL BE ARBITRATED ONLY ON AN INDIVIDUAL BASIS AND NOT AS A CLASS ACTION, 
-                  CONSOLIDATED, OR REPRESENTATIVE ACTION. You waive any right to participate in a class action lawsuit 
-                  or class-wide arbitration.
-                </p>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">8. Governing Law</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              These terms and conditions are governed by and construed in accordance with the laws and you irrevocably submit to the
+              exclusive jurisdiction of the courts in that location.
+            </p>
+          </section>
 
-                <h3 className="font-semibold text-foreground mt-4">5.4 Exceptions to Arbitration</h3>
-                <p>
-                  Either party may seek relief in small claims court for disputes within that court's jurisdiction. 
-                  Additionally, either party may seek injunctive or other equitable relief in court to prevent the 
-                  actual or threatened infringement of intellectual property rights.
-                </p>
+          <Separator />
 
-                <h3 className="font-semibold text-foreground mt-4">5.5 30-Day Right to Opt Out</h3>
-                <p>
-                  You have the right to opt out of this arbitration agreement by sending written notice within 30 days 
-                  of first accepting these Terms. The notice must include your name, address, and a clear statement that 
-                  you wish to opt out of the arbitration agreement.
-                </p>
-              </div>
-            </section>
-
-            <Separator />
-
-            {/* 6. Cancellations and Refunds */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">6. Cancellations and Refunds</h2>
-              <div className="space-y-3 text-muted-foreground leading-relaxed">
-                <p>
-                  <strong>Payment processing fees</strong> charged by our payment partner are <strong>non-refundable</strong> once a transaction is authorized. GrailSeeker marketplace and trade fees are <strong>non-refundable</strong> after a sale or trade is completed.
-                </p>
-                <p>
-                  If a transaction is <strong>canceled before completion</strong>, applicable platform fees will not be charged.
-                </p>
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-                  <p className="font-medium text-foreground">
-                    Important: Processing fees are non-refundable once a transaction is authorized.
-                  </p>
-                  <p className="mt-2">
-                    The processing fee covers the cost of handling the transaction through our payment provider. This fee is charged by the payment processor regardless of whether the order is completed or canceled. When a refund is issued, GrailSeeker will deduct the payment processing amount to ensure sellers and the platform are not charged additional fees for canceled transactions.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <Separator />
-
-            {/* 7. Trading Policy */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">7. Trading Policy</h2>
-              <div className="space-y-3 text-muted-foreground leading-relaxed">
-                <p>
-                  Users may exchange collectibles directly through the platform's trade features. All trades are voluntary and negotiated directly between users.
-                </p>
-                <p>
-                  <strong>GrailSeeker does not participate in or guarantee any trade</strong>, nor do we determine item value. Trades are not considered games of chance or sweepstakes and involve no random outcomes.
-                </p>
-                <p className="text-sm">
-                  Users are solely responsible for evaluating trade fairness, verifying item authenticity, and managing all aspects of the exchange.
-                </p>
-              </div>
-            </section>
-
-            <Separator />
-
-            {/* 8. User Responsibilities */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">8. User Responsibilities</h2>
-              <div className="space-y-2 text-muted-foreground leading-relaxed">
-                <p>As a user of Grail Seeker, you agree to:</p>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Provide accurate and truthful information in all listings and communications</li>
-                  <li>Meet in safe, public locations for local transactions</li>
-                  <li>Package items securely for shipping</li>
-                  <li>Resolve disputes directly with other users in good faith</li>
-                  <li>Report suspicious activity or fraudulent behavior</li>
-                  <li>Comply with all applicable laws and regulations</li>
-                </ul>
-              </div>
-            </section>
-
-            <Separator />
-
-            {/* 9. Termination */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">9. Termination</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Grail Seeker reserves the right to suspend or terminate your account at any time, with or without 
-                notice, for any reason, including violation of these Terms. Upon termination, your right to use 
-                the Service will immediately cease.
-              </p>
-            </section>
-
-            <Separator />
-
-            {/* 10. Changes to Terms */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">10. Changes to Terms</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                We reserve the right to modify these Terms at any time. Changes will be effective immediately upon 
-                posting to the Service. Your continued use of the Service after changes are posted constitutes your 
-                acceptance of the revised Terms.
-              </p>
-            </section>
-
-            <Separator />
-
-            {/* 11. Contact */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3">11. Contact Information</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                If you have questions about these Terms, please contact us at: legal@grailseeker.com
-              </p>
-            </section>
-
-            <Separator />
-
-            {/* Final Notice */}
-            <div className="bg-muted/50 rounded-lg p-4 mt-6">
-              <p className="text-sm text-center text-muted-foreground">
-                By using Grail Seeker, you acknowledge that you have read, understood, and agree to be bound by 
-                these Terms of Service.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
-    </AppLayout>
+          <section>
+            <h2 className="text-xl font-semibold mb-3">9. Contact Information</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              If you have any questions about these Terms, please contact us through our support channels.
+            </p>
+          </section>
+        </CardContent>
+      </Card>
+    </main>
   );
 }

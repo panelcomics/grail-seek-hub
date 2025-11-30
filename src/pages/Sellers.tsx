@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { AppLayout } from "@/components/layout/AppLayout"; // deprecated wrapper, kept for legacy but not used here
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -131,109 +131,108 @@ export default function Sellers() {
   const totalPages = Math.ceil(filteredSellers.length / ITEMS_PER_PAGE);
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Seller Directory</h1>
-          <p className="text-muted-foreground">
-            Browse {sellers.length} verified sellers in the marketplace
-          </p>
+    <div className="container mx-auto px-4 py-12">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-foreground mb-2">Seller Directory</h1>
+        <p className="text-muted-foreground">
+          Browse {sellers.length} verified sellers in the marketplace
+        </p>
+      </div>
+
+      {/* Filters & Search */}
+      <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Search */}
+        <div className="md:col-span-2 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search sellers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
 
-        {/* Filters & Search */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="md:col-span-2 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search sellers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+        {/* Tier Filter */}
+        <Select value={filterTier} onValueChange={setFilterTier}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filter by tier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sellers</SelectItem>
+            <SelectItem value="verified">Verified Only</SelectItem>
+            <SelectItem value="pro">Pro Sellers</SelectItem>
+          </SelectContent>
+        </Select>
 
-          {/* Tier Filter */}
-          <Select value={filterTier} onValueChange={setFilterTier}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by tier" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Sellers</SelectItem>
-              <SelectItem value="verified">Verified Only</SelectItem>
-              <SelectItem value="pro">Pro Sellers</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Sort */}
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="most-active">Most Active</SelectItem>
+            <SelectItem value="highest-rated">Highest Rated</SelectItem>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="a-z">A-Z</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          {/* Sort */}
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="most-active">Most Active</SelectItem>
-              <SelectItem value="highest-rated">Highest Rated</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="a-z">A-Z</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Results count */}
+      <div className="mb-6">
+        <p className="text-sm text-muted-foreground">
+          Showing {paginatedSellers.length} of {filteredSellers.length} sellers
+        </p>
+      </div>
+
+      {/* Sellers Grid */}
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading sellers...</p>
         </div>
-
-        {/* Results count */}
-        <div className="mb-6">
-          <p className="text-sm text-muted-foreground">
-            Showing {paginatedSellers.length} of {filteredSellers.length} sellers
-          </p>
+      ) : paginatedSellers.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No sellers found matching your criteria.</p>
         </div>
-
-        {/* Sellers Grid */}
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Loading sellers...</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            {paginatedSellers.map((seller) => (
+              <SellerCard key={seller.user_id} seller={seller} />
+            ))}
           </div>
-        ) : paginatedSellers.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No sellers found matching your criteria.</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-              {paginatedSellers.map((seller) => (
-                <SellerCard key={seller.user_id} seller={seller} />
-              ))}
-            </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center gap-2 mt-8">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        onClick={() => setCurrentPage(page)}
-                        className="w-10"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
-                  {totalPages > 5 && <span className="text-muted-foreground">...</span>}
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-2">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      onClick={() => setCurrentPage(page)}
+                      className="w-10"
+                    >
+                      {page}
+                    </Button>
+                  );
+                })}
+                {totalPages > 5 && <span className="text-muted-foreground">...</span>}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
                 Next
               </Button>
             </div>
@@ -241,7 +240,6 @@ export default function Sellers() {
         </>
       )}
     </div>
-  </AppLayout>
   );
 }
 
