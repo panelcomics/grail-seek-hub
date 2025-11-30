@@ -142,14 +142,31 @@ serve(async (req) => {
       },
     });
 
-    // Update order with payment intent
-    await supabaseClient
+    // Update order with payment intent - CRITICAL: check for errors
+    const { error: updateError } = await supabaseClient
       .from("orders")
       .update({ 
         stripe_payment_intent: paymentIntent.id,
         payment_intent_id: paymentIntent.id 
       })
       .eq("id", order.id);
+
+    if (updateError) {
+      console.error("[PAYMENT-INTENT] Failed to update order with payment_intent_id:", {
+        orderId: order.id,
+        paymentIntentId: paymentIntent.id,
+        error: updateError
+      });
+      throw new Error(`Failed to link payment intent to order: ${updateError.message}`);
+    }
+
+    console.log("[PAYMENT-INTENT] Successfully created payment intent:", {
+      orderId: order.id,
+      paymentIntentId: paymentIntent.id,
+      amount_cents,
+      buyer_id: user.id,
+      seller_id: listing.user_id
+    });
 
     // Log event
     await supabaseClient

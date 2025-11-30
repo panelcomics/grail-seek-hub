@@ -17,12 +17,34 @@ const PaymentSuccess = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       if (!orderId || !paymentIntent) {
+        console.error("[PAYMENT-SUCCESS] Missing required params:", { orderId, paymentIntent });
         toast.error("Invalid payment confirmation");
         navigate("/my-orders");
         return;
       }
 
+      console.log("[PAYMENT-SUCCESS] Starting payment verification:", { orderId, paymentIntent });
+
       try {
+        // First, verify the order exists and get current state
+        const { data: existingOrder, error: fetchError } = await supabase
+          .from("orders")
+          .select("*, listing:listing_id(user_id)")
+          .eq("id", orderId)
+          .single();
+
+        if (fetchError) {
+          console.error("[PAYMENT-SUCCESS] Failed to fetch order:", fetchError);
+          throw new Error("Failed to load order");
+        }
+
+        console.log("[PAYMENT-SUCCESS] Order found:", {
+          orderId: existingOrder.id,
+          currentStatus: existingOrder.payment_status,
+          payment_intent_id: existingOrder.payment_intent_id,
+          expected_payment_intent: paymentIntent
+        });
+
         // Update order status to paid
         const { data: order, error: orderUpdateError } = await supabase
           .from("orders")
@@ -35,7 +57,15 @@ const PaymentSuccess = () => {
           .select("*, listing:listing_id(user_id)")
           .single();
 
-        if (orderUpdateError) throw orderUpdateError;
+        if (orderUpdateError) {
+          console.error("[PAYMENT-SUCCESS] Failed to update order:", orderUpdateError);
+          throw orderUpdateError;
+        }
+
+        console.log("[PAYMENT-SUCCESS] Order updated successfully:", {
+          orderId: order.id,
+          payment_status: order.payment_status
+        });
 
         // If order has Shippo rate, generate label automatically
         if (order.shippo_rate_id && order.label_cost_cents) {
@@ -68,8 +98,18 @@ const PaymentSuccess = () => {
 
         toast.success("Payment successful!");
       } catch (error: any) {
-        console.error("Error verifying payment:", error);
-        toast.error("Payment verification failed. Please contact support.");
+        console.error("[PAYMENT-SUCCESS] Error verifying payment:", {
+          error: error?.message || error,
+          orderId,
+          paymentIntent,
+          timestamp: new Date().toISOString()
+        });
+        
+        const errorMessage = error?.message?.includes("Failed to load order")
+          ? "Failed to load order"
+          : "Payment verification failed. Please contact support.";
+        
+        toast.error(errorMessage);
       } finally {
         setIsVerifying(false);
       }
