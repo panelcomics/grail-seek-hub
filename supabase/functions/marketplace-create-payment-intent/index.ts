@@ -180,7 +180,8 @@ serve(async (req) => {
     
     // Provide helpful error messages for specific cases
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    let clientError = "Unable to process payment. Please try again later.";
+    // In test mode we surface the real error to help debug checkout
+    let clientError = errorMessage || "Unable to process payment. Please try again later.";
     
     if (errorMessage.includes("Seller has not completed payout setup")) {
       clientError = "This seller hasn't completed their payout setup yet and cannot accept payments. Please contact the seller or try another listing.";
