@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const STRIPE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  "pk_test_51SPpDT8ehQu3cclJhGmo8kMmV91ibYmTuA9NMBX2BGxmc5FVYrv457weDF3tgVTdVEhd0vsM9ZY2tmsnDIG2KQKI00vioxatn1";
 
 if (!STRIPE_PUBLISHABLE_KEY) {
-  console.error('CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY not configured!');
+  console.error("CRITICAL: Stripe publishable key missing! Checkout will not work.");
 }
 
 const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
