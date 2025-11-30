@@ -50,6 +50,7 @@ const PaymentSuccess = () => {
           .from("orders")
           .update({
             payment_status: "paid",
+            status: "paid",
             paid_at: new Date().toISOString(),
           })
           .eq("id", orderId)

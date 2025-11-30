@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
 
 interface FeaturedShop {
   id: string;
@@ -213,99 +212,97 @@ export default function AdminFeaturedShops() {
   }
 
   return (
-    <AppLayout>
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold text-foreground mb-8">Manage Featured Shops</h1>
+    <div className="container mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold text-foreground mb-8">Manage Featured Shops</h1>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Add Featured Shop</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <Input
-                placeholder="Enter seller username or email"
-                value={newSellerEmail}
-                onChange={(e) => setNewSellerEmail(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && addFeaturedShop()}
-              />
-              <Button onClick={addFeaturedShop} disabled={adding}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Add Featured Shop</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <Input
+              placeholder="Enter seller username or email"
+              value={newSellerEmail}
+              onChange={(e) => setNewSellerEmail(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && addFeaturedShop()}
+            />
+            <Button onClick={addFeaturedShop} disabled={adding}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Featured Shops ({shops.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {shops.map((shop, index) => (
-                <div
-                  key={shop.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl font-bold text-muted-foreground">
-                      #{shop.rank}
-                    </span>
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                      {shop.profiles.avatar_url ? (
-                        <img
-                          src={shop.profiles.avatar_url}
-                          alt={shop.profiles.username}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-lg font-bold text-primary">
-                          {shop.profiles.username?.[0]?.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        {shop.profiles.username}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {shop.active ? "Active" : "Inactive"}
-                      </p>
-                    </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Featured Shops ({shops.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {shops.map((shop, index) => (
+              <div
+                key={shop.id}
+                className="flex items-center justify-between p-4 border border-border rounded-lg"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl font-bold text-muted-foreground">
+                    #{shop.rank}
+                  </span>
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                    {shop.profiles.avatar_url ? (
+                      <img
+                        src={shop.profiles.avatar_url}
+                        alt={shop.profiles.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg font-bold text-primary">
+                        {shop.profiles.username?.[0]?.toUpperCase()}
+                      </span>
+                    )}
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => moveUp(index)}
-                      disabled={index === 0}
-                    >
-                      <ArrowUp className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => moveDown(index)}
-                      disabled={index === shops.length - 1}
-                    >
-                      <ArrowDown className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      onClick={() => removeFeaturedShop(shop.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      {shop.profiles.username}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {shop.active ? "Active" : "Inactive"}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </AppLayout>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => moveUp(index)}
+                    disabled={index === 0}
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => moveDown(index)}
+                    disabled={index === shops.length - 1}
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    onClick={() => removeFeaturedShop(shop.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
