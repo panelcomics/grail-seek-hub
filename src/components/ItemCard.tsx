@@ -202,10 +202,9 @@ const ItemCard = ({
             </div>
           )}
 
-          {/* Seller badges - top left */}
-          {(isFeaturedSeller || sellerTier || (isVerifiedSeller && completedSalesCount >= 10)) && (
+          {/* Seller badges - top left (excluding Premium Dealer which moved to metadata row) */}
+          {(sellerTier || (isVerifiedSeller && completedSalesCount >= 10)) && (
             <div className="absolute top-2 left-2 flex gap-1">
-              {isFeaturedSeller && <FeaturedSellerBadge showLabel={false} />}
               {sellerTier && <SellerBadge tier={sellerTier} />}
               {isVerifiedSeller && completedSalesCount >= 10 && (
                 <VerifiedSellerBadge size="sm" showText={false} salesCount={completedSalesCount} />
@@ -238,10 +237,10 @@ const ItemCard = ({
           {/* Spacer to push price row to bottom */}
           <div className="flex-1 min-h-1" />
 
-          {/* Bottom row: Price on left, Grade pill on right */}
+          {/* Bottom row: Price (left), Premium Dealer badge (center), Grade (right) */}
           <div className="flex items-center justify-between gap-2">
             {/* Left: Price */}
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline gap-1 flex-shrink-0">
               {price !== null && price !== undefined && price > 0 ? (
                 <>
                   <span className="text-xl font-bold text-foreground">
@@ -259,6 +258,13 @@ const ItemCard = ({
                 </span>
               )}
             </div>
+
+            {/* Center: Premium Dealer badge */}
+            {isFeaturedSeller && (
+              <div className="flex-shrink-0">
+                <FeaturedSellerBadge showLabel={true} className="text-xs" />
+              </div>
+            )}
 
             {/* Right: Grade pill */}
             {getGradeText() && (
