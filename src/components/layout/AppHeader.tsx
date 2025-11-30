@@ -214,7 +214,7 @@ export function AppHeader() {
                         <UserCircle className="mr-2 h-4 w-4" />
                         My Profile & Settings
                       </DropdownLink>
-                      <DropdownLink href="/my-orders" onClick={() => setIsOpen(false)}>
+                      <DropdownLink href="/orders" onClick={() => setIsOpen(false)}>
                         <ShoppingBag className="mr-2 h-4 w-4" />
                         My Orders
                       </DropdownLink>
