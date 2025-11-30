@@ -71,14 +71,14 @@ serve(async (req) => {
     );
   }
 
-  console.log("Webhook event type:", event.type);
+  console.log("[WEBHOOK] Received event type:", event.type);
 
   try {
     if (event.type === "payment_intent.succeeded") {
       const paymentIntent = event.data.object;
       const orderId = paymentIntent.metadata.order_id;
 
-      console.log("Payment succeeded for order:", orderId);
+      console.log("[WEBHOOK] Payment succeeded for order:", orderId);
 
       // Update order
       await supabaseClient
@@ -151,7 +151,7 @@ serve(async (req) => {
       const stripeFee = Math.round(originalAmount * STRIPE_PERCENTAGE_FEE) + STRIPE_FIXED_FEE_CENTS;
       const refundAmount = charge.amount_refunded; // Amount actually refunded (in cents)
       
-      console.log("Refund details:", {
+      console.log("[WEBHOOK] Refund details:", {
         originalAmount,
         stripeFee,
         refundAmount,
@@ -174,7 +174,7 @@ serve(async (req) => {
           })
           .eq("id", order.id);
         
-        console.log("Order refunded:", {
+        console.log("[WEBHOOK] Order refunded:", {
           orderId: order.id,
           refundAmountDollars: refundAmount / 100
         });
