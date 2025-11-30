@@ -1,18 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Shield, Lock, Mail, MapPin, Bell, UserX } from "lucide-react";
-
 const Privacy = () => {
   return (
-    <AppLayout>
-      <main className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
-          <p className="text-muted-foreground">
-            Last Updated: November 4, 2025
-          </p>
-        </div>
+    <main className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
+        <p className="text-muted-foreground">
+          Last Updated: November 4, 2025
+        </p>
+      </div>
 
         <div className="space-y-6">
           {/* Data Minimization */}
@@ -248,8 +245,7 @@ const Privacy = () => {
           </div>
         </div>
       </main>
-    </AppLayout>
-  );
-};
+    );
+  };
 
 export default Privacy;
