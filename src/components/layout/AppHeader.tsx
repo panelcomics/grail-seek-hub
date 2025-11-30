@@ -238,6 +238,13 @@ export function AppHeader() {
                         <Package className="mr-2 h-4 w-4" />
                         Winners & Orders
                       </DropdownLink>
+                      <DropdownLink href="#" onClick={() => {
+                        setIsOpen(false);
+                        handleSellClick();
+                      }}>
+                        <Tag className="mr-2 h-4 w-4" />
+                        Sell on GrailSeeker
+                      </DropdownLink>
                       {isArtist && (
                         <>
                           <div className="my-1 border-t" />
@@ -250,16 +257,16 @@ export function AppHeader() {
                       {isAdmin && (
                         <>
                           <div className="my-1 border-t" />
-                       <DropdownLink href="/admin/original-art/manage" onClick={() => setIsOpen(false)}>
-                        <Package className="mr-2 h-4 w-4" />
-                        Original Art (Admin)
-                      </DropdownLink>
-                      <DropdownLink href="/admin/invite-artist" onClick={() => setIsOpen(false)}>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Invite Artist
-                      </DropdownLink>
-                    </>
-                  )}
+                          <DropdownLink href="/admin/original-art/manage" onClick={() => setIsOpen(false)}>
+                            <Package className="mr-2 h-4 w-4" />
+                            Original Art (Admin)
+                          </DropdownLink>
+                          <DropdownLink href="/admin/invite-artist" onClick={() => setIsOpen(false)}>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Invite Artist
+                          </DropdownLink>
+                        </>
+                      )}
                       <div className="my-1 border-t" />
                       <button
                         onClick={handleSignOut}
