@@ -64,7 +64,6 @@ export interface Listing {
   updated_at: string;
   user_id: string;
   condition_notes?: string | null;
-  seller_notes?: string | null;
   
   // Derived/added fields
   listing_id: string;
