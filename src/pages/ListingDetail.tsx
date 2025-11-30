@@ -34,7 +34,8 @@ if (!STRIPE_PUBLISHABLE_KEY) {
   console.error('CRITICAL: VITE_STRIPE_PUBLISHABLE_KEY not configured! Checkout will not work.');
 }
 
-const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null);
+// Only create a Stripe instance when we actually have a publishable key
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
 
 function CheckoutForm({ orderId, onSuccess }: { orderId: string; onSuccess: () => void }) {
   const stripe = useStripe();
@@ -298,20 +299,26 @@ export default function ListingDetail() {
 
       console.log("[CHECKOUT] Edge function response:", { data, error });
 
-      if (error) {
-        console.error("[CHECKOUT] Edge function error:", error);
-        throw error;
+      if (error || (data && (data as any).error)) {
+        const edgeErrorMessage =
+          (data && (data as any).error) ||
+          (error && (error as any).message) ||
+          "Payment setup failed. Please try again.";
+        console.error("[CHECKOUT] Edge function error:", edgeErrorMessage, { data, error });
+        throw new Error(edgeErrorMessage);
       }
 
-      if (!data || !data.clientSecret || !data.orderId) {
+      if (!data || !(data as any).clientSecret || !(data as any).orderId) {
         console.error("[CHECKOUT] Invalid response from edge function:", data);
         throw new Error("Invalid payment response. Please try again.");
       }
 
-      console.log("[CHECKOUT] Payment intent created successfully:", { orderId: data.orderId });
+      const { clientSecret: nextClientSecret, orderId: nextOrderId } = data as any;
 
-      setClientSecret(data.clientSecret);
-      setOrderId(data.orderId);
+      console.log("[CHECKOUT] Payment intent created successfully:", { orderId: nextOrderId });
+
+      setClientSecret(nextClientSecret);
+      setOrderId(nextOrderId);
       setCheckoutMode(true);
       setCheckoutError(null);
       
