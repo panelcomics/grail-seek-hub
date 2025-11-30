@@ -28,7 +28,7 @@ export default function Orders() {
     try {
       console.log("[ORDERS] Fetching marketplace orders for user:", user?.id);
       
-      // Fetch purchases
+      // Fetch purchases - sort paid first, then by date
       const { data: purchasesData, error: purchasesError } = await supabase
         .from("orders")
         .select(`
@@ -40,6 +40,7 @@ export default function Orders() {
           )
         `)
         .eq("buyer_id", user?.id)
+        .order("payment_status", { ascending: false }) // paid > requires_payment
         .order("created_at", { ascending: false });
 
       if (purchasesError) {
@@ -52,7 +53,7 @@ export default function Orders() {
         orders: purchasesData
       });
 
-      // Fetch sales
+      // Fetch sales - sort paid first, then by date
       const { data: salesData, error: salesError } = await supabase
         .from("orders")
         .select(`
@@ -64,6 +65,7 @@ export default function Orders() {
           )
         `)
         .eq("seller_id", user?.id)
+        .order("payment_status", { ascending: false }) // paid > requires_payment
         .order("created_at", { ascending: false });
 
       if (salesError) {
@@ -85,7 +87,10 @@ export default function Orders() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (order: any) => {
+    // Use payment_status if available, otherwise fall back to status
+    const displayStatus = order.payment_status || order.status;
+    
     const variants: Record<string, any> = {
       requires_payment: "secondary",
       paid: "default",
@@ -95,7 +100,11 @@ export default function Orders() {
       cancelled: "destructive",
     };
 
-    return <Badge variant={variants[status] || "secondary"}>{status.replace("_", " ")}</Badge>;
+    return (
+      <Badge variant={variants[displayStatus] || "secondary"}>
+        {displayStatus.replace("_", " ")}
+      </Badge>
+    );
   };
 
   if (loading) {
@@ -119,15 +128,15 @@ export default function Orders() {
             className="cursor-pointer hover:shadow-lg transition-shadow"
             onClick={() => navigate(`/orders/${order.id}`)}
           >
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold">{order.listing?.title || "Unknown Item"}</h3>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold break-words">{order.listing?.title || "Unknown Item"}</h3>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(order.created_at), "MMM d, yyyy")}
                   </p>
                 </div>
-                {getStatusBadge(order.status)}
+                {getStatusBadge(order)}
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-lg font-bold">{formatCents(order.amount_cents)}</span>

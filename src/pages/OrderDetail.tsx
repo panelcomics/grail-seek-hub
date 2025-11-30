@@ -5,8 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Package } from "lucide-react";
+import { Package, User, MapPin, CreditCard, Loader2 } from "lucide-react";
 
 interface OrderDetailRecord {
   id: string;
@@ -18,8 +19,18 @@ interface OrderDetailRecord {
   buyer_id: string;
   seller_id: string;
   shipping_name?: string | null;
+  shipping_address?: any;
+  payment_method?: string | null;
   listing?: {
     title?: string | null;
+  } | null;
+  buyer_profile?: {
+    username?: string | null;
+    display_name?: string | null;
+  } | null;
+  seller_profile?: {
+    username?: string | null;
+    display_name?: string | null;
   } | null;
 }
 
@@ -49,11 +60,12 @@ const OrderDetail = () => {
 
       const { data, error } = await supabase
         .from("orders")
-        .select(
-          `*,
-          listing:listing_id (title)
-        `,
-        )
+        .select(`
+          *,
+          listing:listing_id (title),
+          buyer_profile:buyer_id (username, display_name),
+          seller_profile:seller_id (username, display_name)
+        `)
         .eq("id", id)
         .maybeSingle();
 
@@ -89,17 +101,21 @@ const OrderDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-12 px-4">
-        <p className="text-center text-muted-foreground">Loading order...</p>
-      </div>
+      <main className="container mx-auto py-12 px-4">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </main>
     );
   }
 
   if (!order) {
     return (
-      <div className="container mx-auto py-12 px-4">
-        <p className="text-center text-muted-foreground">Order not found</p>
-      </div>
+      <main className="container mx-auto py-12 px-4">
+        <Card className="max-w-2xl mx-auto text-center p-8">
+          <p className="text-muted-foreground">Order not found</p>
+        </Card>
+      </main>
     );
   }
 
@@ -107,30 +123,40 @@ const OrderDetail = () => {
   const isBuyer = user?.id === order.buyer_id;
   const isSeller = user?.id === order.seller_id;
 
+  const buyerName = order.buyer_profile?.username || order.buyer_profile?.display_name || "Unknown Buyer";
+  const sellerName = order.seller_profile?.username || order.seller_profile?.display_name || "Unknown Seller";
+
   return (
-    <div className="container mx-auto py-8 px-4 max-w-3xl">
+    <main className="container mx-auto py-8 px-4 max-w-3xl">
       <div className="mb-6">
         <Button variant="outline" onClick={() => navigate("/orders")}>
-           Back to Orders
+          ← Back to Orders
         </Button>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <CardTitle>Order #{order.id.slice(0, 8)}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {new Date(order.created_at).toLocaleDateString()}
+              <CardTitle className="text-xl sm:text-2xl break-words">Order #{order.id.slice(0, 8)}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {new Date(order.created_at).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
               </p>
-              {isBuyer && (
-                <Badge variant="outline" className="mt-2">You are the Buyer</Badge>
-              )}
-              {isSeller && (
-                <Badge variant="outline" className="mt-2">You are the Seller</Badge>
-              )}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {isBuyer && (
+                  <Badge variant="outline">You are the Buyer</Badge>
+                )}
+                {isSeller && (
+                  <Badge variant="outline">You are the Seller</Badge>
+                )}
+              </div>
             </div>
             <Badge
+              className="shrink-0"
               variant={
                 status === "paid"
                   ? "default"
@@ -143,62 +169,119 @@ const OrderDetail = () => {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-1">
-                {order.listing?.title || "Marketplace order"}
-              </h3>
-              {order.shipping_name && (
-                <p className="text-sm text-muted-foreground">
-                  Ship to: {order.shipping_name}
-                </p>
-              )}
+        <CardContent className="space-y-6">
+          {/* Item Details */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-semibold">Item</h3>
             </div>
+            <p className="text-lg break-words">
+              {order.listing?.title || "Marketplace order"}
+            </p>
+          </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Order Total</span>
+          <Separator />
+
+          {/* Buyer & Seller Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Buyer</h3>
+              </div>
+              <p className="text-sm break-words">{buyerName}</p>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold text-sm">Seller</h3>
+              </div>
+              <p className="text-sm break-words">{sellerName}</p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Shipping Address */}
+          {order.shipping_address && (
+            <>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-semibold text-sm">Shipping Address</h3>
                 </div>
-                <span className="font-semibold">
+                <div className="text-sm space-y-1">
+                  {order.shipping_name && <p className="font-medium">{order.shipping_name}</p>}
+                  {order.shipping_address.street1 && <p>{order.shipping_address.street1}</p>}
+                  {order.shipping_address.street2 && <p>{order.shipping_address.street2}</p>}
+                  <p>
+                    {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}
+                  </p>
+                  {order.shipping_address.country && <p>{order.shipping_address.country}</p>}
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Payment Info */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-semibold text-sm">Payment</h3>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Order Total</span>
+                <span className="text-lg font-bold">
                   ${(order.amount_cents / 100).toFixed(2)}
                 </span>
               </div>
-
-              {status === "paid" && order.paid_at && (
-                <div className="mt-4 p-3 bg-success/10 rounded-lg border border-success/40">
-                  <p className="text-sm font-semibold text-success">
-                    Payment received on {new Date(order.paid_at).toLocaleDateString()}
-                  </p>
-                  {isSeller && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Payout will be processed after delivery confirmation
-                    </p>
-                  )}
+              {order.payment_method && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Payment Method</span>
+                  <span className="text-sm">{order.payment_method}</span>
                 </div>
               )}
-
-              {status === "requires_payment" && isBuyer && (
-                <div className="mt-4 p-3 bg-warning/10 rounded-lg border border-warning/40">
-                  <p className="text-sm font-semibold text-warning">
-                    Payment not completed. Please complete checkout to confirm this order.
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground">
-                  <strong>Note:</strong> Shipping tracking and detailed fee breakdowns will
-                  be added here as we finalize the marketplace shipping flow.
-                </p>
-              </div>
             </div>
+          </div>
+
+          {/* Payment Status Messages */}
+          {status === "paid" && order.paid_at && (
+            <div className="p-4 bg-success/10 rounded-lg border border-success/40">
+              <p className="text-sm font-semibold text-success">
+                ✓ Payment received on {new Date(order.paid_at).toLocaleDateString()}
+              </p>
+              {isSeller && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Payout will be processed after delivery confirmation
+                </p>
+              )}
+            </div>
+          )}
+
+          {status === "requires_payment" && isBuyer && (
+            <div className="p-4 bg-warning/10 rounded-lg border border-warning/40">
+              <p className="text-sm font-semibold text-warning">
+                ⚠ Payment not completed
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Please complete checkout to confirm this order.
+              </p>
+            </div>
+          )}
+
+          {/* Future Features Note */}
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              <strong>Note:</strong> Shipping tracking and detailed fee breakdowns will
+              be added as we finalize the marketplace shipping flow.
+            </p>
           </div>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 };
 
