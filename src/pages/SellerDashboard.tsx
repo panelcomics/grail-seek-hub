@@ -117,11 +117,51 @@ const SellerDashboard = () => {
         fetchListings(),
         fetchOffers(),
         fetchTrades(),
+        fetchMarketplaceOrders(),
       ]);
     } catch (error) {
       console.error("[SELLER-DASHBOARD] Error loading dashboard:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMarketplaceOrders = async () => {
+    if (!user) return;
+
+    try {
+      console.log("[SELLER-DASHBOARD] Fetching marketplace orders for seller:", user.id);
+
+      // Query orders where this user is the seller and payment is completed
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, amount_cents, status, payment_status")
+        .eq("seller_id", user.id)
+        .or("status.eq.paid,payment_status.eq.paid")
+        .not("status", "eq", "cancelled")
+        .not("status", "eq", "refunded");
+
+      if (error) {
+        console.error("[SELLER-DASHBOARD] Error fetching marketplace orders:", error);
+        return;
+      }
+
+      const orders = data || [];
+      console.log("[SELLER-DASHBOARD] Found orders:", orders.length);
+
+      // Calculate total sales amount
+      const totalSalesCents = orders.reduce((sum, order) => sum + (order.amount_cents || 0), 0);
+      const totalSalesDollars = totalSalesCents / 100;
+
+      console.log("[SELLER-DASHBOARD] Total sales amount:", totalSalesDollars.toFixed(2));
+
+      setStats(prev => ({
+        ...prev,
+        soldCount: orders.length,
+        totalSales: totalSalesDollars,
+      }));
+    } catch (error) {
+      console.error("[SELLER-DASHBOARD] Error in fetchMarketplaceOrders:", error);
     }
   };
 
@@ -144,14 +184,13 @@ const SellerDashboard = () => {
 
       setListings(data || []);
 
-      // Calculate stats
+      // Calculate stats for active listings only
+      // Sold count comes from marketplace orders, not inventory status
       const active = data?.filter(l => l.listing_status === "listed" || l.listing_status === "active").length || 0;
-      const sold = data?.filter(l => l.listing_status === "sold").length || 0;
 
       setStats(prev => ({
         ...prev,
         activeListings: active,
-        soldCount: sold,
       }));
     } catch (error) {
       console.error("[SELLER-DASHBOARD] Error in fetchListings:", error);
@@ -469,8 +508,10 @@ const SellerDashboard = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">N/A</div>
-            <p className="text-xs text-muted-foreground">Coming soon</p>
+            <div className="text-2xl font-bold">
+              {stats.totalSales > 0 ? `$${stats.totalSales.toFixed(2)}` : "$0.00"}
+            </div>
+            <p className="text-xs text-muted-foreground">Marketplace revenue</p>
           </CardContent>
         </Card>
 
