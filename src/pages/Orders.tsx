@@ -26,24 +26,60 @@ export default function Orders() {
 
   const fetchOrders = async () => {
     try {
+      console.log("[ORDERS] Fetching marketplace orders for user:", user?.id);
+      
       // Fetch purchases
-      const { data: purchasesData } = await supabase
+      const { data: purchasesData, error: purchasesError } = await supabase
         .from("orders")
-        .select("*, listings(*)")
+        .select(`
+          *,
+          listing:listing_id (
+            title,
+            image_url,
+            user_id
+          )
+        `)
         .eq("buyer_id", user?.id)
         .order("created_at", { ascending: false });
 
+      if (purchasesError) {
+        console.error("[ORDERS] Error fetching purchases:", purchasesError);
+        throw purchasesError;
+      }
+
+      console.log("[ORDERS] Fetched purchases:", {
+        count: purchasesData?.length || 0,
+        orders: purchasesData
+      });
+
       // Fetch sales
-      const { data: salesData } = await supabase
+      const { data: salesData, error: salesError } = await supabase
         .from("orders")
-        .select("*, listings(*)")
-        .eq("listings.user_id", user?.id)
+        .select(`
+          *,
+          listing:listing_id (
+            title,
+            image_url,
+            user_id
+          )
+        `)
+        .eq("seller_id", user?.id)
         .order("created_at", { ascending: false });
+
+      if (salesError) {
+        console.error("[ORDERS] Error fetching sales:", salesError);
+        throw salesError;
+      }
+
+      console.log("[ORDERS] Fetched sales:", {
+        count: salesData?.length || 0,
+        orders: salesData
+      });
 
       setPurchases(purchasesData || []);
       setSales(salesData || []);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error("[ORDERS] Error fetching orders:", error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +122,7 @@ export default function Orders() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-semibold">{order.listings?.title}</h3>
+                  <h3 className="font-semibold">{order.listing?.title || "Unknown Item"}</h3>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(order.created_at), "MMM d, yyyy")}
                   </p>
@@ -104,26 +140,26 @@ export default function Orders() {
   );
 
   return (
-    <main className="flex-1 container py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="purchases">
-              <TabsList>
-                <TabsTrigger value="purchases">Purchases ({purchases.length})</TabsTrigger>
-                <TabsTrigger value="sales">Sales ({sales.length})</TabsTrigger>
-              </TabsList>
-              <TabsContent value="purchases">
-                <OrdersList orders={purchases} />
-              </TabsContent>
-              <TabsContent value="sales">
-                <OrdersList orders={sales} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+    <main className="container mx-auto px-4 py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Orders</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="purchases">
+            <TabsList>
+              <TabsTrigger value="purchases">Purchases ({purchases.length})</TabsTrigger>
+              <TabsTrigger value="sales">Sales ({sales.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="purchases">
+              <OrdersList orders={purchases} />
+            </TabsContent>
+            <TabsContent value="sales">
+              <OrdersList orders={sales} />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </main>
   );
 }
