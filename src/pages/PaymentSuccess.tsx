@@ -19,7 +19,7 @@ const PaymentSuccess = () => {
       if (!orderId || !paymentIntent) {
         console.error("[PAYMENT-SUCCESS] Missing required params:", { orderId, paymentIntent });
         toast.error("Invalid payment confirmation");
-        navigate("/my-orders");
+        navigate("/orders");
         return;
       }
 
@@ -148,7 +148,7 @@ const PaymentSuccess = () => {
               <Button onClick={() => navigate(`/order/${orderId}`)}>
                 View Order Details
               </Button>
-              <Button variant="outline" onClick={() => navigate("/my-orders")}>
+              <Button variant="outline" onClick={() => navigate("/orders")}>
                 My Orders
               </Button>
             </div>

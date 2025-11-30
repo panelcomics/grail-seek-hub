@@ -112,6 +112,13 @@ serve(async (req) => {
     }
 
     // Create order record
+    console.log("[PAYMENT-INTENT] Creating order:", {
+      listing_id: listingId,
+      buyer_id: user.id,
+      seller_id: listing.user_id,
+      amount_cents
+    });
+
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .insert(orderData)
@@ -119,8 +126,14 @@ serve(async (req) => {
       .single();
 
     if (orderError) {
+      console.error("[PAYMENT-INTENT] Failed to create order:", orderError);
       throw new Error(`Failed to create order: ${orderError.message}`);
     }
+
+    console.log("[PAYMENT-INTENT] Order created successfully:", {
+      orderId: order.id,
+      status: order.status
+    });
 
     // Create payment intent with Connect
     const paymentIntent = await stripe.paymentIntents.create({
