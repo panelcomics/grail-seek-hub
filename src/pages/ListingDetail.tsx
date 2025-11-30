@@ -87,6 +87,7 @@ export default function ListingDetail() {
   const [seller, setSeller] = useState<ListingProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingCheckout, setProcessingCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
@@ -112,9 +113,10 @@ export default function ListingDetail() {
       hasClientSecret: !!clientSecret, 
       hasOrderId: !!orderId,
       loading,
-      processingCheckout
+      processingCheckout,
+      checkoutError,
     });
-  }, [showCheckout, checkoutMode, clientSecret, orderId, loading, processingCheckout]);
+  }, [showCheckout, checkoutMode, clientSecret, orderId, loading, processingCheckout, checkoutError]);
 
   useEffect(() => {
     if (id) {
@@ -227,16 +229,20 @@ export default function ListingDetail() {
 
   const handleBuyNow = async () => {
     console.log("[CHECKOUT-DEBUG] handleBuyNow called! Starting validation...");
+    setCheckoutError(null);
     
     if (!user) {
       console.log("[CHECKOUT-DEBUG] Validation failed: No user");
-      toast.error("Please log in to purchase");
+      const msg = "Please log in to purchase";
+      setCheckoutError(msg);
+      toast.error(msg);
       navigate("/auth");
       return;
     }
     console.log("[CHECKOUT-DEBUG] User validated:", user.id);
 
     if (!shippingName || !shippingAddress.line1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip) {
+      const msg = "Please fill in all shipping information";
       console.log("[CHECKOUT-DEBUG] Validation failed: Missing shipping info", {
         shippingName,
         line1: shippingAddress.line1,
@@ -244,14 +250,17 @@ export default function ListingDetail() {
         state: shippingAddress.state,
         zip: shippingAddress.zip
       });
-      toast.error("Please fill in all shipping information");
+      setCheckoutError(msg);
+      toast.error(msg);
       return;
     }
     console.log("[CHECKOUT-DEBUG] Shipping info validated");
 
     if (shippingMethod === "ship_nationwide" && !selectedRate) {
+      const msg = "Please select a shipping method";
       console.log("[CHECKOUT-DEBUG] Validation failed: No shipping rate selected");
-      toast.error("Please select a shipping method");
+      setCheckoutError(msg);
+      toast.error(msg);
       return;
     }
     console.log("[CHECKOUT-DEBUG] Shipping method validated:", shippingMethod);
@@ -278,7 +287,7 @@ export default function ListingDetail() {
         };
       }
 
-      console.log("[CHECKOUT] Calling marketplace-create-payment-intent...", { listingId: id });
+      console.log("[CHECKOUT] Calling marketplace-create-payment-intent...", { listingId: id, requestBody });
 
       const { data, error } = await supabase.functions.invoke(
         "marketplace-create-payment-intent",
@@ -286,6 +295,8 @@ export default function ListingDetail() {
           body: requestBody,
         }
       );
+
+      console.log("[CHECKOUT] Edge function response:", { data, error });
 
       if (error) {
         console.error("[CHECKOUT] Edge function error:", error);
@@ -302,6 +313,7 @@ export default function ListingDetail() {
       setClientSecret(data.clientSecret);
       setOrderId(data.orderId);
       setCheckoutMode(true);
+      setCheckoutError(null);
       
       // Scroll to payment form
       setTimeout(() => {
@@ -312,6 +324,7 @@ export default function ListingDetail() {
       
       // Show user-friendly error message
       const errorMsg = error.message || error.error || "Unable to process checkout. Please try again.";
+      setCheckoutError(errorMsg);
       toast.error(errorMsg);
       
       // Reset checkout mode so user can try again
@@ -797,6 +810,12 @@ export default function ListingDetail() {
                           );
                         })()}
                       </>
+                    )}
+
+                    {checkoutError && (
+                      <div className="w-full text-sm text-destructive text-center mb-2">
+                        {checkoutError}
+                      </div>
                     )}
 
                     <Button 
