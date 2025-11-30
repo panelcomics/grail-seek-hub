@@ -3,13 +3,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Package, DollarSign, ShoppingBag, MessageSquare, Search, SlidersHorizontal, ArrowRightLeft } from "lucide-react";
+import { Package, DollarSign, ShoppingBag, MessageSquare, Search, SlidersHorizontal, ArrowRightLeft, Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -184,9 +185,12 @@ const SellerDashboard = () => {
 
       setListings(data || []);
 
-      // Calculate stats for active listings only
+      // Calculate stats for active listings only (exclude zero quantity)
       // Sold count comes from marketplace orders, not inventory status
-      const active = data?.filter(l => l.listing_status === "listed" || l.listing_status === "active").length || 0;
+      const active = data?.filter(l => 
+        (l.listing_status === "listed" || l.listing_status === "active") &&
+        (l.listed_price || 0) > 0
+      ).length || 0;
 
       setStats(prev => ({
         ...prev,
@@ -473,13 +477,23 @@ const SellerDashboard = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Seller Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your listings, offers, and trades.</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Seller Dashboard</h1>
+          <p className="text-muted-foreground">Overview of your listings, offers, and trades.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={loadDashboardData}
+          disabled={isLoading}
+        >
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Refresh Dashboard
+        </Button>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Listings</CardTitle>

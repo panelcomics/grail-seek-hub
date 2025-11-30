@@ -80,15 +80,23 @@ serve(async (req) => {
 
       console.log("[WEBHOOK] Payment succeeded for order:", orderId);
 
-      // Update order
-      await supabaseClient
+      // Update order with payment_status as well
+      const { error: orderUpdateError } = await supabaseClient
         .from("orders")
         .update({
           status: "paid",
+          payment_status: "paid",
           paid_at: new Date().toISOString(),
           charge_id: paymentIntent.latest_charge,
         })
         .eq("id", orderId);
+
+      if (orderUpdateError) {
+        console.error("[WEBHOOK] Failed to update order:", orderUpdateError);
+        throw orderUpdateError;
+      }
+
+      console.log("[WEBHOOK] Order updated to paid:", orderId);
 
       // Get order to update listing
       const { data: order } = await supabaseClient
@@ -100,15 +108,21 @@ serve(async (req) => {
       if (order?.listing_id) {
         const listing = order.listings;
 
-        // Update listing quantity and status
-        const newQuantity = listing.quantity - 1;
-        await supabaseClient
+        // Update listing status to sold (marketplace listings are typically quantity=1)
+        console.log("[WEBHOOK] Marking listing as sold:", order.listing_id);
+        
+        const { error: listingUpdateError } = await supabaseClient
           .from("listings")
           .update({
-            quantity: newQuantity,
-            status: newQuantity === 0 ? "sold" : "active",
+            status: "sold",
           })
           .eq("id", order.listing_id);
+
+        if (listingUpdateError) {
+          console.error("[WEBHOOK] Failed to update listing status:", listingUpdateError);
+        } else {
+          console.log("[WEBHOOK] Listing marked as sold:", order.listing_id);
+        }
 
         // Create notifications
         await supabaseClient
