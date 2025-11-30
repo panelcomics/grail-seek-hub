@@ -253,11 +253,11 @@ const ItemCard = ({
 
             {/* Center: Single dealer badge (Premium Dealer or Top Dealer) */}
             {isFeaturedSeller ? (
-              <span className="inline-block text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
+              <span className="inline-block text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
                 Premium Dealer
               </span>
             ) : (isVerifiedSeller && completedSalesCount >= 10) ? (
-              <span className="inline-block text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
+              <span className="inline-block text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
                 Top Dealer
               </span>
             ) : null}
