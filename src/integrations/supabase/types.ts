@@ -1032,9 +1032,15 @@ export type Database = {
           admin_notes: string | null
           bio: string | null
           created_at: string
+          creator_type: string | null
+          email: string | null
+          full_name: string | null
           id: string
           portfolio_links: string[]
+          requested_access: Json | null
           role_requested: Database["public"]["Enums"]["creator_role_type"]
+          sample_files: Json | null
+          social_links: Json | null
           status: Database["public"]["Enums"]["creator_application_status"]
           updated_at: string
           user_id: string
@@ -1043,9 +1049,15 @@ export type Database = {
           admin_notes?: string | null
           bio?: string | null
           created_at?: string
+          creator_type?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
           portfolio_links?: string[]
+          requested_access?: Json | null
           role_requested: Database["public"]["Enums"]["creator_role_type"]
+          sample_files?: Json | null
+          social_links?: Json | null
           status?: Database["public"]["Enums"]["creator_application_status"]
           updated_at?: string
           user_id: string
@@ -1054,9 +1066,15 @@ export type Database = {
           admin_notes?: string | null
           bio?: string | null
           created_at?: string
+          creator_type?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
           portfolio_links?: string[]
+          requested_access?: Json | null
           role_requested?: Database["public"]["Enums"]["creator_role_type"]
+          sample_files?: Json | null
+          social_links?: Json | null
           status?: Database["public"]["Enums"]["creator_application_status"]
           updated_at?: string
           user_id?: string
