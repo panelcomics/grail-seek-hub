@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { ListingCardSkeleton } from "@/components/ui/listing-card-skeleton";
-import { Rocket, TrendingUp, Clock, CheckCircle } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { TrendingUp, Clock, Sparkles } from "lucide-react";
 import { LazyCarousel } from "@/components/LazyCarousel";
+import { CampaignCard } from "@/components/crowdfund/CampaignCard";
+import { HeroSection } from "@/components/crowdfund/HeroSection";
+import { CategoryChips } from "@/components/crowdfund/CategoryChips";
+import { EmptyState } from "@/components/crowdfund/EmptyState";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Campaign {
   id: string;
@@ -21,85 +24,9 @@ interface Campaign {
   creator_id: string;
   profiles?: {
     username: string;
+    avatar_url?: string;
   };
 }
-
-const CampaignCard = ({ campaign }: { campaign: Campaign }) => {
-  const navigate = useNavigate();
-  const percentFunded = Math.min(
-    100,
-    (campaign.current_pledged_cents / campaign.funding_goal_cents) * 100
-  );
-  
-  const daysRemaining = Math.ceil(
-    (new Date(campaign.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
-
-  return (
-    <div
-      onClick={() => navigate(`/crowdfund/campaign/${campaign.slug}`)}
-      className="group cursor-pointer bg-card border rounded-lg overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-    >
-      <div className="aspect-video relative overflow-hidden bg-muted">
-        {campaign.cover_image_url ? (
-          <img
-            src={campaign.cover_image_url}
-            alt={campaign.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Rocket className="w-12 h-12 text-muted-foreground" />
-          </div>
-        )}
-      </div>
-      
-      <div className="p-4 space-y-3">
-        <div className="space-y-1">
-          <h3 className="font-bold text-lg line-clamp-2 group-hover:text-primary transition-colors">
-            {campaign.title}
-          </h3>
-          <p className="text-sm text-muted-foreground line-clamp-1">
-            by {campaign.profiles?.username || 'Anonymous'}
-          </p>
-        </div>
-
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {campaign.short_tagline}
-        </p>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="font-semibold text-primary">
-              ${(campaign.current_pledged_cents / 100).toLocaleString()}
-            </span>
-            <span className="text-muted-foreground">
-              {percentFunded.toFixed(0)}% of ${(campaign.funding_goal_cents / 100).toLocaleString()}
-            </span>
-          </div>
-          
-          <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-primary h-full transition-all duration-500"
-              style={{ width: `${percentFunded}%` }}
-            />
-          </div>
-          
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{campaign.backers_count} backers</span>
-            <span>{daysRemaining > 0 ? `${daysRemaining} days left` : 'Ended'}</span>
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <span className="inline-block px-2 py-1 text-xs rounded-full bg-secondary text-secondary-foreground">
-            {campaign.category}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default function Crowdfund() {
   const navigate = useNavigate();
@@ -108,6 +35,7 @@ export default function Crowdfund() {
   const [endingSoonCampaigns, setEndingSoonCampaigns] = useState<Campaign[]>([]);
   const [recentCampaigns, setRecentCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     loadCampaigns();
@@ -123,7 +51,7 @@ export default function Crowdfund() {
         .select('*')
         .eq('status', 'live')
         .order('current_pledged_cents', { ascending: false })
-        .limit(8);
+        .limit(12);
 
       // Ending soon
       const { data: endingSoonRaw } = await supabase
@@ -131,7 +59,7 @@ export default function Crowdfund() {
         .select('*')
         .eq('status', 'live')
         .order('ends_at', { ascending: true })
-        .limit(8);
+        .limit(12);
 
       // Recently launched
       const { data: recentRaw } = await supabase
@@ -139,7 +67,7 @@ export default function Crowdfund() {
         .select('*')
         .eq('status', 'live')
         .order('created_at', { ascending: false })
-        .limit(8);
+        .limit(12);
 
       // Fetch creator profiles for all campaigns
       const allCreatorIds = [
@@ -150,7 +78,7 @@ export default function Crowdfund() {
 
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, username')
+        .select('user_id, username, avatar_url')
         .in('user_id', [...new Set(allCreatorIds)]);
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
@@ -170,128 +98,136 @@ export default function Crowdfund() {
     }
   };
 
+  const filterByCategory = (campaigns: Campaign[]) => {
+    if (selectedCategory === "all") return campaigns;
+    return campaigns.filter(c => c.category === selectedCategory);
+  };
+
+  const filteredFeatured = filterByCategory(featuredCampaigns);
+  const filteredEndingSoon = filterByCategory(endingSoonCampaigns);
+  const filteredRecent = filterByCategory(recentCampaigns);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20 px-4">
-        <div className="max-w-6xl mx-auto text-center space-y-6">
-          <h1 className="text-4xl md:text-6xl font-bold">
-            Fund Your Next Comic Grail
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Support independent comic creators and bring epic stories to life
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button
-              size="lg"
-              onClick={() => {
-                const element = document.getElementById('campaigns');
-                element?.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              Explore Campaigns
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => {
-                if (!user) {
-                  navigate('/auth');
-                  return;
-                }
-                navigate('/crowdfund/launch');
-              }}
-            >
-              <Rocket className="w-4 h-4 mr-2" />
-              Launch a Project
-            </Button>
-          </div>
-        </div>
-      </section>
+      <HeroSection />
+
+      {/* Category Chips */}
+      <CategoryChips 
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+      />
 
       {/* Campaigns Section */}
-      <section id="campaigns" className="max-w-7xl mx-auto px-4 py-12 space-y-12">
+      <section id="campaigns" className="max-w-7xl mx-auto px-4 py-16 space-y-16">
         {/* Featured Campaigns */}
         <LazyCarousel>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-bold">Featured Campaigns</h2>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-7 h-7 text-primary" />
+                <h2 className="text-3xl font-bold">Featured Campaigns</h2>
+              </div>
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map((i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
                   <ListingCardSkeleton key={i} />
                 ))}
               </div>
-            ) : featuredCampaigns.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuredCampaigns.map((campaign) => (
+            ) : filteredFeatured.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredFeatured.map((campaign) => (
                   <CampaignCard key={campaign.id} campaign={campaign} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                No featured campaigns yet
-              </div>
+              <EmptyState
+                icon="trending"
+                title="No featured campaigns"
+                description={selectedCategory === "all" 
+                  ? "Check back soon for new featured campaigns!"
+                  : `No ${selectedCategory} campaigns featured right now. Try another category!`
+                }
+              />
             )}
           </div>
         </LazyCarousel>
 
         {/* Ending Soon */}
         <LazyCarousel>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-bold">Ending Soon</h2>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Clock className="w-7 h-7 text-primary" />
+                <h2 className="text-3xl font-bold">Ending Soon</h2>
+              </div>
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map((i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
                   <ListingCardSkeleton key={i} />
                 ))}
               </div>
-            ) : endingSoonCampaigns.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {endingSoonCampaigns.map((campaign) => (
+            ) : filteredEndingSoon.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredEndingSoon.map((campaign) => (
                   <CampaignCard key={campaign.id} campaign={campaign} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                No campaigns ending soon
-              </div>
+              <EmptyState
+                icon="trending"
+                title="No campaigns ending soon"
+                description={selectedCategory === "all"
+                  ? "All current campaigns have plenty of time left!"
+                  : `No ${selectedCategory} campaigns ending soon.`
+                }
+              />
             )}
           </div>
         </LazyCarousel>
 
         {/* Recently Launched */}
         <LazyCarousel>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-bold">Recently Launched</h2>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-7 h-7 text-primary" />
+                <h2 className="text-3xl font-bold">Recently Launched</h2>
+              </div>
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map((i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
                   <ListingCardSkeleton key={i} />
                 ))}
               </div>
-            ) : recentCampaigns.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {recentCampaigns.map((campaign) => (
+            ) : filteredRecent.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredRecent.map((campaign) => (
                   <CampaignCard key={campaign.id} campaign={campaign} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                No recent campaigns
-              </div>
+              <EmptyState
+                title="No recent campaigns"
+                description={selectedCategory === "all"
+                  ? "Be the first to launch a project and bring your comic vision to life!"
+                  : `No ${selectedCategory} campaigns launched recently.`
+                }
+                actionLabel={user ? "Launch Your Project" : "Sign Up to Launch"}
+                onAction={() => {
+                  if (!user) {
+                    navigate('/auth');
+                  } else {
+                    navigate('/crowdfund/launch');
+                  }
+                }}
+              />
             )}
           </div>
         </LazyCarousel>
