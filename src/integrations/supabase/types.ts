@@ -536,6 +536,7 @@ export type Database = {
           ends_at: string
           funding_goal_cents: number
           id: string
+          is_demo: boolean
           location: string | null
           risks_markdown: string | null
           short_tagline: string
@@ -559,6 +560,7 @@ export type Database = {
           ends_at: string
           funding_goal_cents: number
           id?: string
+          is_demo?: boolean
           location?: string | null
           risks_markdown?: string | null
           short_tagline: string
@@ -582,6 +584,7 @@ export type Database = {
           ends_at?: string
           funding_goal_cents?: number
           id?: string
+          is_demo?: boolean
           location?: string | null
           risks_markdown?: string | null
           short_tagline?: string

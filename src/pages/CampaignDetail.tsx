@@ -38,6 +38,7 @@ interface Campaign {
   story_markdown: string;
   risks_markdown: string | null;
   created_at: string;
+  is_demo?: boolean;
 }
 
 interface Reward {
@@ -288,6 +289,23 @@ export default function CampaignDetail() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
+
+        {/* Demo Campaign Banner */}
+        {campaign.is_demo && (
+          <div className="mb-6 p-4 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <Badge variant="outline" className="bg-yellow-500 text-yellow-950 border-yellow-600 font-semibold">
+                  DEMO CAMPAIGN
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This is a demo campaign used to showcase GrailSeeker Crowdfunding. 
+                Please use test payments only while we're in Beta.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12">
           {/* Left Column: Media + Story */}
