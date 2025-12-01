@@ -20,15 +20,26 @@ serve(async (req) => {
     // Check if demo campaigns already exist
     const { data: existingDemo, error: checkError } = await supabaseClient
       .from('campaigns')
-      .select('id')
+      .select('id, slug, cover_image_url')
       .eq('is_demo', true)
       .limit(1);
 
     if (checkError) throw checkError;
 
     if (existingDemo && existingDemo.length > 0) {
+      // Update Temple of the Golden Slab campaign with cover image if missing
+      const { error: updateError } = await supabaseClient
+        .from('campaigns')
+        .update({ cover_image_url: '/crowdfund/temple-golden-slab.jpg' })
+        .eq('slug', 'grailseeker-temple-of-the-golden-slab')
+        .eq('is_demo', true);
+
+      if (updateError) {
+        console.error('Error updating Temple cover:', updateError);
+      }
+
       return new Response(
-        JSON.stringify({ message: 'Demo campaigns already seeded', seeded: false }),
+        JSON.stringify({ message: 'Demo campaigns already exist, updated Temple cover image', seeded: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -76,6 +87,7 @@ serve(async (req) => {
       ends_at: thirtyDaysFromNow.toISOString(),
       status: 'live',
       location: 'San Diego, CA',
+      cover_image_url: '/crowdfund/temple-golden-slab.jpg',
       story_markdown: `Join intrepid grail hunter Dr. Evelyn Slab as she races through booby-trapped comic shops and ancient conventions to recover the world's most legendary graded comics before they fall into the wrong hands!
 
 **What You'll Get:**
