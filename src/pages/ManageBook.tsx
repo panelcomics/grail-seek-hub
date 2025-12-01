@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Loader2, ExternalLink } from "lucide-react";
+import { debugLog } from "@/lib/debug";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -171,7 +172,7 @@ export default function ManageBook() {
   const handleSave = async () => {
     if (!user || !item) return;
 
-    console.log("[INVENTORY-SAVE] 🔍 START", {
+    debugLog("[INVENTORY-SAVE] 🔍 START", {
       itemId: item.id,
       itemTitle: formData.title || formData.series,
       for_sale: formData.for_sale,
@@ -221,7 +222,7 @@ export default function ManageBook() {
         // CRITICAL: DO NOT include 'images' field - it's managed separately
       };
 
-      console.log("[INVENTORY-SAVE] 📝 Updating inventory_items ONLY (never touches listings)", {
+      debugLog("[INVENTORY-SAVE] 📝 Updating inventory_items ONLY (never touches listings)", {
         fields: Object.keys(updateData),
         excludes: ['images']
       });
@@ -236,7 +237,7 @@ export default function ManageBook() {
         throw error;
       }
 
-      console.log("[INVENTORY-SAVE] ✅ inventory_items updated successfully");
+      debugLog("[INVENTORY-SAVE] ✅ inventory_items updated successfully");
 
       // Sync price/grade to linked listing if one exists
       const { data: linkedListing } = await supabase
@@ -247,7 +248,7 @@ export default function ManageBook() {
         .maybeSingle();
 
       if (linkedListing) {
-        console.log("[INVENTORY-SAVE] 🔗 Syncing price/grade to linked listing", linkedListing.id);
+        debugLog("[INVENTORY-SAVE] 🔗 Syncing price/grade to linked listing", linkedListing.id);
         const listingUpdates: any = {};
         
         if (formData.listed_price) {
@@ -267,7 +268,7 @@ export default function ManageBook() {
         if (listingError) {
           console.error("[INVENTORY-SAVE] ⚠️ Failed to sync to listing:", listingError);
         } else {
-          console.log("[INVENTORY-SAVE] ✅ Listing price/grade synced");
+          debugLog("[INVENTORY-SAVE] ✅ Listing price/grade synced");
         }
       }
 
@@ -276,7 +277,7 @@ export default function ManageBook() {
       // Refresh item data after save
       await fetchItem();
       await fetchActiveListing(item.id);
-      console.log("[INVENTORY-SAVE] 🔍 COMPLETE");
+      debugLog("[INVENTORY-SAVE] 🔍 COMPLETE");
     } catch (error: any) {
       console.error("[INVENTORY-SAVE] ❌ ERROR:", error);
       const errorMessage = error?.message 

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { debugLog } from "@/lib/debug";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Image as ImageIcon, Info } from "lucide-react";
@@ -269,7 +270,7 @@ export function ScannerListingForm({
       return;
     }
 
-    console.log('[SCANNER-FORM] 📸 Starting inventory save with image URL:', {
+    debugLog('[SCANNER-FORM] 📸 Starting inventory save with image URL:', {
       imageUrl,
       urlLength: imageUrl.length,
       isValidUrl: imageUrl.startsWith('http')
@@ -369,7 +370,7 @@ export function ScannerListingForm({
         throw inventoryError;
       }
 
-      console.log('[SCANNER-FORM] ✅ Inventory saved successfully', {
+      debugLog('[SCANNER-FORM] ✅ Inventory saved successfully', {
         id: inventoryItem.id,
         title: inventoryItem.title,
         imagesPrimary: (inventoryItem.images as any)?.primary,
