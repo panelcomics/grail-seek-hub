@@ -9,6 +9,7 @@ import { fetchListingsBase, fetchHomepageListings } from "@/lib/listingsQuery";
 import { Listing } from "@/types/listing";
 import { HomepageSectionKey } from "@/lib/homepageCache";
 import { homeDebugStart, homeDebugRender } from "@/lib/homeDebug";
+import { debugLog, debugError } from "@/lib/debug";
 
 interface ListingsCarouselProps {
   title: string;
@@ -34,7 +35,7 @@ export function ListingsCarousel({
   useEffect(() => {
     const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
     const effectRequestId = ++requestIdRef.current;
-    console.log(`[HOMEPAGE] ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}, requestId=${effectRequestId}`);
+    debugLog('HOMEPAGE', `ListingsCarousel mount/update: ${filterType}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}, requestId=${effectRequestId}`);
 
     const fetchListings = async () => {
       setStatus('loading');
@@ -58,11 +59,11 @@ export function ListingsCarousel({
         
         const finalLength = Array.isArray(data) ? data.length : 0;
         const currentViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-        console.log('[HOMEPAGE] CAROUSEL raw response', filterType, 'items=', finalLength, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
+        debugLog('HOMEPAGE', 'CAROUSEL raw response', filterType, 'items=', finalLength, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
 
         // Only apply the result if this is the latest in-flight request.
         if (effectRequestId !== requestIdRef.current) {
-          console.log('[HOMEPAGE] CAROUSEL', filterType, 'stale response ignored', `(viewport: ${currentViewport}, requestId=${effectRequestId}, currentRequestId=${requestIdRef.current})`);
+          debugLog('HOMEPAGE', 'CAROUSEL', filterType, 'stale response ignored', `(viewport: ${currentViewport}, requestId=${effectRequestId}, currentRequestId=${requestIdRef.current})`);
           return;
         }
 
@@ -74,7 +75,7 @@ export function ListingsCarousel({
         }
       } catch (err) {
         const errViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-        console.error(`[HOMEPAGE] CAROUSEL ${filterType} error (viewport: ${errViewport}, requestId=${effectRequestId}):`, err);
+        debugError('HOMEPAGE', `CAROUSEL ${filterType} error (viewport: ${errViewport}, requestId=${effectRequestId}):`, err);
         setStatus('error');
       } finally {
         if (effectRequestId === requestIdRef.current) {

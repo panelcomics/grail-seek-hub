@@ -10,6 +10,7 @@ import { getSellerSlug, getListingImageUrl } from "@/lib/sellerUtils";
 import { fetchSellerListings, fetchHomepageSellerListings } from "@/lib/listingsQuery";
 import { HomepageSectionKey } from "@/lib/homepageCache";
 import { homeDebugStart, homeDebugRender } from "@/lib/homeDebug";
+import { debugLog, debugError } from "@/lib/debug";
 
 interface PremiumDealerCarouselProps {
   sellerId?: string; // Preferred: direct seller UUID for fast, reliable queries
@@ -35,7 +36,7 @@ export function PremiumDealerCarousel({
   useEffect(() => {
     const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
     const effectRequestId = ++requestIdRef.current;
-    console.log(`[HOMEPAGE] PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}, requestId=${effectRequestId}`);
+    debugLog('HOMEPAGE', `PremiumDealerCarousel mount/update: sellerId=${sellerId?.substring(0,8)}, useCache=${useCache}, cacheKey=${cacheKey}, viewport=${viewport}, requestId=${effectRequestId}`);
 
     const fetchSellerAndListings = async () => {
       setStatus('loading');
@@ -52,7 +53,7 @@ export function PremiumDealerCarousel({
 
         // If no sellerId, look up by name first
         if (!targetUserId && sellerName) {
-          console.log('[FEATURED_SHOP] Looking up seller by name:', sellerName);
+          debugLog('FEATURED_SHOP', 'Looking up seller by name:', sellerName);
           const { data, error } = await supabase
             .from("public_profiles")
             .select("user_id")
@@ -72,7 +73,7 @@ export function PremiumDealerCarousel({
           }
 
           if (!targetUserId) {
-            console.error('[FEATURED_SHOP] Seller not found by name:', sellerName);
+            debugError('FEATURED_SHOP', 'Seller not found by name:', sellerName);
             setSellerProfile(null);
             if (effectRequestId === requestIdRef.current) {
               setStatus('error');
@@ -83,7 +84,7 @@ export function PremiumDealerCarousel({
         }
 
         if (!targetUserId) {
-          console.error('[FEATURED_SHOP] No valid seller ID');
+          debugError('FEATURED_SHOP', 'No valid seller ID');
           if (effectRequestId === requestIdRef.current) {
             setStatus('error');
             setLoading(false);
@@ -102,31 +103,31 @@ export function PremiumDealerCarousel({
         const extractedProfile = listingsData?.[0]?.profiles;
         if (extractedProfile) {
           setSellerProfile(extractedProfile);
-          console.log('[FEATURED_SHOP] Profile extracted:', extractedProfile.username);
+          debugLog('FEATURED_SHOP', 'Profile extracted:', extractedProfile.username);
         } else {
-          console.warn('[FEATURED_SHOP] No profile data, will show fallback state');
+          debugLog('FEATURED_SHOP', 'No profile data, will show fallback state');
           setSellerProfile(null);
         }
 
         const rawLength = Array.isArray(listingsData) ? listingsData.length : 0;
         const currentViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-        console.log('[FEATURED_SHOP] raw response listings=', rawLength, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
+        debugLog('FEATURED_SHOP', 'raw response listings=', rawLength, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
 
         if (effectRequestId !== requestIdRef.current) {
-          console.log('[FEATURED_SHOP] Stale response ignored', `(viewport: ${currentViewport}, requestId=${effectRequestId}, currentRequestId=${requestIdRef.current})`);
+          debugLog('FEATURED_SHOP', 'Stale response ignored', `(viewport: ${currentViewport}, requestId=${effectRequestId}, currentRequestId=${requestIdRef.current})`);
           return;
         }
 
         setListings(listingsData || []);
         setStatus('success');
-        console.log('[FEATURED_SHOP] Loaded', listingsData?.length || 0, 'listings for seller:', extractedProfile?.username || sellerName, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
+        debugLog('FEATURED_SHOP', 'Loaded', listingsData?.length || 0, 'listings for seller:', extractedProfile?.username || sellerName, `(viewport: ${currentViewport}, requestId=${effectRequestId})`);
         
         if (useCache && cacheKey) {
           homeDebugRender(cacheKey, { count: listingsData?.length || 0 });
         }
       } catch (error) {
         const errViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
-        console.error("[FEATURED_SHOP] Error fetching premium dealer listings (viewport:", errViewport, ", requestId=", effectRequestId, "):", error);
+        debugError("FEATURED_SHOP", "Error fetching premium dealer listings (viewport:", errViewport, ", requestId=", effectRequestId, "):", error);
         if (effectRequestId === requestIdRef.current) {
           setStatus('error');
         }

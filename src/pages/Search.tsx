@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { ListingCardSkeleton } from "@/components/ui/listing-card-skeleton";
+import { debugLog } from "@/lib/debug";
 import {
   Select,
   SelectContent,
@@ -57,6 +59,10 @@ export default function SearchPage() {
   const [recentSearches] = useState<string[]>(["Spider-Man #1", "Hulk #181"]);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const ITEMS_PER_PAGE = 24;
   
   // Filter states
   const [filterGrade, setFilterGrade] = useState("All");
@@ -79,7 +85,11 @@ export default function SearchPage() {
     }
   }, [searchParams]);
 
+  // Remove auto-close on mobile - only close on explicit action
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return; // Skip click-outside on mobile
+    
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -95,7 +105,7 @@ export default function SearchPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (query: string, loadMore = false) => {
     const trimmed = query.trim();
     
     if (!trimmed) {
@@ -111,12 +121,17 @@ export default function SearchPage() {
     const textTerm = textTokens.join(" ");
     const issueTerm = numberTokens[0];
 
-    console.log('[Search] Query:', query, '| Text:', textTerm, '| Issue:', issueTerm);
-
-    setIsSearching(true);
-    setShowDropdown(false);
+    if (!loadMore) {
+      setIsSearching(true);
+      setShowDropdown(false);
+      setOffset(0);
+    } else {
+      setLoadingMore(true);
+    }
 
     try {
+      const currentOffset = loadMore ? offset : 0;
+      
       let queryBuilder = supabase
         .from("inventory_items")
         .select(`
@@ -129,7 +144,7 @@ export default function SearchPage() {
         `)
         .eq("listing_status", "listed")
         .eq("for_sale", true)
-        .limit(50);
+        .range(currentOffset, currentOffset + ITEMS_PER_PAGE - 1);
 
       if (textTerm || issueTerm) {
         const orParts: string[] = [];
@@ -142,28 +157,36 @@ export default function SearchPage() {
         }
         const orFilter = orParts.join(",");
         queryBuilder = queryBuilder.or(orFilter);
-        console.log('[Search] OR filter:', orFilter);
       }
 
       const { data, error } = await queryBuilder;
 
-      if (error) {
-        console.error('[Search] Database error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('[Search] Results:', data?.length || 0, 'items');
-      setResults(data || []);
+      if (loadMore) {
+        setResults(prev => [...prev, ...(data || [])]);
+      } else {
+        setResults(data || []);
+      }
+      
+      setHasMore((data?.length || 0) === ITEMS_PER_PAGE);
+      setOffset(currentOffset + ITEMS_PER_PAGE);
     } catch (error: any) {
-      console.error('[Search] Search failed:', error);
       toast({
         title: "Search failed",
         description: error.message || "Unable to search",
         variant: "destructive",
       });
-      setResults([]);
+      if (!loadMore) setResults([]);
     } finally {
-      setIsSearching(true); // Keep searching state to show results UI
+      setIsSearching(true);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreResults = () => {
+    if (!loadingMore && hasMore) {
+      handleSearch(searchQuery, true);
     }
   };
 
@@ -373,19 +396,20 @@ export default function SearchPage() {
           <div className="max-w-7xl mx-auto px-4 py-2.5">
             {/* Main Control Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <Collapsible open={showFilters} onOpenChange={setShowFilters} className="w-full sm:w-auto">
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 h-8 text-xs w-full sm:w-auto">
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    Filters
-                    {activeFilters.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-                        {activeFilters.length}
-                      </Badge>
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Collapsible open={showFilters} onOpenChange={setShowFilters} className="w-full sm:w-auto">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 h-8 text-xs w-full sm:w-auto">
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
+                      Filters
+                      {activeFilters.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
+                          {activeFilters.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3">
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 p-3 bg-muted/30 rounded-xl border border-border">
                     {/* Grade Filter */}
                     <div className="space-y-1.5">
@@ -484,7 +508,20 @@ export default function SearchPage() {
                     </div>
                   </div>
                 </CollapsibleContent>
-              </Collapsible>
+                </Collapsible>
+                
+                {activeFilters.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearAllFilters}
+                    className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    Clear all
+                  </Button>
+                )}
+              </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Label className="text-xs text-muted-foreground hidden sm:inline whitespace-nowrap">Sort:</Label>
@@ -539,6 +576,15 @@ export default function SearchPage() {
 
       {/* Results or No Results */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Loading more skeletons */}
+        {loadingMore && (
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
+            {[...Array(8)].map((_, i) => (
+              <ListingCardSkeleton key={`skeleton-more-${i}`} />
+            ))}
+          </div>
+        )}
+        
         {/* Empty state: No search yet */}
         {!isSearching && (
           <div className="text-center py-20">
@@ -610,6 +656,19 @@ export default function SearchPage() {
                 />
               ))}
             </div>
+            
+            {hasMore && isSearching && (
+              <div className="flex justify-center mt-8">
+                <Button 
+                  onClick={loadMoreResults} 
+                  disabled={loadingMore}
+                  size="lg"
+                  variant="outline"
+                >
+                  {loadingMore ? "Loading..." : "Load More"}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
