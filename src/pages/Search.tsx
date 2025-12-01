@@ -539,6 +539,49 @@ export default function SearchPage() {
 
       {/* Results or No Results */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Empty state: No search yet */}
+        {!isSearching && (
+          <div className="text-center py-20">
+            <h2 className="text-2xl font-bold mb-3 text-muted-foreground">
+              🔍 Search for Your Grails
+            </h2>
+            <p className="text-base text-muted-foreground">
+              Enter a comic title, issue number, or keyword to start hunting.
+            </p>
+          </div>
+        )}
+
+        {/* Empty state: No results found */}
+        {isSearching && results.length === 0 && (
+          <div className="text-center py-16 px-4">
+            <div className="max-w-md mx-auto">
+              <p className="text-2xl font-bold mb-2">📚 No matches found</p>
+              <p className="text-muted-foreground mb-4">
+                We couldn't find any comics matching "{searchQuery}". Try different keywords or check out what's trending!
+              </p>
+              <Button onClick={() => window.location.href = '/marketplace'} variant="outline">
+                Browse All Comics
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state: Filters too strict */}
+        {isSearching && results.length > 0 && filteredResults.length === 0 && (
+          <div className="text-center py-16 px-4">
+            <div className="max-w-md mx-auto">
+              <p className="text-2xl font-bold mb-2">🔧 Filters too strict</p>
+              <p className="text-muted-foreground mb-4">
+                No results match your current filters. Try removing some filters to see more grails.
+              </p>
+              <Button onClick={() => clearAllFilters()} variant="outline">
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Results grid */}
         {isSearching && filteredResults.length > 0 && (
           <div>
             <p className="text-sm text-muted-foreground mb-4">

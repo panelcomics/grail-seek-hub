@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import ItemCard from "@/components/ItemCard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListingCardSkeleton } from "@/components/ui/listing-card-skeleton";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 import { fetchLocalDeals, checkUserLocation } from "@/lib/localDealsQuery";
@@ -101,7 +101,7 @@ export function LocalDealsCarousel() {
           <div className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
             <div className="flex gap-3 md:gap-4 px-0 min-w-min">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="w-[280px] sm:w-64 h-[420px] flex-shrink-0 snap-center bg-muted animate-pulse rounded-lg" />
+                <ListingCardSkeleton key={i} />
               ))}
             </div>
           </div>
