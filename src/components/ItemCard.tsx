@@ -174,6 +174,8 @@ const ItemCard = ({
           <img
             src={image}
             alt={title}
+            width="400"
+            height="533"
             className="w-full h-full object-contain p-2 sm:p-3 md:p-4 transition-transform duration-500 group-hover:scale-105"
             loading={priority ? "eager" : "lazy"}
             decoding="async"

@@ -80,7 +80,7 @@ export default function Index() {
         {/* 2. Comic Stack Hero */}
         <HeroSection />
         
-        {/* 3. Featured Grails — Buy It Now (immediate load) */}
+        {/* 3. Featured Grails — Buy It Now (lazy load with priority for first 3 images) */}
         <ListingsCarousel 
           title="✨ Featured Grails — Buy It Now" 
           filterType="featured-grails"
