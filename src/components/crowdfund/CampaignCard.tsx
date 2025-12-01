@@ -15,6 +15,7 @@ interface Campaign {
   backers_count: number;
   ends_at: string;
   creator_id: string;
+  is_demo?: boolean;
   profiles?: {
     username: string;
     avatar_url?: string;
@@ -57,7 +58,12 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
         )}
         
         {/* Category Badge Overlay */}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex gap-2">
+          {campaign.is_demo && (
+            <Badge variant="outline" className="shadow-lg backdrop-blur-sm bg-yellow-500/90 text-yellow-950 border-yellow-600 font-semibold">
+              DEMO
+            </Badge>
+          )}
           <Badge variant="secondary" className="shadow-lg backdrop-blur-sm bg-background/80">
             {campaign.category}
           </Badge>

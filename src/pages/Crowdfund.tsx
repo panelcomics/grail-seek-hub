@@ -22,6 +22,7 @@ interface Campaign {
   backers_count: number;
   ends_at: string;
   creator_id: string;
+  is_demo?: boolean;
   profiles?: {
     username: string;
     avatar_url?: string;
@@ -38,8 +39,32 @@ export default function Crowdfund() {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
+    seedDemoCampaignsIfNeeded();
     loadCampaigns();
   }, []);
+
+  const seedDemoCampaignsIfNeeded = async () => {
+    try {
+      // Check if any campaigns exist
+      const { count } = await supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true });
+
+      // Only seed if no campaigns exist
+      if (count === 0) {
+        console.log('[CROWDFUND] No campaigns found, seeding demo campaigns...');
+        const { data, error } = await supabase.functions.invoke('seed-demo-campaigns');
+        
+        if (error) {
+          console.error('[CROWDFUND] Error seeding demo campaigns:', error);
+        } else {
+          console.log('[CROWDFUND] Demo campaigns seeded:', data);
+        }
+      }
+    } catch (error) {
+      console.error('[CROWDFUND] Error checking/seeding campaigns:', error);
+    }
+  };
 
   const loadCampaigns = async () => {
     try {
