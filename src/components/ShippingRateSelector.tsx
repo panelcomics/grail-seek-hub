@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Truck, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { debugLog } from "@/lib/debug";
 
 interface ShippingRate {
   rate_id: string;
@@ -92,7 +93,7 @@ export const ShippingRateSelector = ({
       }
 
       setIsLoading(true);
-      console.log("[SHIPPING] Fetching rates with addresses:", { fromAddress, toAddress, parcel });
+      debugLog("[SHIPPING] Fetching rates with addresses:", { fromAddress, toAddress, parcel });
       
       const { data, error } = await supabase.functions.invoke("get-shipping-rates", {
         body: {

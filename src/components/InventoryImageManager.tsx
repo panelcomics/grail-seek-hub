@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Trash2, Star } from "lucide-react";
+import { debugLog } from "@/lib/debug";
 
 interface ImageData {
   primary: string | null;
@@ -39,7 +40,7 @@ export function InventoryImageManager({
       return;
     }
 
-    console.log("[IMAGE-MANAGER] 📸 Adding images", {
+    debugLog("[IMAGE-MANAGER] 📸 Adding images", {
       currentPrimary: images.primary,
       currentOthersCount: images.others?.length || 0,
       filesToAdd: files.length
@@ -99,7 +100,7 @@ export function InventoryImageManager({
         }
       }
 
-      console.log("[IMAGE-MANAGER] ✅ Uploaded URLs:", uploadedUrls);
+      debugLog("[IMAGE-MANAGER] ✅ Uploaded URLs:", uploadedUrls);
 
       // CRITICAL: Preserve existing primary, append new uploads to others
       const updatedImages: ImageData = {
@@ -110,7 +111,7 @@ export function InventoryImageManager({
         ]
       };
 
-      console.log("[IMAGE-MANAGER] 💾 Saving to DB:", {
+      debugLog("[IMAGE-MANAGER] 💾 Saving to DB:", {
         primary: updatedImages.primary,
         othersCount: updatedImages.others.length
       });
@@ -125,7 +126,7 @@ export function InventoryImageManager({
         throw updateError;
       }
 
-      console.log("[IMAGE-MANAGER] ✅ Images saved successfully");
+      debugLog("[IMAGE-MANAGER] ✅ Images saved successfully");
       await onImagesChange();
       toast.success(`Uploaded ${uploadedUrls.length} image(s)`);
     } catch (error) {

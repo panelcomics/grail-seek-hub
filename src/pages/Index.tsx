@@ -98,17 +98,7 @@ export default function Index() {
           />
         </LazyCarousel>
         
-        {/* 5. Ending Soon — Last Chance to Bid (lazy) */}
-        <LazyCarousel>
-          <ListingsCarousel 
-            title="Ending Soon — Last Chance to Bid" 
-            filterType="ending-soon"
-            useCache
-            cacheKey="ending-soon"
-          />
-        </LazyCarousel>
-        
-        {/* 7. Newly Listed (lazy) */}
+        {/* 5. Newly Listed (lazy) */}
         <LazyCarousel>
           <ListingsCarousel 
             title="Newly Listed" 
@@ -117,6 +107,8 @@ export default function Index() {
             cacheKey="newly-listed"
           />
         </LazyCarousel>
+        
+        {/* Ending Soon carousel removed for beta to reduce load */}
         
         {/* Additional sections - Commented out for now */}
         {/* <PremiumDealerCarousel 
