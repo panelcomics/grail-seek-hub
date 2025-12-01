@@ -17,7 +17,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { type, userId, roleRequested, adminNotes } = await req.json();
+    const { type, userId, fullName, email, creatorType, roleRequested, adminNotes } = await req.json();
 
     // Get user email
     const { data: userData } = await supabaseClient.auth.admin.getUserById(userId);
@@ -45,9 +45,11 @@ serve(async (req) => {
       emailSubject = "New Creator Application Received";
       emailHtml = `
         <h1>New Creator Application</h1>
-        <p><strong>Role Requested:</strong> ${roleRequested}</p>
-        <p><strong>Applicant Email:</strong> ${userEmail}</p>
-        <p><a href="${Deno.env.get("SUPABASE_URL")}/creators/admin">Review Application</a></p>
+        <p><strong>Full Name:</strong> ${fullName || 'Not provided'}</p>
+        <p><strong>Creator Type:</strong> ${creatorType || roleRequested}</p>
+        <p><strong>Email:</strong> ${email || userEmail}</p>
+        <p><strong>User ID:</strong> ${userId}</p>
+        <p><a href="${Deno.env.get("SUPABASE_URL")}/creators/admin">Review Application in Dashboard</a></p>
       `;
 
       // Send to admin email
@@ -71,23 +73,24 @@ serve(async (req) => {
     }
 
     if (type === "approved") {
+      const creatorRole = creatorType || roleRequested || 'creator';
       emailSubject = "🎉 Your GrailSeeker Creator Account Has Been Approved!";
       emailHtml = `
-        <h1>Congratulations!</h1>
+        <h1>Congratulations, ${fullName || 'Creator'}!</h1>
         <p>Your application to become a creator on GrailSeeker has been approved!</p>
-        <p><strong>Approved Role:</strong> ${roleRequested}</p>
+        <p><strong>Approved as:</strong> ${creatorRole.replace('_', ' ')}</p>
         
         <h2>Next Steps:</h2>
         <ul>
-          ${roleRequested === "writer" || roleRequested === "both" ? 
-            "<li>Launch your first crowdfunding campaign</li>" : ""}
-          ${roleRequested === "artist" || roleRequested === "both" ? 
-            "<li>Set up your artist storefront (coming soon)</li>" : ""}
+          <li>Visit your <a href="${Deno.env.get("SUPABASE_URL")}/creators/dashboard">Creator Dashboard</a></li>
+          <li>Complete your seller profile setup</li>
+          <li>Start listing your work or launch crowdfunding campaigns</li>
         </ul>
         
-        <p><a href="${Deno.env.get("SUPABASE_URL")}/creators/dashboard">Go to Creator Dashboard</a></p>
-        
         <p>Welcome to the GrailSeeker creator community!</p>
+        <p>We're excited to see what you create.</p>
+        
+        <p>Best regards,<br>The GrailSeeker Team</p>
       `;
     } else if (type === "rejected") {
       emailSubject = "Update on Your GrailSeeker Creator Application";
