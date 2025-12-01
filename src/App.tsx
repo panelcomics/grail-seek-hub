@@ -71,6 +71,9 @@ import CrowdfundLaunch from "./pages/CrowdfundLaunch";
 import CrowdfundMyProjects from "./pages/CrowdfundMyProjects";
 import CampaignDetail from "./pages/CampaignDetail";
 import CrowdfundMyPledges from "./pages/CrowdfundMyPledges";
+import CreatorApply from "./pages/creators/Apply";
+import CreatorDashboard from "./pages/creators/Dashboard";
+import CreatorAdmin from "./pages/creators/Admin";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -158,6 +161,9 @@ const AppContent = () => {
             <Route path="/crowdfund/my-projects" element={<CrowdfundMyProjects />} />
             <Route path="/crowdfund/my-pledges" element={<CrowdfundMyPledges />} />
             <Route path="/crowdfund/campaign/:slug" element={<CampaignDetail />} />
+            <Route path="/creators/apply" element={<CreatorApply />} />
+            <Route path="/creators/dashboard" element={<CreatorDashboard />} />
+            <Route path="/creators/admin" element={<CreatorAdmin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1027,6 +1027,69 @@ export type Database = {
           },
         ]
       }
+      creator_applications: {
+        Row: {
+          admin_notes: string | null
+          bio: string | null
+          created_at: string
+          id: string
+          portfolio_links: string[]
+          role_requested: Database["public"]["Enums"]["creator_role_type"]
+          status: Database["public"]["Enums"]["creator_application_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          portfolio_links?: string[]
+          role_requested: Database["public"]["Enums"]["creator_role_type"]
+          status?: Database["public"]["Enums"]["creator_application_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          portfolio_links?: string[]
+          role_requested?: Database["public"]["Enums"]["creator_role_type"]
+          status?: Database["public"]["Enums"]["creator_application_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creator_roles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          id: string
+          is_artist: boolean
+          is_writer: boolean
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          is_artist?: boolean
+          is_writer?: boolean
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          is_artist?: boolean
+          is_writer?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_alerts: {
         Row: {
           alert_name: string
@@ -3787,6 +3850,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "artist"
+      creator_application_status: "pending" | "approved" | "rejected"
+      creator_role_type: "artist" | "writer" | "both"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3915,6 +3980,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "artist"],
+      creator_application_status: ["pending", "approved", "rejected"],
+      creator_role_type: ["artist", "writer", "both"],
     },
   },
 } as const
