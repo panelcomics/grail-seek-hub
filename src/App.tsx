@@ -66,6 +66,11 @@ import MyOffersAndTrades from "./pages/MyOffersAndTrades";
 import DevTestCheckout from "./pages/DevTestCheckout";
 import Onboarding from "./pages/Onboarding";
 import SellerSetup from "./pages/SellerSetup";
+import Crowdfund from "./pages/Crowdfund";
+import CrowdfundLaunch from "./pages/CrowdfundLaunch";
+import CrowdfundMyProjects from "./pages/CrowdfundMyProjects";
+import CampaignDetail from "./pages/CampaignDetail";
+import CrowdfundMyPledges from "./pages/CrowdfundMyPledges";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -148,6 +153,11 @@ const AppContent = () => {
             <Route path="/trade/:id" element={<TradeDetail />} />
             <Route path="/trade-offers" element={<TradeOffers />} />
             <Route path="/account/offers" element={<MyOffersAndTrades />} />
+            <Route path="/crowdfund" element={<Crowdfund />} />
+            <Route path="/crowdfund/launch" element={<CrowdfundLaunch />} />
+            <Route path="/crowdfund/my-projects" element={<CrowdfundMyProjects />} />
+            <Route path="/crowdfund/my-pledges" element={<CrowdfundMyPledges />} />
+            <Route path="/crowdfund/campaign/:slug" element={<CampaignDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -268,6 +268,334 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_comments: {
+        Row: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          campaign_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          campaign_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_comments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_notifications: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          data: Json | null
+          id: string
+          is_read: boolean
+          type: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          data?: Json | null
+          id?: string
+          is_read?: boolean
+          type: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          data?: Json | null
+          id?: string
+          is_read?: boolean
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_notifications_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_pledges: {
+        Row: {
+          amount_cents: number
+          backer_id: string
+          campaign_id: string
+          created_at: string
+          currency: string
+          id: string
+          reward_id: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          backer_id: string
+          campaign_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          reward_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          backer_id?: string
+          campaign_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          reward_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_pledges_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_pledges_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_rewards: {
+        Row: {
+          campaign_id: string
+          claimed_quantity: number
+          created_at: string
+          description: string
+          estimated_delivery_date: string | null
+          id: string
+          includes_shipping: boolean
+          is_digital: boolean
+          limit_quantity: number | null
+          pledge_amount_cents: number
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          claimed_quantity?: number
+          created_at?: string
+          description: string
+          estimated_delivery_date?: string | null
+          id?: string
+          includes_shipping?: boolean
+          is_digital?: boolean
+          limit_quantity?: number | null
+          pledge_amount_cents: number
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          claimed_quantity?: number
+          created_at?: string
+          description?: string
+          estimated_delivery_date?: string | null
+          id?: string
+          includes_shipping?: boolean
+          is_digital?: boolean
+          limit_quantity?: number | null
+          pledge_amount_cents?: number
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_rewards_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_stretch_goals: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          description: string
+          id: string
+          is_unlocked: boolean
+          sort_order: number
+          target_amount_cents: number
+          title: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          description: string
+          id?: string
+          is_unlocked?: boolean
+          sort_order?: number
+          target_amount_cents: number
+          title: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_unlocked?: boolean
+          sort_order?: number
+          target_amount_cents?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_stretch_goals_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_updates: {
+        Row: {
+          author_id: string
+          body_markdown: string
+          campaign_id: string
+          created_at: string
+          id: string
+          is_public: boolean
+          title: string
+        }
+        Insert: {
+          author_id: string
+          body_markdown: string
+          campaign_id: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          title: string
+        }
+        Update: {
+          author_id?: string
+          body_markdown?: string
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_updates_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          backers_count: number
+          category: string
+          cover_image_url: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          current_pledged_cents: number
+          ends_at: string
+          funding_goal_cents: number
+          id: string
+          location: string | null
+          risks_markdown: string | null
+          short_tagline: string
+          slug: string
+          starts_at: string
+          status: string
+          story_markdown: string | null
+          title: string
+          updated_at: string
+          updates_count: number
+          video_url: string | null
+        }
+        Insert: {
+          backers_count?: number
+          category: string
+          cover_image_url?: string | null
+          created_at?: string
+          creator_id: string
+          currency?: string
+          current_pledged_cents?: number
+          ends_at: string
+          funding_goal_cents: number
+          id?: string
+          location?: string | null
+          risks_markdown?: string | null
+          short_tagline: string
+          slug: string
+          starts_at?: string
+          status?: string
+          story_markdown?: string | null
+          title: string
+          updated_at?: string
+          updates_count?: number
+          video_url?: string | null
+        }
+        Update: {
+          backers_count?: number
+          category?: string
+          cover_image_url?: string | null
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          current_pledged_cents?: number
+          ends_at?: string
+          funding_goal_cents?: number
+          id?: string
+          location?: string | null
+          risks_markdown?: string | null
+          short_tagline?: string
+          slug?: string
+          starts_at?: string
+          status?: string
+          story_markdown?: string | null
+          title?: string
+          updated_at?: string
+          updates_count?: number
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       claim_sale_items: {
         Row: {
           authenticity_flagged: boolean | null

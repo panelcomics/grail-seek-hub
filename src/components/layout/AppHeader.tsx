@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -151,6 +151,12 @@ export function AppHeader() {
             </Link>
           </Button>
 
+          <Button variant="ghost" size="icon" asChild aria-label="Crowdfund" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+            <Link to="/crowdfund">
+              <Rocket className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+            </Link>
+          </Button>
+
           <Button variant="ghost" size="icon" asChild aria-label="Search" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
             <Link to="/search">
               <Search className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
@@ -217,6 +223,10 @@ export function AppHeader() {
                       <DropdownLink href="/orders" onClick={() => setIsOpen(false)}>
                         <ShoppingBag className="mr-2 h-4 w-4" />
                         My Orders
+                      </DropdownLink>
+                      <DropdownLink href="/crowdfund/my-projects" onClick={() => setIsOpen(false)}>
+                        <Rocket className="mr-2 h-4 w-4" />
+                        My Campaigns
                       </DropdownLink>
                       <DropdownLink href="/account/offers" onClick={() => setIsOpen(false)}>
                         <HandshakeIcon className="mr-2 h-4 w-4" />
