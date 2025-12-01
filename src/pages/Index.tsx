@@ -103,8 +103,8 @@ export default function Index() {
           cacheKey="ending-soon"
         />
         
-        {/* 6. Local Deals Near You */}
-        <LocalDealsCarousel />
+        {/* 6. Local Deals Near You - Commented out for now */}
+        {/* <LocalDealsCarousel /> */}
         
         {/* 7. Newly Listed */}
         <ListingsCarousel 
@@ -114,31 +114,31 @@ export default function Index() {
           cacheKey="newly-listed"
         />
         
-        {/* Additional sections */}
-        <PremiumDealerCarousel 
+        {/* Additional sections - Commented out for now */}
+        {/* <PremiumDealerCarousel 
           sellerId={FEATURED_SELLERS.KISS_KOMIXX.sellerId}
           sellerName={FEATURED_SELLERS.KISS_KOMIXX.displayName}
           useCache
           cacheKey="featured-shop-kiss-komixx"
-        />
+        /> */}
         
-        <TrustSection />
+        {/* <TrustSection /> */}
         
-        <SocialProof />
+        {/* <SocialProof /> */}
         
-        {/* Everything else */}
-        <SafetySection />
+        {/* Everything else - Commented out for now */}
+        {/* <SafetySection /> */}
         
-        <FeesSection />
+        {/* <FeesSection /> */}
         
-        <CategoryFilter 
+        {/* <CategoryFilter 
           activeCategory={activeCategory} 
           onCategoryChange={setActiveCategory} 
-        />
+        /> */}
 
-        <FeaturedShops />
+        {/* <FeaturedShops /> */}
 
-        <BenefitBlocks />
+        {/* <BenefitBlocks /> */}
       </main>
     </>
   );

@@ -168,7 +168,7 @@ const ItemCard = ({
 
   return (
     <Link to={`/listing/${id}`}>
-      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
         {/* Image container with responsive sizing */}
         <div className="relative overflow-hidden bg-muted flex-shrink-0 w-full h-[240px] sm:h-[280px] md:h-[320px] lg:aspect-[3/4] lg:h-auto flex items-center justify-center">
           <img
@@ -214,8 +214,8 @@ const ItemCard = ({
         
         {/* Card content */}
         <div className="p-3 flex-1 flex flex-col min-h-0">
-          {/* Main title: Series + Issue Number (bold) */}
-          <h3 className="font-bold text-sm leading-tight line-clamp-1 text-foreground mb-1">
+          {/* Main title: Series + Issue Number (bold, larger) */}
+          <h3 className="font-bold text-lg leading-tight line-clamp-2 text-foreground mb-1">
             {getMainTitle()}
           </h3>
           
@@ -231,11 +231,11 @@ const ItemCard = ({
 
           {/* Bottom row: Price (left), Premium Dealer badge (center), Grade (right) */}
           <div className="flex items-center justify-between gap-2">
-            {/* Left: Price */}
+            {/* Left: Price (focal point) */}
             <div className="flex items-baseline gap-1 flex-shrink-0">
               {price !== null && price !== undefined && price > 0 ? (
                 <>
-                  <span className="text-xl font-bold text-foreground">
+                  <span className="text-2xl font-extrabold text-primary">
                     ${price.toLocaleString()}
                   </span>
                   {isAuction && (
@@ -253,20 +253,20 @@ const ItemCard = ({
 
             {/* Center: Single dealer badge (Premium Dealer or Top Dealer) */}
             {isFeaturedSeller ? (
-              <span className="inline-block text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
+              <Badge className="text-xs font-extrabold px-2.5 py-1 bg-yellow-500 hover:bg-yellow-600 text-foreground border-0">
                 Premium Dealer
-              </span>
+              </Badge>
             ) : (isVerifiedSeller && completedSalesCount >= 10) ? (
-              <span className="inline-block text-xs font-extrabold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0" style={{ backgroundColor: '#F4C542', color: '#111827' }}>
+              <Badge className="text-xs font-extrabold px-2.5 py-1 bg-yellow-500 hover:bg-yellow-600 text-foreground border-0">
                 Top Dealer
-              </span>
+              </Badge>
             ) : null}
 
-            {/* Right: Grade pill */}
+            {/* Right: Grade pill (clear and readable) */}
             {getGradeText() && (
-              <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-foreground whitespace-nowrap flex-shrink-0">
+              <Badge variant="secondary" className="text-xs font-bold px-2.5 py-1">
                 {getGradeText()}
-              </span>
+              </Badge>
             )}
           </div>
 

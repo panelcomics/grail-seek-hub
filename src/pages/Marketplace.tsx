@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Loader2, SlidersHorizontal } from "lucide-react";
 import { MobileFilterBar } from "@/components/MobileFilterBar";
 import ItemCard from "@/components/ItemCard";
+import { ListingCardSkeleton } from "@/components/ui/listing-card-skeleton";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 
@@ -128,14 +129,6 @@ export default function Marketplace() {
     return filtered;
   })();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <>
       <Helmet>
@@ -188,23 +181,21 @@ export default function Marketplace() {
           </div>
         </div>
 
-        {filteredAndSortedListings.length === 0 ? (
+        {loading ? (
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[...Array(8)].map((_, i) => (
+              <ListingCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : filteredAndSortedListings.length === 0 ? (
           <div className="text-center py-16 px-4">
             <div className="max-w-md mx-auto">
-              <h3 className="text-xl font-semibold mb-3">No results found</h3>
-              <p className="text-muted-foreground mb-6">
-                Try expanding your search — or use the AI scanner to list or identify a comic.
+              <p className="text-2xl font-bold mb-2">🔍 Nothing here yet!</p>
+              <p className="text-muted-foreground mb-4">
+                We couldn't find any grails matching your search. Try adjusting your filters or broadening your criteria.
               </p>
-              <Button 
-                size="lg"
-                onClick={() => navigate("/scanner")}
-                className="gap-2"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Open AI Scanner
+              <Button onClick={() => window.location.reload()} variant="outline">
+                Reset Filters & Browse All
               </Button>
             </div>
           </div>

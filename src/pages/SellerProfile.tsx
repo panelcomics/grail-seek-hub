@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+  BreadcrumbPage,
+} from "@/components/ui/breadcrumb";
 import { useAuth } from "@/contexts/AuthContext";
 import ItemCard from "@/components/ItemCard";
 import { resolvePrice } from "@/lib/listingPriceUtils";
@@ -247,11 +255,38 @@ export default function SellerProfile() {
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="profile" />
         <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={`${sellerName}'s Shop`} />
+        <meta name="twitter:description" content={description} />
+        {sellerImageUrl && <meta name="twitter:image" content={sellerImageUrl} />}
         <link rel="canonical" href={canonicalUrl} />
         <script type="application/ld+json">
           {JSON.stringify(structuredData)}
         </script>
       </Helmet>
+
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          {/* Breadcrumbs */}
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/">Home</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/sellers">Top Dealers</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{profile?.username}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
 
       {/* Banner */}
       <div className="h-48 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 relative">
@@ -526,6 +561,7 @@ export default function SellerProfile() {
             </div>
           </div>
         </Tabs>
+      </div>
       </div>
     </AppLayout>
   );
