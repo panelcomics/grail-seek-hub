@@ -74,6 +74,8 @@ import CrowdfundMyPledges from "./pages/CrowdfundMyPledges";
 import CreatorApply from "./pages/creators/Apply";
 import CreatorDashboard from "./pages/creators/Dashboard";
 import CreatorAdmin from "./pages/creators/Admin";
+import CreatorProfile from "./pages/creators/CreatorProfile";
+import CreatorDirectory from "./pages/creators/Directory";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -164,6 +166,8 @@ const AppContent = () => {
             <Route path="/creators/apply" element={<CreatorApply />} />
             <Route path="/creators/dashboard" element={<CreatorDashboard />} />
             <Route path="/creators/admin" element={<CreatorAdmin />} />
+            <Route path="/creators/:slug" element={<CreatorProfile />} />
+            <Route path="/creators" element={<CreatorDirectory />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

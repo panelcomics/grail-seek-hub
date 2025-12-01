@@ -1030,56 +1030,124 @@ export type Database = {
       creator_applications: {
         Row: {
           admin_notes: string | null
+          approved_at: string | null
+          avatar_url: string | null
           bio: string | null
           created_at: string
           creator_type: string | null
           email: string | null
           full_name: string | null
           id: string
+          is_profile_public: boolean | null
           portfolio_links: string[]
+          public_slug: string | null
           requested_access: Json | null
+          review_score: number | null
           role_requested: Database["public"]["Enums"]["creator_role_type"]
           sample_files: Json | null
           social_links: Json | null
           status: Database["public"]["Enums"]["creator_application_status"]
+          tier: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           admin_notes?: string | null
+          approved_at?: string | null
+          avatar_url?: string | null
           bio?: string | null
           created_at?: string
           creator_type?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          is_profile_public?: boolean | null
           portfolio_links?: string[]
+          public_slug?: string | null
           requested_access?: Json | null
+          review_score?: number | null
           role_requested: Database["public"]["Enums"]["creator_role_type"]
           sample_files?: Json | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["creator_application_status"]
+          tier?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           admin_notes?: string | null
+          approved_at?: string | null
+          avatar_url?: string | null
           bio?: string | null
           created_at?: string
           creator_type?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          is_profile_public?: boolean | null
           portfolio_links?: string[]
+          public_slug?: string | null
           requested_access?: Json | null
+          review_score?: number | null
           role_requested?: Database["public"]["Enums"]["creator_role_type"]
           sample_files?: Json | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["creator_application_status"]
+          tier?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      creator_public_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          creator_application_id: string | null
+          display_name: string
+          featured_links: Json | null
+          id: string
+          is_visible: boolean | null
+          public_slug: string
+          short_bio: string | null
+          social_links: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          creator_application_id?: string | null
+          display_name: string
+          featured_links?: Json | null
+          id?: string
+          is_visible?: boolean | null
+          public_slug: string
+          short_bio?: string | null
+          social_links?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          creator_application_id?: string | null
+          display_name?: string
+          featured_links?: Json | null
+          id?: string
+          is_visible?: boolean | null
+          public_slug?: string
+          short_bio?: string | null
+          social_links?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_public_profiles_creator_application_id_fkey"
+            columns: ["creator_application_id"]
+            isOneToOne: false
+            referencedRelation: "creator_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       creator_roles: {
         Row: {

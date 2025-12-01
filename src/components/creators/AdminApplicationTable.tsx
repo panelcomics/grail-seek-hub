@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -52,19 +55,33 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
   const { user } = useAuth();
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
+  const [reviewScore, setReviewScore] = useState<number>(0);
+  const [tier, setTier] = useState<string>("");
   const [processing, setProcessing] = useState(false);
+  const [creatingProfile, setCreatingProfile] = useState(false);
 
   const handleApprove = async (app: Application) => {
     if (!user) return;
     
     setProcessing(true);
     try {
+      // Auto-assign tier based on review score
+      let autoTier = tier;
+      if (!autoTier && reviewScore > 0) {
+        if (reviewScore >= 80) autoTier = "gold";
+        else if (reviewScore >= 60) autoTier = "silver";
+        else if (reviewScore >= 40) autoTier = "bronze";
+      }
+
       // Update application status
       const { error: appError } = await supabase
         .from("creator_applications")
         .update({ 
           status: "approved",
-          admin_notes: adminNotes || null
+          admin_notes: adminNotes || null,
+          review_score: reviewScore > 0 ? reviewScore : null,
+          tier: autoTier || null,
+          approved_at: new Date().toISOString()
         })
         .eq("id", app.id);
 
@@ -106,6 +123,8 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
       toast.success("Application approved successfully!");
       setSelectedApp(null);
       setAdminNotes("");
+      setReviewScore(0);
+      setTier("");
       onUpdate();
     } catch (error: any) {
       console.error("Error approving application:", error);
@@ -147,12 +166,78 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
       toast.success("Application rejected");
       setSelectedApp(null);
       setAdminNotes("");
+      setReviewScore(0);
+      setTier("");
       onUpdate();
     } catch (error: any) {
       console.error("Error rejecting application:", error);
       toast.error("Failed to reject application");
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleCreatePublicProfile = async (app: Application) => {
+    setCreatingProfile(true);
+    try {
+      // Generate slug from full_name
+      const slug = (app.full_name || app.profiles?.username || 'creator')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from("creator_public_profiles")
+        .select("id")
+        .eq("creator_application_id", app.id)
+        .maybeSingle();
+
+      const profileData = {
+        creator_application_id: app.id,
+        public_slug: slug,
+        display_name: app.full_name || app.profiles?.username || 'Creator',
+        avatar_url: (app as any).avatar_url || null,
+        short_bio: app.bio || null,
+        social_links: app.social_links || {},
+        featured_links: [],
+        is_visible: true
+      };
+
+      if (existingProfile) {
+        // Update existing profile
+        const { error } = await supabase
+          .from("creator_public_profiles")
+          .update(profileData)
+          .eq("id", existingProfile.id);
+
+        if (error) throw error;
+        toast.success("Public profile updated successfully!");
+      } else {
+        // Create new profile
+        const { error } = await supabase
+          .from("creator_public_profiles")
+          .insert(profileData);
+
+        if (error) throw error;
+        toast.success("Public profile created successfully!");
+      }
+
+      // Update the application to mark it as public
+      await supabase
+        .from("creator_applications")
+        .update({ 
+          is_profile_public: true,
+          public_slug: slug
+        })
+        .eq("id", app.id);
+
+      onUpdate();
+    } catch (error: any) {
+      console.error("Error creating public profile:", error);
+      toast.error("Failed to create public profile");
+    } finally {
+      setCreatingProfile(false);
     }
   };
 
@@ -211,6 +296,8 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
                   onClick={() => {
                     setSelectedApp(app);
                     setAdminNotes(app.admin_notes || "");
+                    setReviewScore((app as any).review_score || 0);
+                    setTier((app as any).tier || "");
                   }}
                 >
                   Review
@@ -323,6 +410,39 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
                 </div>
               )}
 
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="review-score">Review Score (0-100)</Label>
+                  <Input
+                    id="review-score"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={reviewScore}
+                    onChange={(e) => setReviewScore(parseInt(e.target.value) || 0)}
+                    placeholder="Optional"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    80-100: Gold, 60-79: Silver, 40-59: Bronze
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="tier">Creator Tier</Label>
+                  <Select value={tier} onValueChange={setTier}>
+                    <SelectTrigger id="tier">
+                      <SelectValue placeholder="Auto-assign based on score" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None (Auto-assign)</SelectItem>
+                      <SelectItem value="bronze">Bronze</SelectItem>
+                      <SelectItem value="silver">Silver</SelectItem>
+                      <SelectItem value="gold">Gold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div>
                 <h3 className="font-medium mb-2">Admin Notes (optional)</h3>
                 <Textarea
@@ -334,22 +454,43 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
               </div>
 
               {selectedApp.status === "pending" && (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => handleApprove(selectedApp)}
-                    disabled={processing}
-                    className="flex-1"
-                  >
-                    {processing ? "Processing..." : "Approve Application"}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleReject(selectedApp)}
-                    disabled={processing}
-                    className="flex-1"
-                  >
-                    Reject
-                  </Button>
+                <>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleApprove(selectedApp)}
+                      disabled={processing}
+                      className="flex-1"
+                    >
+                      {processing ? "Processing..." : "Approve Application"}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleReject(selectedApp)}
+                      disabled={processing}
+                      className="flex-1"
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {selectedApp.status === "approved" && (
+                <div className="space-y-4 border-t pt-4">
+                  <div>
+                    <h3 className="font-medium mb-2">Public Profile Management</h3>
+                    <Button
+                      onClick={() => handleCreatePublicProfile(selectedApp)}
+                      disabled={creatingProfile}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {creatingProfile ? "Creating..." : "Create / Update Public Profile"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This will make their profile visible at /creators/[slug]
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
