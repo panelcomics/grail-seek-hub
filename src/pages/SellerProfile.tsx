@@ -34,6 +34,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useFollowSeller } from "@/hooks/useFollowSeller";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
+import { ArtistHero } from "@/components/sellers/ArtistHero";
+import { ArtistBio } from "@/components/sellers/ArtistBio";
+import { ArtFilterChips, filterListingsByArtCategory, countListingsByCategory } from "@/components/sellers/ArtFilterChips";
+import { EmptyArtState } from "@/components/sellers/EmptyArtState";
 
 interface SellerProfile {
   user_id: string;
@@ -84,6 +88,7 @@ export default function SellerProfile() {
   const [claimSales, setClaimSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [artCategoryFilter, setArtCategoryFilter] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [gradeFilter, setGradeFilter] = useState("all");
   const [publisherFilter, setPublisherFilter] = useState("all");
@@ -210,13 +215,19 @@ export default function SellerProfile() {
   }
 
 
-  // Filter listings based on tab
-  const filteredListings = listings.filter((listing) => {
+  // Filter listings based on tab AND art category
+  let filteredListings = listings.filter((listing) => {
     if (activeTab === "all") return true;
     if (activeTab === "auctions") return listing.for_auction;
     if (activeTab === "buy-now") return !listing.for_auction;
     return true;
   });
+
+  // Apply art category filter (uses existing subcategory field)
+  filteredListings = filterListingsByArtCategory(filteredListings, artCategoryFilter);
+
+  // Count listings per art category for filter chips
+  const artCategoryCounts = countListingsByCategory(listings);
 
   // Calculate time remaining for auctions
   const getTimeRemaining = (endsAt: string | null) => {
@@ -265,8 +276,8 @@ export default function SellerProfile() {
       </Helmet>
 
       <div className="min-h-screen bg-background">
+        {/* Breadcrumbs */}
         <div className="container mx-auto px-4 py-8">
-          {/* Breadcrumbs */}
           <Breadcrumb className="mb-6">
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -288,110 +299,57 @@ export default function SellerProfile() {
           </Breadcrumb>
         </div>
 
-      {/* Banner */}
-      <div className="h-48 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20 relative">
-        <div className="absolute inset-0 comic-texture opacity-30" />
-      </div>
+        {/* Artist Hero Banner */}
+        <ArtistHero
+          artistName={sellerName}
+          avatarUrl={sellerImageUrl}
+          bio={profile.bio}
+          sellerTier={profile.seller_tier}
+          isVerifiedSeller={profile.is_verified_seller}
+          isFeaturedSeller={profile.is_featured_seller}
+          isVerifiedArtist={profile.verified_artist}
+          completedSalesCount={profile.completed_sales_count || 0}
+          followerCount={followerCount}
+          isFollowing={isFollowing}
+          followLoading={followLoading}
+          onFollowClick={toggleFollow}
+          onMessageClick={() => {
+            if (!user) {
+              toast.error("Please sign in to message sellers");
+              return;
+            }
+            navigate("/messages");
+          }}
+          onShopClick={() => {
+            document.getElementById("listings-section")?.scrollIntoView({ behavior: "smooth" });
+          }}
+        />
 
-      {/* Profile Header */}
-      <div className="container mx-auto px-4 -mt-16 relative z-10">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-              {/* Avatar */}
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden border-4 border-background shadow-lg">
-                {sellerImageUrl ? (
-                  <img
-                    src={sellerImageUrl}
-                    alt={sellerName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-4xl font-bold text-primary">
-                    {sellerName[0]?.toUpperCase() || "S"}
-                  </span>
-                )}
-              </div>
+        {/* Artist Bio Section */}
+        <div className="py-12">
+          <ArtistBio
+            artistName={sellerName}
+            bio={profile.bio}
+            // TODO: Wire these fields when available on profiles table
+            notableCredits={undefined}
+            website={undefined}
+            twitterHandle={undefined}
+            instagramHandle={undefined}
+          />
+        </div>
 
-              {/* Info */}
-              <div className="flex-1">
-                <div className="flex flex-col gap-2 mb-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-3xl font-bold">{sellerName}</h1>
-                    {profile.is_featured_seller && <FeaturedSellerBadge />}
-                    <VerifiedSellerBadge salesCount={profile.completed_sales_count || 0} size="md" />
-                    {profile.seller_tier && <SellerBadge tier={profile.seller_tier} />}
-                    {profile.verified_artist && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Badge variant="secondary" className="gap-1.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border-purple-500/30">
-                              <Palette className="h-3.5 w-3.5" />
-                              Verified Artist
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Verified for original art and creator-authenticated listings.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <SellerStats
-                      rating={4.9}
-                      salesCount={0} // Hidden for privacy - use seller_level instead
-                      favoritesTotal={followerCount}
-                    />
-                    <SellerBadge tier={profile.seller_tier} />
-                  </div>
-                  
-                  {profile.bio && (
-                    <p className="text-muted-foreground mt-2">{profile.bio}</p>
-                  )}
-                </div>
+      {/* Listings Section */}
+      <div id="listings-section" className="container mx-auto px-4 py-12">
+        {/* Art category filter chips */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold mb-6">Original Art & Comics</h2>
+          <ArtFilterChips
+            activeFilter={artCategoryFilter}
+            onFilterChange={setArtCategoryFilter}
+            listingCounts={artCategoryCounts}
+          />
+        </div>
 
-                <div className="flex gap-3">
-                  <Button
-                    onClick={toggleFollow}
-                    variant={isFollowing ? "outline" : "default"}
-                    disabled={followLoading}
-                  >
-                    {followLoading ? (
-                      <>
-                        <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        {isFollowing ? 'Unfollowing...' : 'Following...'}
-                      </>
-                    ) : (
-                      <>
-                        <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
-                        {isFollowing ? `Following (${followerCount})` : `Follow (${followerCount})`}
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      if (!user) {
-                        toast.error("Please sign in to message sellers");
-                        return;
-                      }
-                      navigate("/messages");
-                    }}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Message
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Items Section */}
-      <div className="container mx-auto px-4 py-12">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Filters Sidebar */}
@@ -475,6 +433,11 @@ export default function SellerProfile() {
               </TabsList>
 
               <TabsContent value={activeTab} className="mt-0">
+                {/* Empty state for no listings */}
+                {activeTab !== "claim-sales" && filteredListings.length === 0 && (
+                  <EmptyArtState artistName={sellerName} />
+                )}
+                
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {/* Regular Listings */}
                   {activeTab !== "claim-sales" && filteredListings.map((listing) => {
