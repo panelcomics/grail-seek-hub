@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +43,7 @@ export default function CrowdfundLaunch() {
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -60,6 +61,39 @@ export default function CrowdfundLaunch() {
   if (!user) {
     navigate('/auth');
     return null;
+  }
+
+  // Check if user is approved as writer
+  useEffect(() => {
+    const checkWriterAccess = async () => {
+      try {
+        const { data: creatorRole } = await supabase
+          .from('creator_roles')
+          .select('is_writer')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!creatorRole?.is_writer) {
+          toast.error("You need to be approved as a writer to launch campaigns");
+          navigate('/creators/apply');
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking writer access:", error);
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+    
+    checkWriterAccess();
+  }, [user, navigate]);
+
+  if (checkingAccess) {
+    return (
+      <div className="container max-w-4xl mx-auto py-12">
+        <p className="text-center text-muted-foreground">Verifying access...</p>
+      </div>
+    );
   }
 
   const handleAddReward = () => {

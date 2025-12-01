@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -10,6 +10,8 @@ export function AppHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isArtist, setIsArtist] = useState(false);
+  const [hasCreatorRole, setHasCreatorRole] = useState(false);
+  const [hasCreatorApp, setHasCreatorApp] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const [newDealsCount, setNewDealsCount] = useState(0);
   const navigate = useNavigate();
@@ -66,6 +68,24 @@ export function AppHeader() {
         setIsAdmin(roles.some(r => r.role === 'admin'));
         setIsArtist(roles.some(r => r.role === 'artist'));
       }
+
+      // Check creator roles
+      const { data: creatorRoles } = await supabase
+        .from('creator_roles')
+        .select('is_artist, is_writer')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      setHasCreatorRole(!!(creatorRoles?.is_artist || creatorRoles?.is_writer));
+
+      // Check if user has submitted an application
+      const { data: creatorApp } = await supabase
+        .from('creator_applications')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      setHasCreatorApp(!!creatorApp);
     } catch (error) {
       console.error('Error checking roles:', error);
     }
@@ -228,6 +248,17 @@ export function AppHeader() {
                         <Rocket className="mr-2 h-4 w-4" />
                         My Campaigns
                       </DropdownLink>
+                      {hasCreatorRole ? (
+                        <DropdownLink href="/creators/dashboard" onClick={() => setIsOpen(false)}>
+                          <PenTool className="mr-2 h-4 w-4" />
+                          Creator Dashboard
+                        </DropdownLink>
+                      ) : !hasCreatorApp && (
+                        <DropdownLink href="/creators/apply" onClick={() => setIsOpen(false)}>
+                          <PenTool className="mr-2 h-4 w-4" />
+                          Creator Application
+                        </DropdownLink>
+                      )}
                       <DropdownLink href="/account/offers" onClick={() => setIsOpen(false)}>
                         <HandshakeIcon className="mr-2 h-4 w-4" />
                         My Offers & Trades
@@ -264,9 +295,13 @@ export function AppHeader() {
                           </DropdownLink>
                         </>
                       )}
-                      {isAdmin && (
+                       {isAdmin && (
                         <>
                           <div className="my-1 border-t" />
+                          <DropdownLink href="/creators/admin" onClick={() => setIsOpen(false)}>
+                            <PenTool className="mr-2 h-4 w-4" />
+                            Creator Applications (Admin)
+                          </DropdownLink>
                           <DropdownLink href="/admin/original-art/manage" onClick={() => setIsOpen(false)}>
                             <Package className="mr-2 h-4 w-4" />
                             Original Art (Admin)
