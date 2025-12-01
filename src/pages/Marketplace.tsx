@@ -11,17 +11,22 @@ import ItemCard from "@/components/ItemCard";
 import { ListingCardSkeleton } from "@/components/ui/listing-card-skeleton";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
+import { debugLog } from "@/lib/debug";
 
 export default function Marketplace() {
   const navigate = useNavigate();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "title">("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const ITEMS_PER_PAGE = 24;
 
   useEffect(() => {
-    fetchListings();
+    fetchListings(true);
     logMarketplaceView();
   }, []);
 
@@ -36,9 +41,18 @@ export default function Marketplace() {
     }
   };
 
-  const fetchListings = async () => {
+  const fetchListings = async (reset = false) => {
+    const currentOffset = reset ? 0 : offset;
+    
     try {
-      // Query listings table directly with inventory_items join
+      if (reset) {
+        setLoading(true);
+        setOffset(0);
+      } else {
+        setLoadingMore(true);
+      }
+
+      // Query with join and pagination
       const { data, error } = await supabase
         .from("listings")
         .select(`
@@ -61,40 +75,53 @@ export default function Marketplace() {
             is_for_trade,
             offers_enabled,
             user_id
+          ),
+          profiles!user_id(
+            user_id,
+            username,
+            avatar_url,
+            is_verified_seller,
+            completed_sales_count
           )
         `)
         .eq("status", "active")
-        .order("updated_at", { ascending: false });
+        .order("updated_at", { ascending: false })
+        .range(currentOffset, currentOffset + ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
-
-      // Fetch profiles separately for each unique user_id
-      const userIds = [...new Set((data || []).map(l => l.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, username, avatar_url, is_verified_seller, completed_sales_count")
-        .in("user_id", userIds);
 
       // Transform data to include inventory_items properties at top level
       const transformedData = (data || []).map(listing => {
         const item = listing.inventory_items;
-        const profile = profiles?.find(p => p.user_id === listing.user_id);
         return {
           ...listing,
           ...item,
           listing_id: listing.id,
           price_cents: listing.price_cents,
-          profiles: profile,
           // Keep nested for backwards compatibility
           inventory_items: item,
         };
       });
       
-      setListings(transformedData);
+      if (reset) {
+        setListings(transformedData);
+      } else {
+        setListings(prev => [...prev, ...transformedData]);
+      }
+      
+      setHasMore(transformedData.length === ITEMS_PER_PAGE);
+      setOffset(currentOffset + ITEMS_PER_PAGE);
     } catch (error) {
       console.error("Error fetching listings:", error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchListings(false);
     }
   };
 
@@ -183,7 +210,7 @@ export default function Marketplace() {
 
         {loading ? (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(12)].map((_, i) => (
               <ListingCardSkeleton key={i} />
             ))}
           </div>
@@ -200,39 +227,54 @@ export default function Marketplace() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredAndSortedListings.map((listing) => {
-              const price = resolvePrice(listing);
-              const profile = listing.profiles;
-              
-              return (
-                <ItemCard
-                  key={listing.listing_id}
-                  id={listing.listing_id}
-                  title={listing.title || listing.series || "Untitled"}
-                  price={price === null ? undefined : price}
-                  condition={listing.condition || listing.cgc_grade || "Unknown"}
-                  image={getListingImageUrl(listing.inventory_items || listing)}
-                  category="comic"
-                  isAuction={listing.for_auction}
-                  showMakeOffer={listing.offers_enabled}
-                  showTradeBadge={listing.is_for_trade}
-                  sellerName={profile?.username}
-                  sellerCity={undefined}
-                  isVerifiedSeller={profile?.is_verified_seller}
-                  completedSalesCount={profile?.completed_sales_count || 0}
-                  isSlab={listing.is_slab}
-                  grade={listing.cgc_grade}
-                  gradingCompany={listing.grading_company}
-                  certificationNumber={listing.certification_number}
-                  series={listing.series}
-                  issueNumber={listing.issue_number}
-                  keyInfo={listing.variant_description || listing.details}
-                  showFavorite={true}
-                />
-              );
-            })}
-          </div>
+          <>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredAndSortedListings.map((listing) => {
+                const price = resolvePrice(listing);
+                const profile = listing.profiles;
+                
+                return (
+                  <ItemCard
+                    key={listing.listing_id}
+                    id={listing.listing_id}
+                    title={listing.title || listing.series || "Untitled"}
+                    price={price === null ? undefined : price}
+                    condition={listing.condition || listing.cgc_grade || "Unknown"}
+                    image={getListingImageUrl(listing.inventory_items || listing)}
+                    category="comic"
+                    isAuction={listing.for_auction}
+                    showMakeOffer={listing.offers_enabled}
+                    showTradeBadge={listing.is_for_trade}
+                    sellerName={profile?.username}
+                    sellerCity={undefined}
+                    isVerifiedSeller={profile?.is_verified_seller}
+                    completedSalesCount={profile?.completed_sales_count || 0}
+                    isSlab={listing.is_slab}
+                    grade={listing.cgc_grade}
+                    gradingCompany={listing.grading_company}
+                    certificationNumber={listing.certification_number}
+                    series={listing.series}
+                    issueNumber={listing.issue_number}
+                    keyInfo={listing.variant_description || listing.details}
+                    showFavorite={true}
+                  />
+                );
+              })}
+            </div>
+            
+            {hasMore && !loading && (
+              <div className="flex justify-center mt-8">
+                <Button 
+                  onClick={loadMore} 
+                  disabled={loadingMore}
+                  size="lg"
+                  variant="outline"
+                >
+                  {loadingMore ? "Loading..." : "Load More"}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       
       <MobileFilterBar

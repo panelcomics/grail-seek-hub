@@ -19,6 +19,7 @@ import { useOnboardingCheck } from "@/hooks/useOnboardingCheck";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import FeaturedShops from "@/components/FeaturedShops";
 import { SafetySection } from "@/components/home/SafetySection";
+import { LazyCarousel } from "@/components/LazyCarousel";
 
 export default function Index() {
   useOnboardingCheck(); // Check if user needs onboarding
@@ -79,7 +80,7 @@ export default function Index() {
         {/* 2. Comic Stack Hero */}
         <HeroSection />
         
-        {/* 3. Featured Grails — Buy It Now */}
+        {/* 3. Featured Grails — Buy It Now (immediate load) */}
         <ListingsCarousel 
           title="✨ Featured Grails — Buy It Now" 
           filterType="featured-grails"
@@ -87,32 +88,35 @@ export default function Index() {
           cacheKey="featured-grails"
         />
         
-        {/* 4. Featured Shop: Panel Comics */}
-        <PremiumDealerCarousel 
-          sellerId={FEATURED_SELLERS.PANEL_COMICS.sellerId}
-          sellerName={FEATURED_SELLERS.PANEL_COMICS.displayName}
-          useCache
-          cacheKey="featured-shop-panel-comics"
-        />
+        {/* 4. Featured Shop: Panel Comics (lazy) */}
+        <LazyCarousel>
+          <PremiumDealerCarousel 
+            sellerId={FEATURED_SELLERS.PANEL_COMICS.sellerId}
+            sellerName={FEATURED_SELLERS.PANEL_COMICS.displayName}
+            useCache
+            cacheKey="featured-shop-panel-comics"
+          />
+        </LazyCarousel>
         
-        {/* 5. Ending Soon — Last Chance to Bid */}
-        <ListingsCarousel 
-          title="Ending Soon — Last Chance to Bid" 
-          filterType="ending-soon"
-          useCache
-          cacheKey="ending-soon"
-        />
+        {/* 5. Ending Soon — Last Chance to Bid (lazy) */}
+        <LazyCarousel>
+          <ListingsCarousel 
+            title="Ending Soon — Last Chance to Bid" 
+            filterType="ending-soon"
+            useCache
+            cacheKey="ending-soon"
+          />
+        </LazyCarousel>
         
-        {/* 6. Local Deals Near You - Commented out for now */}
-        {/* <LocalDealsCarousel /> */}
-        
-        {/* 7. Newly Listed */}
-        <ListingsCarousel 
-          title="Newly Listed" 
-          filterType="newly-listed"
-          useCache
-          cacheKey="newly-listed"
-        />
+        {/* 7. Newly Listed (lazy) */}
+        <LazyCarousel>
+          <ListingsCarousel 
+            title="Newly Listed" 
+            filterType="newly-listed"
+            useCache
+            cacheKey="newly-listed"
+          />
+        </LazyCarousel>
         
         {/* Additional sections - Commented out for now */}
         {/* <PremiumDealerCarousel 

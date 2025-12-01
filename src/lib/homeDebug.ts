@@ -1,12 +1,14 @@
 /**
  * Unified debug logging for homepage carousel lifecycle
- * Enable by setting VITE_HOME_DEBUG=true in .env
+ * Enable by setting VITE_DEBUG=true in .env (production safe)
  */
 
-export function homeDebug(event: string, data?: unknown) {
-  if (import.meta.env.VITE_HOME_DEBUG !== 'true') return;
+const DEBUG = import.meta.env.VITE_DEBUG === 'true';
 
-  const timestamp = new Date().toISOString().split('T')[1].slice(0, -1); // HH:MM:SS.mmm
+export function homeDebug(event: string, data?: unknown) {
+  if (!DEBUG) return;
+
+  const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
   const payload = data !== undefined ? data : '';
   console.log(`[HOME-DEBUG] ${timestamp} — ${event}`, payload);
 }
