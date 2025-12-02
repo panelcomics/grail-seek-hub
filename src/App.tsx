@@ -66,6 +66,8 @@ import MyOffersAndTrades from "./pages/MyOffersAndTrades";
 import DevTestCheckout from "./pages/DevTestCheckout";
 import Onboarding from "./pages/Onboarding";
 import SellerSetup from "./pages/SellerSetup";
+import SellerOnboarding from "./pages/SellerOnboarding";
+import SellerRulesFees from "./pages/SellerRulesFees";
 import Crowdfund from "./pages/Crowdfund";
 import CrowdfundLaunch from "./pages/CrowdfundLaunch";
 import CrowdfundMyProjects from "./pages/CrowdfundMyProjects";
@@ -95,6 +97,8 @@ const AppContent = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/seller-setup" element={<SellerSetup />} />
+            <Route path="/seller-onboarding" element={<SellerOnboarding />} />
+            <Route path="/seller-rules-fees" element={<SellerRulesFees />} />
             <Route path="/search" element={<Search />} />
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/scanner/result" element={<ResultDetail />} />

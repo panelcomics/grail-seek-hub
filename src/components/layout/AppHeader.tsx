@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -285,6 +285,10 @@ export function AppHeader() {
                       }}>
                         <Tag className="mr-2 h-4 w-4" />
                         Sell on GrailSeeker
+                      </DropdownLink>
+                      <DropdownLink href="/seller-onboarding" onClick={() => setIsOpen(false)}>
+                        <ClipboardCheck className="mr-2 h-4 w-4" />
+                        Seller Setup Guide
                       </DropdownLink>
                       {isArtist && (
                         <>
