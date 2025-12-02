@@ -2781,6 +2781,30 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_searches: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          query: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          query: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          query?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       scan_cache: {
         Row: {
           comicvine_results: Json | null
@@ -3174,6 +3198,38 @@ export type Database = {
             columns: ["trade_id"]
             isOneToOne: false
             referencedRelation: "trade_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_offer_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          side: string
+          trade_offer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          side: string
+          trade_offer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          side?: string
+          trade_offer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_offer_items_trade_offer_id_fkey"
+            columns: ["trade_offer_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_trade_offers"
             referencedColumns: ["id"]
           },
         ]

@@ -278,12 +278,14 @@ export default function SellerOnboarding() {
         {/* Help Text */}
         <p className="text-center text-sm text-muted-foreground">
           Questions? Check out our{" "}
-          <Link to="/help" className="text-primary underline">
-            Help Center
-          </Link>{" "}
-          or{" "}
-          <Link to="/about" className="text-primary underline">
-            contact us
+          <Link to="/help/selling" className="text-primary underline">
+            Selling Guide
+          </Link>,{" "}
+          <Link to="/help/fees" className="text-primary underline">
+            Fees & Pricing
+          </Link>, or{" "}
+          <Link to="/help/trading" className="text-primary underline">
+            Trading Guide
           </Link>
           .
         </p>
