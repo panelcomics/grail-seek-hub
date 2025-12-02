@@ -25,17 +25,16 @@ export function InventoryImageManager({
 }: Props) {
   const [isUploading, setIsUploading] = useState(false);
 
-  const allImages = [
-    ...(images.primary ? [images.primary] : []),
-    ...(images.others || [])
-  ];
+  // Only show "others" images in the grid - primary is shown separately in ManageBook
+  // This prevents the "double icon" issue where primary appears twice
+  const allImages = images.others || [];
+  const totalImageCount = (images.primary ? 1 : 0) + allImages.length;
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files?.length) return;
 
-    const currentCount = allImages.length;
-    if (currentCount >= maxImages) {
+    if (totalImageCount >= maxImages) {
       toast.error(`Maximum ${maxImages} images allowed`);
       return;
     }
@@ -51,7 +50,7 @@ export function InventoryImageManager({
       const MAX_SIZE_MB = 10;
       const allowed = ["image/jpeg", "image/png", "image/webp"];
 
-      const filesToUpload = Array.from(files).slice(0, maxImages - currentCount);
+      const filesToUpload = Array.from(files).slice(0, maxImages - totalImageCount);
       const uploadedUrls: string[] = [];
 
       for (const file of filesToUpload) {
@@ -140,9 +139,11 @@ export function InventoryImageManager({
 
   async function handleSetPrimary(url: string) {
     try {
+      // Move current primary to others, set new primary
+      const allWithPrimary = [images.primary, ...allImages].filter(Boolean) as string[];
       const updatedImages: ImageData = {
         primary: url,
-        others: allImages.filter(img => img !== url)
+        others: allWithPrimary.filter(img => img !== url)
       };
 
       const { error } = await supabase
@@ -164,9 +165,10 @@ export function InventoryImageManager({
     if (!confirm("Delete this image?")) return;
 
     try {
+      // If deleting from others, just remove it
       const updatedImages: ImageData = {
-        primary: images.primary === url ? (images.others?.[0] || null) : images.primary,
-        others: allImages.filter(img => img !== url && img !== (images.primary === url ? images.others?.[0] : images.primary))
+        primary: images.primary,
+        others: allImages.filter(img => img !== url)
       };
 
       const { error } = await supabase
@@ -191,7 +193,7 @@ export function InventoryImageManager({
         accept="image/*"
         multiple
         onChange={handleFileSelect}
-        disabled={isUploading || allImages.length >= maxImages}
+        disabled={isUploading || totalImageCount >= maxImages}
         className="block w-full text-sm text-foreground
           file:mr-4 file:py-2 file:px-4
           file:rounded file:border-0
@@ -201,9 +203,12 @@ export function InventoryImageManager({
           cursor-pointer disabled:opacity-50"
       />
       {isUploading && <p className="text-muted-foreground text-sm">Uploading…</p>}
-      {allImages.length >= maxImages && (
+      {totalImageCount >= maxImages && (
         <p className="text-muted-foreground text-sm">Maximum {maxImages} images reached</p>
       )}
+      <p className="text-xs text-muted-foreground">
+        {totalImageCount} of {maxImages} images ({images.primary ? "1 primary + " : ""}{allImages.length} additional)
+      </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {allImages.map((url, idx) => (
