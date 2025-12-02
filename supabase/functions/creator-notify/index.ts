@@ -60,7 +60,7 @@ serve(async (req) => {
           Authorization: `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: "GrailSeeker <noreply@grailseeker.com>",
+          from: "GrailSeeker Creators <creators@grailseeker.app>",
           to: ["creators@grailseeker.com"],
           subject: emailSubject,
           html: emailHtml,
@@ -110,12 +110,12 @@ serve(async (req) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${resendApiKey}`,
       },
-      body: JSON.stringify({
-        from: "GrailSeeker <noreply@grailseeker.com>",
-        to: [userEmail],
-        subject: emailSubject,
-        html: emailHtml,
-      }),
+        body: JSON.stringify({
+          from: "GrailSeeker Creators <creators@grailseeker.app>",
+          to: [userEmail],
+          subject: emailSubject,
+          html: emailHtml,
+        }),
     });
 
     if (!emailResponse.ok) {
