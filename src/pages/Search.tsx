@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { ScanButton } from "@/components/scanner/ScanButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, Bookmark } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ListingCardSkeleton } from "@/components/ui/listing-card-skeleton";
 import { debugLog } from "@/lib/debug";
+import { SaveSearchButton } from "@/components/SaveSearchButton";
 import {
   Select,
   SelectContent,
@@ -524,6 +525,21 @@ export default function SearchPage() {
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                <SaveSearchButton
+                  query={{
+                    q: searchQuery || undefined,
+                    minPrice: filterPriceMin ? parseFloat(filterPriceMin) : undefined,
+                    maxPrice: filterPriceMax ? parseFloat(filterPriceMax) : undefined,
+                    grade: filterGrade !== "All" ? filterGrade : undefined,
+                    publisher: filterPublisher !== "All" ? filterPublisher : undefined,
+                  }}
+                />
+                <Link to="/saved-searches" className="hidden sm:inline">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs gap-1">
+                    <Bookmark className="h-3.5 w-3.5" />
+                    Saved
+                  </Button>
+                </Link>
                 <Label className="text-xs text-muted-foreground hidden sm:inline whitespace-nowrap">Sort:</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs">

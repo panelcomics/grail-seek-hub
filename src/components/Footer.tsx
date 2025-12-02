@@ -63,6 +63,21 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/help/fees" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Fees & Pricing
+                </Link>
+              </li>
+              <li>
+                <Link to="/help/selling" className="text-muted-foreground hover:text-foreground transition-colors">
+                  How Selling Works
+                </Link>
+              </li>
+              <li>
+                <Link to="/help/trading" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Trading Guide
+                </Link>
+              </li>
+              <li>
                 <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
                   Terms of Service
                 </Link>

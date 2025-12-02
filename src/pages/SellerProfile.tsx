@@ -38,6 +38,7 @@ import { ArtistHero } from "@/components/sellers/ArtistHero";
 import { ArtistBio } from "@/components/sellers/ArtistBio";
 import { ArtFilterChips, filterListingsByArtCategory, countListingsByCategory } from "@/components/sellers/ArtFilterChips";
 import { EmptyArtState } from "@/components/sellers/EmptyArtState";
+import { LeaveReviewModal } from "@/components/LeaveReviewModal";
 
 interface SellerProfile {
   user_id: string;
@@ -94,6 +95,7 @@ export default function SellerProfile() {
   const [publisherFilter, setPublisherFilter] = useState("all");
   const [eraFilter, setEraFilter] = useState("all");
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   
   const { isFollowing, followerCount, loading: followLoading, toggleFollow } = useFollowSeller(profileUserId || undefined);
 
@@ -336,6 +338,20 @@ export default function SellerProfile() {
             twitterHandle={undefined}
             instagramHandle={undefined}
           />
+          
+          {/* Leave Review Button */}
+          {user && user.id !== profile.user_id && (
+            <div className="container mx-auto px-4 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowReviewModal(true)}
+                className="gap-2"
+              >
+                <Star className="h-4 w-4" />
+                Leave a Review
+              </Button>
+            </div>
+          )}
         </div>
 
       {/* Listings Section */}
@@ -526,6 +542,16 @@ export default function SellerProfile() {
         </Tabs>
       </div>
       </div>
+      
+      {/* Leave Review Modal */}
+      {profile && (
+        <LeaveReviewModal
+          open={showReviewModal}
+          onOpenChange={setShowReviewModal}
+          targetUserId={profile.user_id}
+          targetUsername={sellerName}
+        />
+      )}
     </AppLayout>
   );
 }
