@@ -59,6 +59,8 @@ import EbaySearch from "./pages/EbaySearch";
 import TradingPost from "./pages/TradingPost";
 import TradeDetail from "./pages/TradeDetail";
 import TradeOffers from "./pages/TradeOffers";
+import TradeCreate from "./pages/TradeCreate";
+import MyTrades from "./pages/MyTrades";
 import Sell from "./pages/Sell";
 import About from "./pages/About";
 import ManageBook from "./pages/ManageBook";
@@ -158,7 +160,9 @@ const AppContent = () => {
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
             <Route path="/ebay-search" element={<EbaySearch />} />
-            <Route path="/trades" element={<TradingPost />} />
+            <Route path="/trading-post" element={<TradingPost />} />
+            <Route path="/trades" element={<MyTrades />} />
+            <Route path="/trade/create" element={<TradeCreate />} />
             <Route path="/trade/:id" element={<TradeDetail />} />
             <Route path="/trade-offers" element={<TradeOffers />} />
             <Route path="/account/offers" element={<MyOffersAndTrades />} />

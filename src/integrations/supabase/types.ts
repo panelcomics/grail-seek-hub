@@ -1852,6 +1852,42 @@ export type Database = {
           },
         ]
       }
+      inventory_trade_offers: {
+        Row: {
+          created_at: string
+          id: string
+          initiator_user_id: string
+          message: string | null
+          offered_item_id: string
+          requested_item_id: string
+          status: string
+          target_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initiator_user_id: string
+          message?: string | null
+          offered_item_id: string
+          requested_item_id: string
+          status?: string
+          target_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initiator_user_id?: string
+          message?: string | null
+          offered_item_id?: string
+          requested_item_id?: string
+          status?: string
+          target_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listing_images: {
         Row: {
           created_at: string

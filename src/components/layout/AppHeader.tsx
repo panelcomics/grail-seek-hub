@@ -263,6 +263,10 @@ export function AppHeader() {
                         <HandshakeIcon className="mr-2 h-4 w-4" />
                         My Offers & Trades
                       </DropdownLink>
+                      <DropdownLink href="/trades" onClick={() => setIsOpen(false)}>
+                        <Package className="mr-2 h-4 w-4" />
+                        My Item Trades
+                      </DropdownLink>
                       <DropdownLink href="/messages" onClick={() => setIsOpen(false)}>
                         <MessageSquare className="mr-2 h-4 w-4" />
                         Messages
