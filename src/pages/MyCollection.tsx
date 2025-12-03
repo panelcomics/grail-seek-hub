@@ -239,11 +239,11 @@ const MyCollection = () => {
                             {comic.details}
                           </p>
                         )}
-                        {/* Show grading company + grade for slabs, otherwise show condition */}
-                        {comic.is_slab && comic.cgc_grade ? (
+                        {/* Show grading company + grade for slabs (with fallback), otherwise show condition */}
+                        {comic.is_slab && (comic.cgc_grade || comic.grade) ? (
                           <div className="space-y-1">
                             <div className="text-xs sm:text-sm font-bold text-primary truncate">
-                              {comic.grading_company || "CGC"} {comic.cgc_grade}
+                              {comic.grading_company || "CGC"} {comic.cgc_grade || comic.grade}
                             </div>
                             {comic.certification_number && (
                               <div className="text-xs text-muted-foreground truncate">
