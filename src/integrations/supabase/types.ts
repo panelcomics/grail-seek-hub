@@ -2251,6 +2251,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_opt_in: boolean
+          id: string
+          marketing_opt_in: boolean
+          trade_notifications: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_opt_in?: boolean
+          id?: string
+          marketing_opt_in?: boolean
+          trade_notifications?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_opt_in?: boolean
+          id?: string
+          marketing_opt_in?: boolean
+          trade_notifications?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_queue: {
         Row: {
           created_at: string | null
@@ -3580,6 +3607,57 @@ export type Database = {
           title?: string | null
           user_id?: string
           volume_name?: string | null
+        }
+        Relationships: []
+      }
+      user_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json | null
+          read: boolean
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          read?: boolean
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          read?: boolean
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
