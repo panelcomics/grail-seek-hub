@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Loader2, ExternalLink } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { debugLog } from "@/lib/debug";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -300,8 +301,29 @@ export default function ManageBook() {
 
   if (loading || authLoading) {
     return (
-      <main className="flex-1 container py-8 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <main className="flex-1 container py-4 md:py-8">
+        <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
+          <Skeleton className="h-9 w-40" />
+          <div className="flex justify-between items-start">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-9 w-32" />
+          </div>
+          <div className="grid md:grid-cols-[300px_1fr] gap-4 md:gap-6">
+            <div className="space-y-4">
+              <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <div className="grid grid-cols-2 gap-3">
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+              </div>
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
@@ -321,8 +343,8 @@ export default function ManageBook() {
   }
 
   return (
-    <main className="flex-1 container py-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <main className="flex-1 container py-4 md:py-8 px-3 md:px-6">
+      <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
         <Button
           variant="ghost"
           onClick={() => navigate("/my-collection")}

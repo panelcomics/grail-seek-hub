@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -143,26 +144,25 @@ const MyCollection = () => {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="container py-8">
+        <div className="container py-4 md:py-8 px-3 md:px-6">
           <Card>
-            <CardHeader>
-              <CardTitle>My Collection</CardTitle>
+            <CardHeader className="pb-3 md:pb-6">
+              <div className="flex justify-between items-center">
+                <Skeleton className="h-8 w-36" />
+                <Skeleton className="h-10 w-36" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+              <Skeleton className="h-10 w-full mb-6" />
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="rounded-lg border bg-card shadow-sm overflow-hidden">
-                    <div className="pt-4 pb-4 px-4">
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="w-full sm:w-24 h-32 sm:h-36 bg-muted animate-pulse rounded" />
-                        <div className="flex-1 space-y-2">
-                          <div className="h-5 bg-muted animate-pulse rounded w-3/4" />
-                          <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
-                          <div className="h-3 bg-muted animate-pulse rounded w-full" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <Card key={i} className="overflow-hidden">
+                    <CardContent className="p-2 md:p-4">
+                      <Skeleton className="aspect-[2/3] w-full rounded mb-2" />
+                      <Skeleton className="h-4 w-3/4 mb-1" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             </CardContent>
@@ -174,18 +174,20 @@ const MyCollection = () => {
 
   return (
     <ProtectedRoute>
-      <div className="container py-8">
+      <div className="container py-4 md:py-8 px-3 md:px-6">
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>My Collection</CardTitle>
-            <Button onClick={() => navigate("/scanner")}>Scan New Comic</Button>
+        <CardHeader className="pb-3 md:pb-6">
+          <div className="flex justify-between items-center gap-2">
+            <CardTitle className="text-xl md:text-2xl">My Collection</CardTitle>
+            <Button onClick={() => navigate("/scanner")} size="sm" className="md:size-default">
+              Scan New Comic
+            </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="mb-6">
+        <CardContent className="px-3 md:px-6">
+          <div className="mb-4 md:mb-6">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search your collection..."
                 value={search}
@@ -196,67 +198,57 @@ const MyCollection = () => {
           </div>
 
           {filteredComics.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
+            <div className="text-center py-8 md:py-12">
+              <p className="text-muted-foreground text-sm md:text-base">
                 {search
                   ? "No comics found matching your search"
                   : "Your collection is empty. Scan a comic to get started!"}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
               {filteredComics.map((comic) => {
                 return (
                 <Card 
                   key={comic.id} 
-                  className="cursor-pointer hover:shadow-lg transition-shadow bg-white border border-border"
+                  className="cursor-pointer hover:shadow-lg transition-shadow bg-white border border-border overflow-hidden"
                   onClick={() => navigate(`/inventory/${comic.id}`)}
                 >
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex flex-col sm:flex-row gap-3">
+                  <CardContent className="p-2 md:p-4">
+                    <div className="flex flex-col gap-2">
                       {comic.image_url && (
                         <img
                           src={comic.image_url}
                           alt={comic.title}
-                          className="w-full sm:w-24 h-32 sm:h-36 object-contain rounded flex-shrink-0 mx-auto sm:mx-0 transition-transform duration-200"
+                          className="w-full aspect-[2/3] object-contain rounded flex-shrink-0 transition-transform duration-200"
                           style={{
                             transform: getRotationTransform(comic.primary_image_rotation)
                           }}
                         />
                       )}
-                      <div className="flex-1 min-w-0 space-y-2">
-                        <CardTitle className="text-sm sm:text-base line-clamp-2">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <CardTitle className="text-xs md:text-sm line-clamp-2 leading-tight">
                           <span className="font-bold">{comic.title}</span>
                           {comic.issue_number && <span className="font-bold"> #{comic.issue_number}</span>}
                         </CardTitle>
-                        {comic.cover_date && (
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {new Date(comic.cover_date).toLocaleDateString()}
-                          </p>
-                        )}
-                        {comic.details && (
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {comic.details}
-                          </p>
-                        )}
                         {/* Show grading company + grade for slabs (with fallback), otherwise show condition */}
                         {comic.is_slab && (comic.cgc_grade || comic.grade) ? (
-                          <div className="space-y-1">
-                            <div className="text-xs sm:text-sm font-bold text-primary truncate">
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-bold text-primary truncate">
                               {comic.grading_company || "CGC"} {comic.cgc_grade || comic.grade}
                             </div>
                             {comic.certification_number && (
-                              <div className="text-xs text-muted-foreground truncate">
+                              <div className="text-[10px] md:text-xs text-muted-foreground truncate">
                                 Cert #{comic.certification_number}
                               </div>
                             )}
                           </div>
                         ) : comic.condition_notes ? (
-                          <p className="text-xs text-muted-foreground italic line-clamp-1">
+                          <p className="text-[10px] md:text-xs text-muted-foreground italic line-clamp-1">
                             {comic.condition_notes}
                           </p>
                         ) : null}
-                        <div className="flex gap-2 pt-1">
+                        <div className="flex gap-1.5 pt-1">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -266,7 +258,7 @@ const MyCollection = () => {
                               navigate(`/inventory/${comic.id}`);
                             }}
                           >
-                            <Edit2 className="h-4 w-4 text-primary" />
+                            <Edit2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -277,7 +269,7 @@ const MyCollection = () => {
                               setDeleteId(comic.id);
                             }}
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-destructive" />
                           </Button>
                         </div>
                       </div>
