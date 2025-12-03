@@ -7,14 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Bell, Mail, ArrowLeft, Package, Heart } from "lucide-react";
+import { Loader2, Bell, Mail, ArrowLeft, Package, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 interface NotificationPrefs {
   email_opt_in: boolean;
   trade_notifications: boolean;
-  watchlist_notifications: boolean;
+  marketing_opt_in: boolean;
 }
 
 export default function SettingsNotifications() {
@@ -25,7 +25,7 @@ export default function SettingsNotifications() {
   const [prefs, setPrefs] = useState<NotificationPrefs>({
     email_opt_in: true,
     trade_notifications: true,
-    watchlist_notifications: true,
+    marketing_opt_in: true,
   });
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function SettingsNotifications() {
         setPrefs({
           email_opt_in: data.email_opt_in ?? true,
           trade_notifications: data.trade_notifications ?? true,
-          watchlist_notifications: data.watchlist_notifications ?? true,
+          marketing_opt_in: data.marketing_opt_in ?? true,
         });
       }
     } catch (error) {
@@ -75,8 +75,7 @@ export default function SettingsNotifications() {
           user_id: user.id,
           email_opt_in: prefs.email_opt_in,
           trade_notifications: prefs.trade_notifications,
-          watchlist_notifications: prefs.watchlist_notifications,
-          updated_at: new Date().toISOString(),
+          marketing_opt_in: prefs.marketing_opt_in,
         }, {
           onConflict: "user_id",
         });
@@ -178,20 +177,20 @@ export default function SettingsNotifications() {
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Heart className="h-5 w-5 text-muted-foreground" />
+              <Megaphone className="h-5 w-5 text-muted-foreground" />
               <div>
-                <Label htmlFor="watchlist_notifications" className="font-medium">
-                  Watchlist Alerts
+                <Label htmlFor="marketing_opt_in" className="font-medium">
+                  Marketing & Promotions
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Get notified about price changes on watched items
+                  Receive news about sales, promotions, and new features
                 </p>
               </div>
             </div>
             <Switch
-              id="watchlist_notifications"
-              checked={prefs.watchlist_notifications}
-              onCheckedChange={(checked) => updatePref("watchlist_notifications", checked)}
+              id="marketing_opt_in"
+              checked={prefs.marketing_opt_in}
+              onCheckedChange={(checked) => updatePref("marketing_opt_in", checked)}
             />
           </div>
 
@@ -212,15 +211,14 @@ export default function SettingsNotifications() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Push Notifications</CardTitle>
+          <CardTitle>Watchlist Alerts</CardTitle>
           <CardDescription>
-            Browser push notifications are coming soon!
+            Coming soon! Get notified about price changes on watched items.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            We're working on adding push notification support so you can get instant alerts 
-            about important updates even when you're not on the site.
+            Watchlist notification preferences will be available in a future update.
           </p>
         </CardContent>
       </Card>
