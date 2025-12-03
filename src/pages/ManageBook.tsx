@@ -939,37 +939,138 @@ export default function ManageBook() {
                       
                       try {
                         setSaving(true);
+                        debugLog("[RELIST] Starting relist flow - saving inventory first");
+                        
+                        // CRITICAL: Save ALL inventory fields first before creating listing
+                        // This ensures slab data, key issue data, images, etc. are persisted
+                        const inventoryUpdate: any = {
+                          title: formData.title,
+                          issue_number: formData.issue_number || null,
+                          series: formData.series || null,
+                          publisher: formData.publisher || null,
+                          year: formData.year ? parseInt(formData.year) : null,
+                          cover_date: formData.cover_date || null,
+                          condition: formData.condition || null,
+                          variant_type: formData.variant_type || null,
+                          variant_details: formData.variant_details || null,
+                          variant_notes: formData.variant_notes || null,
+                          key_issue: formData.is_key,
+                          is_key: formData.is_key,
+                          key_details: formData.is_key ? formData.details : null,
+                          key_type: formData.is_key ? (formData.key_type || null) : null,
+                          writer: formData.writer || null,
+                          artist: formData.artist || null,
+                          cover_artist: formData.cover_artist || null,
+                          // CRITICAL: Save all slab fields
+                          is_slab: formData.is_slab,
+                          grading_company: formData.is_slab ? formData.grading_company : null,
+                          cgc_grade: formData.is_slab ? formData.cgc_grade : null,
+                          grade: formData.is_slab ? formData.cgc_grade : null,
+                          certification_number: formData.is_slab ? formData.certification_number : null,
+                          // Pricing
+                          listed_price: formData.listed_price ? parseFloat(formData.listed_price) : null,
+                          shipping_price: formData.shipping_price ? parseFloat(formData.shipping_price) : null,
+                          // Sale/Trade flags
+                          for_sale: formData.for_sale,
+                          for_auction: formData.for_auction,
+                          is_for_trade: formData.is_for_trade,
+                          in_search_of: formData.is_for_trade ? formData.in_search_of?.trim() : null,
+                          trade_notes: formData.is_for_trade ? formData.trade_notes?.trim() : null,
+                          // Private fields
+                          private_notes: formData.private_notes || null,
+                          private_location: formData.private_location || null,
+                          storage_location: formData.private_location || null,
+                          listing_status: "listed",
+                          primary_image_rotation: imageRotation,
+                          updated_at: new Date().toISOString(),
+                        };
+                        
+                        debugLog("[RELIST] Saving inventory with fields:", Object.keys(inventoryUpdate));
+                        
+                        const { error: inventoryError } = await supabase
+                          .from("inventory_items")
+                          .update(inventoryUpdate)
+                          .eq("id", item.id);
+                        
+                        if (inventoryError) {
+                          console.error("[RELIST] Inventory save failed:", inventoryError);
+                          throw inventoryError;
+                        }
+                        
+                        debugLog("[RELIST] Inventory saved, checking for existing sold listing to reactivate");
+                        
+                        // Check if there's an existing sold/inactive listing to reactivate
+                        const { data: existingListing } = await supabase
+                          .from("listings")
+                          .select("id, status")
+                          .eq("inventory_item_id", item.id)
+                          .in("status", ["sold", "inactive", "ended"])
+                          .maybeSingle();
                         
                         const priceInCents = Math.round(parseFloat(formData.listed_price) * 100);
                         const shippingInDollars = formData.shipping_price ? parseFloat(formData.shipping_price) : 0;
+                        const displayTitle = formData.is_slab && formData.cgc_grade
+                          ? `${formData.series || formData.title || "Untitled"}${formData.issue_number ? ` #${formData.issue_number}` : ""} – ${formData.grading_company || "CGC"} ${formData.cgc_grade}`
+                          : formData.title || formData.series;
                         
-                        // Create listing with image from inventory
-                        const { data: newListing, error: listingError } = await supabase
-                          .from("listings")
-                          .insert({
-                            user_id: user!.id,
-                            inventory_item_id: item.id,
-                            type: formData.for_auction ? "auction" : "buy_now",
-                            title: formData.title || formData.series,
-                            issue_number: formData.issue_number || null,
-                            volume_name: formData.series || null,
-                            price_cents: priceInCents,
-                            shipping_price: shippingInDollars,
-                            image_url: item.images?.primary || null,
-                            status: "active",
-                            details: formData.details || null,
-                            condition_notes: formData.condition || null,
-                          })
-                          .select()
-                          .single();
+                        let finalListing;
                         
-                        if (listingError) throw listingError;
+                        if (existingListing) {
+                          debugLog("[RELIST] Reactivating existing listing:", existingListing.id);
+                          // Reactivate existing listing with updated data
+                          const { data: updatedListing, error: updateError } = await supabase
+                            .from("listings")
+                            .update({
+                              status: "active",
+                              type: formData.for_auction ? "auction" : "buy_now",
+                              title: displayTitle,
+                              issue_number: formData.issue_number || null,
+                              volume_name: formData.series || null,
+                              price_cents: priceInCents,
+                              shipping_price: shippingInDollars,
+                              image_url: item.images?.primary || null,
+                              details: formData.details || null,
+                              condition_notes: formData.condition || null,
+                              updated_at: new Date().toISOString(),
+                            })
+                            .eq("id", existingListing.id)
+                            .select()
+                            .single();
+                          
+                          if (updateError) throw updateError;
+                          finalListing = updatedListing;
+                        } else {
+                          debugLog("[RELIST] Creating new listing");
+                          // Create new listing
+                          const { data: newListing, error: listingError } = await supabase
+                            .from("listings")
+                            .insert({
+                              user_id: user!.id,
+                              inventory_item_id: item.id,
+                              type: formData.for_auction ? "auction" : "buy_now",
+                              title: displayTitle,
+                              issue_number: formData.issue_number || null,
+                              volume_name: formData.series || null,
+                              price_cents: priceInCents,
+                              shipping_price: shippingInDollars,
+                              image_url: item.images?.primary || null,
+                              status: "active",
+                              details: formData.details || null,
+                              condition_notes: formData.condition || null,
+                            })
+                            .select()
+                            .single();
+                          
+                          if (listingError) throw listingError;
+                          finalListing = newListing;
+                        }
                         
-                        toast.success("Listing created successfully!");
-                        setActiveListing(newListing);
-                        navigate(`/listing/${newListing.id}`);
+                        debugLog("[RELIST] Success! Listing ID:", finalListing.id);
+                        toast.success(existingListing ? "Item relisted successfully!" : "Listing created successfully!");
+                        setActiveListing(finalListing);
+                        navigate(`/listing/${finalListing.id}`);
                       } catch (error: any) {
-                        console.error("Error creating listing:", error);
+                        console.error("[RELIST] Error:", error);
                         toast.error(error.message || "Failed to create listing");
                       } finally {
                         setSaving(false);

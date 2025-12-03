@@ -32,10 +32,17 @@ export interface InventoryItem {
   issue_number: string | null;
   condition: string | null;
   cgc_grade: string | null;
+  grade?: string | null;  // Fallback column for grade
   grading_company: string | null;
   certification_number: string | null;
   is_slab: boolean | null;
+  is_key?: boolean | null;  // Key issue flag
+  key_issue?: boolean | null;  // Alternate key issue flag
+  key_details?: string | null;  // Key issue description
+  key_type?: string | null;  // Key issue type
   variant_description: string | null;
+  variant_type?: string | null;  // Variant type
+  variant_details?: string | null;  // Variant details
   images: any; // Json from Supabase - can be object, string, array, etc.
   for_sale: boolean | null;
   for_auction: boolean | null;
@@ -48,6 +55,14 @@ export interface InventoryItem {
   sold_off_platform_date?: string | null;
   sold_off_platform_channel?: string | null;
   primary_image_rotation?: number | null;
+  listed_price?: number | null;  // Listing price
+  shipping_price?: number | null;  // Shipping price
+  storage_location?: string | null;  // Storage location
+  private_location?: string | null;  // Private location
+  private_notes?: string | null;  // Private notes
+  writer?: string | null;  // Writer credits
+  artist?: string | null;  // Artist credits
+  cover_artist?: string | null;  // Cover artist
 }
 
 /**
