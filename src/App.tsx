@@ -84,6 +84,9 @@ import SavedSearches from "./pages/SavedSearches";
 import HelpFees from "./pages/help/Fees";
 import HelpSelling from "./pages/help/Selling";
 import HelpTrading from "./pages/help/Trading";
+import HelpReturns from "./pages/help/Returns";
+import HelpBuyerProtection from "./pages/help/BuyerProtection";
+import SettingsNotifications from "./pages/SettingsNotifications";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 
@@ -184,6 +187,9 @@ const AppContent = () => {
             <Route path="/help/fees" element={<HelpFees />} />
             <Route path="/help/selling" element={<HelpSelling />} />
             <Route path="/help/trading" element={<HelpTrading />} />
+            <Route path="/help/returns" element={<HelpReturns />} />
+            <Route path="/help/buyer-protection" element={<HelpBuyerProtection />} />
+            <Route path="/settings/notifications" element={<SettingsNotifications />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
