@@ -105,7 +105,7 @@ export default function ManageBook() {
       // Set rotation from database
       setImageRotation(data.primary_image_rotation || 0);
       
-      // Populate form
+      // Populate form - ensure ALL fields are mapped from database
       setFormData({
         title: data.title || "",
         issue_number: data.issue_number || "",
@@ -114,17 +114,17 @@ export default function ManageBook() {
         year: data.year?.toString() || "",
         cover_date: data.cover_date || "",
         condition: data.condition || "",
-        details: data.key_details || "",  // Display key_details from database in "Key Info / Details" field
+        details: data.key_details || data.details || "",  // Try key_details first, fallback to details
         variant_type: data.variant_type || "",
-        variant_details: data.variant_details || "",
+        variant_details: data.variant_details || data.variant_description || "",  // Fallback to variant_description
         variant_notes: data.variant_notes || "",
-        is_key: data.is_key || false,
+        is_key: data.is_key || data.key_issue || false,  // Support both field names
         key_type: data.key_type || "",
         writer: data.writer || "",
         artist: data.artist || "",
         cover_artist: data.cover_artist || "",
         is_slab: data.is_slab || false,
-        cgc_grade: data.cgc_grade || "",
+        cgc_grade: data.cgc_grade || data.grade || "",  // CRITICAL: Fallback to grade column
         grading_company: data.grading_company || "CGC",
         certification_number: data.certification_number || "",
         listed_price: data.listed_price?.toString() || "",
@@ -135,7 +135,7 @@ export default function ManageBook() {
         in_search_of: data.in_search_of || "",
         trade_notes: data.trade_notes || "",
         private_notes: data.private_notes || "",
-        private_location: data.private_location || "",
+        private_location: data.private_location || data.storage_location || "",  // Fallback to storage_location
       });
       
       await fetchActiveListing(id);
