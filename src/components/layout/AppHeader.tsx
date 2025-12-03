@@ -275,6 +275,10 @@ export function AppHeader() {
                         <BarChart3 className="mr-2 h-4 w-4" />
                         Dashboard
                       </DropdownLink>
+                      <DropdownLink href="/notifications" onClick={() => setIsOpen(false)}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Notifications
+                      </DropdownLink>
                       <DropdownLink href="/settings" onClick={() => setIsOpen(false)}>
                         <Settings className="mr-2 h-4 w-4" />
                         Settings

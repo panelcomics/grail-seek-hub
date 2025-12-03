@@ -78,6 +78,16 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/help/returns" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Returns & Refunds
+                </Link>
+              </li>
+              <li>
+                <Link to="/help/buyer-protection" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Buyer Protection
+                </Link>
+              </li>
+              <li>
                 <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
                   Terms of Service
                 </Link>
