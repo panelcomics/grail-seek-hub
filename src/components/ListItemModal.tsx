@@ -24,6 +24,13 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
   const [customFeeRate, setCustomFeeRate] = useState<number | null>(null);
   const [isFoundingSeller, setIsFoundingSeller] = useState(false);
 
+  // Preload price from inventory item when modal opens
+  useEffect(() => {
+    if (open && inventoryItem?.listed_price) {
+      setPrice(inventoryItem.listed_price.toString());
+    }
+  }, [open, inventoryItem?.listed_price]);
+
   useEffect(() => {
     const fetchSellerFee = async () => {
       if (!user?.id) return;
@@ -60,32 +67,85 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      // First update the inventory item with the new price
+      await supabase
+        .from("inventory_items")
+        .update({
+          listed_price: parseFloat(price),
+          for_sale: true,
+          listing_status: "listed",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", inventoryItem.id);
+
+      // Build display title including grade if slabbed
+      const displayTitle = inventoryItem.is_slab && (inventoryItem.cgc_grade || inventoryItem.grade)
+        ? `${inventoryItem.series || inventoryItem.title || "Untitled"}${inventoryItem.issue_number ? ` #${inventoryItem.issue_number}` : ""} – ${inventoryItem.grading_company || "CGC"} ${inventoryItem.cgc_grade || inventoryItem.grade}`
+        : inventoryItem.title;
+
+      // Check for existing sold/inactive listing to reactivate
+      const { data: existingListing } = await supabase
         .from("listings")
-        .insert({
-          inventory_item_id: inventoryItem.id,
-          user_id: inventoryItem.user_id || inventoryItem.owner_id,
-          type: "buy_now", // Required by listings_type_check constraint
-          price_cents: priceCents,
-          fee_cents,
-          payout_cents,
-          quantity: 1,
-          status: "active",
-          title: inventoryItem.title,
-          issue_number: inventoryItem.issue_number,
-          image_url: inventoryItem.images?.primary || null, // Transfer primary image from inventory
-        } as any);
+        .select("id, status")
+        .eq("inventory_item_id", inventoryItem.id)
+        .in("status", ["sold", "inactive", "ended"])
+        .maybeSingle();
 
+      let listingResult;
+      
+      if (existingListing) {
+        // Reactivate existing listing
+        const { data, error } = await supabase
+          .from("listings")
+          .update({
+            status: "active",
+            price_cents: priceCents,
+            fee_cents,
+            payout_cents,
+            title: displayTitle,
+            image_url: inventoryItem.images?.primary || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingListing.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        listingResult = data;
+      } else {
+        // Create new listing
+        const { data, error } = await supabase
+          .from("listings")
+          .insert({
+            inventory_item_id: inventoryItem.id,
+            user_id: inventoryItem.user_id || inventoryItem.owner_id,
+            type: "buy_now",
+            price_cents: priceCents,
+            fee_cents,
+            payout_cents,
+            quantity: 1,
+            status: "active",
+            title: displayTitle,
+            issue_number: inventoryItem.issue_number,
+            volume_name: inventoryItem.series || null,
+            image_url: inventoryItem.images?.primary || null,
+            condition_notes: inventoryItem.condition || null,
+            shipping_price: inventoryItem.shipping_price || null,
+          } as any)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
+        listingResult = data;
+      }
 
       await supabase.from("event_logs").insert({
         user_id: inventoryItem.user_id || inventoryItem.owner_id,
-        event: "listing_created",
-        meta: { inventory_item_id: inventoryItem.id, price_cents: priceCents },
+        event: existingListing ? "listing_relisted" : "listing_created",
+        meta: { inventory_item_id: inventoryItem.id, listing_id: listingResult?.id, price_cents: priceCents },
       });
 
-      toast.success("Item listed for sale!");
+      toast.success(existingListing ? "Item relisted!" : "Item listed for sale!");
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
@@ -111,6 +171,12 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
             <h3 className="font-semibold">{inventoryItem?.title}</h3>
             {inventoryItem?.issue_number && (
               <p className="text-sm text-muted-foreground">Issue #{inventoryItem.issue_number}</p>
+            )}
+            {inventoryItem?.is_slab && (
+              <p className="text-sm text-primary font-medium mt-1">
+                {inventoryItem.grading_company || "CGC"} {inventoryItem.cgc_grade || inventoryItem.grade}
+                {inventoryItem.certification_number && ` • #${inventoryItem.certification_number}`}
+              </p>
             )}
           </div>
 
