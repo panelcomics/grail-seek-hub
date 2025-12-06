@@ -216,15 +216,15 @@ const ItemCard = ({
 
   return (
     <Link to={`/listing/${id}`}>
-      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
+      <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-card border rounded-lg shadow-sm sm:shadow-none h-full flex flex-col">
         {/* Image container with responsive sizing */}
-        <div className="relative overflow-hidden bg-muted flex-shrink-0 w-full h-[240px] sm:h-[280px] md:h-[320px] lg:aspect-[3/4] lg:h-auto flex items-center justify-center">
+        <div className="relative overflow-hidden bg-muted flex-shrink-0 w-full h-[200px] sm:h-[280px] md:h-[320px] lg:aspect-[3/4] lg:h-auto flex items-center justify-center rounded-t-lg">
           <img
             src={image}
             alt={title}
             width="400"
             height="533"
-            className="w-full h-full object-contain p-2 sm:p-3 md:p-4 transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-contain p-1.5 sm:p-3 md:p-4 transition-transform duration-500 group-hover:scale-105"
             loading={priority ? "eager" : "lazy"}
             decoding="async"
             fetchPriority={priority ? "high" : "auto"}
@@ -252,8 +252,6 @@ const ItemCard = ({
             </div>
           )}
 
-          {/* No badges over image - all dealer badges moved to bottom metadata row */}
-
           {/* Sold off-platform badge - top center */}
           {soldOffPlatform && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2">
@@ -262,30 +260,56 @@ const ItemCard = ({
           )}
         </div>
         
-        {/* Card content */}
-        <div className="p-3 flex-1 flex flex-col min-h-0">
+        {/* Card content - mobile-optimized tight spacing */}
+        <div className="p-2 sm:p-3 flex-1 flex flex-col min-h-0 gap-0.5 sm:gap-1">
           {/* Main title: Series + Issue Number (bold, larger) */}
-          <h3 className="font-bold text-lg leading-tight line-clamp-2 text-foreground mb-1">
+          <h3 className="font-semibold text-base sm:text-lg leading-tight line-clamp-2 text-foreground">
             {getMainTitle()}
           </h3>
           
           {/* Subtitle line with grade, signature, key info */}
           {subtitleText && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+            <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1 truncate">
               {subtitleText}
             </p>
           )}
           
+          {/* Badges row - directly under subtitle on mobile */}
+          {(getGradeText() || getSignatureBadgeText() || isKeyIssue) && (
+            <div className="flex items-center gap-1 flex-wrap mt-0.5 sm:mt-1">
+              {/* Grade pill */}
+              {getGradeText() && (
+                <Badge variant="secondary" className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {getGradeText()}
+                </Badge>
+              )}
+              
+              {/* Signature badge */}
+              {getSignatureBadgeText() && (
+                <Badge className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white border-0">
+                  {getSignatureBadgeText()}
+                </Badge>
+              )}
+              
+              {/* Key Issue badge */}
+              {isKeyIssue && (
+                <Badge className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0">
+                  Key
+                </Badge>
+              )}
+            </div>
+          )}
+          
           {/* Spacer to push price row to bottom */}
-          <div className="flex-1 min-h-1" />
+          <div className="flex-1 min-h-0.5 sm:min-h-1" />
 
-          {/* Bottom row: Price (left), Premium Dealer badge (center), Grade (right) */}
-          <div className="flex items-center justify-between gap-2">
+          {/* Bottom row: Price (left), Premium Dealer badge (right) */}
+          <div className="flex items-center justify-between gap-2 mt-1 sm:mt-2">
             {/* Left: Price (focal point) */}
             <div className="flex items-baseline gap-1 flex-shrink-0">
               {price !== null && price !== undefined && price > 0 ? (
                 <>
-                  <span className="text-2xl font-extrabold text-primary">
+                  <span className="text-lg sm:text-2xl font-extrabold text-primary">
                     ${price.toLocaleString()}
                   </span>
                   {isAuction && (
@@ -301,45 +325,21 @@ const ItemCard = ({
               )}
             </div>
 
-            {/* Center: Single dealer badge (Premium Dealer or Top Dealer) */}
+            {/* Right: Single dealer badge (Premium Dealer or Top Dealer) */}
             {isFeaturedSeller ? (
-              <Badge className="text-xs font-extrabold px-2.5 py-1 bg-yellow-500 hover:bg-yellow-600 text-foreground border-0">
+              <Badge className="text-[9px] sm:text-xs font-extrabold px-2 sm:px-2.5 py-0.5 sm:py-1 bg-yellow-500 hover:bg-yellow-600 text-foreground border-0 rounded-full">
                 Premium Dealer
               </Badge>
             ) : (isVerifiedSeller && completedSalesCount >= 10) ? (
-              <Badge className="text-xs font-extrabold px-2.5 py-1 bg-yellow-500 hover:bg-yellow-600 text-foreground border-0">
+              <Badge className="text-[9px] sm:text-xs font-extrabold px-2 sm:px-2.5 py-0.5 sm:py-1 bg-yellow-500 hover:bg-yellow-600 text-foreground border-0 rounded-full">
                 Top Dealer
               </Badge>
             ) : null}
-
-            {/* Right side badges group */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Grade pill */}
-              {getGradeText() && (
-                <Badge variant="secondary" className="text-[10px] font-bold px-1.5 py-0.5">
-                  {getGradeText()}
-                </Badge>
-              )}
-              
-              {/* Signature badge */}
-              {getSignatureBadgeText() && (
-                <Badge className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-500 hover:bg-amber-600 text-white border-0">
-                  {getSignatureBadgeText()}
-                </Badge>
-              )}
-              
-              {/* Key Issue badge */}
-              {isKeyIssue && (
-                <Badge className="text-[10px] font-bold px-1.5 py-0.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0">
-                  Key
-                </Badge>
-              )}
-            </div>
           </div>
 
           {/* Optional: Local pickup indicator below if needed */}
           {localPickupAvailable && (
-            <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground mt-1">
+            <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground mt-0.5 sm:mt-1">
               <MapPin className="h-3 w-3" />
               <span className="font-medium">Local pickup</span>
             </div>
