@@ -50,7 +50,11 @@ export async function fetchSellerListings(userId: string, limit: number = 10): P
           details,
           listed_price,
           shipping_price,
-          primary_image_rotation
+          primary_image_rotation,
+          is_signed,
+          signature_type,
+          signed_by,
+          signature_date
         )
       `)
       .eq("status", "active")
@@ -132,7 +136,11 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
           details,
           listed_price,
           shipping_price,
-          primary_image_rotation
+          primary_image_rotation,
+          is_signed,
+          signature_type,
+          signed_by,
+          signature_date
         )
       `)
     // Filter active listings and exclude sold off-platform items

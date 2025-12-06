@@ -94,7 +94,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
       let listingResult;
       
       if (existingListing) {
-        // Reactivate existing listing
+        // Reactivate existing listing with signature fields preserved
         const { data, error } = await supabase
           .from("listings")
           .update({
@@ -104,6 +104,11 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
             payout_cents,
             title: displayTitle,
             image_url: inventoryItem.images?.primary || null,
+            // Preserve/update signature fields from inventory
+            is_signed: inventoryItem.is_signed || false,
+            signature_type: inventoryItem.signature_type || null,
+            signed_by: inventoryItem.signed_by || null,
+            signature_date: inventoryItem.signature_date || null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingListing.id)
@@ -113,7 +118,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
         if (error) throw error;
         listingResult = data;
       } else {
-        // Create new listing
+        // Create new listing with signature fields
         const { data, error } = await supabase
           .from("listings")
           .insert({
@@ -131,6 +136,11 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
             image_url: inventoryItem.images?.primary || null,
             condition_notes: inventoryItem.condition || null,
             shipping_price: inventoryItem.shipping_price || null,
+            // Signature fields - copy from inventory item
+            is_signed: inventoryItem.is_signed || false,
+            signature_type: inventoryItem.signature_type || null,
+            signed_by: inventoryItem.signed_by || null,
+            signature_date: inventoryItem.signature_date || null,
           } as any)
           .select()
           .single();
@@ -176,6 +186,12 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
               <p className="text-sm text-primary font-medium mt-1">
                 {inventoryItem.grading_company || "CGC"} {inventoryItem.cgc_grade || inventoryItem.grade}
                 {inventoryItem.certification_number && ` • #${inventoryItem.certification_number}`}
+              </p>
+            )}
+            {inventoryItem?.is_signed && (
+              <p className="text-sm text-amber-600 font-medium mt-1">
+                ✍️ Signed{inventoryItem.signature_type ? `: ${inventoryItem.signature_type}` : ''}
+                {inventoryItem.signed_by && ` — ${inventoryItem.signed_by}`}
               </p>
             )}
           </div>

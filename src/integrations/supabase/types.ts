@@ -1652,6 +1652,7 @@ export type Database = {
           is_for_trade: boolean | null
           is_key: boolean | null
           is_reprint: boolean | null
+          is_signed: boolean | null
           is_slab: boolean | null
           issue_id: string | null
           issue_number: string | null
@@ -1677,6 +1678,9 @@ export type Database = {
           scanner_last_scanned_at: string | null
           series: string | null
           shipping_price: number | null
+          signature_date: string | null
+          signature_type: string | null
+          signed_by: string | null
           sold_at: string | null
           sold_off_platform: boolean | null
           sold_off_platform_channel: string | null
@@ -1718,6 +1722,7 @@ export type Database = {
           is_for_trade?: boolean | null
           is_key?: boolean | null
           is_reprint?: boolean | null
+          is_signed?: boolean | null
           is_slab?: boolean | null
           issue_id?: string | null
           issue_number?: string | null
@@ -1743,6 +1748,9 @@ export type Database = {
           scanner_last_scanned_at?: string | null
           series?: string | null
           shipping_price?: number | null
+          signature_date?: string | null
+          signature_type?: string | null
+          signed_by?: string | null
           sold_at?: string | null
           sold_off_platform?: boolean | null
           sold_off_platform_channel?: string | null
@@ -1784,6 +1792,7 @@ export type Database = {
           is_for_trade?: boolean | null
           is_key?: boolean | null
           is_reprint?: boolean | null
+          is_signed?: boolean | null
           is_slab?: boolean | null
           issue_id?: string | null
           issue_number?: string | null
@@ -1809,6 +1818,9 @@ export type Database = {
           scanner_last_scanned_at?: string | null
           series?: string | null
           shipping_price?: number | null
+          signature_date?: string | null
+          signature_type?: string | null
+          signed_by?: string | null
           sold_at?: string | null
           sold_off_platform?: boolean | null
           sold_off_platform_channel?: string | null
@@ -2007,6 +2019,7 @@ export type Database = {
           id: string
           image_url: string | null
           inventory_item_id: string | null
+          is_signed: boolean | null
           issue_number: string | null
           payout_cents: number | null
           price: number | null
@@ -2016,6 +2029,9 @@ export type Database = {
           reserve: number | null
           seller_notes: string | null
           shipping_price: number | null
+          signature_date: string | null
+          signature_type: string | null
+          signed_by: string | null
           start_bid: number | null
           status: string
           title: string
@@ -2036,6 +2052,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           inventory_item_id?: string | null
+          is_signed?: boolean | null
           issue_number?: string | null
           payout_cents?: number | null
           price?: number | null
@@ -2045,6 +2062,9 @@ export type Database = {
           reserve?: number | null
           seller_notes?: string | null
           shipping_price?: number | null
+          signature_date?: string | null
+          signature_type?: string | null
+          signed_by?: string | null
           start_bid?: number | null
           status?: string
           title: string
@@ -2065,6 +2085,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           inventory_item_id?: string | null
+          is_signed?: boolean | null
           issue_number?: string | null
           payout_cents?: number | null
           price?: number | null
@@ -2074,6 +2095,9 @@ export type Database = {
           reserve?: number | null
           seller_notes?: string | null
           shipping_price?: number | null
+          signature_date?: string | null
+          signature_type?: string | null
+          signed_by?: string | null
           start_bid?: number | null
           status?: string
           title?: string

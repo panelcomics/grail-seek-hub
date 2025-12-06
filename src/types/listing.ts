@@ -63,6 +63,11 @@ export interface InventoryItem {
   writer?: string | null;  // Writer credits
   artist?: string | null;  // Artist credits
   cover_artist?: string | null;  // Cover artist
+  // Signature fields
+  is_signed?: boolean | null;
+  signature_type?: string | null;
+  signed_by?: string | null;
+  signature_date?: string | null;
 }
 
 /**
@@ -108,6 +113,11 @@ export interface Listing {
   primary_image_rotation?: number | null;
   listed_price?: number | null;
   shipping_price?: number | null;
+  // Signature fields
+  is_signed?: boolean | null;
+  signature_type?: string | null;
+  signed_by?: string | null;
+  signature_date?: string | null;
   
   // Keep nested for backwards compatibility
   inventory_items: InventoryItem;
