@@ -42,6 +42,7 @@ interface Comic {
   variant_notes?: string | null;
   is_key?: boolean;
   key_type?: string | null;
+  key_details?: string | null;
   is_slab?: boolean;
   cgc_grade?: string | null;
   grading_company?: string | null;
@@ -49,6 +50,10 @@ interface Comic {
   writer?: string | null;
   artist?: string | null;
   primary_image_rotation?: number | null;
+  is_signed?: boolean;
+  signature_type?: string | null;
+  signed_by?: string | null;
+  signature_date?: string | null;
 }
 
 const MyCollection = () => {
@@ -86,7 +91,7 @@ const MyCollection = () => {
     try {
       const { data, error } = await supabase
         .from("inventory_items")
-        .select("id, title, issue_number, series, cover_date, publisher, year, grade, condition, is_slab, cgc_grade, grading_company, certification_number, images, details, created_at, variant_type, variant_details, variant_notes, is_key, key_type, writer, artist, primary_image_rotation")
+        .select("id, title, issue_number, series, cover_date, publisher, year, grade, condition, is_slab, cgc_grade, grading_company, certification_number, images, details, created_at, variant_type, variant_details, variant_notes, is_key, key_type, key_details, writer, artist, primary_image_rotation, is_signed, signature_type, signed_by, signature_date")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -231,23 +236,32 @@ const MyCollection = () => {
                           <span className="font-bold">{comic.title}</span>
                           {comic.issue_number && <span className="font-bold"> #{comic.issue_number}</span>}
                         </CardTitle>
-                        {/* Show grading company + grade for slabs (with fallback), otherwise show condition */}
-                        {comic.is_slab && (comic.cgc_grade || comic.grade) ? (
-                          <div className="space-y-0.5">
-                            <div className="text-xs font-bold text-primary truncate">
-                              {comic.grading_company || "CGC"} {comic.cgc_grade || comic.grade}
-                            </div>
-                            {comic.certification_number && (
-                              <div className="text-[10px] md:text-xs text-muted-foreground truncate">
-                                Cert #{comic.certification_number}
-                              </div>
-                            )}
-                          </div>
-                        ) : comic.condition_notes ? (
-                          <p className="text-[10px] md:text-xs text-muted-foreground italic line-clamp-1">
-                            {comic.condition_notes}
-                          </p>
-                        ) : null}
+                        {/* Subtitle: grade + signature + key */}
+                        <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-2">
+                          {[
+                            comic.is_slab && (comic.cgc_grade || comic.grade) ? `${comic.grading_company || 'CGC'} ${comic.cgc_grade || comic.grade}` : null,
+                            comic.is_signed ? (comic.signature_type === 'CGC Signature Series' ? 'SS Signed' : 'Signed') + (comic.signed_by ? ` ${comic.signed_by}` : '') : null,
+                            comic.key_details || (comic.is_key ? 'Key Issue' : null),
+                          ].filter(Boolean).join(' • ') || comic.condition_notes}
+                        </p>
+                        {/* Badges row */}
+                        <div className="flex flex-wrap gap-1">
+                          {comic.is_slab && (comic.cgc_grade || comic.grade) && (
+                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-secondary text-secondary-foreground">
+                              {comic.grading_company || 'CGC'} {comic.cgc_grade || comic.grade}
+                            </span>
+                          )}
+                          {comic.is_signed && (
+                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500 text-white">
+                              {comic.signature_type === 'CGC Signature Series' ? 'CGC SS' : 'Signed'}
+                            </span>
+                          )}
+                          {(comic.is_key || comic.key_details) && (
+                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-destructive text-destructive-foreground">
+                              Key
+                            </span>
+                          )}
+                        </div>
                         <div className="flex gap-1.5 pt-1">
                           <Button
                             variant="ghost"

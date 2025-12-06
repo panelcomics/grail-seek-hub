@@ -139,38 +139,69 @@ const ItemCard = ({
     return `${mins}m`;
   };
 
-  // Format the main title line (title + issue number)
+  // Format the main title line (series + issue number only)
   const getMainTitle = () => {
-    // If we have an issue number, construct the full title
     if (issueNumber) {
-      // Check if title already contains this issue number (avoid duplication)
       const issuePattern = `#${issueNumber}`;
       if (title && title.includes(issuePattern)) {
         return title;
       }
-      // Construct from title + issue number
       if (title) {
         return `${title} #${issueNumber}`;
       }
-      // Fallback: use series + issue number
       if (series) {
         return `${series} #${issueNumber}`;
       }
     }
-    // No issue number, just use title or series
     return title || series || "Untitled";
   };
 
-  // Get grade display text
-  // Get signature display for badge
+  // Build informative subtitle line: grade + signature + key info
+  const getSubtitleParts = () => {
+    const parts: string[] = [];
+    
+    // Grade info (e.g., "CGC 7.0")
+    if (isSlab && grade) {
+      const company = gradingCompany || 'CGC';
+      parts.push(`${company} ${grade}`);
+    }
+    
+    // Signature summary
+    if (isSigned) {
+      if (signatureType === 'CGC Signature Series') {
+        parts.push('SS Signed');
+      } else if (signatureType === 'CBCS Signature Verified') {
+        parts.push('CBCS Verified');
+      } else {
+        parts.push('Signed');
+      }
+      if (signedBy) {
+        parts.push(signedBy.length > 20 ? signedBy.substring(0, 20) + '...' : signedBy);
+      }
+    }
+    
+    // Key info (short)
+    if (keyInfo) {
+      const shortKey = keyInfo.length > 40 ? keyInfo.substring(0, 40) + '...' : keyInfo;
+      parts.push(shortKey);
+    }
+    
+    return parts;
+  };
+
+  const subtitleParts = getSubtitleParts();
+  const subtitleText = subtitleParts.join(' • ');
+
+  // Get signature badge text for pill
   const getSignatureBadgeText = () => {
     if (!isSigned) return null;
-    // Show compact text based on signature type
     if (signatureType === 'CGC Signature Series') return 'CGC SS';
     if (signatureType === 'CBCS Signature Verified') return 'CBCS Verified';
-    if (signedBy) return `Signed: ${signedBy.length > 15 ? signedBy.substring(0, 15) + '...' : signedBy}`;
     return 'Signed';
   };
+
+  // Check if key issue
+  const isKeyIssue = !!keyInfo;
 
   const getGradeText = () => {
     if (isSlab && grade) {
@@ -238,10 +269,10 @@ const ItemCard = ({
             {getMainTitle()}
           </h3>
           
-          {/* Key info line - only show if available (smaller, muted, truncated) */}
-          {keyInfo && (
-            <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
-              {keyInfo}
+          {/* Subtitle line with grade, signature, key info */}
+          {subtitleText && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+              {subtitleText}
             </p>
           )}
           
@@ -281,19 +312,29 @@ const ItemCard = ({
               </Badge>
             ) : null}
 
-            {/* Signature badge */}
-            {getSignatureBadgeText() && (
-              <Badge className="text-xs font-bold px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white border-0">
-                ✍️ {getSignatureBadgeText()}
-              </Badge>
-            )}
-
-            {/* Right: Grade pill (clear and readable) */}
-            {getGradeText() && (
-              <Badge variant="secondary" className="text-xs font-bold px-2.5 py-1">
-                {getGradeText()}
-              </Badge>
-            )}
+            {/* Right side badges group */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Grade pill */}
+              {getGradeText() && (
+                <Badge variant="secondary" className="text-[10px] font-bold px-1.5 py-0.5">
+                  {getGradeText()}
+                </Badge>
+              )}
+              
+              {/* Signature badge */}
+              {getSignatureBadgeText() && (
+                <Badge className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-500 hover:bg-amber-600 text-white border-0">
+                  {getSignatureBadgeText()}
+                </Badge>
+              )}
+              
+              {/* Key Issue badge */}
+              {isKeyIssue && (
+                <Badge className="text-[10px] font-bold px-1.5 py-0.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0">
+                  Key
+                </Badge>
+              )}
+            </div>
           </div>
 
           {/* Optional: Local pickup indicator below if needed */}
