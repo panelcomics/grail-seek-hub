@@ -138,7 +138,7 @@ export function ListingsCarousel({
                     certificationNumber={listing.certification_number}
                     series={listing.series}
                     issueNumber={listing.issue_number}
-                    keyInfo={listing.variant_description || listing.details}
+                    keyInfo={listing.key_details || listing.variant_description || listing.details}
                     imageRotation={listing.primary_image_rotation}
                     isSigned={listing.is_signed}
                     signatureType={listing.signature_type}

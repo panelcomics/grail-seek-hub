@@ -657,7 +657,7 @@ export default function SearchPage() {
                   title={item.title || `${item.series} #${item.issue_number}`}
                   price={item.listed_price}
                   condition={item.cgc_grade || item.condition || "Raw"}
-                  image={(item.images as any)?.front || "/placeholder.svg"}
+                  image={(item.images as any)?.front || (item.images as any)?.primary || "/placeholder.svg"}
                   category="comic"
                   sellerName={item.profiles?.username}
                   isVerifiedSeller={item.profiles?.is_verified_seller}
@@ -668,6 +668,12 @@ export default function SearchPage() {
                   grade={item.cgc_grade}
                   gradingCompany={item.grading_company}
                   certificationNumber={item.certification_number}
+                  series={item.series}
+                  issueNumber={item.issue_number}
+                  keyInfo={item.key_details || item.variant_description || item.details}
+                  isSigned={item.is_signed}
+                  signatureType={item.signature_type}
+                  signedBy={item.signed_by}
                   showFavorite={true}
                 />
               ))}

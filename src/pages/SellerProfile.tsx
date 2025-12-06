@@ -161,7 +161,7 @@ export default function SellerProfile() {
       // Fetch active listings
       const { data: listingsData, error: listingsError } = await supabase
         .from("inventory_items")
-        .select("id, title, series, issue_number, listed_price, images, cgc_grade, grading_company, certification_number, condition, is_slab, for_auction, listing_status, created_at")
+        .select("id, title, series, issue_number, listed_price, images, cgc_grade, grading_company, certification_number, condition, is_slab, for_auction, listing_status, created_at, variant_description, details, key_details, key_issue, key_type, is_signed, signature_type, signed_by, signature_date")
         .eq("user_id", profileData.user_id)
         .eq("listing_status", "listed")
         .or("for_sale.eq.true,for_auction.eq.true")
@@ -479,6 +479,12 @@ export default function SellerProfile() {
                         grade={listing.cgc_grade}
                         gradingCompany={listing.grading_company}
                         certificationNumber={listing.certification_number}
+                        series={listing.series}
+                        issueNumber={listing.issue_number}
+                        keyInfo={(listing as any).key_details || (listing as any).variant_description || (listing as any).details}
+                        isSigned={(listing as any).is_signed}
+                        signatureType={(listing as any).signature_type}
+                        signedBy={(listing as any).signed_by}
                         showFavorite={true}
                       />
                     );

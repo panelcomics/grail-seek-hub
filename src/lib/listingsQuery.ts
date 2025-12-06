@@ -54,7 +54,10 @@ export async function fetchSellerListings(userId: string, limit: number = 10): P
           is_signed,
           signature_type,
           signed_by,
-          signature_date
+          signature_date,
+          key_issue,
+          key_details,
+          key_type
         )
       `)
       .eq("status", "active")
@@ -140,7 +143,10 @@ export async function fetchListingsBase(options: ListingsQueryOptions = {}): Pro
           is_signed,
           signature_type,
           signed_by,
-          signature_date
+          signature_date,
+          key_issue,
+          key_details,
+          key_type
         )
       `)
     // Filter active listings and exclude sold off-platform items

@@ -105,6 +105,10 @@ export interface Listing {
   is_for_trade: boolean | null;
   offers_enabled: boolean | null;
   details: string | null;
+  // Key issue fields
+  key_issue?: boolean | null;
+  key_details?: string | null;
+  key_type?: string | null;
   local_pickup?: boolean | null;
   comicvine_issue_id?: string | null;
   sold_off_platform?: boolean | null;

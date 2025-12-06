@@ -209,7 +209,7 @@ export function PremiumDealerCarousel({
                     certificationNumber={listing.certification_number}
                     series={listing.series}
                     issueNumber={listing.issue_number}
-                    keyInfo={listing.variant_description || listing.details}
+                    keyInfo={listing.key_details || listing.variant_description || listing.details}
                     isSigned={listing.is_signed}
                     signatureType={listing.signature_type}
                     signedBy={listing.signed_by}
