@@ -210,6 +210,9 @@ export function PremiumDealerCarousel({
                     series={listing.series}
                     issueNumber={listing.issue_number}
                     keyInfo={listing.variant_description || listing.details}
+                    isSigned={listing.is_signed}
+                    signatureType={listing.signature_type}
+                    signedBy={listing.signed_by}
                   />
                 </div>
               );

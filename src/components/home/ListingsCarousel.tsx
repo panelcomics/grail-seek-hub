@@ -126,9 +126,9 @@ export function ListingsCarousel({
                     isAuction={listing.for_auction}
                     showMakeOffer={listing.offers_enabled}
                     showTradeBadge={listing.is_for_trade}
-              sellerName={profile?.username}
-              sellerCity={undefined}
-              isVerifiedSeller={profile?.is_verified_seller}
+                    sellerName={profile?.username}
+                    sellerCity={undefined}
+                    isVerifiedSeller={profile?.is_verified_seller}
                     completedSalesCount={profile?.completed_sales_count || 0}
                     sellerTier={profile?.seller_tier}
                     isFeaturedSeller={profile?.is_featured_seller}
@@ -140,6 +140,9 @@ export function ListingsCarousel({
                     issueNumber={listing.issue_number}
                     keyInfo={listing.variant_description || listing.details}
                     imageRotation={listing.primary_image_rotation}
+                    isSigned={listing.is_signed}
+                    signatureType={listing.signature_type}
+                    signedBy={listing.signed_by}
                   />
                 </div>
               );
