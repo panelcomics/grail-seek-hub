@@ -271,7 +271,7 @@ const ItemCard = ({
           
           {/* Subtitle line with grade, signature, key info */}
           {subtitleText && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+            <p className="text-xs font-medium text-muted-foreground line-clamp-2 mb-2">
               {subtitleText}
             </p>
           )}
