@@ -151,7 +151,7 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-[42px] sm:h-12 max-w-screen-xl items-center justify-between px-2 sm:px-4">
+      <div className="mx-auto flex h-10 sm:h-12 max-w-screen-xl items-center justify-between px-2 sm:px-4">
         <Link to="/" className="flex items-center gap-1 sm:gap-2">
           <div className="h-[22px] w-[22px] sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-[9px] sm:text-sm">
             GS
