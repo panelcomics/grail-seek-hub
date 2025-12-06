@@ -36,6 +36,12 @@ export interface DraftItem {
   keyIssue: boolean;
   keyDetails?: string;    // "1st Krang, Bebop, Rocksteady"
   
+  // Signature Data
+  isSigned: boolean;
+  signatureType?: string;  // "CGC Signature Series", "CBCS Signature Verified", etc.
+  signedBy?: string;       // "Stan Lee", "Todd McFarlane", etc.
+  signatureDate?: string;  // Date of signature
+  
   // Images - ALWAYS use this exact structure
   images: {
     primary: string | null;
@@ -111,6 +117,10 @@ export function dbToDraftItem(dbRow: any): DraftItem {
     certificationNumber: dbRow.certification_number,
     keyIssue: dbRow.is_key || dbRow.key_issue || false,
     keyDetails: dbRow.key_details || dbRow.details,
+    isSigned: dbRow.is_signed || false,
+    signatureType: dbRow.signature_type,
+    signedBy: dbRow.signed_by,
+    signatureDate: dbRow.signature_date,
     images,
     listedPrice: dbRow.listed_price,
     shippingPrice: dbRow.shipping_price,
@@ -152,6 +162,10 @@ export function draftItemToDb(draft: DraftItem): any {
     key_issue: draft.keyIssue,
     is_key: draft.keyIssue,
     key_details: draft.keyDetails || null,
+    is_signed: draft.isSigned || false,
+    signature_type: draft.isSigned ? draft.signatureType : null,
+    signed_by: draft.isSigned ? draft.signedBy : null,
+    signature_date: draft.isSigned ? draft.signatureDate : null,
     images: draft.images,
     listed_price: draft.listedPrice || null,
     shipping_price: draft.shippingPrice || null,

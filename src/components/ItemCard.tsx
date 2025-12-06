@@ -58,6 +58,10 @@ interface ItemCardProps {
   soldOffPlatform?: boolean; // If item was sold outside GrailSeeker
   imageRotation?: number | null; // Rotation in degrees (0, 90, 180, 270)
   priority?: boolean; // Load image with high priority (for above-the-fold content)
+  // Signature props
+  isSigned?: boolean;
+  signatureType?: string | null;
+  signedBy?: string | null;
 }
 
 const ItemCard = ({ 
@@ -104,6 +108,9 @@ const ItemCard = ({
   soldOffPlatform = false,
   imageRotation = null,
   priority = false,
+  isSigned = false,
+  signatureType = null,
+  signedBy = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -155,6 +162,16 @@ const ItemCard = ({
   };
 
   // Get grade display text
+  // Get signature display for badge
+  const getSignatureBadgeText = () => {
+    if (!isSigned) return null;
+    // Show compact text based on signature type
+    if (signatureType === 'CGC Signature Series') return 'CGC SS';
+    if (signatureType === 'CBCS Signature Verified') return 'CBCS Verified';
+    if (signedBy) return `Signed: ${signedBy.length > 15 ? signedBy.substring(0, 15) + '...' : signedBy}`;
+    return 'Signed';
+  };
+
   const getGradeText = () => {
     if (isSlab && grade) {
       const company = gradingCompany || 'CGC';
@@ -263,6 +280,13 @@ const ItemCard = ({
                 Top Dealer
               </Badge>
             ) : null}
+
+            {/* Signature badge */}
+            {getSignatureBadgeText() && (
+              <Badge className="text-xs font-bold px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white border-0">
+                ✍️ {getSignatureBadgeText()}
+              </Badge>
+            )}
 
             {/* Right: Grade pill (clear and readable) */}
             {getGradeText() && (

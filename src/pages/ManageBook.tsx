@@ -57,6 +57,12 @@ export default function ManageBook() {
     grading_company: "CGC",
     certification_number: "",
     
+    // Signature fields
+    is_signed: false,
+    signature_type: "",
+    signed_by: "",
+    signature_date: "",
+    
     // Pricing & Condition
     listed_price: "",
     shipping_price: "",
@@ -128,6 +134,11 @@ export default function ManageBook() {
         cgc_grade: data.cgc_grade || data.grade || "",  // CRITICAL: Fallback to grade column
         grading_company: data.grading_company || "CGC",
         certification_number: data.certification_number || "",
+        // Signature fields
+        is_signed: data.is_signed || false,
+        signature_type: data.signature_type || "",
+        signed_by: data.signed_by || "",
+        signature_date: data.signature_date || "",
         listed_price: data.listed_price?.toString() || "",
         shipping_price: data.shipping_price?.toString() || "",
         for_sale: data.for_sale || false,
@@ -207,6 +218,11 @@ export default function ManageBook() {
         cgc_grade: formData.is_slab ? formData.cgc_grade : null,
         grade: formData.is_slab ? formData.cgc_grade : null,
         certification_number: formData.certification_number || null,
+        // Signature fields
+        is_signed: formData.is_signed,
+        signature_type: formData.is_signed ? formData.signature_type : null,
+        signed_by: formData.is_signed ? formData.signed_by : null,
+        signature_date: formData.is_signed ? formData.signature_date : null,
         listed_price: formData.listed_price ? parseFloat(formData.listed_price) : null,
         shipping_price: formData.shipping_price ? parseFloat(formData.shipping_price) : null,
         for_sale: formData.for_sale,
@@ -747,6 +763,76 @@ export default function ManageBook() {
                           value={formData.certification_number}
                           onChange={(e) => setFormData({ ...formData, certification_number: e.target.value })}
                           placeholder="1234567890"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Signature Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 px-4 rounded-lg border-2 transition-all"
+                    style={{
+                      borderColor: formData.is_signed ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+                      backgroundColor: formData.is_signed ? 'hsl(var(--primary) / 0.15)' : 'hsl(var(--muted) / 0.3)',
+                      fontWeight: formData.is_signed ? '700' : '500'
+                    }}>
+                    <div className="flex-1">
+                      <Label htmlFor="is_signed" className="text-base font-bold cursor-pointer" style={{ color: formData.is_signed ? 'hsl(var(--primary))' : 'inherit' }}>
+                        Signed
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        This comic has a signature (slabbed or raw)
+                      </p>
+                    </div>
+                    <Switch
+                      id="is_signed"
+                      checked={formData.is_signed}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_signed: checked })}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                  </div>
+
+                  {formData.is_signed && (
+                    <>
+                      <div>
+                        <Label htmlFor="signature_type">Signature Type</Label>
+                        <Select
+                          value={formData.signature_type}
+                          onValueChange={(value) => setFormData({ ...formData, signature_type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select signature type" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover z-50">
+                            <SelectItem value="CGC Signature Series">CGC Signature Series</SelectItem>
+                            <SelectItem value="CBCS Signature Verified">CBCS Signature Verified</SelectItem>
+                            <SelectItem value="Witnessed Signature">Witnessed Signature</SelectItem>
+                            <SelectItem value="Unwitnessed / Raw Signature">Unwitnessed / Raw Signature</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="signed_by">Signed By</Label>
+                        <Input
+                          id="signed_by"
+                          value={formData.signed_by}
+                          onChange={(e) => setFormData({ ...formData, signed_by: e.target.value })}
+                          placeholder="Stan Lee, Todd McFarlane, Jim Lee, etc."
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="signature_date">Signature Date (optional)</Label>
+                        <Input
+                          id="signature_date"
+                          value={formData.signature_date}
+                          onChange={(e) => setFormData({ ...formData, signature_date: e.target.value })}
+                          placeholder="04/25/2024"
                         />
                       </div>
                     </>
