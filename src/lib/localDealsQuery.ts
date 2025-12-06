@@ -51,7 +51,14 @@ export async function fetchLocalDeals(options: LocalDealsOptions): Promise<Listi
           details,
           listed_price,
           shipping_price,
-          primary_image_rotation
+          primary_image_rotation,
+          is_signed,
+          signature_type,
+          signed_by,
+          signature_date,
+          key_issue,
+          key_details,
+          key_type
         )
       `)
       .eq("status", "active")

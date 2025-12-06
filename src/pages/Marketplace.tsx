@@ -74,7 +74,14 @@ export default function Marketplace() {
             for_auction,
             is_for_trade,
             offers_enabled,
-            user_id
+            user_id,
+            is_signed,
+            signature_type,
+            signed_by,
+            signature_date,
+            key_issue,
+            key_details,
+            key_type
           ),
           profiles!user_id(
             user_id,
@@ -255,7 +262,10 @@ export default function Marketplace() {
                     certificationNumber={listing.certification_number}
                     series={listing.series}
                     issueNumber={listing.issue_number}
-                    keyInfo={listing.variant_description || listing.details}
+                    keyInfo={listing.key_details || listing.variant_description || listing.details}
+                    isSigned={listing.is_signed}
+                    signatureType={listing.signature_type}
+                    signedBy={listing.signed_by}
                     showFavorite={true}
                   />
                 );
