@@ -2741,6 +2741,8 @@ export type Database = {
           stripe_account_id: string | null
           stripe_account_verified: boolean | null
           stripe_onboarding_complete: boolean | null
+          subscription_expires_at: string | null
+          subscription_tier: string | null
           suspended_at: string | null
           terms_accepted_at: string | null
           terms_version_accepted: string | null
@@ -2781,6 +2783,8 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
           suspended_at?: string | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
@@ -2821,6 +2825,8 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_account_verified?: boolean | null
           stripe_onboarding_complete?: boolean | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
           suspended_at?: string | null
           terms_accepted_at?: string | null
           terms_version_accepted?: string | null
@@ -3781,6 +3787,45 @@ export type Database = {
           user_id?: string
           writer?: string | null
           year?: number | null
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
