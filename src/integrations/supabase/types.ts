@@ -1227,6 +1227,62 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_finder_results: {
+        Row: {
+          alert_id: string | null
+          created_at: string
+          discount_percent: number
+          fair_market_value: number
+          id: string
+          image_url: string | null
+          is_dismissed: boolean | null
+          is_viewed: boolean | null
+          listing_price: number
+          source: string
+          source_url: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          alert_id?: string | null
+          created_at?: string
+          discount_percent: number
+          fair_market_value: number
+          id?: string
+          image_url?: string | null
+          is_dismissed?: boolean | null
+          is_viewed?: boolean | null
+          listing_price: number
+          source?: string
+          source_url?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string | null
+          created_at?: string
+          discount_percent?: number
+          fair_market_value?: number
+          id?: string
+          image_url?: string | null
+          is_dismissed?: boolean | null
+          is_viewed?: boolean | null
+          listing_price?: number
+          source?: string
+          source_url?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_finder_results_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "elite_deal_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_matches: {
         Row: {
           alert_id: string
@@ -1380,6 +1436,38 @@ export type Database = {
             columns: ["trade_id"]
             isOneToOne: false
             referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elite_deal_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          last_checked_at: string | null
+          search_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_checked_at?: string | null
+          search_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_checked_at?: string | null
+          search_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "elite_deal_alerts_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "saved_searches"
             referencedColumns: ["id"]
           },
         ]
