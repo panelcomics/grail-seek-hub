@@ -82,6 +82,7 @@ import CreatorProfile from "./pages/creators/CreatorProfile";
 import CreatorDirectory from "./pages/creators/Directory";
 import SavedSearches from "./pages/SavedSearches";
 import Plans from "./pages/Plans";
+import EliteDeals from "./pages/elite/Deals";
 import HelpFees from "./pages/help/Fees";
 import HelpSelling from "./pages/help/Selling";
 import HelpTrading from "./pages/help/Trading";
@@ -186,6 +187,7 @@ const AppContent = () => {
             <Route path="/creators" element={<CreatorDirectory />} />
             <Route path="/saved-searches" element={<SavedSearches />} />
             <Route path="/plans" element={<Plans />} />
+            <Route path="/elite/deals" element={<EliteDeals />} />
             <Route path="/help/fees" element={<HelpFees />} />
             <Route path="/help/selling" element={<HelpSelling />} />
             <Route path="/help/trading" element={<HelpTrading />} />
