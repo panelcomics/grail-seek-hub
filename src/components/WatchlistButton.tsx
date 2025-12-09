@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useWatchlist } from "@/hooks/useWatchlist";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { UpgradeToEliteModal } from "@/components/subscription/UpgradeToEliteModal";
 
 interface WatchlistButtonProps {
   listingId: string;
@@ -15,7 +16,14 @@ export const WatchlistButton = ({
   variant = "icon",
   className 
 }: WatchlistButtonProps) => {
-  const { isInWatchlist, loading, toggleWatchlist } = useWatchlist(listingId);
+  const { 
+    isInWatchlist, 
+    loading, 
+    toggleWatchlist, 
+    showUpgradeModal, 
+    setShowUpgradeModal,
+    watchlistLimit 
+  } = useWatchlist(listingId);
   const [isAnimating, setIsAnimating] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -31,7 +39,15 @@ export const WatchlistButton = ({
 
   if (variant === "icon") {
     return (
-      <button
+      <>
+        <UpgradeToEliteModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          feature="watchlist items"
+          currentCount={watchlistLimit}
+          limit={watchlistLimit}
+        />
+        <button
         onClick={handleClick}
         disabled={loading}
         aria-label={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
@@ -55,11 +71,20 @@ export const WatchlistButton = ({
           )}
         />
       </button>
+      </>
     );
   }
 
   return (
-    <Button
+    <>
+      <UpgradeToEliteModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="watchlist items"
+        currentCount={watchlistLimit}
+        limit={watchlistLimit}
+      />
+      <Button
       variant={isInWatchlist ? "default" : "outline"}
       className={cn("gap-2", className)}
       onClick={handleClick}
@@ -71,7 +96,8 @@ export const WatchlistButton = ({
           isInWatchlist && "fill-current"
         )}
       />
-      {isInWatchlist ? "In Watchlist" : "Add to Watchlist"}
-    </Button>
+        {isInWatchlist ? "In Watchlist" : "Add to Watchlist"}
+      </Button>
+    </>
   );
 };
