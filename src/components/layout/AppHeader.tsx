@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -270,6 +270,10 @@ export function AppHeader() {
                       <DropdownLink href="/messages" onClick={() => setIsOpen(false)}>
                         <MessageSquare className="mr-2 h-4 w-4" />
                         Messages
+                      </DropdownLink>
+                      <DropdownLink href="/plans" onClick={() => setIsOpen(false)}>
+                        <Crown className="mr-2 h-4 w-4" />
+                        Plans & Upgrade
                       </DropdownLink>
                       <DropdownLink href="/dashboard" onClick={() => setIsOpen(false)}>
                         <BarChart3 className="mr-2 h-4 w-4" />

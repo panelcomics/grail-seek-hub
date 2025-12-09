@@ -81,6 +81,7 @@ import CreatorAdmin from "./pages/creators/Admin";
 import CreatorProfile from "./pages/creators/CreatorProfile";
 import CreatorDirectory from "./pages/creators/Directory";
 import SavedSearches from "./pages/SavedSearches";
+import Plans from "./pages/Plans";
 import HelpFees from "./pages/help/Fees";
 import HelpSelling from "./pages/help/Selling";
 import HelpTrading from "./pages/help/Trading";
@@ -184,6 +185,7 @@ const AppContent = () => {
             <Route path="/creators/:slug" element={<CreatorProfile />} />
             <Route path="/creators" element={<CreatorDirectory />} />
             <Route path="/saved-searches" element={<SavedSearches />} />
+            <Route path="/plans" element={<Plans />} />
             <Route path="/help/fees" element={<HelpFees />} />
             <Route path="/help/selling" element={<HelpSelling />} />
             <Route path="/help/trading" element={<HelpTrading />} />
