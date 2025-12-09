@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Bookmark, Loader2 } from "lucide-react";
+import { useEliteAccess } from "@/hooks/useEliteAccess";
+import { UpgradeToEliteModal } from "@/components/subscription/UpgradeToEliteModal";
 
 interface SaveSearchButtonProps {
   query: {
@@ -19,7 +21,9 @@ interface SaveSearchButtonProps {
 
 export function SaveSearchButton({ query, className }: SaveSearchButtonProps) {
   const { user } = useAuth();
+  const { isElite, savedSearchLimit } = useEliteAccess();
   const [saving, setSaving] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleSave = async () => {
     if (!user) {
@@ -36,6 +40,22 @@ export function SaveSearchButton({ query, className }: SaveSearchButtonProps) {
 
     setSaving(true);
     try {
+      // Check limit for non-Elite users before saving
+      if (!isElite && savedSearchLimit !== -1) {
+        const { count, error: countError } = await supabase
+          .from("saved_searches")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        if (countError) {
+          console.error("Error counting saved searches:", countError);
+        } else if (count !== null && count >= savedSearchLimit) {
+          setShowUpgradeModal(true);
+          setSaving(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from("saved_searches").insert({
         user_id: user.id,
         query: query,
@@ -52,21 +72,30 @@ export function SaveSearchButton({ query, className }: SaveSearchButtonProps) {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleSave}
-      disabled={saving}
-      className={className}
-    >
-      {saving ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <>
-          <Bookmark className="h-4 w-4 mr-2" />
-          Save Search
-        </>
-      )}
-    </Button>
+    <>
+      <UpgradeToEliteModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        feature="saved searches"
+        currentCount={savedSearchLimit}
+        limit={savedSearchLimit}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleSave}
+        disabled={saving}
+        className={className}
+      >
+        {saving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <>
+            <Bookmark className="h-4 w-4 mr-2" />
+            Save Search
+          </>
+        )}
+      </Button>
+    </>
   );
 }
