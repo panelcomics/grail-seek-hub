@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ComicVinePicker } from "./ComicVinePicker";
 import { PricingHelper } from "./scanner/PricingHelper";
 import { GRADE_OPTIONS } from "@/types/draftItem";
+import { AIConditionAssistant } from "./elite/AIConditionAssistant";
+import { AdvancedVariantDetector } from "./elite/AdvancedVariantDetector";
 
 interface ComicVinePick {
   id: number;
@@ -762,6 +764,39 @@ export function ScannerListingForm({
               />
             </div>
           </div>
+
+          {/* AI Condition Assistant (Elite Feature) */}
+          {imageUrl && (
+            <div className="pt-4 border-t">
+              <AIConditionAssistant
+                imageUrl={imageUrl}
+                onAssessmentComplete={(assessment) => {
+                  if (assessment.conditionNotes) {
+                    setNotes(prev => prev ? `${prev}\n\n${assessment.conditionNotes}` : assessment.conditionNotes);
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Advanced Variant Detector (Elite Feature) */}
+          {imageUrl && (
+            <div className="pt-4 border-t">
+              <AdvancedVariantDetector
+                imageUrl={imageUrl}
+                title={title}
+                issueNumber={issueNumber}
+                onAnalysisComplete={(analysis) => {
+                  if (analysis.variantName && !variantDetails) {
+                    setVariantDetails(analysis.variantName);
+                  }
+                  if (analysis.printNumber && !variantType) {
+                    setVariantType(analysis.printNumber === '1' ? 'direct' : `${analysis.printNumber}nd_print`);
+                  }
+                }}
+              />
+            </div>
+          )}
 
           {/* Notes */}
           <div className="pt-4 border-t">

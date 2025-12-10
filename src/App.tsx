@@ -83,6 +83,8 @@ import CreatorDirectory from "./pages/creators/Directory";
 import SavedSearches from "./pages/SavedSearches";
 import Plans from "./pages/Plans";
 import EliteDeals from "./pages/elite/Deals";
+import ElitePortfolio from "./pages/elite/Portfolio";
+import EliteTrending from "./pages/elite/Trending";
 import HelpFees from "./pages/help/Fees";
 import HelpSelling from "./pages/help/Selling";
 import HelpTrading from "./pages/help/Trading";
@@ -188,6 +190,8 @@ const AppContent = () => {
             <Route path="/saved-searches" element={<SavedSearches />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/elite/deals" element={<EliteDeals />} />
+            <Route path="/elite/portfolio" element={<ElitePortfolio />} />
+            <Route path="/elite/trending" element={<EliteTrending />} />
             <Route path="/help/fees" element={<HelpFees />} />
             <Route path="/help/selling" element={<HelpSelling />} />
             <Route path="/help/trading" element={<HelpTrading />} />
