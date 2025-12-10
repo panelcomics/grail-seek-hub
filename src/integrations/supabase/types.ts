@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_condition_assessments: {
+        Row: {
+          condition_notes: string | null
+          corner_condition: string | null
+          created_at: string
+          gloss_condition: string | null
+          grade_range_high: number | null
+          grade_range_low: number | null
+          id: string
+          image_url: string
+          inventory_item_id: string | null
+          pressing_potential: string | null
+          spine_condition: string | null
+          surface_condition: string | null
+          user_id: string
+        }
+        Insert: {
+          condition_notes?: string | null
+          corner_condition?: string | null
+          created_at?: string
+          gloss_condition?: string | null
+          grade_range_high?: number | null
+          grade_range_low?: number | null
+          id?: string
+          image_url: string
+          inventory_item_id?: string | null
+          pressing_potential?: string | null
+          spine_condition?: string | null
+          surface_condition?: string | null
+          user_id: string
+        }
+        Update: {
+          condition_notes?: string | null
+          corner_condition?: string | null
+          created_at?: string
+          gloss_condition?: string | null
+          grade_range_high?: number | null
+          grade_range_low?: number | null
+          id?: string
+          image_url?: string
+          inventory_item_id?: string | null
+          pressing_potential?: string | null
+          spine_condition?: string | null
+          surface_condition?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_condition_assessments_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_condition_assessments_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           description: string | null
@@ -3591,6 +3654,60 @@ export type Database = {
           },
         ]
       }
+      trending_comics: {
+        Row: {
+          avg_sold_price: number | null
+          comic_title: string
+          cover_image_url: string | null
+          created_at: string
+          heat_score: number
+          id: string
+          issue_number: string | null
+          last_refreshed_at: string
+          price_change_30d: number | null
+          price_change_7d: number | null
+          publisher: string | null
+          rank: number
+          sell_through_rate: number | null
+          sold_count: number
+          year: number | null
+        }
+        Insert: {
+          avg_sold_price?: number | null
+          comic_title: string
+          cover_image_url?: string | null
+          created_at?: string
+          heat_score?: number
+          id?: string
+          issue_number?: string | null
+          last_refreshed_at?: string
+          price_change_30d?: number | null
+          price_change_7d?: number | null
+          publisher?: string | null
+          rank: number
+          sell_through_rate?: number | null
+          sold_count?: number
+          year?: number | null
+        }
+        Update: {
+          avg_sold_price?: number | null
+          comic_title?: string
+          cover_image_url?: string | null
+          created_at?: string
+          heat_score?: number
+          id?: string
+          issue_number?: string | null
+          last_refreshed_at?: string
+          price_change_30d?: number | null
+          price_change_7d?: number | null
+          publisher?: string | null
+          rank?: number
+          sell_through_rate?: number | null
+          sold_count?: number
+          year?: number | null
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_description: string | null
@@ -3638,6 +3755,90 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      user_collection: {
+        Row: {
+          comic_title: string
+          cover_image_url: string | null
+          created_at: string
+          current_value: number | null
+          date_added: string
+          grade_estimate: string | null
+          id: string
+          inventory_item_id: string | null
+          issue_number: string | null
+          last_value_refresh: string | null
+          notes: string | null
+          publisher: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          updated_at: string
+          user_id: string
+          value_30d_change: number | null
+          value_7d_change: number | null
+          variant: string | null
+          year: number | null
+        }
+        Insert: {
+          comic_title: string
+          cover_image_url?: string | null
+          created_at?: string
+          current_value?: number | null
+          date_added?: string
+          grade_estimate?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          issue_number?: string | null
+          last_value_refresh?: string | null
+          notes?: string | null
+          publisher?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          updated_at?: string
+          user_id: string
+          value_30d_change?: number | null
+          value_7d_change?: number | null
+          variant?: string | null
+          year?: number | null
+        }
+        Update: {
+          comic_title?: string
+          cover_image_url?: string | null
+          created_at?: string
+          current_value?: number | null
+          date_added?: string
+          grade_estimate?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          issue_number?: string | null
+          last_value_refresh?: string | null
+          notes?: string | null
+          publisher?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          updated_at?: string
+          user_id?: string
+          value_30d_change?: number | null
+          value_7d_change?: number | null
+          variant?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_collection_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_collection_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_comic_images: {
         Row: {
