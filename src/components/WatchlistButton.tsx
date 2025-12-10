@@ -44,7 +44,6 @@ export const WatchlistButton = ({
           open={showUpgradeModal}
           onOpenChange={setShowUpgradeModal}
           feature="watchlist items"
-          currentCount={watchlistLimit}
           limit={watchlistLimit}
         />
         <button
@@ -81,7 +80,6 @@ export const WatchlistButton = ({
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
         feature="watchlist items"
-        currentCount={watchlistLimit}
         limit={watchlistLimit}
       />
       <Button

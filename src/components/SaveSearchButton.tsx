@@ -77,7 +77,6 @@ export function SaveSearchButton({ query, className }: SaveSearchButtonProps) {
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
         feature="saved searches"
-        currentCount={savedSearchLimit}
         limit={savedSearchLimit}
       />
       <Button
