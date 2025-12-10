@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Trash2, Loader2 } from "lucide-react";
+import { Heart, Trash2, Loader2, Crown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatCents } from "@/lib/fees";
+import { useEliteAccess } from "@/hooks/useEliteAccess";
+import { Progress } from "@/components/ui/progress";
 
 interface WatchlistItem {
   id: string;
@@ -43,6 +45,7 @@ export default function Watchlist() {
   const navigate = useNavigate();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isElite, watchlistLimit, loading: eliteLoading } = useEliteAccess();
 
   useEffect(() => {
     if (!user) {
@@ -170,15 +173,58 @@ export default function Watchlist() {
 
   return (
     <main className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold flex items-center gap-3">
-          <Heart className="h-10 w-10 text-primary" />
-          My Watchlist
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          {watchlist.length} {watchlist.length === 1 ? "item" : "items"} saved
-        </p>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-4xl font-bold flex items-center gap-3">
+            <Heart className="h-10 w-10 text-primary" />
+            My Watchlist
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {watchlist.length} {watchlist.length === 1 ? "item" : "items"} saved
+          </p>
+        </div>
+        {isElite && (
+          <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
+            <Crown className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Elite</span>
+          </div>
+        )}
       </div>
+
+      {/* Limit indicator for free users */}
+      {!eliteLoading && !isElite && (
+        <Card className="mb-6 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">
+                    {watchlist.length} of {watchlistLimit} items used
+                  </span>
+                </div>
+                <Progress 
+                  value={(watchlist.length / watchlistLimit) * 100} 
+                  className="h-2"
+                />
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => navigate("/plans")}
+                className="shrink-0"
+              >
+                <Crown className="h-4 w-4 mr-1" />
+                Upgrade
+              </Button>
+            </div>
+            {watchlist.length >= watchlistLimit && (
+              <p className="text-xs text-muted-foreground mt-2">
+                You've reached your limit. Upgrade to Elite for up to 500 watchlist items.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {watchlist.length === 0 ? (
         <div className="text-center py-20">

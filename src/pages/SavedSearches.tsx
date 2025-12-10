@@ -8,7 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Search, Trash2, Play, Bookmark } from "lucide-react";
+import { Search, Trash2, Play, Bookmark, Crown, Sparkles } from "lucide-react";
+import { useEliteAccess } from "@/hooks/useEliteAccess";
+import { Progress } from "@/components/ui/progress";
 import { formatDistanceToNow } from "date-fns";
 
 interface SavedSearch {
@@ -24,6 +26,7 @@ export default function SavedSearches() {
   const [searches, setSearches] = useState<SavedSearch[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { isElite, savedSearchLimit, loading: eliteLoading } = useEliteAccess();
 
   useEffect(() => {
     if (authLoading) return;
@@ -125,15 +128,58 @@ export default function SavedSearches() {
 
       <main className="container py-8">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
-            <Bookmark className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold">Saved Searches</h1>
-              <p className="text-muted-foreground">
-                {searches.length} saved {searches.length === 1 ? "search" : "searches"}
-              </p>
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <Bookmark className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-3xl font-bold">Saved Searches</h1>
+                <p className="text-muted-foreground">
+                  {searches.length} saved {searches.length === 1 ? "search" : "searches"}
+                </p>
+              </div>
             </div>
+            {isElite && (
+              <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
+                <Crown className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Elite</span>
+              </div>
+            )}
           </div>
+
+          {/* Limit indicator for free users */}
+          {!eliteLoading && !isElite && (
+            <Card className="mb-6 border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">
+                        {searches.length} of {savedSearchLimit} searches used
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(searches.length / savedSearchLimit) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  <Button 
+                    size="sm" 
+                    onClick={() => navigate("/plans")}
+                    className="shrink-0"
+                  >
+                    <Crown className="h-4 w-4 mr-1" />
+                    Upgrade
+                  </Button>
+                </div>
+                {searches.length >= savedSearchLimit && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    You've reached your limit. Upgrade to Elite for unlimited saved searches.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {searches.length === 0 ? (
             <Card>
