@@ -50,6 +50,7 @@ export function SaveSearchButton({ query, className }: SaveSearchButtonProps) {
         if (countError) {
           console.error("Error counting saved searches:", countError);
         } else if (count !== null && count >= savedSearchLimit) {
+          // Show modal with current count
           setShowUpgradeModal(true);
           setSaving(false);
           return;
@@ -62,10 +63,10 @@ export function SaveSearchButton({ query, className }: SaveSearchButtonProps) {
       });
 
       if (error) throw error;
-      toast.success("Search saved!");
+      toast.success("Search saved! You'll find it in your saved searches.");
     } catch (error: any) {
       console.error("Error saving search:", error);
-      toast.error(error.message || "Failed to save search");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setSaving(false);
     }

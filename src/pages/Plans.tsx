@@ -25,12 +25,12 @@ export default function Plans() {
     const canceled = searchParams.get('canceled');
 
     if (success === 'true') {
-      toast.success('Welcome to Elite! Your subscription is now active.');
+      toast.success("You're all set — Elite is active! Welcome to the club.");
       refresh();
       // Clean up URL
       navigate('/plans', { replace: true });
     } else if (canceled === 'true') {
-      toast.info('Upgrade canceled. You can upgrade anytime.');
+      toast.info("No worries — you can upgrade anytime.");
       navigate('/plans', { replace: true });
     }
   }, [searchParams, navigate, refresh]);
@@ -58,7 +58,7 @@ export default function Plans() {
       }
     } catch (err) {
       console.error('[PLANS] Upgrade error:', err);
-      toast.error('Failed to start checkout. Please try again.');
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setUpgrading(false);
     }
@@ -80,7 +80,7 @@ export default function Plans() {
       }
     } catch (err) {
       console.error('[PLANS] Portal error:', err);
-      toast.error('Failed to open subscription management. Please try again.');
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setManagingSubscription(false);
     }

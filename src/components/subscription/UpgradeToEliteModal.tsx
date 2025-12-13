@@ -33,9 +33,12 @@ export function UpgradeToEliteModal({
 
   const getLimitMessage = () => {
     if (feature && currentCount !== undefined && limit !== undefined) {
-      return `You've reached your limit of ${limit} ${feature}. Elite members get unlimited access!`;
+      return `You've used ${currentCount} of ${limit} ${feature}.`;
     }
-    return "Upgrade to Elite for unlimited access to premium features.";
+    if (feature && limit !== undefined) {
+      return `You've reached your limit of ${limit} ${feature}.`;
+    }
+    return "Unlock premium features with Elite membership.";
   };
 
   return (
@@ -101,16 +104,19 @@ export function UpgradeToEliteModal({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Button onClick={handleUpgrade} className="w-full gap-2">
+          <Button 
+            onClick={handleUpgrade} 
+            className="w-full gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
+          >
             <Crown className="h-4 w-4" />
-            Upgrade Now
+            Upgrade to Elite
           </Button>
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => onOpenChange(false)}
             className="w-full"
           >
-            Maybe Later
+            Manage Existing Items
           </Button>
         </div>
       </DialogContent>

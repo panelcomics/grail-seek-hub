@@ -64,7 +64,7 @@ export const useWatchlist = (listingId?: string) => {
 
         if (error) throw error;
         setIsInWatchlist(false);
-        toast.success("Removed from watchlist");
+        toast.success("Removed from your watchlist");
       } else {
         // Check limit for non-Elite users before adding
         if (!isElite && watchlistLimit !== -1) {
@@ -88,13 +88,13 @@ export const useWatchlist = (listingId?: string) => {
 
         if (error) throw error;
         setIsInWatchlist(true);
-        toast.success("Added to watchlist");
+        toast.success("Added to your watchlist!");
       }
 
       return true;
     } catch (error: any) {
       console.error("Error toggling watchlist:", error);
-      toast.error(error.message || "Failed to update watchlist");
+      toast.error("Something went wrong. Please try again.");
       return false;
     }
   };
