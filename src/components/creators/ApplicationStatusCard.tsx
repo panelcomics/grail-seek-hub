@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, XCircle } from "lucide-react";
+import { Clock, CheckCircle, XCircle, Palette, PenTool } from "lucide-react";
 
 interface ApplicationStatusCardProps {
   status: "pending" | "approved" | "rejected";
@@ -18,29 +18,47 @@ export function ApplicationStatusCard({
   const statusConfig = {
     pending: {
       icon: Clock,
-      label: "Under Review",
+      label: "Pending Review",
       variant: "secondary" as const,
-      description: "Your application is being reviewed by our team. We'll notify you via email once a decision is made."
+      bgClass: "bg-muted/50",
+      description: "Your application has been submitted successfully. You'll be notified once it's reviewed.",
+      subText: "Most applications are reviewed within 24–48 hours."
     },
     approved: {
       icon: CheckCircle,
       label: "Approved",
       variant: "default" as const,
-      description: "Congratulations! Your application has been approved. You can now access creator features."
+      bgClass: "bg-emerald-500/10 border-emerald-500/30",
+      description: "Congratulations! Your application has been approved. You can now access creator features.",
+      subText: null
     },
     rejected: {
       icon: XCircle,
       label: "Not Approved",
       variant: "destructive" as const,
-      description: "Your application was not approved at this time. You may reapply in the future."
+      bgClass: "bg-destructive/10 border-destructive/30",
+      description: "Your application was not approved at this time. You may reapply in the future.",
+      subText: null
     }
   };
 
   const config = statusConfig[status];
   const StatusIcon = config.icon;
 
+  // Role icon helper
+  const getRoleIcon = () => {
+    const role = roleRequested?.toLowerCase();
+    if (role === 'artist' || role === 'cover_artist') {
+      return <Palette className="w-4 h-4" />;
+    }
+    if (role === 'writer') {
+      return <PenTool className="w-4 h-4" />;
+    }
+    return null;
+  };
+
   return (
-    <Card>
+    <Card className={config.bgClass}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
@@ -48,25 +66,54 @@ export function ApplicationStatusCard({
               <StatusIcon className="w-5 h-5" />
               Application Status
             </CardTitle>
-            <CardDescription>
-              Applied for: {roleRequested.charAt(0).toUpperCase() + roleRequested.slice(1)}
+            <CardDescription className="flex items-center gap-1.5 mt-1">
+              {getRoleIcon()}
+              Applied for: {roleRequested.charAt(0).toUpperCase() + roleRequested.slice(1).replace(/_/g, ' ')}
             </CardDescription>
           </div>
-          <Badge variant={config.variant}>{config.label}</Badge>
+          <Badge variant={config.variant} className="text-sm px-3 py-1">
+            {config.label}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">{config.description}</p>
+        {/* Success confirmation for pending */}
+        {status === "pending" && (
+          <div className="flex items-start gap-3 p-4 bg-background rounded-lg border">
+            <CheckCircle className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-foreground mb-1">{config.description}</p>
+              {config.subText && (
+                <p className="text-sm text-muted-foreground">{config.subText}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {status !== "pending" && (
+          <p className="text-sm text-muted-foreground">{config.description}</p>
+        )}
         
         {adminNotes && status === "rejected" && (
-          <div className="p-3 rounded-lg bg-muted">
-            <p className="text-sm font-medium mb-1">Note from team:</p>
+          <div className="p-3 rounded-lg bg-background border">
+            <p className="text-sm font-medium mb-1">Feedback from our team:</p>
+            <p className="text-sm text-muted-foreground">{adminNotes}</p>
+          </div>
+        )}
+
+        {adminNotes && status === "approved" && (
+          <div className="p-3 rounded-lg bg-background border">
+            <p className="text-sm font-medium mb-1">Welcome note:</p>
             <p className="text-sm text-muted-foreground">{adminNotes}</p>
           </div>
         )}
 
         <p className="text-xs text-muted-foreground">
-          Submitted {new Date(createdAt).toLocaleDateString()}
+          Submitted on {new Date(createdAt).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
         </p>
       </CardContent>
     </Card>

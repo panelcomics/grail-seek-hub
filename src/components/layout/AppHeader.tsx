@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck, Crown, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { SubscriptionStatusIndicator } from "@/components/subscription/SubscriptionStatusIndicator";
 
 export function AppHeader() {
   const [user, setUser] = useState<any>(null);
@@ -227,9 +228,10 @@ export function AppHeader() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 rounded-lg border bg-card shadow-lg z-50">
-                    <div className="p-3 border-b">
+                  <div className="absolute right-0 mt-2 w-64 rounded-lg border bg-card shadow-lg z-50">
+                    <div className="p-3 border-b space-y-2">
                       <p className="text-sm font-medium truncate">{displayName}</p>
+                      <SubscriptionStatusIndicator />
                     </div>
                     <div className="py-1">
                       <DropdownLink href="/my-collection" onClick={() => setIsOpen(false)}>

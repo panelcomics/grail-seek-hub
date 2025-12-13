@@ -46,7 +46,7 @@ export function ApplicationForm() {
     e.preventDefault();
     
     if (!user) {
-      toast.error("Please log in to submit an application");
+      toast.error("Please sign in to submit an application");
       navigate("/auth");
       return;
     }
@@ -138,11 +138,11 @@ export function ApplicationForm() {
         }
       });
 
-      toast.success("Application submitted successfully!");
-      navigate("/creators/dashboard");
+      toast.success("Your application has been submitted! We'll be in touch soon.");
+      navigate("/creators/apply"); // Redirect to show status card
     } catch (error: any) {
       console.error("Error submitting application:", error);
-      toast.error(error.message || "Failed to submit application");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
       setUploading(false);

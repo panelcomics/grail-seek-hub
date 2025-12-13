@@ -120,7 +120,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
         }
       });
 
-      toast.success("Application approved successfully!");
+      toast.success("Application approved! They'll receive a welcome email.");
       setSelectedApp(null);
       setAdminNotes("");
       setReviewScore(0);
@@ -128,7 +128,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
       onUpdate();
     } catch (error: any) {
       console.error("Error approving application:", error);
-      toast.error("Failed to approve application");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -163,7 +163,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
         }
       });
 
-      toast.success("Application rejected");
+      toast.success("Application decision sent.");
       setSelectedApp(null);
       setAdminNotes("");
       setReviewScore(0);
@@ -171,7 +171,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
       onUpdate();
     } catch (error: any) {
       console.error("Error rejecting application:", error);
-      toast.error("Failed to reject application");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -311,9 +311,9 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
       <Dialog open={!!selectedApp} onOpenChange={() => setSelectedApp(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Application Review</DialogTitle>
-            <DialogDescription>
-              {selectedApp?.full_name || selectedApp?.profiles?.username} - {(selectedApp?.creator_type || selectedApp?.role_requested || '').replace(/_/g, ' ')}
+            <DialogTitle className="text-xl">Review Creator Application</DialogTitle>
+            <DialogDescription className="text-base">
+              Review the application details below and approve or reject.
             </DialogDescription>
           </DialogHeader>
 
@@ -444,13 +444,20 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
               </div>
 
               <div>
-                <h3 className="font-medium mb-2">Admin Notes (optional)</h3>
+                <h3 className="font-medium mb-2">Notes for Applicant</h3>
                 <Textarea
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add notes for the applicant..."
+                  placeholder={selectedApp?.status === "pending" 
+                    ? "Add a welcome message or feedback for the applicant..." 
+                    : "Add notes for the applicant..."}
                   rows={3}
                 />
+                {selectedApp?.status === "pending" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    💡 For rejections, include a short note explaining the decision.
+                  </p>
+                )}
               </div>
 
               {selectedApp.status === "pending" && (

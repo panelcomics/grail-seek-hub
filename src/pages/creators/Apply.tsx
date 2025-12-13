@@ -76,23 +76,38 @@ export default function Apply() {
 
   return (
     <div className="container max-w-4xl mx-auto py-12 space-y-8">
+      {/* Intro Text - Expectation Setting */}
+      <div className="bg-muted/50 border rounded-lg p-6 text-center">
+        <h1 className="text-3xl font-bold mb-2">Apply to Sell as a Creator</h1>
+        <p className="text-muted-foreground">
+          We review creator applications to protect buyers and maintain quality.
+          <br />
+          <span className="text-sm">Most applications are reviewed within 24–48 hours.</span>
+        </p>
+      </div>
+
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold">Become a Creator</h1>
-        <p className="text-lg text-muted-foreground">
-          Join GrailSeeker as an artist or writer
+        <h2 className="text-2xl font-semibold">What Type of Creator Are You?</h2>
+        <p className="text-muted-foreground">
+          Choose the role that best describes your work
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card className="relative">
           <CardHeader>
             <Palette className="w-8 h-8 mb-2 text-primary" />
-            <CardTitle>Artists</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              🎨 Artists
+            </CardTitle>
             <CardDescription>
               Create and sell original comic art, commission pieces, and variants
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3 italic">
+              "You create original comic art or covers"
+            </p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• Your own artist storefront</li>
               <li>• Direct sales to collectors</li>
@@ -102,15 +117,20 @@ export default function Apply() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative">
           <CardHeader>
             <PenTool className="w-8 h-8 mb-2 text-primary" />
-            <CardTitle>Writers</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              ✍️ Writers
+            </CardTitle>
             <CardDescription>
               Launch crowdfunding campaigns for your comic projects
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground mb-3 italic">
+              "You write stories or scripts for comics"
+            </p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• Kickstarter-style campaigns</li>
               <li>• Built-in backer management</li>

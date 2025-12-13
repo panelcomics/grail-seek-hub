@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Heart, Clock, Shield, Star } from "lucide-react";
+import { MapPin, Heart, Clock, Shield, Star, CheckCircle } from "lucide-react";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Link } from "react-router-dom";
 import { getListingImageUrl } from "@/lib/sellerUtils";
@@ -13,6 +13,12 @@ import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { useWatchAuction } from "@/hooks/useWatchAuction";
 import { SoldOffPlatformBadge } from "@/components/SoldOffPlatformBadge";
 import { getRotationTransform } from "@/lib/imageRotation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ItemCardProps {
   id: string;
@@ -62,6 +68,8 @@ interface ItemCardProps {
   isSigned?: boolean;
   signatureType?: string | null;
   signedBy?: string | null;
+  // Creator badge props
+  isApprovedCreator?: boolean;
 }
 
 const ItemCard = ({ 
@@ -111,6 +119,7 @@ const ItemCard = ({
   isSigned = false,
   signatureType = null,
   signedBy = null,
+  isApprovedCreator = false,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -314,6 +323,26 @@ const ItemCard = ({
 
             {/* Right side badges group */}
             <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Approved Creator badge */}
+              {isApprovedCreator && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant="secondary" 
+                        className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                      >
+                        <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
+                        Creator
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p className="text-xs">Verified creator on GrailSeeker</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              
               {/* Grade pill */}
               {getGradeText() && (
                 <Badge variant="secondary" className="text-[10px] font-bold px-1.5 py-0.5">
