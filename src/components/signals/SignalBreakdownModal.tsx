@@ -1,7 +1,7 @@
 /**
- * Elite Signal Breakdown Modal
- * ============================
- * Explains why a comic is signaling collector interest.
+ * Elite Heat Index Breakdown Modal
+ * =================================
+ * Explains why a comic is showing collector interest.
  * 
  * RULES:
  * - Elite users only
@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Crown, Bell, Info, Shield } from "lucide-react";
+import { Flame, Bell, Info, Shield } from "lucide-react";
 
 interface SignalBreakdownModalProps {
   open: boolean;
@@ -38,7 +38,7 @@ interface SignalBreakdownModalProps {
   onTrack?: (signalId: string) => void;
 }
 
-export function SignalBreakdownModal({
+export function HeatIndexBreakdownModal({
   open,
   onClose,
   signal,
@@ -51,7 +51,7 @@ export function SignalBreakdownModal({
     const bullets: string[] = [];
 
     if (signal.watchlist_count > 0) {
-      bullets.push("Multiple collectors added this to their watchlists recently");
+      bullets.push("Multiple collectors added this to their wantlists recently");
     }
     if (signal.scanner_count > 0) {
       bullets.push("Elevated scanner activity relative to typical levels");
@@ -84,7 +84,7 @@ export function SignalBreakdownModal({
       events.push(`Day 1: Initial collector interest detected`);
     }
     if (signal.watchlist_count > 0) {
-      events.push(`Day ${Math.min(daysSinceCreated, 2)}: Watchlist additions begin`);
+      events.push(`Day ${Math.min(daysSinceCreated, 2)}: Wantlist additions begin`);
     }
     if (signal.scanner_count > 0) {
       events.push(`Day ${Math.min(daysSinceCreated, 3)}: Scanner activity increases`);
@@ -94,7 +94,7 @@ export function SignalBreakdownModal({
     }
     
     if (daysSinceActivity <= 1) {
-      events.push("Today: Signal remains active");
+      events.push("Today: Still heating up");
     } else {
       events.push(`Recent: Last activity ${daysSinceActivity} days ago`);
     }
@@ -120,20 +120,20 @@ export function SignalBreakdownModal({
                 <p className="text-sm text-muted-foreground mt-0.5">{signal.publisher}</p>
               )}
             </div>
-            <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">
-              <Crown className="h-3 w-3 mr-1" />
-              Elite Signal
+            <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30">
+              <Flame className="h-3 w-3 mr-1" />
+              Heat Index
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-2">
-            Unusual collector behavior detected
+            Collector activity detected
           </p>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
           {/* Explanation Section */}
           <div>
-            <h3 className="font-semibold text-sm mb-3">Why this book surfaced</h3>
+            <h3 className="font-semibold text-sm mb-3">Why this book is heating up</h3>
             <ul className="space-y-2">
               {explanationBullets.map((bullet, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -148,7 +148,7 @@ export function SignalBreakdownModal({
 
           {/* Timeline Section */}
           <div>
-            <h3 className="font-semibold text-sm mb-3">Signal Timeline</h3>
+            <h3 className="font-semibold text-sm mb-3">Activity Timeline</h3>
             <div className="space-y-2 border-l-2 border-border pl-4 ml-2">
               {timelineEvents.map((event, i) => (
                 <div 
@@ -180,6 +180,11 @@ export function SignalBreakdownModal({
             </div>
           </div>
 
+          {/* Footer tooltip */}
+          <p className="text-xs text-muted-foreground text-center italic">
+            Powered by the Grail Index™, GrailSeeker's internal collector activity scoring system.
+          </p>
+
           {/* CTA */}
           {onTrack && (
             <div className="pt-2">
@@ -194,7 +199,7 @@ export function SignalBreakdownModal({
                 }}
               >
                 <Bell className="h-4 w-4 mr-2" />
-                Track This Signal
+                Track This Book
               </Button>
             </div>
           )}
@@ -203,3 +208,6 @@ export function SignalBreakdownModal({
     </Dialog>
   );
 }
+
+// Keep backward compatible export
+export const SignalBreakdownModal = HeatIndexBreakdownModal;
