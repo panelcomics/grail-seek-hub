@@ -76,20 +76,21 @@ export default function Apply() {
 
   return (
     <div className="container max-w-4xl mx-auto py-12 space-y-8">
-      {/* Intro Text - Expectation Setting */}
+      {/* Intro Text - Welcoming */}
       <div className="bg-muted/50 border rounded-lg p-6 text-center">
-        <h1 className="text-3xl font-bold mb-2">Apply to Sell as a Creator</h1>
+        <h1 className="text-3xl font-bold mb-2">Create on GrailSeeker</h1>
         <p className="text-muted-foreground">
-          We review creator applications to protect buyers and maintain quality.
-          <br />
-          <span className="text-sm">Most applications are reviewed within 24–48 hours.</span>
+          GrailSeeker supports artists, writers, and creators who want to sell original work, variants, signed books, or creator-led releases directly to fans.
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          This isn't a contest — we just want to understand what you create so we can set up your account correctly.
         </p>
       </div>
 
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-semibold">What Type of Creator Are You?</h2>
+        <h2 className="text-2xl font-semibold">Tell us about your work</h2>
         <p className="text-muted-foreground">
-          Choose the role that best describes your work
+          Choose the role that best describes what you create
         </p>
       </div>
 
@@ -143,9 +144,9 @@ export default function Apply() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Apply Now</CardTitle>
+          <CardTitle>Tell us about your work</CardTitle>
           <CardDescription>
-            Tell us about yourself and your work. We review all applications carefully.
+            Just a few details so we can set up your creator account.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -18,18 +18,18 @@ export function ApplicationStatusCard({
   const statusConfig = {
     pending: {
       icon: Clock,
-      label: "Pending Review",
+      label: "Under Review",
       variant: "secondary" as const,
       bgClass: "bg-muted/50",
-      description: "Your application has been submitted successfully. You'll be notified once it's reviewed.",
-      subText: "Most applications are reviewed within 24–48 hours."
+      description: "✅ Application received! We'll review this shortly and reach out if we need anything else.",
+      subText: "Most creators hear back quickly."
     },
     approved: {
       icon: CheckCircle,
       label: "Approved",
       variant: "default" as const,
       bgClass: "bg-emerald-500/10 border-emerald-500/30",
-      description: "Congratulations! Your application has been approved. You can now access creator features.",
+      description: "🎉 You're approved! You can now create listings, run events, and sell directly on GrailSeeker.",
       subText: null
     },
     rejected: {

@@ -23,13 +23,32 @@ export default function Sell() {
         <section className="bg-gradient-to-b from-primary/10 to-background py-20 px-4">
           <div className="container mx-auto max-w-4xl text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Start Selling Your Grails
+              Sell Comics on Your Terms
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join GrailSeeker and connect with collectors who appreciate your comics as much as you do.
+            <p className="text-lg md:text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
+              List when you want. Keep more of every sale.
+            </p>
+            <p className="text-base text-muted-foreground mb-8 max-w-xl mx-auto">
+              No monthly seller fees. No exclusivity.
             </p>
             
-            {/* Key Benefits */}
+            {/* Key Benefits - Bullet Points */}
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-12 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Set your own prices
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Edit or remove listings anytime
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Nothing goes live without your approval
+              </span>
+            </div>
+
+            {/* Fee Cards */}
             <div className="grid md:grid-cols-3 gap-6 mb-12 max-w-3xl mx-auto text-left">
               <div className="bg-card border border-border rounded-lg p-4">
                 <div className="text-2xl font-bold text-primary mb-2">0%</div>
@@ -110,8 +129,8 @@ export default function Sell() {
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
               Ready to Start Selling?
             </h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of collectors and shops already on GrailSeeker.
+            <p className="text-sm text-muted-foreground mb-8">
+              GrailSeeker is built for collectors and sellers — not volume resellers.
             </p>
             <Button 
               size="lg" 

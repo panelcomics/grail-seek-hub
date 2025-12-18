@@ -155,7 +155,9 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
         meta: { inventory_item_id: inventoryItem.id, listing_id: listingResult?.id, price_cents: priceCents },
       });
 
-      toast.success(existingListing ? "Item relisted!" : "Item listed for sale!");
+      toast.success(
+        existingListing ? "Item relisted!" : "🎉 Your listing is live! Sellers with 3+ listings tend to get more visibility on the homepage."
+      );
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
@@ -172,7 +174,7 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
         <DialogHeader>
           <DialogTitle>List Item for Sale</DialogTitle>
           <DialogDescription>
-            Set your price and review the fees before listing
+            You're in control — draft listings are private until you publish.
           </DialogDescription>
         </DialogHeader>
 
@@ -208,6 +210,9 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
               onChange={(e) => setPrice(e.target.value)}
             />
             <p className="text-xs text-muted-foreground mt-1">
+              You control the price — we don't auto-adjust. You can change this later.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
               {isFoundingSeller 
                 ? `Your seller fee: ${FEE_DISPLAY_TEXT.FOUNDING_RATE} GrailSeeker fee + Stripe processing` 
                 : `Your seller fee: ${FEE_DISPLAY_TEXT.STANDARD_RATE} GrailSeeker fee + Stripe processing`}
@@ -231,6 +236,10 @@ export function ListItemModal({ open, onOpenChange, inventoryItem, onSuccess }: 
             </div>
           )}
         </div>
+
+        <p className="text-xs text-muted-foreground text-center">
+          You'll review everything before publishing
+        </p>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>

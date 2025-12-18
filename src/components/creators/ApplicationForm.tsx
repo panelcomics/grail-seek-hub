@@ -138,7 +138,7 @@ export function ApplicationForm() {
         }
       });
 
-      toast.success("Your application has been submitted! We'll be in touch soon.");
+      toast.success("✅ Application received! We'll review this shortly and reach out if we need anything else. Most creators hear back quickly.");
       navigate("/creators/apply"); // Redirect to show status card
     } catch (error: any) {
       console.error("Error submitting application:", error);
@@ -178,7 +178,7 @@ export function ApplicationForm() {
       </div>
 
       <div className="space-y-3">
-        <Label htmlFor="creatorType">Creator Type *</Label>
+        <Label htmlFor="creatorType">What best describes what you create? *</Label>
         <select
           id="creatorType"
           className="w-full px-4 py-2 rounded-md border border-border bg-background"
@@ -193,6 +193,7 @@ export function ApplicationForm() {
           <option value="publisher">Publisher</option>
           <option value="grailfunding_creator">GrailFunding Creator</option>
         </select>
+        <p className="text-xs text-muted-foreground">Select all that apply</p>
       </div>
 
       <PortfolioLinksField
@@ -263,15 +264,16 @@ export function ApplicationForm() {
       </div>
 
       <div className="space-y-3">
-        <Label htmlFor="bio">Bio / About You *</Label>
+        <Label htmlFor="bio">Tell us a little about what you create *</Label>
         <Textarea
           id="bio"
-          placeholder="Tell us about your work, experience, and what you'd like to create..."
+          placeholder="Tell us about your work and what you'd like to create..."
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           disabled={submitting}
           rows={6}
         />
+        <p className="text-xs text-muted-foreground">Just a few sentences is perfect.</p>
       </div>
 
       <div className="space-y-3">
