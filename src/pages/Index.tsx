@@ -73,25 +73,25 @@ export default function Index() {
         {/* 2. Hero Section - Primary Identity */}
         <HeroSection />
         
-        {/* 3. Built for Collectors - Grounding Section */}
-        <BuiltForCollectorsSection />
-        
-        {/* 4. Scanner Assist Feature (Core Tool - Equal/Greater Weight) */}
-        <FeatureHighlightSection feature="scanner-assist" />
-        
-        {/* 5. Heat Index Feature (Secondary) */}
-        <FeatureHighlightSection feature="heat-index" />
-        
-        {/* Event Lane: Shows live/upcoming seller events */}
-        <EventsLane />
-        
-        {/* Featured Grails — Buy It Now */}
+        {/* 3. Featured Grails — Buy It Now (moved up for faster time-to-first-comic) */}
         <ListingsCarousel
           title="✨ Featured Grails — Buy It Now" 
           filterType="featured-grails"
           useCache
           cacheKey="featured-grails"
         />
+        
+        {/* 4. Built for Collectors - Grounding Section (compressed) */}
+        <BuiltForCollectorsSection />
+        
+        {/* 5. Scanner Assist Feature (Core Tool - Equal/Greater Weight) */}
+        <FeatureHighlightSection feature="scanner-assist" />
+        
+        {/* 6. Heat Index Feature (Secondary) */}
+        <FeatureHighlightSection feature="heat-index" />
+        
+        {/* Event Lane: Shows live/upcoming seller events */}
+        <EventsLane />
         
         {/* Featured Shop: Panel Comics */}
         <LazyCarousel>
