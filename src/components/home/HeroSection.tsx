@@ -69,7 +69,7 @@ export function HeroSection() {
                   onClick={() => navigate('/signals')}
                   className="w-full text-base sm:text-lg px-6 py-6 sm:py-6 shadow-[0_4px_14px_rgba(230,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(230,0,0,0.35)] transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#E60000] hover:bg-[#FF1A1A] font-bold min-h-[52px] sm:min-h-[56px]"
                 >
-                  Explore Signals
+                  See What's Heating Up
                 </Button>
                 <Button 
                   size="lg" 

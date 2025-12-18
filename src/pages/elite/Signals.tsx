@@ -105,9 +105,9 @@ export default function Signals() {
   const visibleSignals = isElite ? signals : signals.slice(0, FREE_LIMIT);
   const hiddenCount = isElite ? 0 : Math.max(0, signals.length - FREE_LIMIT);
 
-  // Get signal strength label
-  const getSignalStrength = (score: number): { label: string; color: string } => {
-    if (score >= 20) return { label: "Hot", color: "bg-red-500" };
+  // Get heat score label
+  const getHeatScore = (score: number): { label: string; color: string } => {
+    if (score >= 20) return { label: "🔥 Hot", color: "bg-red-500" };
     if (score >= 10) return { label: "Warming", color: "bg-amber-500" };
     return { label: "Emerging", color: "bg-blue-500" };
   };
@@ -146,7 +146,7 @@ export default function Signals() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">
-              Sign in to view collector signals
+              Sign in to view the Heat Index
             </p>
             <Button onClick={() => navigate('/auth')}>Sign In</Button>
           </CardContent>
@@ -158,16 +158,16 @@ export default function Signals() {
   return (
     <TooltipProvider>
       <Helmet>
-        <title>Collector Signals | GrailSeeker</title>
-        <meta name="description" content="See what comics collectors are watching. Market intelligence based on platform activity." />
+        <title>🔥 Heat Index | GrailSeeker</title>
+        <meta name="description" content="Comics getting real collector attention right now — based on what collectors are searching, saving, and tracking." />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Collector Signals</h1>
+            <Flame className="h-8 w-8 text-orange-500" />
+            <h1 className="text-3xl font-bold">🔥 Heat Index</h1>
             {isElite && (
               <Badge variant="secondary" className="bg-amber-500/20 text-amber-500">
                 <Crown className="h-3 w-3 mr-1" />
@@ -175,16 +175,41 @@ export default function Signals() {
               </Badge>
             )}
           </div>
-          <p className="text-muted-foreground">
-            See what comics are quietly heating up based on recent collector activity.
+          <p className="text-muted-foreground max-w-2xl">
+            Heat Index highlights comics that collectors are actively paying attention to right now.
+            Instead of relying on listings or asking prices, Heat Index is based on collector behavior — including searches, wantlists, and tracking activity — helping surface momentum before sellers react.
           </p>
           
-          {/* Trust disclaimer */}
-          <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
-            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <p>
-              Signals reflect platform behavior, not price predictions. 
-              This is observational data to help you understand collector interest patterns.
+          {/* How It Works */}
+          <div className="mt-6 bg-muted/50 rounded-lg p-4">
+            <h2 className="font-semibold mb-2">How Heat Index Works</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Heat Index is driven by real collector behavior, not seller listings or promotions.
+              Books rise when collectors search for them more often, add them to wantlists, and actively track them over time.
+            </p>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li className="flex items-center gap-2"><span className="text-primary">•</span> Based on searches, saves, and wantlists</li>
+              <li className="flex items-center gap-2"><span className="text-primary">•</span> No sponsored placement</li>
+              <li className="flex items-center gap-2"><span className="text-primary">•</span> Updates automatically as activity changes</li>
+            </ul>
+          </div>
+
+          {/* What Makes a Book Hot */}
+          <div className="mt-4 bg-muted/30 rounded-lg p-4">
+            <h2 className="font-semibold mb-2">What Makes a Book "Hot"?</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Each book receives a Heat Score that reflects current collector attention.
+              A higher score means more collectors are watching a book — not that prices are guaranteed to rise.
+            </p>
+            <div className="text-sm text-muted-foreground space-y-1 mb-3">
+              <p className="font-medium text-foreground text-xs">Visible factors:</p>
+              <li className="flex items-center gap-2"><span className="text-primary">•</span> Increase in searches</li>
+              <li className="flex items-center gap-2"><span className="text-primary">•</span> Adds to wantlists</li>
+              <li className="flex items-center gap-2"><span className="text-primary">•</span> Page views</li>
+              <li className="flex items-center gap-2"><span className="text-primary">•</span> Recent activity</li>
+            </div>
+            <p className="text-xs text-muted-foreground italic">
+              Heat Index reflects attention, not price predictions.
             </p>
           </div>
         </div>
@@ -214,25 +239,28 @@ export default function Signals() {
           <Card>
             <CardContent className="py-12 text-center">
               <Flame className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No signals yet</h3>
+              <h3 className="text-lg font-semibold mb-2">Nothing heating up yet</h3>
               <p className="text-muted-foreground">
-                Collector signals are generated from platform activity. 
+                Heat Index is generated from collector activity. 
                 Check back soon as more collectors use the scanner and watchlists.
               </p>
             </CardContent>
           </Card>
         )}
 
-        {/* Signals list */}
+        {/* Heat Index list */}
         {!loading && !tierLoading && visibleSignals.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <Flame className="h-5 w-5 text-orange-500" />
-              Quietly Heating Up
+              Comics getting real collector attention right now
             </h2>
+            <p className="text-sm text-muted-foreground -mt-2">
+              No paid boosts. No seller hype. Just collector activity.
+            </p>
 
             {visibleSignals.map((signal, index) => {
-              const strength = getSignalStrength(signal.signal_score);
+              const heatScore = getHeatScore(signal.signal_score);
               const bullets = getExplainBullets(signal);
               const isExpanded = expandedId === signal.id;
 
@@ -319,13 +347,13 @@ export default function Signals() {
                         </div>
                       </div>
 
-                      {/* Signal score badge */}
+                      {/* Heat score badge */}
                       <div className="flex-shrink-0 text-right">
-                        <Badge className={`${strength.color} text-white`}>
-                          {strength.label}
+                        <Badge className={`${heatScore.color} text-white`}>
+                          {heatScore.label}
                         </Badge>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Score: {signal.signal_score}
+                          Heat Score: {signal.signal_score}
                         </p>
                       </div>
                     </div>
@@ -342,14 +370,14 @@ export default function Signals() {
                           ) : (
                             <>
                               <ChevronDown className="h-4 w-4 mr-1" />
-                              Why this is showing
+                              Why this is heating up
                             </>
                           )}
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-3">
                         <div className="bg-muted/50 rounded-lg p-4">
-                          <h4 className="text-sm font-medium mb-2">Signal Breakdown</h4>
+                          <h4 className="text-sm font-medium mb-2">Collector Activity Breakdown</h4>
                           <ul className="space-y-1.5">
                             {bullets.map((bullet, i) => (
                               <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
@@ -359,7 +387,7 @@ export default function Signals() {
                             ))}
                           </ul>
                           <p className="text-xs text-muted-foreground mt-3 italic">
-                            Based on recent collector activity on GrailSeeker
+                            Powered by the Grail Index™, GrailSeeker's internal collector activity scoring system.
                           </p>
                         </div>
                       </CollapsibleContent>
@@ -375,8 +403,8 @@ export default function Signals() {
         {!loading && !tierLoading && !isElite && hiddenCount > 0 && (
           <div className="mt-8">
             <EliteLockedPreview
-              title={`${hiddenCount} more signals available`}
-              description="Elite members get full access to all collector signals and early market intelligence."
+              title={`${hiddenCount} more heating up`}
+              description="Elite members get full access to the Heat Index and early collector intelligence."
             />
           </div>
         )}
@@ -384,8 +412,8 @@ export default function Signals() {
         {/* Footer disclaimer */}
         <div className="mt-8 text-center text-xs text-muted-foreground">
           <p>
-            Collector Signals are based on aggregated platform activity and do not constitute 
-            investment advice. Past collector interest does not guarantee future market performance.
+            Heat Index reflects attention, not price predictions. 
+            No paid boosts. No seller hype. Just collector activity.
           </p>
         </div>
       </div>

@@ -1,13 +1,13 @@
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Lock, TrendingUp, Eye, Scan, Package } from "lucide-react";
+import { Lock, TrendingUp, Eye, Scan, Package, Flame } from "lucide-react";
 
-const SIGNAL_BADGES = [
-  { label: "Quietly Heating Up", icon: TrendingUp },
+const HEAT_BADGES = [
+  { label: "🔥 Hot", icon: Flame },
   { label: "Watchlist Spike", icon: Eye },
-  { label: "Unusual Scan Activity", icon: Scan },
-  { label: "Supply Tightening", icon: Package },
+  { label: "Scanner Activity", icon: Scan },
+  { label: "Supply Tight", icon: Package },
 ];
 
 const MOCK_SIGNALS = [
@@ -25,13 +25,13 @@ const MOCK_SIGNALS = [
   { title: "Saga", issue: "#1", cover: "/covers/sample-xmen.jpg" },
 ];
 
-function SignalCard({ title, issue, cover, badgeIndex }: { 
+function HeatCard({ title, issue, cover, badgeIndex }: { 
   title: string; 
   issue: string; 
   cover: string; 
   badgeIndex: number;
 }) {
-  const badge = SIGNAL_BADGES[badgeIndex % SIGNAL_BADGES.length];
+  const badge = HEAT_BADGES[badgeIndex % HEAT_BADGES.length];
   const BadgeIcon = badge.icon;
 
   return (
@@ -48,12 +48,12 @@ function SignalCard({ title, issue, cover, badgeIndex }: {
         <h3 className="font-semibold text-sm text-foreground line-clamp-1">
           {title} {issue}
         </h3>
-        <div className="flex items-center gap-1.5 text-xs text-primary">
+        <div className="flex items-center gap-1.5 text-xs text-orange-500">
           <BadgeIcon className="h-3 w-3" />
           <span>{badge.label}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Increased collector attention detected this week
+          Collector activity detected this week
         </p>
       </div>
     </div>
@@ -68,10 +68,10 @@ function LockedTeaserCard() {
           <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3">
             <Lock className="h-5 w-5 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium text-foreground mb-1">More signals detected</p>
-          <p className="text-xs text-muted-foreground mb-3">Elite members see why these books matter</p>
+          <p className="text-sm font-medium text-foreground mb-1">More books heating up</p>
+          <p className="text-xs text-muted-foreground mb-3">Elite members see the full Heat Index</p>
           <Button asChild size="sm" variant="outline" className="text-xs">
-            <Link to="/plans">See Full Signal Breakdown</Link>
+            <Link to="/plans">See Full Heat Index</Link>
           </Button>
         </div>
       </div>
@@ -85,10 +85,10 @@ function ExplanationStrip() {
       <div className="container max-w-6xl mx-auto px-4">
         <div className="grid md:grid-cols-3 gap-8">
           <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">What is a Signal?</h3>
+            <h3 className="font-semibold text-foreground">How Heat Index Works</h3>
             <p className="text-sm text-muted-foreground">
-              Signals detect patterns in collector behavior — watchlist additions, scanner activity, 
-              and inventory changes — aggregated and anonymized across the platform.
+              Heat Index is driven by real collector behavior, not seller listings or promotions.
+              Books rise when collectors search for them more often, add them to wantlists, and actively track them over time.
             </p>
           </div>
           <div className="space-y-2">
@@ -101,7 +101,7 @@ function ExplanationStrip() {
           <div className="space-y-2">
             <h3 className="font-semibold text-foreground">Why It Matters</h3>
             <p className="text-sm text-muted-foreground">
-              Collector interest often precedes visible market movement. Signals help you spot 
+              Collector interest often precedes visible market movement. Heat Index helps you spot 
               what's gaining attention before it becomes obvious.
             </p>
           </div>
@@ -122,7 +122,7 @@ export default function SignalsTeaser() {
     }
     const signal = MOCK_SIGNALS[i];
     gridItems.push(
-      <SignalCard 
+      <HeatCard 
         key={signal.title + signal.issue}
         title={signal.title}
         issue={signal.issue}
@@ -136,13 +136,13 @@ export default function SignalsTeaser() {
   return (
     <>
       <Helmet>
-        <title>Quiet Collector Signals | GrailSeeker</title>
+        <title>🔥 Heat Index | GrailSeeker</title>
         <meta 
           name="description" 
-          content="Comics showing unusual collector interest — before the market reacts. Powered by anonymized watchlist, scanner, and activity data." 
+          content="Comics getting real collector attention right now — based on what collectors are searching, saving, and tracking." 
         />
-        <meta property="og:title" content="Quiet Collector Signals | GrailSeeker" />
-        <meta property="og:description" content="Comics showing unusual collector interest — before the market reacts." />
+        <meta property="og:title" content="🔥 Heat Index | GrailSeeker" />
+        <meta property="og:description" content="Comics getting real collector attention right now — before the market reacts." />
         <link rel="canonical" href="/signals" />
       </Helmet>
 
@@ -151,13 +151,13 @@ export default function SignalsTeaser() {
         <header className="py-12 md:py-16 text-center px-4">
           <div className="container max-w-3xl mx-auto space-y-4">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              Quiet Collector Signals
+              🔥 Heat Index
             </h1>
             <p className="text-lg text-muted-foreground">
-              Comics showing unusual collector interest — before the market reacts.
+              Comics getting real collector attention right now — based on what collectors are searching, saving, and tracking.
             </p>
             <p className="text-sm text-muted-foreground/80">
-              Powered by anonymized watchlist, scanner, and activity data.
+              No paid boosts. No seller hype. Just collector activity.
             </p>
           </div>
         </header>
@@ -166,7 +166,7 @@ export default function SignalsTeaser() {
         <section className="pb-8 text-center px-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button asChild size="lg">
-              <Link to="/plans">Unlock Full Signals</Link>
+              <Link to="/plans">See What's Heating Up</Link>
             </Button>
             <Button asChild variant="ghost" size="lg">
               <Link to="/scanner">Try Scanner Assist</Link>
@@ -194,7 +194,7 @@ export default function SignalsTeaser() {
             </h2>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button asChild size="lg">
-                <Link to="/plans">Unlock Elite Signals</Link>
+                <Link to="/plans">Unlock Full Heat Index</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
                 <Link to="/scanner">Try Scanner Assist</Link>
@@ -202,6 +202,13 @@ export default function SignalsTeaser() {
             </div>
           </div>
         </section>
+
+        {/* Footer tooltip */}
+        <div className="pb-8 text-center">
+          <p className="text-xs text-muted-foreground">
+            Powered by the Grail Index™, GrailSeeker's internal collector activity scoring system.
+          </p>
+        </div>
       </div>
     </>
   );
