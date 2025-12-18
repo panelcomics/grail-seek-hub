@@ -2,13 +2,9 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { HeroSection } from "@/components/home/HeroSection";
-import { SocialProof } from "@/components/home/SocialProof";
-import { FeesSection } from "@/components/home/FeesSection";
-import { CategoryFilter } from "@/components/home/CategoryFilter";
+import { BuiltForCollectorsSection } from "@/components/home/BuiltForCollectorsSection";
+import { FeatureHighlightSection } from "@/components/home/FeatureHighlightSection";
 import { ListingsCarousel } from "@/components/home/ListingsCarousel";
-import { LocalDealsCarousel } from "@/components/home/LocalDealsCarousel";
-import { BenefitBlocks } from "@/components/home/BenefitBlocks";
-import { TrustSection } from "@/components/home/TrustSection";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
 import { FEATURED_SELLERS } from "@/config/featuredSellers";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,15 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Check, Camera } from "lucide-react";
 import { useOnboardingCheck } from "@/hooks/useOnboardingCheck";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
-import FeaturedShops from "@/components/FeaturedShops";
-import { SafetySection } from "@/components/home/SafetySection";
 import { LazyCarousel } from "@/components/LazyCarousel";
 import { EventsLane } from "@/components/home/EventsLane";
 
 export default function Index() {
   useOnboardingCheck(); // Check if user needs onboarding
   
-  const [activeCategory, setActiveCategory] = useState("all");
   const [searchParams, setSearchParams] = useSearchParams();
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
 
@@ -42,10 +35,10 @@ export default function Index() {
   return (
     <>
       <Helmet>
-        <title>GrailSeeker - The Trusted Marketplace for Comic Grails & Keys</title>
+        <title>GrailSeeker - Find the Comics Collectors Are Chasing</title>
         <meta 
           name="description" 
-          content="Buy, sell, and trade comics, slabs, keys, and original art from verified collectors. Lower fees, faster listings, built by collectors for collectors." 
+          content="Search, scan, and track comics using real collector activity. Discover books collectors are watching, scan instantly with Scanner Assist, and buy/sell with transparent fees." 
         />
       </Helmet>
 
@@ -77,17 +70,22 @@ export default function Index() {
         {/* 1. Founding Sellers Banner */}
         <FoundingSellersBanner />
         
-        {/* 2. Comic Stack Hero */}
+        {/* 2. Hero Section - Primary Identity */}
         <HeroSection />
         
-        {/* 
-          Event Lane Lite: Shows live/upcoming seller events
-          Only renders if events array has items, hides completely otherwise.
-          Position: After hero, before listings for visibility.
-        */}
+        {/* 3. Built for Collectors - Grounding Section */}
+        <BuiltForCollectorsSection />
+        
+        {/* 4. Scanner Assist Feature (Core Tool - Equal/Greater Weight) */}
+        <FeatureHighlightSection feature="scanner-assist" />
+        
+        {/* 5. Heat Index Feature (Secondary) */}
+        <FeatureHighlightSection feature="heat-index" />
+        
+        {/* Event Lane: Shows live/upcoming seller events */}
         <EventsLane />
         
-        {/* 3. Featured Grails — Buy It Now (lazy load with priority for first 3 images) */}
+        {/* Featured Grails — Buy It Now */}
         <ListingsCarousel
           title="✨ Featured Grails — Buy It Now" 
           filterType="featured-grails"
@@ -95,7 +93,7 @@ export default function Index() {
           cacheKey="featured-grails"
         />
         
-        {/* 4. Featured Shop: Panel Comics (lazy) */}
+        {/* Featured Shop: Panel Comics */}
         <LazyCarousel>
           <PremiumDealerCarousel 
             sellerId={FEATURED_SELLERS.PANEL_COMICS.sellerId}
@@ -105,7 +103,7 @@ export default function Index() {
           />
         </LazyCarousel>
         
-        {/* 5. Newly Listed (lazy) */}
+        {/* Newly Listed */}
         <LazyCarousel>
           <ListingsCarousel 
             title="Newly Listed" 
@@ -114,34 +112,6 @@ export default function Index() {
             cacheKey="newly-listed"
           />
         </LazyCarousel>
-        
-        {/* Ending Soon carousel removed for beta to reduce load */}
-        
-        {/* Additional sections - Commented out for now */}
-        {/* <PremiumDealerCarousel 
-          sellerId={FEATURED_SELLERS.KISS_KOMIXX.sellerId}
-          sellerName={FEATURED_SELLERS.KISS_KOMIXX.displayName}
-          useCache
-          cacheKey="featured-shop-kiss-komixx"
-        /> */}
-        
-        {/* <TrustSection /> */}
-        
-        {/* <SocialProof /> */}
-        
-        {/* Everything else - Commented out for now */}
-        {/* <SafetySection /> */}
-        
-        {/* <FeesSection /> */}
-        
-        {/* <CategoryFilter 
-          activeCategory={activeCategory} 
-          onCategoryChange={setActiveCategory} 
-        /> */}
-
-        {/* <FeaturedShops /> */}
-
-        {/* <BenefitBlocks /> */}
       </main>
     </>
   );
