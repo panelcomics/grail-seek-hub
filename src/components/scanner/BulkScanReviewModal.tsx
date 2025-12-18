@@ -3,10 +3,14 @@
  * ==========================================================================
  * Review and confirm a single bulk scan item.
  * User MUST select a candidate before confirming.
+ * 
+ * v3 Features:
+ * - Auto-preselect top candidate for High confidence items
+ * - Confidence badge display
  * ==========================================================================
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Search, AlertCircle } from "lucide-react";
+import { Check, Search, AlertCircle, Sparkles } from "lucide-react";
 import { ComicVinePick } from "@/types/comicvine";
 import { BulkScanItem } from "@/hooks/useBulkScan";
 import { getConfidenceLabel } from "@/lib/comicVineMatchingStrategy";
@@ -29,6 +33,7 @@ interface BulkScanReviewModalProps {
   onConfirm: (pick: ComicVinePick) => void;
   onSkip: () => void;
   onManualSearch: () => void;
+  autoPreselect?: boolean;
 }
 
 export function BulkScanReviewModal({
@@ -38,8 +43,18 @@ export function BulkScanReviewModal({
   onConfirm,
   onSkip,
   onManualSearch,
+  autoPreselect = false,
 }: BulkScanReviewModalProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // Auto-preselect top candidate when modal opens for high confidence items
+  useEffect(() => {
+    if (open && item && autoPreselect && item.candidates.length > 0) {
+      setSelectedId(item.candidates[0].id);
+    } else if (!open) {
+      setSelectedId(null);
+    }
+  }, [open, item, autoPreselect]);
 
   const handleConfirm = () => {
     if (item && selectedId !== null) {
@@ -64,10 +79,20 @@ export function BulkScanReviewModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Review & Confirm</DialogTitle>
+          <div className="flex items-center gap-2">
+            <DialogTitle>Review & Confirm</DialogTitle>
+            {item?.confidence === "high" && (
+              <Badge className="bg-green-500/20 text-green-600 border-green-500/30">
+                <Sparkles className="w-3 h-3 mr-1" />
+                High confidence
+              </Badge>
+            )}
+          </div>
           <DialogDescription>
             {hasMatches
-              ? "Select the correct match for this comic."
+              ? item?.confidence === "high" 
+                ? "Top match pre-selected. Confirm or choose a different match."
+                : "Select the correct match for this comic."
               : "No confident matches found. Search manually or skip."}
           </DialogDescription>
         </DialogHeader>
