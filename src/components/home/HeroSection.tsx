@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, TrendingUp, Package, Clock, BadgeCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
 import { EnhancedSearchInput } from "./EnhancedSearchInput";
@@ -9,15 +8,6 @@ import heroComics from "@/assets/hero-comics.png";
 export function HeroSection() {
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const navigate = useNavigate();
-
-  const scrollToListings = () => {
-    const listingsSection = document.querySelector('[data-listings-section]');
-    if (listingsSection) {
-      listingsSection.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      navigate('/marketplace');
-    }
-  };
 
   return (
     <>
@@ -28,25 +18,14 @@ export function HeroSection() {
             <div className="w-full lg:w-1/2 space-y-1.5 sm:space-y-4 md:space-y-5 lg:space-y-4 flex flex-col px-0 sm:px-0 lg:pt-0">
               {/* Headline - order 1 on mobile */}
               <div className="order-1 px-4 pt-1.5 sm:pt-0 sm:px-0">
-              <h1 className="text-[24px] leading-[1.2] sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-1.5 sm:mb-3 md:mb-4 text-center sm:text-left">
-                  Collector Signals.{" "}
-                  <span className="text-primary drop-shadow-lg block sm:inline mt-0.5 sm:mt-0">Not Seller Noise.</span>
+                <h1 className="text-[24px] leading-[1.2] sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-1.5 sm:mb-3 md:mb-4 text-center sm:text-left">
+                  Find the Comics{" "}
+                  <span className="text-primary drop-shadow-lg block sm:inline mt-0.5 sm:mt-0">Collectors Are Chasing</span>
                 </h1>
                 
                 <p className="text-xs sm:text-lg md:text-xl text-foreground/80 leading-snug sm:leading-relaxed text-center sm:text-left px-2 sm:px-0">
-                  Discover comics gaining real attention — before the market reacts.
+                  Search, scan, and track comics using real collector activity — not seller hype.
                 </p>
-
-                <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 py-1.5 sm:py-3 text-muted-foreground justify-center sm:justify-start">
-                  <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm">
-                    <Shield className="h-2.5 w-2.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
-                    <span className="whitespace-nowrap">Built for collectors</span>
-                  </div>
-                  <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm">
-                    <TrendingUp className="h-2.5 w-2.5 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
-                    <span className="whitespace-nowrap">Lifetime 2% fee</span>
-                  </div>
-                </div>
               </div>
 
               {/* Hero image - order 2 on mobile, prominent and large */}
@@ -62,53 +41,28 @@ export function HeroSection() {
                 </div>
               </div>
 
-              {/* Buttons - order 3 on mobile (moved up for better flow) */}
+              {/* Primary CTA - order 3 on mobile */}
               <div className="order-3 flex flex-col gap-2 sm:gap-3 px-4 sm:px-0 mt-1 sm:mt-0">
                 <Button 
                   size="lg" 
-                  onClick={() => navigate('/signals')}
+                  onClick={() => navigate('/scanner')}
                   className="w-full text-base sm:text-lg px-6 py-6 sm:py-6 shadow-[0_4px_14px_rgba(230,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(230,0,0,0.35)] transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#E60000] hover:bg-[#FF1A1A] font-bold min-h-[52px] sm:min-h-[56px]"
                 >
-                  See What's Heating Up
+                  Scan or Search a Comic
                 </Button>
                 <Button 
                   size="lg" 
-                  variant="outline"
-                  onClick={() => navigate('/scanner')}
-                  className="w-full text-base sm:text-lg px-6 py-6 sm:py-6 border-2 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] font-semibold min-h-[52px] sm:min-h-[56px]"
+                  variant="ghost"
+                  onClick={() => navigate('/signals')}
+                  className="w-full text-sm sm:text-base px-6 py-3 sm:py-4 text-muted-foreground hover:text-foreground font-medium"
                 >
-                  Try Scanner Assist
+                  Browse the Heat Index
                 </Button>
               </div>
 
-              {/* Search bar - order 4 on mobile, order 3.5 on desktop (between buttons and stats) */}
+              {/* Search bar - order 4 on mobile */}
               <div className="order-4 lg:order-[3.5] w-full px-4 sm:px-0 lg:mt-2">
                 <EnhancedSearchInput />
-              </div>
-
-              {/* Stats - order 5 on mobile, order 4 on desktop */}
-              <div className="order-5 lg:order-4 grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 px-4 sm:px-0 pt-3 pb-2 sm:pt-6 sm:pb-0 lg:pt-4 border-t border-border/40">
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
-                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                  </div>
-                  <div className="text-2xl sm:text-2xl md:text-3xl font-black text-primary leading-none">500+</div>
-                  <div className="text-[11px] sm:text-xs md:text-sm text-muted-foreground font-medium mt-1">Live Slabs</div>
-                </div>
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
-                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                  </div>
-                  <div className="text-2xl sm:text-2xl md:text-3xl font-black text-primary leading-none">New</div>
-                  <div className="text-[11px] sm:text-xs md:text-sm text-muted-foreground font-medium mt-1 leading-tight">Listings<br className="sm:hidden" /> Every Hour</div>
-                </div>
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5">
-                    <BadgeCheck className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                  </div>
-                  <div className="text-2xl sm:text-2xl md:text-3xl font-black text-primary leading-none">Verified</div>
-                  <div className="text-[11px] sm:text-xs md:text-sm text-muted-foreground font-medium mt-1 leading-tight">Sellers &<br className="sm:hidden" /> Dealers</div>
-                </div>
               </div>
             </div>
 
