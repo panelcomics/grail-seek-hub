@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Search, Download, Upload, Loader2, Edit2, Save, X, Filter, DollarSign, CheckSquare, Square } from "lucide-react";
+import { Search, Download, Upload, Loader2, Edit2, Save, X, Filter, DollarSign, CheckSquare, Square, Camera } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { exportInventoryToCSV, downloadCSV } from "@/lib/csvUtils";
 import { CSVImportModal } from "@/components/CSVImportModal";
@@ -20,6 +20,8 @@ import { BulkActionsBar } from "@/components/BulkActionsBar";
 import { formatDistanceToNow } from "date-fns";
 import { CollectionSidebar } from "@/components/CollectionSidebar";
 import { BulkPhotoUpload } from "@/components/BulkPhotoUpload";
+import { ScannerAssistButton } from "@/components/scanner/ScannerAssistButton";
+import { ComicVinePick } from "@/types/comicvine";
 
 interface InventoryItem {
   id: string;
@@ -157,6 +159,61 @@ export default function MyInventory() {
     toast.success("Inventory exported!");
   };
 
+  // Handler for Scanner Assist selection - creates inventory item and navigates to edit
+  const handleScannerAssistSelect = async (pick: ComicVinePick, imageUrl: string) => {
+    if (!user) {
+      toast.error("Please sign in first");
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      // Create inventory item from Scanner Assist selection
+      const inventoryData = {
+        user_id: user.id,
+        title: pick.volumeName || pick.title,
+        series: pick.volumeName || pick.title,
+        issue_number: pick.issue || null,
+        publisher: pick.publisher || null,
+        year: pick.year || null,
+        volume_id: pick.volumeId?.toString() || null,
+        issue_id: pick.id?.toString() || null,
+        comicvine_volume_id: pick.volumeId?.toString() || null,
+        comicvine_issue_id: pick.id?.toString() || null,
+        writer: pick.writer || null,
+        artist: pick.artist || null,
+        cover_artist: pick.coverArtist || null,
+        images: {
+          primary: imageUrl,
+          others: [],
+        },
+        listing_status: "not_listed",
+        scanner_confidence: pick.score || null,
+        scanner_last_scanned_at: new Date().toISOString(),
+      };
+
+      const { data: newItem, error } = await supabase
+        .from("inventory_items")
+        .insert(inventoryData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Comic added to inventory!", {
+        description: `${pick.volumeName || pick.title} #${pick.issue || ""}`,
+      });
+
+      // Navigate to the new inventory item for editing
+      navigate(`/inventory/${newItem.id}`);
+    } catch (error: any) {
+      console.error("[SCANNER_ASSIST] Failed to create inventory item:", error);
+      toast.error("Failed to save comic", {
+        description: error.message || "Please try again",
+      });
+    }
+  };
+
   const startEdit = (item: InventoryItem) => {
     setEditingId(item.id);
     setEditLocation(item.private_location || "");
@@ -264,8 +321,15 @@ export default function MyInventory() {
                       <Upload className="h-4 w-4" />
                       Import CSV
                     </Button>
+                    <ScannerAssistButton
+                      onSelect={handleScannerAssistSelect}
+                      onSkip={() => navigate("/scanner")}
+                      onManualSearch={() => navigate("/scanner")}
+                      variant="outline"
+                    />
                     <Button onClick={() => navigate("/scanner")} className="gap-2">
-                      Scan New Comic
+                      <Camera className="h-4 w-4" />
+                      Full Scanner
                     </Button>
                   </div>
                 </div>

@@ -43,12 +43,12 @@ export const TIER_LIMITS = {
   free: {
     savedSearches: 5,
     watchlistItems: 50,
-    // Future limits can be added here
+    scannerAssistDaily: 3, // 3 scans per day for free users
   },
   elite: {
     savedSearches: -1, // -1 = unlimited
     watchlistItems: 500,
-    // Future limits can be added here
+    scannerAssistDaily: -1, // unlimited for Elite
   },
 } as const;
 
@@ -64,7 +64,7 @@ export const TIER_INFO = {
     priceDisplay: 'Free',
     features: [
       'List & sell comics',
-      'AI-assisted listing (basic)',
+      `Scanner Assist (${TIER_LIMITS.free.scannerAssistDaily}/day)`,
       'Basic print/variant detection',
       'Key issue identification',
       `Up to ${TIER_LIMITS.free.watchlistItems} watchlist items`,
@@ -79,6 +79,7 @@ export const TIER_INFO = {
     priceDisplay: '$9.99/mo',
     features: [
       'Everything in Free, plus:',
+      'Unlimited Scanner Assist',
       'Priority access to Deal Finder tool',
       'Unlimited saved searches',
       `Up to ${TIER_LIMITS.elite.watchlistItems} watchlist items`,
