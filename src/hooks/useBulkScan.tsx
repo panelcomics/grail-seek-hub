@@ -19,6 +19,8 @@ export type BulkScanItemStatus =
   | "completed"
   | "skipped";
 
+export type ConfidenceLevel = "high" | "medium" | "low" | null;
+
 export interface BulkScanItem {
   id: string;
   imageData: string;
@@ -28,6 +30,8 @@ export interface BulkScanItem {
   selectedPick: ComicVinePick | null;
   createdInventoryId: string | null;
   error: string | null;
+  confidence: ConfidenceLevel;
+  topCandidateScore: number | null;
 }
 
 interface UseBulkScanResult {
@@ -59,6 +63,8 @@ export function useBulkScan(): UseBulkScanResult {
       selectedPick: null,
       createdInventoryId: null,
       error: null,
+      confidence: null,
+      topCandidateScore: null,
     }));
     setItems((prev) => [...prev, ...newItems]);
   }, []);

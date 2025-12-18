@@ -1,21 +1,21 @@
 /**
  * BULK SCAN MODAL
  * ==========================================================================
- * Main modal for Bulk Scan v2 (Elite only).
+ * Main modal for Bulk Scan v3 (Elite only).
  * 
  * Core Safety Principle:
  * - NO auto-creation. Every item requires explicit user confirmation.
  * - NO batch "approve all"
  * 
- * Flow:
- * 1. Upload up to 20 images
- * 2. Process each through Scanner Assist
- * 3. User reviews and confirms each one-by-one
- * 4. Only confirmed items create inventory
+ * v3 Features:
+ * - Confidence labels (High/Medium/Low)
+ * - Auto-preselect top candidate for High confidence
+ * - Fast Confirm mode for High confidence items
+ * - Auto-advance to next item after confirm
  * ==========================================================================
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ComicVinePick } from "@/types/comicvine";
-import { useBulkScan, BulkScanItem } from "@/hooks/useBulkScan";
+import { useBulkScan, BulkScanItem, ConfidenceLevel } from "@/hooks/useBulkScan";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { BulkScanUploader } from "./BulkScanUploader";
@@ -43,6 +43,13 @@ import {
   trackBulkScanCompleted,
   trackScannerEvent,
 } from "@/lib/analytics/scannerAnalytics";
+
+// Helper to determine confidence level from score
+function getConfidenceLevel(score: number): ConfidenceLevel {
+  if (score >= 0.80) return "high";
+  if (score >= 0.50) return "medium";
+  return "low";
+}
 
 type BulkScanStep = "upload" | "queue" | "complete";
 
@@ -118,16 +125,23 @@ export function BulkScanModal({
 
       if (data.ok && data.picks && data.picks.length > 0) {
         const topCandidates = data.picks.slice(0, 5);
+        const topScore = topCandidates[0]?.score || 0;
+        const confidence = getConfidenceLevel(topScore);
+        
         updateItem(nextQueued.id, {
-          status: topCandidates[0].score >= 0.5 ? "match_found" : "needs_review",
+          status: confidence === "high" ? "match_found" : topScore >= 0.5 ? "needs_review" : "needs_review",
           candidates: topCandidates,
           uploadedImageUrl: publicUrl,
+          confidence,
+          topCandidateScore: topScore,
         });
       } else {
         updateItem(nextQueued.id, {
           status: "no_match",
           candidates: [],
           uploadedImageUrl: publicUrl,
+          confidence: null,
+          topCandidateScore: null,
         });
       }
     } catch (err: any) {
@@ -135,6 +149,8 @@ export function BulkScanModal({
       updateItem(nextQueued.id, {
         status: "no_match",
         error: "Failed to analyze image",
+        confidence: null,
+        topCandidateScore: null,
       });
     } finally {
       setProcessingQueue(false);
@@ -177,8 +193,9 @@ export function BulkScanModal({
     trackScannerEvent("bulk_scan_item_review_opened", user?.id, isElite ? "elite" : "free");
   };
 
-  const handleConfirmSelection = async (pick: ComicVinePick) => {
-    if (!reviewItem || !user) return;
+  const handleConfirmSelection = async (pick: ComicVinePick, itemToConfirm?: BulkScanItem) => {
+    const targetItem = itemToConfirm || reviewItem;
+    if (!targetItem || !user) return;
 
     try {
       // Create inventory item
@@ -199,7 +216,7 @@ export function BulkScanModal({
           key_issue: !!pick.keyNotes,
           key_details: pick.keyNotes,
           images: {
-            primary: reviewItem.uploadedImageUrl,
+            primary: targetItem.uploadedImageUrl,
             others: [],
           },
         })
@@ -208,18 +225,40 @@ export function BulkScanModal({
 
       if (error) throw error;
 
-      markCompleted(reviewItem.id, inventoryItem.id);
-      setReviewItem(null);
-      toast.success("Comic added to inventory!");
+      markCompleted(targetItem.id, inventoryItem.id);
       
       // Track analytics
       trackScannerEvent("bulk_scan_item_confirmed", user?.id, isElite ? "elite" : "free");
+      
+      // Auto-advance: find and open next pending item
+      const nextPending = items.find(
+        (item) =>
+          item.id !== targetItem.id &&
+          (item.status === "match_found" || item.status === "needs_review")
+      );
+      
+      if (nextPending) {
+        setReviewItem(nextPending);
+        setCurrentItem(nextPending.id);
+        toast.success("Comic added! Moving to next...");
+      } else {
+        setReviewItem(null);
+        toast.success("Comic added to inventory!");
+      }
     } catch (err: any) {
       console.error("[BULK_SCAN] Failed to create inventory:", err);
       toast.error("Failed to save comic", {
         description: "Please try again",
       });
     }
+  };
+
+  // Fast confirm for high confidence items (single tap from queue)
+  const handleFastConfirm = async (item: BulkScanItem) => {
+    if (item.candidates.length === 0 || item.confidence !== "high") return;
+    
+    const topPick = item.candidates[0];
+    await handleConfirmSelection(topPick, item);
   };
 
   const handleSkipItem = (id: string) => {
@@ -368,6 +407,7 @@ export function BulkScanModal({
                 onReviewItem={handleReviewItem}
                 onSkipItem={handleSkipItem}
                 onManualSearch={handleManualSearch}
+                onFastConfirm={handleFastConfirm}
               />
             )}
 
@@ -393,14 +433,15 @@ export function BulkScanModal({
         </DialogContent>
       </Dialog>
 
-      {/* Review Modal */}
+      {/* Review Modal - with auto-preselect for high confidence */}
       <BulkScanReviewModal
         open={reviewItem !== null}
         onOpenChange={(open) => !open && setReviewItem(null)}
         item={reviewItem}
-        onConfirm={handleConfirmSelection}
+        onConfirm={(pick) => handleConfirmSelection(pick)}
         onSkip={() => reviewItem && handleSkipItem(reviewItem.id)}
         onManualSearch={() => reviewItem && handleManualSearch(reviewItem)}
+        autoPreselect={reviewItem?.confidence === "high"}
       />
     </>
   );
