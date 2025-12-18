@@ -28,13 +28,13 @@ export function HeroSection() {
             <div className="w-full lg:w-1/2 space-y-1.5 sm:space-y-4 md:space-y-5 lg:space-y-4 flex flex-col px-0 sm:px-0 lg:pt-0">
               {/* Headline - order 1 on mobile */}
               <div className="order-1 px-4 pt-1.5 sm:pt-0 sm:px-0">
-                <h1 className="text-[24px] leading-[1.2] sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-1.5 sm:mb-3 md:mb-4 text-center sm:text-left">
-                  Trusted Marketplace for{" "}
-                  <span className="text-primary drop-shadow-lg block sm:inline mt-0.5 sm:mt-0">Comic Grails & Keys</span>
+              <h1 className="text-[24px] leading-[1.2] sm:text-4xl md:text-5xl lg:text-6xl font-black sm:leading-[1.15] mb-1.5 sm:mb-3 md:mb-4 text-center sm:text-left">
+                  Collector Signals.{" "}
+                  <span className="text-primary drop-shadow-lg block sm:inline mt-0.5 sm:mt-0">Not Seller Noise.</span>
                 </h1>
                 
                 <p className="text-xs sm:text-lg md:text-xl text-foreground/80 leading-snug sm:leading-relaxed text-center sm:text-left px-2 sm:px-0">
-                  Buy, sell, and trade slabs, keys, and grails from verified collectors.
+                  Discover comics gaining real attention — before the market reacts.
                 </p>
 
                 <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 py-1.5 sm:py-3 text-muted-foreground justify-center sm:justify-start">
@@ -66,18 +66,18 @@ export function HeroSection() {
               <div className="order-3 flex flex-col gap-2 sm:gap-3 px-4 sm:px-0 mt-1 sm:mt-0">
                 <Button 
                   size="lg" 
-                  onClick={scrollToListings}
+                  onClick={() => navigate('/signals')}
                   className="w-full text-base sm:text-lg px-6 py-6 sm:py-6 shadow-[0_4px_14px_rgba(230,0,0,0.25)] hover:shadow-[0_6px_20px_rgba(230,0,0,0.35)] transition-all hover:scale-[1.02] active:scale-[0.98] bg-[#E60000] hover:bg-[#FF1A1A] font-bold min-h-[52px] sm:min-h-[56px]"
                 >
-                  Start Hunting Grails
+                  Explore Signals
                 </Button>
                 <Button 
                   size="lg" 
                   variant="outline"
-                  onClick={() => navigate('/marketplace?filter=local')}
+                  onClick={() => navigate('/scanner')}
                   className="w-full text-base sm:text-lg px-6 py-6 sm:py-6 border-2 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] font-semibold min-h-[52px] sm:min-h-[56px]"
                 >
-                  Browse Local Deals
+                  Try Scanner Assist
                 </Button>
               </div>
 

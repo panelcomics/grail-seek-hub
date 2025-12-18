@@ -33,6 +33,7 @@ import Watchlist from "./pages/Watchlist";
 import Leaderboard from "./pages/Leaderboard";
 import AdminFeaturedShops from "./pages/AdminFeaturedShops";
 import AdminDashboard from "./pages/admin/Dashboard";
+import AdminSignals from "./pages/admin/Signals";
 import AdminSettings from "./pages/admin/Settings";
 import AdminVerifiedSellersPage from "./pages/admin/VerifiedSellers";
 import ManageSellers from "./pages/admin/ManageSellers";
@@ -149,6 +150,7 @@ const AppContent = () => {
             <Route path="/admin/invite-artist" element={<InviteArtist />} />
             <Route path="/admin/comicvine-sync" element={<ComicVineSync />} />
             <Route path="/admin/comicvine-issues-sync" element={<ComicVineIssuesSync />} />
+            <Route path="/admin/signals" element={<AdminSignals />} />
             <Route path="/artist/my-art" element={<MyOriginalArt />} />
             <Route path="/my-collection" element={<MyCollection />} />
             <Route path="/my-inventory" element={<MyInventory />} />
