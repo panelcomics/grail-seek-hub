@@ -86,11 +86,17 @@ export default function Trending() {
     }
   };
 
+  // Heat score label based on score ranges
+  const getHeatLabel = (score: number) => {
+    if (score >= 70) return "Heating Up";
+    if (score >= 40) return "Sustained Interest";
+    return "Cooling Off";
+  };
+
   const getHeatColor = (score: number) => {
-    if (score >= 80) return 'text-red-500';
-    if (score >= 60) return 'text-orange-500';
-    if (score >= 40) return 'text-yellow-500';
-    return 'text-blue-500';
+    if (score >= 70) return 'text-red-500';
+    if (score >= 40) return 'text-orange-500';
+    return 'text-blue-400';
   };
 
   if (loading || authLoading) {
@@ -213,13 +219,16 @@ export default function Trending() {
                       </div>
 
                       {/* Heat Score */}
-                      <div className="w-24">
+                      <div className="w-28">
                         <div className="flex items-center justify-between mb-1">
                           <Flame className={`h-4 w-4 ${getHeatColor(comic.heat_score)}`} />
                           <span className={`font-bold ${getHeatColor(comic.heat_score)}`}>
                             {comic.heat_score}
                           </span>
                         </div>
+                        <p className="text-[10px] text-muted-foreground text-right">
+                          {getHeatLabel(comic.heat_score)}
+                        </p>
                         <Progress value={comic.heat_score} className="h-1.5" />
                       </div>
 
