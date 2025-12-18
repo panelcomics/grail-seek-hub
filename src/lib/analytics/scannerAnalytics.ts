@@ -18,13 +18,13 @@ export type ScannerEvent =
   | "scanner_assist_confirmed"
   | "scanner_assist_no_match"
   | "scanner_assist_skipped"
+  | "scanner_assist_limit_reached"
+  | "scanner_assist_upgrade_clicked"
   | "bulk_scan_started"
   | "bulk_scan_item_review_opened"
   | "bulk_scan_item_confirmed"
   | "bulk_scan_item_skipped"
-  | "bulk_scan_completed"
-  | "upgrade_modal_shown_scanner_limit"
-  | "upgrade_clicked_from_scanner_limit";
+  | "bulk_scan_completed";
 
 interface EventMetadata {
   candidate_count_bucket?: "0" | "1-2" | "3-5";
@@ -137,15 +137,15 @@ export function trackBulkScanCompleted(
 }
 
 /**
- * Helper: Track upgrade modal shown
+ * Helper: Track limit reached (upgrade modal shown)
  */
-export function trackUpgradeModalShown(userId?: string): void {
-  trackScannerEvent("upgrade_modal_shown_scanner_limit", userId, "free");
+export function trackLimitReached(userId?: string): void {
+  trackScannerEvent("scanner_assist_limit_reached", userId, "free");
 }
 
 /**
- * Helper: Track upgrade clicked
+ * Helper: Track upgrade clicked from limit
  */
 export function trackUpgradeClicked(userId?: string): void {
-  trackScannerEvent("upgrade_clicked_from_scanner_limit", userId, "free");
+  trackScannerEvent("scanner_assist_upgrade_clicked", userId, "free");
 }

@@ -71,7 +71,7 @@ export function ScannerAnalyticsCard() {
         ).length || 0;
 
         const upgradesClicked = events?.filter(
-          (e: any) => e.event_name === "upgrade_clicked_from_scanner_limit"
+          (e: any) => e.event_name === "scanner_assist_upgrade_clicked"
         ).length || 0;
 
         // Calculate candidate bucket distribution
