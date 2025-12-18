@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Crown, X } from "lucide-react";
+import { Sparkles, Crown, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ComicVinePick } from "@/types/comicvine";
@@ -238,17 +238,23 @@ export function ScannerAssistModal({
                 <Sparkles className="w-5 h-5 text-primary" />
                 Scanner Assist
               </DialogTitle>
-              {!isUnlimited && (
-                <Badge variant="outline" className="text-xs">
-                  {remainingScans} scan{remainingScans !== 1 ? "s" : ""} left today
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs text-muted-foreground">
+                  <Layers className="w-3 h-3 mr-1" />
+                  Bulk Scan (Elite)
                 </Badge>
-              )}
-              {isUnlimited && (
-                <Badge className="text-xs bg-amber-500/20 text-amber-600 border-amber-500/30">
-                  <Crown className="w-3 h-3 mr-1" />
-                  Unlimited
-                </Badge>
-              )}
+                {!isUnlimited && (
+                  <Badge variant="outline" className="text-xs">
+                    {remainingScans} scan{remainingScans !== 1 ? "s" : ""} left today
+                  </Badge>
+                )}
+                {isUnlimited && (
+                  <Badge className="text-xs bg-amber-500/20 text-amber-600 border-amber-500/30">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Unlimited
+                  </Badge>
+                )}
+              </div>
             </div>
             <DialogDescription>
               {step === "upload" &&

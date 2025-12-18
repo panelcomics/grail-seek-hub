@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles, AlertCircle, Search } from "lucide-react";
 import { ComicVinePick } from "@/types/comicvine";
 import { getConfidenceLabel } from "@/lib/comicVineMatchingStrategy";
+import { toast } from "sonner";
 
 interface ScannerAssistResultsProps {
   candidates: ComicVinePick[];
@@ -36,6 +37,7 @@ export function ScannerAssistResults({
     const selected = displayCandidates.find((c) => c.id === selectedId);
     if (selected) {
       onSelect(selected);
+      toast.success("Comic identified — review & edit");
     }
   };
 
