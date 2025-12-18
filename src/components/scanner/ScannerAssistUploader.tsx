@@ -9,7 +9,8 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Camera, Upload, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Camera, Upload, Image as ImageIcon, Loader2, Lightbulb, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ScannerAssistUploaderProps {
@@ -173,6 +174,35 @@ export function ScannerAssistUploader({
           className="hidden"
           onChange={handleFileChange}
         />
+
+        {/* Scan Tips */}
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-center group">
+            <Lightbulb className="w-4 h-4" />
+            <span>Tips for better scans</span>
+            <ChevronDown className="w-4 h-4 group-data-[state=open]:rotate-180 transition-transform" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <ul className="text-sm text-muted-foreground space-y-1.5 pl-2">
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span>Lay the comic flat on a solid surface</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span>Avoid glare from bags or slabs</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span>Make sure the full cover is visible</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary">•</span>
+                <span>Use good lighting (natural light works best)</span>
+              </li>
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

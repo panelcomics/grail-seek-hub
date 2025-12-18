@@ -167,36 +167,51 @@ export function ScannerAssistModal({
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
-                Daily Limit Reached
+                <Crown className="w-5 h-5 text-amber-500" />
+                Unlock Unlimited Scanner Assist
               </DialogTitle>
               <DialogDescription>
-                You've used all {dailyLimit} Scanner Assist scans for today.
+                You've used your free daily scans.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="text-center">
-                <Badge variant="secondary" className="mb-4">
-                  {usedToday} of {dailyLimit} scans used today
-                </Badge>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Upgrade to Elite for unlimited Scanner Assist scans.
-                </p>
-              </div>
-              <div className="flex gap-2">
+              <p className="text-sm text-muted-foreground">
+                Elite members get unlimited photo scans, faster listings, and access to advanced tools like Deal Finder and Portfolio Tracking.
+              </p>
+              
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span>Unlimited Scanner Assist</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span>Bulk scanning (coming soon)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span>Faster listings, less typing</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span>All Elite tools included</span>
+                </li>
+              </ul>
+
+              <div className="flex flex-col gap-2 pt-2">
                 <Button
                   onClick={() => setShowUpgradeModal(true)}
-                  className="flex-1"
+                  className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   Upgrade to Elite
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleManualSearch}
-                  className="flex-1"
+                  className="w-full text-muted-foreground"
                 >
-                  Search Manually
+                  I'll list manually for now
                 </Button>
               </div>
             </div>
