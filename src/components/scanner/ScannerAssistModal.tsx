@@ -237,7 +237,7 @@ export function ScannerAssistModal({
             </div>
             <DialogDescription>
               {step === "upload" &&
-                "Upload a photo of your comic cover to find matches."}
+                "Snap a photo of your comic and we'll identify it instantly."}
               {step === "processing" && "Analyzing your comic cover..."}
               {step === "results" && "Select the correct match for your comic."}
             </DialogDescription>
