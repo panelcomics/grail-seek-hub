@@ -31,8 +31,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ComicVinePick } from "@/types/comicvine";
 import { useScannerAssist } from "@/hooks/useScannerAssist";
+import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { ScannerAssistUploader } from "./ScannerAssistUploader";
 import { ScannerAssistResults } from "./ScannerAssistResults";
+import { BulkScanModal } from "./BulkScanModal";
 import { UpgradeToEliteModal } from "@/components/subscription/UpgradeToEliteModal";
 import { compressImageDataUrl } from "@/lib/imageCompression";
 
@@ -62,12 +64,14 @@ export function ScannerAssistModal({
     incrementUsage,
     remainingScans,
   } = useScannerAssist();
+  const { isElite } = useSubscriptionTier();
 
   const [step, setStep] = useState<ScannerStep>("upload");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<ComicVinePick[]>([]);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showBulkScanModal, setShowBulkScanModal] = useState(false);
 
   const handleImageSelected = async (imageData: string) => {
     // Check if user can scan
@@ -239,10 +243,28 @@ export function ScannerAssistModal({
                 Scanner Assist
               </DialogTitle>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs text-muted-foreground">
-                  <Layers className="w-3 h-3 mr-1" />
-                  Bulk Scan (Elite)
-                </Badge>
+                {isElite ? (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                    onClick={() => {
+                      onOpenChange(false);
+                      setShowBulkScanModal(true);
+                    }}
+                  >
+                    <Layers className="w-3 h-3 mr-1" />
+                    Bulk Scan
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs text-muted-foreground cursor-pointer hover:bg-secondary/80"
+                    onClick={() => setShowUpgradeModal(true)}
+                  >
+                    <Layers className="w-3 h-3 mr-1" />
+                    Bulk Scan (Elite)
+                  </Badge>
+                )}
                 {!isUnlimited && (
                   <Badge variant="outline" className="text-xs">
                     {remainingScans} scan{remainingScans !== 1 ? "s" : ""} left today
@@ -299,6 +321,15 @@ export function ScannerAssistModal({
         feature="Scanner Assist"
         currentCount={usedToday}
         limit={dailyLimit}
+      />
+
+      <BulkScanModal
+        open={showBulkScanModal}
+        onOpenChange={setShowBulkScanModal}
+        onComplete={() => {
+          // Navigate to inventory after bulk scan
+          window.location.href = "/inventory";
+        }}
       />
     </>
   );
