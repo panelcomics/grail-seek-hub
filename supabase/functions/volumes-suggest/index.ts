@@ -23,14 +23,12 @@ function normalizeTitle(raw: string): string {
 }
 
 serve(async (req) => {
-  const isDebug = Deno.env.get("VITE_SCANNER_DEBUG") === 'true';
-  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Support both query string and JSON body, but prefer body (how the app calls it)
+    // Support both query string and JSON body
     const url = new URL(req.url);
     let query = "";
     let publisher: string | null = null;
@@ -54,7 +52,7 @@ serve(async (req) => {
       }
     }
 
-    // Fallback to URL search params if still empty
+    // Fallback to URL search params
     if (!query) {
       query = url.searchParams.get("q") || "";
       publisher = url.searchParams.get("publisher") || null;
@@ -68,224 +66,195 @@ serve(async (req) => {
     const normalizedQuery = normalizeTitle(query);
     console.log('[VOLUMES-SUGGEST] Normalized query:', normalizedQuery);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // --- ALWAYS query live ComicVine API for manual search ---
+    // The local cache is incomplete and causes wrong results
+    // Live API is the authoritative source
+    
+    const apiKey = Deno.env.get("COMICVINE_API_KEY");
+    if (!apiKey) {
+      console.error('[VOLUMES-SUGGEST] COMICVINE_API_KEY not configured');
+      return new Response(
+        JSON.stringify({
+          results: [],
+          totalResults: 0,
+          offset: 0,
+          limit: 20,
+          hasMore: false,
+          query: normalizedQuery,
+          filters: { publisher, year },
+          source: "local",
+          error: "ComicVine API key not configured"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    let results: any[] = [];
-    let source: "local" | "live" = "local";
-    let bestScore = Infinity;
-    let localResultCount = 0;
+    if (!normalizedQuery) {
+      return new Response(
+        JSON.stringify({
+          results: [],
+          totalResults: 0,
+          offset,
+          limit,
+          hasMore: false,
+          query: "",
+          filters: { publisher, year },
+          source: "live",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    if (normalizedQuery) {
-      // --- Local cache search ---
+    try {
+      // Use original query for API (preserves "the", etc.)
+      const params = new URLSearchParams({
+        api_key: apiKey,
+        format: "json",
+        filter: `name:${query}`,
+        sort: "count_of_issues:desc", // Main series (more issues) first
+        limit: String(Math.max(limit, 50)),
+        offset: String(offset),
+      });
+
+      console.log('[VOLUMES-SUGGEST] Querying live ComicVine API...');
+      
+      const resp = await fetch(`https://comicvine.gamespot.com/api/volumes/?${params.toString()}`, {
+        headers: { 'User-Agent': 'GrailSeeker-Scanner/1.0' }
+      });
+      
+      if (!resp.ok) {
+        console.error('[VOLUMES-SUGGEST] ComicVine API error:', resp.status, resp.statusText);
+        throw new Error(`ComicVine API returned ${resp.status}`);
+      }
+
+      const json = await resp.json();
+      
+      if (!json || typeof json !== 'object') {
+        console.error('[VOLUMES-SUGGEST] Invalid JSON from ComicVine API');
+        throw new Error('Invalid response from ComicVine');
+      }
+
+      const apiResults = Array.isArray(json.results) ? json.results : [];
+      const totalFromAPI = typeof json.number_of_total_results === 'number' ? json.number_of_total_results : 0;
+
+      console.log('[VOLUMES-SUGGEST] Live API returned', apiResults.length, 'results (total:', totalFromAPI, ')');
+
+      // Score and sort results
+      const scoredResults = apiResults.map((v: any) => {
+        const normalizedTitle = normalizeTitle(v.name || "");
+
+        let score = 100;
+        if (normalizedTitle === normalizedQuery) {
+          score = 0;
+        } else if (normalizedTitle.startsWith(normalizedQuery)) {
+          score = 10;
+        } else if (
+          normalizedTitle.split(/\s+/).includes(normalizedQuery) ||
+          normalizedTitle.startsWith(`${normalizedQuery} `) ||
+          normalizedTitle.endsWith(` ${normalizedQuery}`)
+        ) {
+          score = 20;
+        } else if (normalizedTitle.includes(normalizedQuery)) {
+          score = 30;
+        }
+
+        // Year match bonus
+        if (v.start_year) {
+          if (year) {
+            score += Math.min(50, Math.abs(v.start_year - year));
+          } else {
+            // Prefer older series slightly (classic runs)
+            score += Math.max(0, 2024 - v.start_year) / 200;
+          }
+        }
+
+        // Prefer series with more issues (main runs, not reprints)
+        score -= (v.count_of_issues || 0) / 100;
+
+        return {
+          id: v.id,
+          name: v.name,
+          slug: v.slug || v.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "",
+          publisher: v.publisher?.name || null,
+          start_year: v.start_year || null,
+          issue_count: v.count_of_issues || null,
+          image_url: v.image?.small_url || v.image?.super_url || null,
+          deck: v.deck || null,
+          score,
+        };
+      });
+
+      scoredResults.sort((a: any, b: any) => a.score - b.score);
+      
+      const results = scoredResults.slice(0, limit);
+      
+      console.log('[VOLUMES-SUGGEST] Returning', results.length, 'scored results from live API');
+
+      return new Response(
+        JSON.stringify({
+          results,
+          totalResults: totalFromAPI,
+          offset,
+          limit,
+          hasMore: offset + results.length < totalFromAPI,
+          query: normalizedQuery,
+          filters: { publisher, year },
+          source: "live",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (apiError) {
+      console.error('[VOLUMES-SUGGEST] Live API error:', apiError);
+      
+      // Fallback to local cache only on API failure
+      console.log('[VOLUMES-SUGGEST] Falling back to local cache...');
+      
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
       let dbQuery = supabase
         .from("comicvine_volumes")
-        .select("id, name, slug, publisher, start_year, issue_count, image_url, deck");
-
-      // Require title text match on name
-      dbQuery = dbQuery.ilike("name", `%${normalizedQuery}%`);
+        .select("id, name, slug, publisher, start_year, issue_count, image_url, deck")
+        .ilike("name", `%${normalizedQuery}%`)
+        .order("issue_count", { ascending: false })
+        .limit(limit);
 
       if (publisher) {
         dbQuery = dbQuery.ilike("publisher", `%${publisher}%`);
       }
 
-      // We fetch a wider set for in-memory scoring, apply pagination after
-      dbQuery = dbQuery.limit(200);
-
       const { data: volumes, error } = await dbQuery;
 
       if (error) {
         console.error('[VOLUMES-SUGGEST] Local cache error:', error);
-        // Don't throw - try live API instead
       }
 
-      if (volumes && volumes.length > 0) {
-        localResultCount = volumes.length;
-        console.log('[VOLUMES-SUGGEST] Local cache returned', localResultCount, 'results');
-        
-        // Score and sort by relevance to normalizedQuery
-        const scoredResults = volumes.map((vol: any) => {
-          const normalizedTitle = normalizeTitle(vol.name || "");
+      const results = (volumes || []).map((vol: any) => ({
+        ...vol,
+        score: 50
+      }));
 
-          let score = 100;
+      console.log('[VOLUMES-SUGGEST] Returning', results.length, 'results from local cache (fallback)');
 
-          if (normalizedTitle === normalizedQuery) {
-            // Exact match of full title
-            score = 0;
-          } else if (normalizedTitle.startsWith(normalizedQuery)) {
-            // Title starts with query
-            score = 10;
-          } else if (
-            normalizedTitle.split(/\s+/).includes(normalizedQuery) ||
-            normalizedTitle.startsWith(`${normalizedQuery} `) ||
-            normalizedTitle.endsWith(` ${normalizedQuery}`)
-          ) {
-            // Query appears as a whole word
-            score = 20;
-          } else if (normalizedTitle.includes(normalizedQuery)) {
-            // Query appears anywhere in title
-            score = 30;
-          }
-
-          // Year tie-breaker: prefer closer to requested year, older series slightly preferred
-          if (year && vol.start_year) {
-            score += Math.min(50, Math.abs(vol.start_year - year));
-          } else if (vol.start_year) {
-            score += Math.max(0, 2024 - vol.start_year) / 200;
-          }
-
-          // Issue count bonus as final tiebreaker (more issues very slightly preferred)
-          score -= (vol.issue_count || 0) / 2000;
-
-          return { ...vol, score };
-        });
-
-        scoredResults.sort((a: any, b: any) => a.score - b.score);
-        
-        // Apply pagination after scoring
-        const totalAvailable = scoredResults.length;
-        const paginatedResults = scoredResults.slice(offset, offset + limit);
-        
-        results = paginatedResults;
-        bestScore = scoredResults[0]?.score ?? Infinity;
-        
-        console.log('[VOLUMES-SUGGEST] Local scored results:', results.length, 'bestScore:', bestScore);
-      }
-
-      // --- ALWAYS try live ComicVine when local cache has few or weak results ---
-      // Changed from bestScore > 30 to: empty, few results, or weak matches
-      const shouldFallbackToLive = results.length === 0 || results.length < 3 || bestScore > 50;
-      
-      if (shouldFallbackToLive) {
-        console.log('[VOLUMES-SUGGEST] Falling back to live ComicVine API (local results:', results.length, ', bestScore:', bestScore, ')');
-        
-        const apiKey = Deno.env.get("COMICVINE_API_KEY");
-        if (apiKey) {
-          try {
-            // Use the original query for live API, not normalized
-            const params = new URLSearchParams({
-              api_key: apiKey,
-              format: "json",
-              filter: `name:${query}`,
-              sort: "count_of_issues:desc", // Changed to show series with more issues first
-              limit: String(Math.max(limit, 50)), // Fetch more for better results
-              offset: String(offset),
-            });
-
-            const resp = await fetch(`https://comicvine.gamespot.com/api/volumes/?${params.toString()}`);
-            
-            if (resp.ok) {
-              const json = await resp.json();
-              
-              // Defensive: validate response structure
-              if (!json || typeof json !== 'object') {
-                console.error('[VOLUMES-SUGGEST] Invalid JSON from ComicVine API');
-                // Fall through to return local results
-              } else {
-                const apiResults = Array.isArray(json.results) ? json.results : [];
-                const totalFromAPI = typeof json.number_of_total_results === 'number' ? json.number_of_total_results : 0;
-
-                console.log('[VOLUMES-SUGGEST] Live API returned', apiResults.length, 'results (total:', totalFromAPI, ')');
-
-                if (apiResults.length > 0) {
-                  const scoredResults = apiResults.map((v: any) => {
-                    const normalizedTitle = normalizeTitle(v.name || "");
-
-                    let score = 100;
-                    if (normalizedTitle === normalizedQuery) {
-                      score = 0;
-                    } else if (normalizedTitle.startsWith(normalizedQuery)) {
-                      score = 10;
-                    } else if (
-                      normalizedTitle.split(/\s+/).includes(normalizedQuery) ||
-                      normalizedTitle.startsWith(`${normalizedQuery} `) ||
-                      normalizedTitle.endsWith(` ${normalizedQuery}`)
-                    ) {
-                      score = 20;
-                    } else if (normalizedTitle.includes(normalizedQuery)) {
-                      score = 30;
-                    }
-
-                    if (v.start_year) {
-                      if (year) {
-                        score += Math.min(50, Math.abs(v.start_year - year));
-                      } else {
-                        score += Math.max(0, 2024 - v.start_year) / 200;
-                      }
-                    }
-
-                    score -= (v.count_of_issues || 0) / 2000;
-
-                    return {
-                      id: v.id,
-                      name: v.name,
-                      slug: v.slug || v.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "",
-                      publisher: v.publisher?.name || null,
-                      start_year: v.start_year || null,
-                      issue_count: v.count_of_issues || null,
-                      image_url: v.image?.small_url || v.image?.super_url || null,
-                      deck: v.deck || null,
-                      score,
-                    };
-                  });
-
-                  scoredResults.sort((a: any, b: any) => a.score - b.score);
-                  
-                  // Take top results up to limit
-                  results = scoredResults.slice(0, limit);
-                  bestScore = results[0]?.score ?? Infinity;
-                  source = "live";
-                  
-                  console.log('[VOLUMES-SUGGEST] Live results processed, count:', results.length, 'bestScore:', bestScore);
-                  
-                  return new Response(
-                    JSON.stringify({
-                      results,
-                      totalResults: totalFromAPI,
-                      offset,
-                      limit,
-                      hasMore: offset + results.length < totalFromAPI,
-                      query: normalizedQuery,
-                      filters: { publisher, year },
-                      source,
-                    }),
-                    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-                  );
-                }
-              }
-            } else {
-              console.error('[VOLUMES-SUGGEST] Live API failed with status:', resp.status);
-            }
-          } catch (apiError) {
-            console.error('[VOLUMES-SUGGEST] Live API error:', apiError);
-            // Fall through to return local results
-          }
-        } else {
-          console.warn('[VOLUMES-SUGGEST] No COMICVINE_API_KEY configured for live fallback');
-        }
-      }
+      return new Response(
+        JSON.stringify({
+          results,
+          totalResults: results.length,
+          offset,
+          limit,
+          hasMore: false,
+          query: normalizedQuery,
+          filters: { publisher, year },
+          source: "local",
+          error: apiError instanceof Error ? apiError.message : "Live API unavailable, using cache"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
-    console.log('[VOLUMES-SUGGEST] Returning', results.length, 'results from source:', source);
-    
-    return new Response(
-      JSON.stringify({
-        results,
-        totalResults: results.length,
-        offset,
-        limit,
-        hasMore: false,
-        query: normalizedQuery,
-        filters: { publisher, year },
-        source,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
   } catch (error) {
     console.error("[VOLUMES-SUGGEST] Fatal error:", error);
     
-    // Always return safe HTTP 200 with empty results - never crash
     return new Response(
       JSON.stringify({
         results: [],
@@ -296,12 +265,12 @@ serve(async (req) => {
         query: "",
         filters: {},
         source: "local",
-        error: error instanceof Error ? error.message : "ComicVine search temporarily unavailable"
+        error: error instanceof Error ? error.message : "Search temporarily unavailable"
       }),
       { 
-        status: 200, // Always 200 - client handles empty results gracefully
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      },
+      }
     );
   }
 });
