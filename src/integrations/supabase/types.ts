@@ -927,6 +927,80 @@ export type Database = {
         }
         Relationships: []
       }
+      collector_signal_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          signal_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          signal_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          signal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collector_signal_events_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "collector_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collector_signals: {
+        Row: {
+          active_listing_count: number
+          comic_title: string
+          created_at: string
+          id: string
+          issue_number: string | null
+          last_activity_at: string
+          publisher: string | null
+          scanner_count: number
+          search_count: number
+          signal_score: number
+          variant: string | null
+          watchlist_count: number
+        }
+        Insert: {
+          active_listing_count?: number
+          comic_title: string
+          created_at?: string
+          id?: string
+          issue_number?: string | null
+          last_activity_at?: string
+          publisher?: string | null
+          scanner_count?: number
+          search_count?: number
+          signal_score?: number
+          variant?: string | null
+          watchlist_count?: number
+        }
+        Update: {
+          active_listing_count?: number
+          comic_title?: string
+          created_at?: string
+          id?: string
+          issue_number?: string | null
+          last_activity_at?: string
+          publisher?: string | null
+          scanner_count?: number
+          search_count?: number
+          signal_score?: number
+          variant?: string | null
+          watchlist_count?: number
+        }
+        Relationships: []
+      }
       comics: {
         Row: {
           cover_url: string | null
