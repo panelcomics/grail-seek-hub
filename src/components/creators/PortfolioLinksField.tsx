@@ -26,7 +26,8 @@ export function PortfolioLinksField({ links, onChange, disabled }: PortfolioLink
 
   return (
     <div className="space-y-3">
-      <Label>Portfolio Links</Label>
+      <Label>Where can we see your work?</Label>
+      <p className="text-xs text-muted-foreground -mt-2">Website, Instagram, ArtStation, DeviantArt, or anything public.</p>
       
       <div className="flex gap-2">
         <Input

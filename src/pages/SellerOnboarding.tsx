@@ -162,10 +162,10 @@ export default function SellerOnboarding() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">
-            Welcome, {displayName}! 👋
+            Welcome, {displayName}!
           </h1>
           <p className="text-muted-foreground">
-            Complete these steps to start selling on GrailSeeker
+            Get started selling on your terms — no monthly fees, no exclusivity.
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export default function SellerOnboarding() {
               <Progress value={progressPercent} className="h-2" />
               {progressPercent === 100 && (
                 <p className="text-sm text-green-600 font-medium text-center pt-2">
-                  🎉 You're all set to start selling!
+                  You're all set — list when you're ready.
                 </p>
               )}
             </div>

@@ -109,7 +109,7 @@ export const SellerSetupWizard = ({
   };
 
   const handleComplete = () => {
-    toast.success("Seller setup complete! You're ready to list items.");
+    toast.success("🎉 You're all set! List when you're ready — you're in control.");
     navigate(returnTo);
   };
 
@@ -337,7 +337,7 @@ export const SellerSetupWizard = ({
         </div>
         <h2 className="text-2xl font-bold mb-2">You're All Set!</h2>
         <p className="text-muted-foreground">
-          Your seller account is ready to go
+          List when you want — you're in control.
         </p>
       </div>
 
@@ -345,7 +345,7 @@ export const SellerSetupWizard = ({
         <CardHeader>
           <CardTitle>Setup Complete</CardTitle>
           <CardDescription>
-            You can now create listings and start selling on GrailSeeker
+            Nothing goes live without your approval. Edit or remove listings anytime.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
