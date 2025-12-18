@@ -25,6 +25,7 @@ interface ScannerAssistResultsProps {
   onSelect: (pick: ComicVinePick) => void;
   onSkip: () => void;
   onManualSearch: () => void;
+  showingLowConfidence?: boolean;
 }
 
 // Helper to get confidence badge styling
@@ -91,6 +92,7 @@ export function ScannerAssistResults({
   onSelect,
   onSkip,
   onManualSearch,
+  showingLowConfidence = false,
 }: ScannerAssistResultsProps) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -165,10 +167,12 @@ export function ScannerAssistResults({
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            Scanner Assist Found Matches
+            {showingLowConfidence ? "Possible Matches (Low Confidence)" : "Scanner Assist Found Matches"}
           </CardTitle>
           <CardDescription>
-            Select the correct comic to auto-fill your listing details.
+            {showingLowConfidence 
+              ? "These are our best guesses. Select one if it matches your comic."
+              : "Select the correct comic to auto-fill your listing details."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
