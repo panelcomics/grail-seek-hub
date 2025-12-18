@@ -44,7 +44,7 @@ import {
   trackCandidatesReturned,
   trackScannerAssistConfirmed,
   trackScannerAssistNoMatch,
-  trackUpgradeModalShown,
+  trackLimitReached,
   trackUpgradeClicked,
 } from "@/lib/analytics/scannerAnalytics";
 
@@ -90,7 +90,7 @@ export function ScannerAssistModal({
     // Check if user can scan
     if (!canScan) {
       setShowUpgradeModal(true);
-      trackUpgradeModalShown(user?.id);
+      trackLimitReached(user?.id);
       return;
     }
 
