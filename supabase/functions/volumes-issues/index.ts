@@ -20,6 +20,8 @@ serve(async (req) => {
     const url = new URL(req.url);
     const volumeId = url.searchParams.get('volumeId');
 
+    console.log('[VOLUMES-ISSUES] Request for volumeId:', volumeId);
+
     if (!volumeId) {
       return new Response(
         JSON.stringify({ error: 'volumeId parameter required' }),
@@ -38,8 +40,11 @@ serve(async (req) => {
       .eq('volume_id', parseInt(volumeId));
 
     if (error) {
-      throw error;
+      console.error('[VOLUMES-ISSUES] Local cache error:', error);
+      // Don't throw - try live API instead
     }
+    
+    console.log('[VOLUMES-ISSUES] Local cache returned', issues?.length || 0, 'issues');
 
     let finalIssues = issues || [];
 
@@ -127,11 +132,14 @@ serve(async (req) => {
       return aNum - bNum;
     });
 
+    const finalSource = issues && issues.length > 0 ? 'cache' : 'live';
+    console.log('[VOLUMES-ISSUES] Returning', sortedIssues.length, 'issues from source:', finalSource);
+
     return new Response(
       JSON.stringify({
         volumeId: parseInt(volumeId),
         issues: sortedIssues,
-        source: issues && issues.length > 0 ? 'cache' : 'live'
+        source: finalSource
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
