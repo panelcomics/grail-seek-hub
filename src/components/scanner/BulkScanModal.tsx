@@ -25,18 +25,24 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Layers, CheckCircle2, ArrowRight } from "lucide-react";
+import { Crown, Layers, CheckCircle2, ArrowRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ComicVinePick } from "@/types/comicvine";
 import { useBulkScan, BulkScanItem } from "@/hooks/useBulkScan";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { BulkScanUploader } from "./BulkScanUploader";
 import { BulkScanQueue } from "./BulkScanQueue";
 import { BulkScanReviewModal } from "./BulkScanReviewModal";
 import { UpgradeToEliteModal } from "@/components/subscription/UpgradeToEliteModal";
 import { compressImageDataUrl } from "@/lib/imageCompression";
+import {
+  trackBulkScanStarted,
+  trackBulkScanCompleted,
+  trackScannerEvent,
+} from "@/lib/analytics/scannerAnalytics";
 
 type BulkScanStep = "upload" | "queue" | "complete";
 
@@ -53,6 +59,7 @@ export function BulkScanModal({
 }: BulkScanModalProps) {
   const { user } = useAuth();
   const { isElite, loading: tierLoading } = useSubscriptionTier();
+  const { isEnabled } = useFeatureFlags();
   const {
     items,
     currentItemId,
@@ -157,11 +164,17 @@ export function BulkScanModal({
     addImages(imageDataList);
     setStep("queue");
     toast.success(`${imageDataList.length} images added to queue`);
+    
+    // Track analytics
+    trackBulkScanStarted(imageDataList.length, user?.id, isElite ? "elite" : "free");
   };
 
   const handleReviewItem = (item: BulkScanItem) => {
     setCurrentItem(item.id);
     setReviewItem(item);
+    
+    // Track analytics
+    trackScannerEvent("bulk_scan_item_review_opened", user?.id, isElite ? "elite" : "free");
   };
 
   const handleConfirmSelection = async (pick: ComicVinePick) => {
@@ -198,6 +211,9 @@ export function BulkScanModal({
       markCompleted(reviewItem.id, inventoryItem.id);
       setReviewItem(null);
       toast.success("Comic added to inventory!");
+      
+      // Track analytics
+      trackScannerEvent("bulk_scan_item_confirmed", user?.id, isElite ? "elite" : "free");
     } catch (err: any) {
       console.error("[BULK_SCAN] Failed to create inventory:", err);
       toast.error("Failed to save comic", {
@@ -211,6 +227,9 @@ export function BulkScanModal({
     if (reviewItem?.id === id) {
       setReviewItem(null);
     }
+    
+    // Track analytics
+    trackScannerEvent("bulk_scan_item_skipped", user?.id, isElite ? "elite" : "free");
   };
 
   const handleManualSearch = (item: BulkScanItem) => {
@@ -227,11 +246,37 @@ export function BulkScanModal({
   };
 
   const handleViewInventory = () => {
+    // Track completion analytics
+    const skippedCount = items.filter((i) => i.status === "skipped").length;
+    trackBulkScanCompleted(completedCount, skippedCount, user?.id, isElite ? "elite" : "free");
+    
     onComplete();
     handleClose();
   };
 
-  // Show upgrade modal for non-Elite users
+  // Show disabled message if feature is turned off
+  if (!isEnabled("bulkScanEnabled") && open) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-muted-foreground" />
+              Bulk Scan Temporarily Disabled
+            </DialogTitle>
+            <DialogDescription>
+              This feature is temporarily unavailable. Please try again later or use Scanner Assist for single scans.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-4">
+            <Button variant="outline" onClick={handleClose}>
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   if (!tierLoading && !isElite && open) {
     return (
       <>
