@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { getRotationTransform } from "@/lib/imageRotation";
+import { HeatScoreBadge } from "@/components/HeatScoreBadge";
 
 interface CompactItemCardProps {
   id: string;
@@ -29,6 +30,7 @@ interface CompactItemCardProps {
   imageRotation?: number | null;
   priority?: boolean;
   sellerId?: string; // For fairness tracking
+  heatScore?: number | null; // Optional heat score (0-100)
 }
 
 export function CompactItemCard({
@@ -45,6 +47,7 @@ export function CompactItemCard({
   isAuction = false,
   imageRotation = null,
   priority = false,
+  heatScore = null,
 }: CompactItemCardProps) {
   
   // Get grade display text
@@ -115,6 +118,13 @@ export function CompactItemCard({
           <h3 className="font-semibold text-xs sm:text-sm leading-tight line-clamp-2 text-foreground mb-auto">
             {title}
           </h3>
+          
+          {/* Heat Score - if provided */}
+          {heatScore !== null && heatScore !== undefined && (
+            <div className="mt-1">
+              <HeatScoreBadge score={heatScore} size="sm" showLabel={false} />
+            </div>
+          )}
           
           {/* Price row */}
           <div className="flex items-baseline justify-between mt-1.5">

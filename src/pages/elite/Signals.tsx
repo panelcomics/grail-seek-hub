@@ -105,11 +105,12 @@ export default function Signals() {
   const visibleSignals = isElite ? signals : signals.slice(0, FREE_LIMIT);
   const hiddenCount = isElite ? 0 : Math.max(0, signals.length - FREE_LIMIT);
 
-  // Get heat score label
+  // Get heat score label - presentation only based on score ranges
   const getHeatScore = (score: number): { label: string; color: string } => {
-    if (score >= 20) return { label: "🔥 Hot", color: "bg-red-500" };
-    if (score >= 10) return { label: "Warming", color: "bg-amber-500" };
-    return { label: "Emerging", color: "bg-blue-500" };
+    if (score >= 70) return { label: "Heating Up", color: "bg-red-500" };
+    if (score >= 40) return { label: "Sustained Interest", color: "bg-amber-500" };
+    if (score >= 10) return { label: "Cooling Off", color: "bg-blue-500" };
+    return { label: "Low Activity", color: "bg-gray-500" };
   };
 
   // Generate explainability bullets
@@ -347,13 +348,26 @@ export default function Signals() {
                         </div>
                       </div>
 
-                      {/* Heat score badge */}
+                      {/* Heat score badge with tooltip */}
                       <div className="flex-shrink-0 text-right">
-                        <Badge className={`${heatScore.color} text-white`}>
-                          {heatScore.label}
-                        </Badge>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="inline-flex items-center gap-1 cursor-help">
+                              <Badge className={`${heatScore.color} text-white`}>
+                                🔥 Heat: {signal.signal_score}
+                              </Badge>
+                              <Info className="h-3 w-3 text-muted-foreground opacity-50" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-[220px] text-xs">
+                            <p className="font-medium mb-1">Heat Score reflects collector activity</p>
+                            <p className="text-muted-foreground">
+                              Based on searches and wantlists. It does not predict prices or guarantee value.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Heat Score: {signal.signal_score}
+                          {heatScore.label}
                         </p>
                       </div>
                     </div>

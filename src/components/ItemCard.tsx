@@ -13,6 +13,7 @@ import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { useWatchAuction } from "@/hooks/useWatchAuction";
 import { SoldOffPlatformBadge } from "@/components/SoldOffPlatformBadge";
 import { getRotationTransform } from "@/lib/imageRotation";
+import { HeatScoreBadge } from "@/components/HeatScoreBadge";
 import {
   Tooltip,
   TooltipContent,
@@ -70,6 +71,8 @@ interface ItemCardProps {
   signedBy?: string | null;
   // Creator badge props
   isApprovedCreator?: boolean;
+  // Heat score (optional, 0-100)
+  heatScore?: number | null;
 }
 
 const ItemCard = ({ 
@@ -120,6 +123,7 @@ const ItemCard = ({
   signatureType = null,
   signedBy = null,
   isApprovedCreator = false,
+  heatScore = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -362,6 +366,11 @@ const ItemCard = ({
                 <Badge className="text-[10px] font-bold px-1.5 py-0.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0">
                   Key
                 </Badge>
+              )}
+              
+              {/* Heat Score badge (if provided) */}
+              {heatScore !== null && heatScore !== undefined && (
+                <HeatScoreBadge score={heatScore} size="sm" showLabel={false} />
               )}
             </div>
           </div>

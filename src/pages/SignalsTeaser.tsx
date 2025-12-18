@@ -1,41 +1,52 @@
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { Lock, TrendingUp, Eye, Scan, Package, Flame } from "lucide-react";
+import { Lock, Flame } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 
-const HEAT_BADGES = [
-  { label: "🔥 Hot", icon: Flame },
-  { label: "Watchlist Spike", icon: Eye },
-  { label: "Scanner Activity", icon: Scan },
-  { label: "Supply Tight", icon: Package },
+// Sample data for teaser display - clearly labeled for non-logged-in users
+const SAMPLE_SIGNALS = [
+  { title: "Amazing Spider-Man", issue: "#300", cover: "/covers/sample-spawn.jpg", heatScore: 87 },
+  { title: "X-Men", issue: "#1", cover: "/covers/sample-xmen.jpg", heatScore: 82 },
+  { title: "Batman", issue: "#423", cover: "/covers/sample-batman.jpg", heatScore: 76 },
+  { title: "Fantastic Four", issue: "#52", cover: "/covers/sample-ff.jpg", heatScore: 71 },
+  { title: "Incredible Hulk", issue: "#181", cover: "/covers/sample-hulk.jpg", heatScore: 65 },
+  { title: "Action Comics", issue: "#1", cover: "/covers/sample-asm.jpg", heatScore: 58 },
+  { title: "Detective Comics", issue: "#27", cover: "/covers/sample-batman.jpg", heatScore: 52 },
+  { title: "New Mutants", issue: "#98", cover: "/covers/sample-spawn.jpg", heatScore: 45 },
+  { title: "Spawn", issue: "#1", cover: "/covers/sample-spawn.jpg", heatScore: 38 },
+  { title: "Walking Dead", issue: "#1", cover: "/covers/sample-hulk.jpg", heatScore: 32 },
+  { title: "Teenage Mutant Ninja Turtles", issue: "#1", cover: "/covers/sample-ff.jpg", heatScore: 28 },
+  { title: "Saga", issue: "#1", cover: "/covers/sample-xmen.jpg", heatScore: 22 },
 ];
 
-const MOCK_SIGNALS = [
-  { title: "Amazing Spider-Man", issue: "#300", cover: "/covers/sample-spawn.jpg" },
-  { title: "X-Men", issue: "#1", cover: "/covers/sample-xmen.jpg" },
-  { title: "Batman", issue: "#423", cover: "/covers/sample-batman.jpg" },
-  { title: "Fantastic Four", issue: "#52", cover: "/covers/sample-ff.jpg" },
-  { title: "Incredible Hulk", issue: "#181", cover: "/covers/sample-hulk.jpg" },
-  { title: "Action Comics", issue: "#1", cover: "/covers/sample-asm.jpg" },
-  { title: "Detective Comics", issue: "#27", cover: "/covers/sample-batman.jpg" },
-  { title: "New Mutants", issue: "#98", cover: "/covers/sample-spawn.jpg" },
-  { title: "Spawn", issue: "#1", cover: "/covers/sample-spawn.jpg" },
-  { title: "Walking Dead", issue: "#1", cover: "/covers/sample-hulk.jpg" },
-  { title: "Teenage Mutant Ninja Turtles", issue: "#1", cover: "/covers/sample-ff.jpg" },
-  { title: "Saga", issue: "#1", cover: "/covers/sample-xmen.jpg" },
-];
+function getHeatLabel(score: number): { label: string; color: string } {
+  if (score >= 70) return { label: "Heating Up", color: "text-red-500" };
+  if (score >= 40) return { label: "Sustained Interest", color: "text-amber-500" };
+  return { label: "Cooling Off", color: "text-blue-400" };
+}
 
-function HeatCard({ title, issue, cover, badgeIndex }: { 
+function HeatCard({ title, issue, cover, heatScore, isSample = false }: { 
   title: string; 
   issue: string; 
   cover: string; 
-  badgeIndex: number;
+  heatScore: number;
+  isSample?: boolean;
 }) {
-  const badge = HEAT_BADGES[badgeIndex % HEAT_BADGES.length];
-  const BadgeIcon = badge.icon;
+  const { label, color } = getHeatLabel(heatScore);
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/30 transition-colors">
+    <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary/30 transition-colors relative">
+      {/* Sample data indicator - only shown for non-logged-in users */}
+      {isSample && (
+        <div className="absolute top-2 left-2 z-10">
+          <Badge variant="secondary" className="text-[9px] bg-muted/90 backdrop-blur-sm">
+            Sample Data
+          </Badge>
+        </div>
+      )}
       <div className="aspect-[2/3] relative overflow-hidden bg-muted">
         <img 
           src={cover} 
@@ -48,9 +59,10 @@ function HeatCard({ title, issue, cover, badgeIndex }: {
         <h3 className="font-semibold text-sm text-foreground line-clamp-1">
           {title} {issue}
         </h3>
-        <div className="flex items-center gap-1.5 text-xs text-orange-500">
-          <BadgeIcon className="h-3 w-3" />
-          <span>{badge.label}</span>
+        <div className="flex items-center gap-1.5 text-xs">
+          <Flame className={`h-3 w-3 ${color}`} />
+          <span className={color}>Heat: {heatScore}</span>
+          <span className="text-muted-foreground">· {label}</span>
         </div>
         <p className="text-xs text-muted-foreground">
           Collector activity detected this week
@@ -112,22 +124,29 @@ function ExplanationStrip() {
 }
 
 export default function SignalsTeaser() {
+  const { user } = useAuth();
+  const { isElite } = useSubscriptionTier();
+  
+  // Hide sample data for logged-in Elite users - they see real data on /elite/signals
+  const showSampleData = !user || !isElite;
+  
   // Build grid with locked cards after every 3 visible cards
   const gridItems: React.ReactNode[] = [];
   let visibleCount = 0;
   
-  for (let i = 0; i < MOCK_SIGNALS.length && visibleCount < 12; i++) {
+  for (let i = 0; i < SAMPLE_SIGNALS.length && visibleCount < 12; i++) {
     if (visibleCount > 0 && visibleCount % 3 === 0) {
       gridItems.push(<LockedTeaserCard key={`locked-${visibleCount}`} />);
     }
-    const signal = MOCK_SIGNALS[i];
+    const signal = SAMPLE_SIGNALS[i];
     gridItems.push(
       <HeatCard 
         key={signal.title + signal.issue}
         title={signal.title}
         issue={signal.issue}
         cover={signal.cover}
-        badgeIndex={i}
+        heatScore={signal.heatScore}
+        isSample={showSampleData}
       />
     );
     visibleCount++;
