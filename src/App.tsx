@@ -86,6 +86,7 @@ import EliteDeals from "./pages/elite/Deals";
 import ElitePortfolio from "./pages/elite/Portfolio";
 import EliteTrending from "./pages/elite/Trending";
 import EliteSignals from "./pages/elite/Signals";
+import SignalsTeaser from "./pages/SignalsTeaser";
 import HelpFees from "./pages/help/Fees";
 import HelpSelling from "./pages/help/Selling";
 import HelpTrading from "./pages/help/Trading";
@@ -194,7 +195,7 @@ const AppContent = () => {
             <Route path="/elite/portfolio" element={<ElitePortfolio />} />
             <Route path="/elite/trending" element={<EliteTrending />} />
             <Route path="/elite/signals" element={<EliteSignals />} />
-            <Route path="/signals" element={<EliteSignals />} />
+            <Route path="/signals" element={<SignalsTeaser />} />
             <Route path="/help/fees" element={<HelpFees />} />
             <Route path="/help/selling" element={<HelpSelling />} />
             <Route path="/help/trading" element={<HelpTrading />} />
