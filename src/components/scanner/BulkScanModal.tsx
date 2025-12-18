@@ -301,15 +301,18 @@ export function BulkScanModal({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-muted-foreground" />
-              Bulk Scan Temporarily Disabled
+              Bulk Scan is temporarily disabled
             </DialogTitle>
             <DialogDescription>
-              This feature is temporarily unavailable. Please try again later or use Scanner Assist for single scans.
+              Scanner Assist is still available for single comic scans.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end pt-4">
-            <Button variant="outline" onClick={handleClose}>
-              Got it
+          <div className="flex flex-col gap-2 pt-4">
+            <Button onClick={handleClose}>
+              Use Scanner Assist
+            </Button>
+            <Button variant="ghost" onClick={handleClose}>
+              Close
             </Button>
           </div>
         </DialogContent>
