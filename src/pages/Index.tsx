@@ -15,11 +15,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Check, Camera } from "lucide-react";
 import { useOnboardingCheck } from "@/hooks/useOnboardingCheck";
-
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import FeaturedShops from "@/components/FeaturedShops";
 import { SafetySection } from "@/components/home/SafetySection";
 import { LazyCarousel } from "@/components/LazyCarousel";
+import { EventsLane } from "@/components/home/EventsLane";
 
 export default function Index() {
   useOnboardingCheck(); // Check if user needs onboarding
@@ -80,8 +80,15 @@ export default function Index() {
         {/* 2. Comic Stack Hero */}
         <HeroSection />
         
+        {/* 
+          Event Lane Lite: Shows live/upcoming seller events
+          Only renders if events array has items, hides completely otherwise.
+          Position: After hero, before listings for visibility.
+        */}
+        <EventsLane />
+        
         {/* 3. Featured Grails — Buy It Now (lazy load with priority for first 3 images) */}
-        <ListingsCarousel 
+        <ListingsCarousel
           title="✨ Featured Grails — Buy It Now" 
           filterType="featured-grails"
           useCache

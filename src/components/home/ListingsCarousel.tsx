@@ -1,3 +1,11 @@
+/**
+ * Homepage Listings Carousel
+ * 
+ * Horizontal scrollable carousel for homepage sections.
+ * Applies seller fairness algorithm to prevent single-seller dominance.
+ * Uses caching for homepage performance.
+ */
+
 import { useEffect, useState, useRef } from "react";
 import { ChevronRight } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
@@ -10,6 +18,7 @@ import { Listing } from "@/types/listing";
 import { HomepageSectionKey } from "@/lib/homepageCache";
 import { homeDebugStart, homeDebugRender } from "@/lib/homeDebug";
 import { debugLog, debugError } from "@/lib/debug";
+import { interleaveBySellerForCarousel } from "@/lib/homepageFairness";
 
 interface ListingsCarouselProps {
   title: string;
@@ -67,11 +76,15 @@ export function ListingsCarousel({
           return;
         }
 
-        setListings(data || []);
+        // Apply seller interleaving for carousel fairness
+        // Prevents same seller appearing consecutively
+        const fairData = interleaveBySellerForCarousel(data || [], 2);
+
+        setListings(fairData);
         setStatus('success');
 
         if (useCache && cacheKey) {
-          homeDebugRender(cacheKey, { count: data?.length || 0 });
+          homeDebugRender(cacheKey, { count: fairData?.length || 0 });
         }
       } catch (err) {
         const errViewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
