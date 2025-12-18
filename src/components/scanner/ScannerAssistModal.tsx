@@ -13,6 +13,12 @@
  * Limits:
  * - Free users: 3 scans per day
  * - Elite users: Unlimited
+ * 
+ * v2 Enhancement:
+ * - No-match fallback with tips
+ * - "Search Instead" prefills search with OCR text
+ * - "Show Possible Matches" shows low-confidence candidates
+ * - Debug logging for admins
  * ==========================================================================
  */
 
@@ -35,11 +41,15 @@ import { useScannerAssist } from "@/hooks/useScannerAssist";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { ScannerAssistUploader } from "./ScannerAssistUploader";
 import { ScannerAssistResults } from "./ScannerAssistResults";
 import { BulkScanModal } from "./BulkScanModal";
 import { UpgradeToEliteModal } from "@/components/subscription/UpgradeToEliteModal";
+import { ScannerDebugPanel } from "./ScannerDebugPanel";
+import { ScannerNoMatchPanel } from "./ScannerNoMatchPanel";
 import { compressImageDataUrl } from "@/lib/imageCompression";
+import { logScannerMatchAttempt, estimateImageSizeKb } from "@/lib/scannerMatchLogger";
 import {
   trackScannerAssistStarted,
   trackCandidatesReturned,
@@ -49,7 +59,10 @@ import {
   trackUpgradeClicked,
 } from "@/lib/analytics/scannerAnalytics";
 
-type ScannerStep = "upload" | "processing" | "results" | "manual";
+type ScannerStep = "upload" | "processing" | "results" | "no-match" | "manual";
+
+// Confidence threshold for "confident match"
+const CONFIDENCE_THRESHOLD = 0.50;
 
 interface ScannerAssistModalProps {
   open: boolean;
@@ -67,6 +80,7 @@ export function ScannerAssistModal({
   onManualSearch,
 }: ScannerAssistModalProps) {
   const { user } = useAuth();
+  const { isAdmin } = useAdminCheck();
   const {
     canScan,
     usedToday,
@@ -84,8 +98,26 @@ export function ScannerAssistModal({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<ComicVinePick[]>([]);
+  const [allCandidates, setAllCandidates] = useState<ComicVinePick[]>([]); // All candidates including low-confidence
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showBulkScanModal, setShowBulkScanModal] = useState(false);
+  const [showLowConfidenceCandidates, setShowLowConfidenceCandidates] = useState(false);
+  
+  // Debug data for admin panel
+  const [debugData, setDebugData] = useState<{
+    ocrText?: string;
+    extractedTitle?: string;
+    extractedIssue?: string;
+    extractedPublisher?: string;
+    extractedYear?: number | null;
+    confidence?: number;
+    candidateCount: number;
+    matchMode?: string;
+    timings?: { vision?: number; total?: number };
+  }>({ candidateCount: 0 });
+
+  // OCR text for "Search Instead" prefill
+  const [ocrExtractedText, setOcrExtractedText] = useState<string | null>(null);
 
   const handleImageSelected = async (imageData: string) => {
     // Check if user can scan
@@ -97,10 +129,14 @@ export function ScannerAssistModal({
 
     setPreviewImage(imageData);
     setStep("processing");
+    setShowLowConfidenceCandidates(false);
     
     // Track analytics
     const tier = isElite ? "elite" : "free";
     trackScannerAssistStarted(user?.id, tier);
+
+    // Estimate image size for logging
+    const imageSizeKb = estimateImageSizeKb(imageData);
 
     try {
       // Compress image
@@ -130,28 +166,76 @@ export function ScannerAssistModal({
       // Track usage after successful scan
       incrementUsage();
 
-      if (data.ok && data.picks && data.picks.length > 0) {
-        // Filter to top 5 candidates
-        const topCandidates = data.picks.slice(0, 5);
-        setCandidates(topCandidates);
-        setStep("results");
+      // Extract debug data
+      const extracted = data.extracted || {};
+      const topConfidence = data.picks?.[0]?.score || 0;
+      
+      setOcrExtractedText(extracted.title || extracted.finalCleanTitle || null);
+      setDebugData({
+        ocrText: data.ocrText,
+        extractedTitle: extracted.title || extracted.finalCleanTitle,
+        extractedIssue: extracted.issueNumber,
+        extractedPublisher: extracted.publisher,
+        extractedYear: extracted.year,
+        confidence: topConfidence,
+        candidateCount: data.picks?.length || 0,
+        matchMode: data.debug?.queryMode || extracted.matchMode,
+        timings: data.timings,
+      });
 
-        toast.success("Found possible matches!", {
-          description: `${topCandidates.length} candidates found`,
-        });
+      // Log match attempt to database
+      logScannerMatchAttempt({
+        userId: user?.id,
+        imageSizeKb,
+        matched: topConfidence >= CONFIDENCE_THRESHOLD && data.picks?.length > 0,
+        confidence: topConfidence,
+        candidateCount: data.picks?.length || 0,
+        ocrText: data.ocrText,
+        extractedTitle: extracted.title || extracted.finalCleanTitle,
+        extractedIssue: extracted.issueNumber,
+        extractedPublisher: extracted.publisher,
+        matchMode: data.debug?.queryMode,
+      });
+
+      // Store all candidates for "Show Possible Matches"
+      const allPicks = data.picks || [];
+      setAllCandidates(allPicks);
+
+      if (data.ok && allPicks.length > 0) {
+        // Check if we have confident matches (above threshold)
+        const confidentMatches = allPicks.filter((p: ComicVinePick) => p.score >= CONFIDENCE_THRESHOLD);
         
-        // Track analytics
-        trackCandidatesReturned(topCandidates.length, user?.id, tier);
-      } else {
-        // No matches found
-        setCandidates([]);
-        setStep("results");
+        if (confidentMatches.length > 0) {
+          // Show confident matches
+          setCandidates(confidentMatches.slice(0, 5));
+          setStep("results");
 
-        toast.info("No confident matches found", {
+          toast.success("Found possible matches!", {
+            description: `${confidentMatches.length} candidate${confidentMatches.length > 1 ? 's' : ''} found`,
+          });
+          
+          trackCandidatesReturned(confidentMatches.length, user?.id, tier);
+        } else {
+          // No confident matches, but have low-confidence candidates
+          setCandidates([]);
+          setStep("no-match");
+
+          toast.info("No confident matches found", {
+            description: "See tips below or view possible matches",
+          });
+          
+          trackScannerAssistNoMatch(user?.id, tier);
+        }
+      } else {
+        // No matches found at all
+        setCandidates([]);
+        setAllCandidates([]);
+        setStep("no-match");
+
+        toast.info("No matches found", {
           description: "Try searching manually",
         });
         
-        // Track analytics
         trackScannerAssistNoMatch(user?.id, tier);
       }
     } catch (err: any) {
@@ -196,13 +280,48 @@ export function ScannerAssistModal({
     handleClose();
   };
 
+  // "Search Instead" - prefill with OCR extracted text
+  const handleSearchInstead = () => {
+    // If we have OCR text, we could pass it to a search handler
+    // For now, just navigate to manual search with the extracted text in localStorage
+    if (ocrExtractedText) {
+      localStorage.setItem("grailseeker_search_prefill", ocrExtractedText);
+    }
+    onManualSearch();
+    handleClose();
+  };
+
+  // "Show Possible Matches" - show low-confidence candidates
+  const handleShowPossibleMatches = () => {
+    setShowLowConfidenceCandidates(true);
+    setCandidates(allCandidates.slice(0, 5));
+    setStep("results");
+  };
+
+  // "Start Over" - reset to upload
+  const handleStartOver = () => {
+    setStep("upload");
+    setPreviewImage(null);
+    setCandidates([]);
+    setAllCandidates([]);
+    setShowLowConfidenceCandidates(false);
+    setOcrExtractedText(null);
+  };
+
   const handleClose = () => {
     setStep("upload");
     setPreviewImage(null);
     setUploadedImageUrl(null);
     setCandidates([]);
+    setAllCandidates([]);
+    setShowLowConfidenceCandidates(false);
+    setOcrExtractedText(null);
+    setDebugData({ candidateCount: 0 });
     onOpenChange(false);
   };
+
+  // Can show debug panel to admins or Elite users
+  const canShowDebug = isAdmin || isElite;
 
   // If user is at limit, show upgrade prompt
   if (!usageLoading && !canScan && open && step === "upload") {
@@ -357,6 +476,7 @@ export function ScannerAssistModal({
                 "Snap a photo and we'll suggest the closest matches. You pick the right one."}
               {step === "processing" && "Analyzing your comic cover..."}
               {step === "results" && "Select the correct match for your comic."}
+              {step === "no-match" && "We couldn't confidently identify this comic."}
             </DialogDescription>
           </DialogHeader>
 
@@ -383,6 +503,29 @@ export function ScannerAssistModal({
                 onSelect={handleSelect}
                 onSkip={handleSkip}
                 onManualSearch={handleManualSearch}
+                showingLowConfidence={showLowConfidenceCandidates}
+              />
+            )}
+
+            {step === "no-match" && (
+              <div className="space-y-4">
+                {/* Import and use ScannerNoMatchPanel */}
+                <ScannerNoMatchPanel
+                  lowConfidenceCandidates={allCandidates}
+                  ocrExtractedText={ocrExtractedText}
+                  onSearchInstead={handleSearchInstead}
+                  onShowPossibleMatches={handleShowPossibleMatches}
+                  onStartOver={handleStartOver}
+                  hasAnyCandidates={allCandidates.length > 0}
+                />
+              </div>
+            )}
+
+            {/* Debug panel for admins/Elite */}
+            {(step === "results" || step === "no-match") && canShowDebug && (
+              <ScannerDebugPanel
+                debugData={debugData}
+                isVisible={true}
               />
             )}
           </div>

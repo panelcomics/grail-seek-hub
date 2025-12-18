@@ -3192,6 +3192,54 @@ export type Database = {
         }
         Relationships: []
       }
+      scanner_match_logs: {
+        Row: {
+          candidate_count: number
+          confidence: number | null
+          created_at: string
+          extracted_issue: string | null
+          extracted_publisher: string | null
+          extracted_title: string | null
+          id: string
+          image_resolution: string | null
+          image_size_kb: number | null
+          match_mode: string | null
+          matched: boolean
+          ocr_text: string | null
+          user_id: string | null
+        }
+        Insert: {
+          candidate_count?: number
+          confidence?: number | null
+          created_at?: string
+          extracted_issue?: string | null
+          extracted_publisher?: string | null
+          extracted_title?: string | null
+          id?: string
+          image_resolution?: string | null
+          image_size_kb?: number | null
+          match_mode?: string | null
+          matched?: boolean
+          ocr_text?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          candidate_count?: number
+          confidence?: number | null
+          created_at?: string
+          extracted_issue?: string | null
+          extracted_publisher?: string | null
+          extracted_title?: string | null
+          id?: string
+          image_resolution?: string | null
+          image_size_kb?: number | null
+          match_mode?: string | null
+          matched?: boolean
+          ocr_text?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       scanner_metrics: {
         Row: {
           action: string
