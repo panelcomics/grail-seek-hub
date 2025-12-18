@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Layers, CheckCircle2, ArrowRight, AlertCircle } from "lucide-react";
+import { Crown, Layers, CheckCircle2, ArrowRight, AlertCircle, Sparkles, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -293,27 +293,44 @@ export function BulkScanModal({
     handleClose();
   };
 
-  // Show disabled message if feature is turned off
+  // Show disabled/coming soon message if feature is turned off
   if (!isEnabled("bulkScanEnabled") && open) {
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-muted-foreground" />
-              Bulk Scan is temporarily disabled
-            </DialogTitle>
-            <DialogDescription>
-              Scanner Assist is still available for single comic scans.
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" />
+                Bulk Scan
+              </DialogTitle>
+              <Badge className="text-xs bg-amber-500/20 text-amber-600 border-amber-500/30">
+                Coming Soon
+              </Badge>
+            </div>
+            <DialogDescription className="pt-2">
+              Bulk Scan is coming soon for Elite members! Scan entire stacks of comics at once.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2 pt-4">
-            <Button onClick={handleClose}>
-              Use Scanner Assist
-            </Button>
-            <Button variant="ghost" onClick={handleClose}>
-              Close
-            </Button>
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
+              <p className="font-medium">What's coming:</p>
+              <ul className="text-muted-foreground space-y-1 text-xs">
+                <li>• Upload up to 20 comic covers at once</li>
+                <li>• Queue-based processing with live status</li>
+                <li>• Review & confirm each match individually</li>
+                <li>• Fast-confirm mode for high-confidence matches</li>
+              </ul>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleClose} className="w-full">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Use Scanner Assist Instead
+              </Button>
+              <Button variant="ghost" onClick={handleClose} className="w-full text-muted-foreground">
+                Close
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

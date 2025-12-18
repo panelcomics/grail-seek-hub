@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Crown, Layers } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sparkles, Crown, Layers, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ComicVinePick } from "@/types/comicvine";
@@ -169,6 +170,19 @@ export function ScannerAssistModal({
       
       // Track analytics
       trackScannerAssistConfirmed(user?.id, isElite ? "elite" : "free");
+      
+      // Success toast with soft upsell for free users (NOT at limit)
+      if (!isElite && canScan) {
+        toast.success("Comic identified — review & edit", {
+          description: "Nice! Elite users scan without daily limits.",
+          action: {
+            label: "Learn more",
+            onClick: () => window.location.href = "/plans",
+          },
+        });
+      } else {
+        toast.success("Comic identified — review & edit");
+      }
     }
   };
 
@@ -263,8 +277,9 @@ export function ScannerAssistModal({
   }
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={handleClose}>
+    <TooltipProvider>
+      <>
+        <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between">
@@ -274,38 +289,66 @@ export function ScannerAssistModal({
               </DialogTitle>
               <div className="flex items-center gap-2">
                 {bulkScanEnabled && isElite && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
-                    onClick={() => {
-                      onOpenChange(false);
-                      setShowBulkScanModal(true);
-                    }}
-                  >
-                    <Layers className="w-3 h-3 mr-1" />
-                    Bulk Scan
-                  </Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="secondary"
+                        className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                        onClick={() => {
+                          onOpenChange(false);
+                          setShowBulkScanModal(true);
+                        }}
+                      >
+                        <Layers className="w-3 h-3 mr-1" />
+                        Bulk Scan
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">Scan up to 20 comics at once</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {bulkScanEnabled && !isElite && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs text-muted-foreground cursor-pointer hover:bg-secondary/80"
-                    onClick={() => setShowUpgradeModal(true)}
-                  >
-                    <Layers className="w-3 h-3 mr-1" />
-                    Bulk Scan (Elite)
-                  </Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="secondary"
+                        className="text-xs text-muted-foreground cursor-pointer hover:bg-secondary/80"
+                        onClick={() => setShowUpgradeModal(true)}
+                      >
+                        <Layers className="w-3 h-3 mr-1" />
+                        Bulk Scan (Elite)
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">Elite saves ~5-10 min per listing session</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {!isUnlimited && (
-                  <Badge variant="outline" className="text-xs">
-                    {remainingScans} scan{remainingScans !== 1 ? "s" : ""} left today
-                  </Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-xs cursor-help">
+                        {remainingScans} scan{remainingScans !== 1 ? "s" : ""} left today
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">Elite users get unlimited scans</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {isUnlimited && (
-                  <Badge className="text-xs bg-amber-500/20 text-amber-600 border-amber-500/30">
-                    <Crown className="w-3 h-3 mr-1" />
-                    Unlimited
-                  </Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className="text-xs bg-amber-500/20 text-amber-600 border-amber-500/30 cursor-help">
+                        <Crown className="w-3 h-3 mr-1" />
+                        Unlimited
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">Unlimited scans as an Elite member</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>
@@ -362,6 +405,7 @@ export function ScannerAssistModal({
           window.location.href = "/inventory";
         }}
       />
-    </>
+      </>
+    </TooltipProvider>
   );
 }
