@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Save, Users, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FeatureFlagsCard } from "@/components/admin/FeatureFlagsCard";
+import { ScannerAnalyticsCard } from "@/components/admin/ScannerAnalyticsCard";
 
 export default function AdminSettings() {
   const navigate = useNavigate();
@@ -149,7 +151,13 @@ export default function AdminSettings() {
           </Link>
         </div>
 
-        <h2 className="text-2xl font-bold mb-4">Feature Toggles</h2>
+        {/* Feature Flags & Analytics Section */}
+        <div className="grid gap-4 md:grid-cols-2 mb-6">
+          <FeatureFlagsCard />
+          <ScannerAnalyticsCard />
+        </div>
+
+        <h2 className="text-2xl font-bold mb-4">Legacy Feature Toggles</h2>
         <Card>
           <CardHeader>
             <CardTitle>Platform Configuration</CardTitle>

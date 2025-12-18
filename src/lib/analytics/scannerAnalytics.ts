@@ -57,7 +57,8 @@ export async function trackScannerEvent(
   }
 
   try {
-    const { error } = await supabase.from("usage_events").insert({
+    // Use type assertion for new table (types auto-regenerate after migration)
+    const { error } = await (supabase as any).from("usage_events").insert({
       event_name: event,
       user_id: userId || null,
       tier: tier || null,

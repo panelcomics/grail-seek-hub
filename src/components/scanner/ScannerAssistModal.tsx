@@ -32,11 +32,21 @@ import { toast } from "sonner";
 import { ComicVinePick } from "@/types/comicvine";
 import { useScannerAssist } from "@/hooks/useScannerAssist";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useAuth } from "@/contexts/AuthContext";
 import { ScannerAssistUploader } from "./ScannerAssistUploader";
 import { ScannerAssistResults } from "./ScannerAssistResults";
 import { BulkScanModal } from "./BulkScanModal";
 import { UpgradeToEliteModal } from "@/components/subscription/UpgradeToEliteModal";
 import { compressImageDataUrl } from "@/lib/imageCompression";
+import {
+  trackScannerAssistStarted,
+  trackCandidatesReturned,
+  trackScannerAssistConfirmed,
+  trackScannerAssistNoMatch,
+  trackUpgradeModalShown,
+  trackUpgradeClicked,
+} from "@/lib/analytics/scannerAnalytics";
 
 type ScannerStep = "upload" | "processing" | "results" | "manual";
 
@@ -55,6 +65,7 @@ export function ScannerAssistModal({
   onSkip,
   onManualSearch,
 }: ScannerAssistModalProps) {
+  const { user } = useAuth();
   const {
     canScan,
     usedToday,
@@ -65,6 +76,8 @@ export function ScannerAssistModal({
     remainingScans,
   } = useScannerAssist();
   const { isElite } = useSubscriptionTier();
+  const { isEnabled } = useFeatureFlags();
+  const bulkScanEnabled = isEnabled("bulkScanEnabled");
 
   const [step, setStep] = useState<ScannerStep>("upload");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -77,11 +90,16 @@ export function ScannerAssistModal({
     // Check if user can scan
     if (!canScan) {
       setShowUpgradeModal(true);
+      trackUpgradeModalShown(user?.id);
       return;
     }
 
     setPreviewImage(imageData);
     setStep("processing");
+    
+    // Track analytics
+    const tier = isElite ? "elite" : "free";
+    trackScannerAssistStarted(user?.id, tier);
 
     try {
       // Compress image
@@ -120,6 +138,9 @@ export function ScannerAssistModal({
         toast.success("Found possible matches!", {
           description: `${topCandidates.length} candidates found`,
         });
+        
+        // Track analytics
+        trackCandidatesReturned(topCandidates.length, user?.id, tier);
       } else {
         // No matches found
         setCandidates([]);
@@ -128,6 +149,9 @@ export function ScannerAssistModal({
         toast.info("No confident matches found", {
           description: "Try searching manually",
         });
+        
+        // Track analytics
+        trackScannerAssistNoMatch(user?.id, tier);
       }
     } catch (err: any) {
       console.error("[SCANNER_ASSIST] Error:", err);
@@ -142,6 +166,9 @@ export function ScannerAssistModal({
     if (uploadedImageUrl) {
       onSelect(pick, uploadedImageUrl);
       handleClose();
+      
+      // Track analytics
+      trackScannerAssistConfirmed(user?.id, isElite ? "elite" : "free");
     }
   };
 
@@ -204,7 +231,10 @@ export function ScannerAssistModal({
 
               <div className="flex flex-col gap-2 pt-2">
                 <Button
-                  onClick={() => setShowUpgradeModal(true)}
+                  onClick={() => {
+                    setShowUpgradeModal(true);
+                    trackUpgradeClicked(user?.id);
+                  }}
                   className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
                 >
                   <Crown className="w-4 h-4 mr-2" />
@@ -243,7 +273,7 @@ export function ScannerAssistModal({
                 Scanner Assist
               </DialogTitle>
               <div className="flex items-center gap-2">
-                {isElite ? (
+                {bulkScanEnabled && isElite && (
                   <Badge
                     variant="secondary"
                     className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
@@ -255,7 +285,8 @@ export function ScannerAssistModal({
                     <Layers className="w-3 h-3 mr-1" />
                     Bulk Scan
                   </Badge>
-                ) : (
+                )}
+                {bulkScanEnabled && !isElite && (
                   <Badge
                     variant="secondary"
                     className="text-xs text-muted-foreground cursor-pointer hover:bg-secondary/80"
