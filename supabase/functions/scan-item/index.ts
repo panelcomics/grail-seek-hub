@@ -40,6 +40,22 @@ const NOISE_PATTERNS = [
   /\bALL AGES\b/gi,
   /DIRECT EDITION/gi,
   /NEWSSTAND/gi,
+  /COLLECTOR'S EDITION/gi,
+  /LIMITED SERIES/gi,
+];
+
+// Known title prefixes to help extraction
+const KNOWN_TITLE_PATTERNS = [
+  'Amazing Spider-Man', 'Spectacular Spider-Man', 'Web of Spider-Man', 'Spider-Man',
+  'Uncanny X-Men', 'X-Men', 'New Mutants', 'X-Force', 'Wolverine', 'Cable',
+  'Avengers', 'New Avengers', 'West Coast Avengers', 'Mighty Avengers',
+  'Fantastic Four', 'Incredible Hulk', 'Iron Man', 'Thor', 'Captain America',
+  'Daredevil', 'Punisher', 'Ghost Rider', 'Moon Knight', 'Blade',
+  'Batman', 'Detective Comics', 'Superman', 'Action Comics', 'Wonder Woman',
+  'Justice League', 'Green Lantern', 'Flash', 'Aquaman', 'Teen Titans',
+  'Swamp Thing', 'Saga of the Swamp Thing', 'Hellblazer', 'Sandman', 'Preacher',
+  'Spawn', 'Savage Dragon', 'Invincible', 'Walking Dead', 'Saga',
+  'Teenage Mutant Ninja Turtles', 'TMNT', 'Star Wars', 'Transformers', 'G.I. Joe',
 ];
 
 // Slab-related terms to filter out
@@ -76,6 +92,28 @@ function cleanOcrText(text: string): string {
   return cleaned;
 }
 
+// Levenshtein distance for fuzzy matching
+function levenshtein(a: string, b: string): number {
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] = b[i-1] === a[j-1] 
+        ? matrix[i-1][j-1] 
+        : Math.min(matrix[i-1][j-1] + 1, matrix[i][j-1] + 1, matrix[i-1][j] + 1);
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+// Similarity ratio (0-1)
+function similarity(a: string, b: string): number {
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  return 1 - levenshtein(a, b) / maxLen;
+}
+
 // Extract title and issue from OCR text using multiple strategies
 function extractTitleAndIssue(ocrText: string): { 
   title: string | null; 
@@ -84,10 +122,24 @@ function extractTitleAndIssue(ocrText: string): {
   method: string;
 } {
   const cleanedText = cleanOcrText(ocrText);
-  console.log('[SCAN-ITEM] Cleaned OCR text:', cleanedText.substring(0, 200));
+  console.log('[SCAN-ITEM] Cleaned OCR text:', cleanedText.substring(0, 300));
+  
+  // Strategy 0: Check for known title patterns first (most reliable)
+  const lowerText = cleanedText.toLowerCase();
+  for (const knownTitle of KNOWN_TITLE_PATTERNS) {
+    const lowerKnown = knownTitle.toLowerCase();
+    if (lowerText.includes(lowerKnown)) {
+      // Found known title, now look for issue number nearby
+      const idx = lowerText.indexOf(lowerKnown);
+      const afterTitle = cleanedText.substring(idx + knownTitle.length, idx + knownTitle.length + 30);
+      const issueMatch = afterTitle.match(/\s*#?\s*(\d{1,4})\b/);
+      const issue = issueMatch ? issueMatch[1] : null;
+      console.log('[SCAN-ITEM] Strategy 0 (known title):', knownTitle, '#', issue);
+      return { title: knownTitle, issue, confidence: 0.95, method: 'known_title' };
+    }
+  }
   
   // Strategy 1: Look for "Title #Number" pattern
-  // Match patterns like "Amazing Spider-Man #129" or "Saga of the Swamp Thing #21"
   const hashPatterns = [
     /\b([A-Z][A-Za-z\-'\s]{2,50}?)\s*#\s*(\d{1,4})\b/g,
     /\b([A-Z][a-z]+(?:\s+[A-Za-z][a-z]+){1,6})\s*#\s*(\d{1,4})\b/g,
@@ -96,14 +148,10 @@ function extractTitleAndIssue(ocrText: string): {
   for (const pattern of hashPatterns) {
     const matches = [...cleanedText.matchAll(pattern)];
     if (matches.length > 0) {
-      // Pick the longest title match (more likely to be complete)
-      const best = matches.reduce((a, b) => 
-        (a[1].length > b[1].length) ? a : b
-      );
+      const best = matches.reduce((a, b) => (a[1].length > b[1].length) ? a : b);
       const title = best[1].trim();
       const issue = best[2];
       
-      // Validate it looks like a real title (not just junk)
       if (title.split(/\s+/).length >= 2 || title.length >= 6) {
         console.log('[SCAN-ITEM] Strategy 1 (hash pattern):', title, '#', issue);
         return { title, issue, confidence: 0.9, method: 'hash_pattern' };
@@ -112,54 +160,56 @@ function extractTitleAndIssue(ocrText: string): {
   }
   
   // Strategy 2: Look for "No. X" or "Issue X" patterns
-  const noPatterns = [
-    /\b([A-Z][A-Za-z\-'\s]{2,50}?)\s+No\.?\s*(\d{1,4})\b/gi,
-    /\b([A-Z][A-Za-z\-'\s]{2,50}?)\s+Issue\s*(\d{1,4})\b/gi,
-  ];
-  
-  for (const pattern of noPatterns) {
-    const match = cleanedText.match(pattern);
-    if (match) {
-      // Re-extract groups
-      const reMatch = cleanedText.match(/\b([A-Z][A-Za-z\-'\s]{2,50}?)\s+(?:No\.?|Issue)\s*(\d{1,4})\b/i);
-      if (reMatch) {
-        const title = reMatch[1].trim();
-        const issue = reMatch[2];
-        console.log('[SCAN-ITEM] Strategy 2 (No/Issue pattern):', title, '#', issue);
-        return { title, issue, confidence: 0.85, method: 'no_pattern' };
-      }
-    }
+  const noMatch = cleanedText.match(/\b([A-Z][A-Za-z\-'\s]{2,50}?)\s+(?:No\.?|Issue|Vol\.?)\s*(\d{1,4})\b/i);
+  if (noMatch) {
+    const title = noMatch[1].trim();
+    const issue = noMatch[2];
+    console.log('[SCAN-ITEM] Strategy 2 (No/Issue pattern):', title, '#', issue);
+    return { title, issue, confidence: 0.85, method: 'no_pattern' };
   }
   
   // Strategy 3: Look for standalone issue number and find nearby title-like text
   const standaloneIssue = cleanedText.match(/\b#\s*(\d{1,4})\b/);
   if (standaloneIssue) {
     const issue = standaloneIssue[1];
-    // Find the most title-like phrase in the text
-    const lines = cleanedText.split('\n');
-    for (const line of lines) {
-      // Skip lines with issue number
-      if (line.includes('#') || /\bNo\.?\s*\d/i.test(line)) continue;
-      
-      // Find capitalized multi-word phrases
-      const titleMatch = line.match(/\b([A-Z][A-Za-z\-']+(?:\s+[A-Za-z\-']+){1,5})\b/);
-      if (titleMatch) {
-        const title = titleMatch[1].trim();
-        if (title.length >= 5) {
-          console.log('[SCAN-ITEM] Strategy 3 (standalone issue):', title, '#', issue);
-          return { title, issue, confidence: 0.7, method: 'standalone_issue' };
-        }
+    const words = cleanedText.split(/\s+/);
+    const hashIdx = words.findIndex(w => w.includes('#'));
+    
+    // Take 2-5 words before the hash as title
+    if (hashIdx > 1) {
+      const titleWords = words.slice(Math.max(0, hashIdx - 5), hashIdx)
+        .filter(w => /^[A-Z]/.test(w) && w.length > 1);
+      if (titleWords.length >= 2) {
+        const title = titleWords.join(' ');
+        console.log('[SCAN-ITEM] Strategy 3 (words before hash):', title, '#', issue);
+        return { title, issue, confidence: 0.75, method: 'before_hash' };
+      }
+    }
+    
+    // Or find capitalized multi-word phrases anywhere
+    const titleMatch = cleanedText.match(/\b([A-Z][A-Za-z\-']+(?:\s+[A-Za-z\-']+){1,5})\b/);
+    if (titleMatch) {
+      const title = titleMatch[1].trim();
+      if (title.length >= 5) {
+        console.log('[SCAN-ITEM] Strategy 3 (standalone issue):', title, '#', issue);
+        return { title, issue, confidence: 0.7, method: 'standalone_issue' };
       }
     }
   }
   
-  // Strategy 4: Just extract any plausible title for manual search
-  // Look for 2-5 capitalized words
+  // Strategy 4: Just extract any plausible title for search
   const titleOnlyMatch = cleanedText.match(/\b([A-Z][a-z]+(?:\s+(?:of|the|and|The|Of|And|[A-Z][a-z]+)){1,5})\b/);
   if (titleOnlyMatch) {
     const title = titleOnlyMatch[1].trim();
     console.log('[SCAN-ITEM] Strategy 4 (title only):', title);
     return { title, issue: null, confidence: 0.5, method: 'title_only' };
+  }
+  
+  // Strategy 5: First N capitalized words as fallback
+  const firstCaps = cleanedText.match(/^([A-Z][A-Za-z]+(?:\s+[A-Za-z]+){0,4})/);
+  if (firstCaps) {
+    console.log('[SCAN-ITEM] Strategy 5 (first caps):', firstCaps[1]);
+    return { title: firstCaps[1], issue: null, confidence: 0.4, method: 'first_caps' };
   }
   
   console.log('[SCAN-ITEM] No title/issue extracted');
@@ -323,7 +373,7 @@ async function searchComicVine(
   return results;
 }
 
-// Score results based on match quality
+// Score results based on match quality with fuzzy matching
 function scoreResults(
   results: any[], 
   searchTitle: string, 
@@ -334,32 +384,50 @@ function scoreResults(
   const titleWords = normalizedTitle.split(/\s+/).filter(w => w.length > 2);
   
   return results.map(result => {
-    let score = 0.40; // Base score
-    const breakdown = { title: 0, issue: 0, publisher: 0 };
+    let score = 0.30; // Base score
+    const breakdown = { title: 0, issue: 0, publisher: 0, fuzzy: 0 };
     
     // Title matching (40% weight)
     const resultTitle = (result.title || '').toLowerCase().replace(/[^a-z0-9\s]/g, '');
     const resultWords = resultTitle.split(/\s+/).filter((w: string) => w.length > 2);
     
-    // Check word overlap
-    const matchingWords = titleWords.filter(w => resultWords.includes(w) || resultTitle.includes(w));
+    // Exact word overlap
+    const matchingWords = titleWords.filter(w => resultWords.includes(w));
     const wordMatchRatio = titleWords.length > 0 ? matchingWords.length / titleWords.length : 0;
     
-    // Check if titles contain each other
+    // Fuzzy word matching (handle OCR typos)
+    let fuzzyMatches = 0;
+    for (const searchWord of titleWords) {
+      for (const resultWord of resultWords) {
+        if (similarity(searchWord, resultWord) > 0.8) {
+          fuzzyMatches++;
+          break;
+        }
+      }
+    }
+    const fuzzyRatio = titleWords.length > 0 ? fuzzyMatches / titleWords.length : 0;
+    
+    // Check containment
     const titleContains = resultTitle.includes(normalizedTitle) || normalizedTitle.includes(resultTitle);
     
-    breakdown.title = titleContains ? 0.40 : (wordMatchRatio * 0.35);
+    // Overall title similarity
+    const titleSim = similarity(normalizedTitle, resultTitle);
+    
+    breakdown.title = titleContains ? 0.40 : Math.max(wordMatchRatio * 0.35, titleSim * 0.30);
+    breakdown.fuzzy = fuzzyRatio > wordMatchRatio ? (fuzzyRatio - wordMatchRatio) * 0.10 : 0;
     
     // Issue number matching (35% weight)
     if (searchIssue && result.issue) {
-      if (result.issue === searchIssue) {
+      const searchNum = parseInt(searchIssue);
+      const resultNum = parseInt(result.issue);
+      if (result.issue === searchIssue || resultNum === searchNum) {
         breakdown.issue = 0.35;
-      } else if (parseInt(result.issue) === parseInt(searchIssue)) {
-        breakdown.issue = 0.30;
+      } else if (Math.abs(resultNum - searchNum) <= 1) {
+        // Off by one (OCR error)
+        breakdown.issue = 0.20;
       }
     } else if (!searchIssue) {
-      // No issue to match, give partial credit
-      breakdown.issue = 0.15;
+      breakdown.issue = 0.10;
     }
     
     // Publisher matching (15% weight)
@@ -368,15 +436,19 @@ function scoreResults(
         breakdown.publisher = 0.15;
       }
     } else if (!searchPublisher) {
-      // No publisher to match
       breakdown.publisher = 0.05;
     }
     
-    score = breakdown.title + breakdown.issue + breakdown.publisher;
+    score = breakdown.title + breakdown.issue + breakdown.publisher + breakdown.fuzzy;
     
-    // Boost if multiple factors match well
+    // Boost for strong multi-factor match
     if (breakdown.title >= 0.30 && breakdown.issue >= 0.30) {
-      score = Math.min(0.98, score + 0.10);
+      score = Math.min(0.98, score + 0.12);
+    }
+    
+    // Penalty for very low title match
+    if (breakdown.title < 0.15) {
+      score *= 0.6;
     }
     
     return {
@@ -385,7 +457,9 @@ function scoreResults(
       scoreBreakdown: breakdown,
       matchMode: 'search'
     };
-  }).sort((a, b) => b.score - a.score);
+  })
+  .filter(r => r.score >= 0.35) // Filter out poor matches
+  .sort((a, b) => b.score - a.score);
 }
 
 serve(async (req) => {
