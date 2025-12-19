@@ -13,7 +13,35 @@ interface EbaySoldItem {
   endDate: string;
   url: string;
   imageUrl?: string;
+  isGraded?: boolean;
+  detectedGrade?: string;
 }
+
+interface PricingResult {
+  ok: boolean;
+  items: EbaySoldItem[];
+  avgPrice: number | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  medianPrice: number | null;
+  priceRange: { low: number; mid: number; high: number } | null;
+  totalResults: number;
+  confidence: { score: number; reasons: string[] };
+  isBeta: boolean;
+  warning?: string;
+  searchQuery?: string;
+  gradeAdjustedPrice?: number | null;
+  isKeyIssue?: boolean;
+  keyDetails?: string;
+  rawVsGradedPricing?: {
+    raw: { avg: number; count: number } | null;
+    graded: { avg: number; count: number } | null;
+  };
+}
+
+// In-memory cache (persists across warm function invocations)
+const priceCache = new Map<string, { data: PricingResult; timestamp: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Keywords to exclude - these indicate reprints/facsimiles, not originals
 const EXCLUDE_KEYWORDS = [
@@ -26,7 +54,75 @@ const EXCLUDE_KEYWORDS = [
   'reproduction',
   'reading copy',
   'coverless',
+  'incomplete',
+  'missing pages',
+  'water damage',
+  'digital',
+  'pdf',
+  'lot of',
+  'bundle',
 ];
+
+// Minimum price threshold - below this is likely mislabeled
+const MIN_PRICE_THRESHOLD = 1.00;
+
+// Grade multipliers for condition-based adjustments (base = NM 9.4)
+const GRADE_MULTIPLIERS: Record<string, number> = {
+  '10.0': 2.5,
+  '9.9': 2.0,
+  '9.8': 1.5,
+  '9.6': 1.2,
+  '9.4': 1.0,  // Base
+  '9.2': 0.85,
+  '9.0': 0.75,
+  '8.5': 0.65,
+  '8.0': 0.55,
+  '7.5': 0.48,
+  '7.0': 0.42,
+  '6.5': 0.36,
+  '6.0': 0.32,
+  '5.5': 0.28,
+  '5.0': 0.25,
+  '4.5': 0.22,
+  '4.0': 0.20,
+  '3.5': 0.18,
+  '3.0': 0.16,
+  '2.5': 0.14,
+  '2.0': 0.12,
+  '1.8': 0.10,
+  '1.5': 0.09,
+  '1.0': 0.08,
+  '0.5': 0.06,
+};
+
+// Condition to approximate grade mapping
+const CONDITION_TO_GRADE: Record<string, string> = {
+  'mint': '9.8',
+  'near mint': '9.4',
+  'nm': '9.4',
+  'nm+': '9.6',
+  'nm-': '9.2',
+  'very fine': '8.0',
+  'vf': '8.0',
+  'vf+': '8.5',
+  'vf-': '7.5',
+  'fine': '6.0',
+  'fn': '6.0',
+  'fn+': '6.5',
+  'fn-': '5.5',
+  'very good': '4.0',
+  'vg': '4.0',
+  'vg+': '4.5',
+  'vg-': '3.5',
+  'good': '2.0',
+  'gd': '2.0',
+  'gd+': '2.5',
+  'gd-': '1.8',
+  'fair': '1.5',
+  'fr': '1.5',
+  'poor': '0.5',
+  'pr': '0.5',
+};
 
 // Major publishers for search refinement
 const PUBLISHER_MAP: Record<string, string[]> = {
@@ -48,16 +144,60 @@ function detectPublisher(title: string): string | null {
   // Common Marvel titles
   const marvelTitles = ['spider-man', 'x-men', 'avengers', 'iron man', 'hulk', 'thor', 
     'captain america', 'fantastic four', 'daredevil', 'silver surfer', 'wolverine',
-    'punisher', 'ghost rider', 'moon knight', 'venom', 'deadpool'];
+    'punisher', 'ghost rider', 'moon knight', 'venom', 'deadpool', 'amazing fantasy',
+    'tales of suspense', 'journey into mystery', 'incredible hulk', 'uncanny x-men'];
   
   // Common DC titles
   const dcTitles = ['batman', 'superman', 'wonder woman', 'justice league', 'flash',
-    'green lantern', 'aquaman', 'teen titans', 'nightwing', 'harley quinn', 'joker'];
+    'green lantern', 'aquaman', 'teen titans', 'nightwing', 'harley quinn', 'joker',
+    'detective comics', 'action comics', 'brave and bold', 'swamp thing'];
   
   if (marvelTitles.some(t => lowerTitle.includes(t))) return 'marvel';
   if (dcTitles.some(t => lowerTitle.includes(t))) return 'dc';
   
   return null;
+}
+
+// Detect if item is CGC/CBCS graded from title
+function detectGradedStatus(itemTitle: string): { isGraded: boolean; grade?: string } {
+  const lowerTitle = itemTitle.toLowerCase();
+  const gradingCompanies = ['cgc', 'cbcs', 'pgx'];
+  
+  const isGraded = gradingCompanies.some(company => lowerTitle.includes(company));
+  
+  if (isGraded) {
+    // Try to extract grade number
+    const gradeMatch = itemTitle.match(/(?:cgc|cbcs|pgx)\s*(\d+\.?\d*)/i);
+    if (gradeMatch) {
+      return { isGraded: true, grade: gradeMatch[1] };
+    }
+  }
+  
+  return { isGraded, grade: undefined };
+}
+
+// Calculate median price (more robust than average)
+function calculateMedian(prices: number[]): number {
+  if (prices.length === 0) return 0;
+  const sorted = [...prices].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Remove outliers using IQR method
+function removeOutliers(prices: number[]): number[] {
+  if (prices.length < 4) return prices;
+  
+  const sorted = [...prices].sort((a, b) => a - b);
+  const q1Index = Math.floor(sorted.length * 0.25);
+  const q3Index = Math.floor(sorted.length * 0.75);
+  const q1 = sorted[q1Index];
+  const q3 = sorted[q3Index];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+  
+  return prices.filter(p => p >= lowerBound && p <= upperBound);
 }
 
 // Calculate confidence score based on result quality
@@ -79,13 +219,21 @@ function calculateConfidence(
   if (items.length < 3) {
     score -= 30;
     reasons.push(`Only ${items.length} comparable sales found`);
+  } else if (items.length >= 5) {
+    score += 5; // Bonus for good sample size
+    reasons.push(`Good sample size (${items.length} sales)`);
   }
   
   // Check if results match the title
-  const titleWords = originalTitle.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const titleWords = originalTitle.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2);
+  
   const matchingItems = items.filter(item => {
     const itemTitle = item.title.toLowerCase();
-    return titleWords.every(word => itemTitle.includes(word));
+    const matchCount = titleWords.filter(word => itemTitle.includes(word)).length;
+    return matchCount >= titleWords.length * 0.6; // 60% word match
   });
   
   if (matchingItems.length < items.length / 2) {
@@ -95,22 +243,27 @@ function calculateConfidence(
   
   // Check if issue number is in results
   if (issueNumber) {
-    const issueMatches = items.filter(item => 
-      item.title.includes(`#${issueNumber}`) || 
-      item.title.includes(` ${issueNumber} `) ||
-      item.title.toLowerCase().includes(`issue ${issueNumber}`)
-    );
+    const issueMatches = items.filter(item => {
+      const lowerTitle = item.title.toLowerCase();
+      return lowerTitle.includes(`#${issueNumber}`) || 
+        lowerTitle.includes(` ${issueNumber} `) ||
+        lowerTitle.includes(`issue ${issueNumber}`) ||
+        lowerTitle.includes(`no. ${issueNumber}`) ||
+        lowerTitle.includes(`number ${issueNumber}`);
+    });
     if (issueMatches.length < items.length / 2) {
       score -= 20;
       reasons.push('Issue number may not match');
     }
   }
   
-  // Large price variance = lower confidence
-  if (items.length >= 2) {
-    const prices = items.map(i => i.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
+  // Price variance analysis
+  const prices = items.map(i => i.price);
+  const cleanedPrices = removeOutliers(prices);
+  
+  if (cleanedPrices.length >= 2) {
+    const minPrice = Math.min(...cleanedPrices);
+    const maxPrice = Math.max(...cleanedPrices);
     const variance = maxPrice / minPrice;
     
     if (variance > 5) {
@@ -119,63 +272,110 @@ function calculateConfidence(
     } else if (variance > 3) {
       score -= 15;
       reasons.push('Moderate price variance');
+    } else if (variance < 2) {
+      score += 5; // Bonus for consistent pricing
+      reasons.push('Consistent pricing across results');
     }
   }
   
   // Very low prices for comics might indicate wrong results
-  const avgPrice = items.reduce((sum, i) => sum + i.price, 0) / items.length;
+  const avgPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
   if (avgPrice < 5) {
     score -= 20;
     reasons.push('Unusually low prices - may be wrong edition');
   }
   
-  return { score: Math.max(0, score), reasons };
+  // Recent sales bonus
+  const recentSales = items.filter(item => {
+    if (!item.endDate) return false;
+    const saleDate = new Date(item.endDate);
+    const daysSinceSale = (Date.now() - saleDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysSinceSale <= 30;
+  });
+  
+  if (recentSales.length >= items.length / 2) {
+    score += 5;
+    reasons.push('Recent sales data available');
+  }
+  
+  return { score: Math.max(0, Math.min(100, score)), reasons };
 }
 
-// Filter out reprints and facsimiles from results
+// Filter out reprints, facsimiles, and low-quality listings
 function filterResults(items: EbaySoldItem[]): EbaySoldItem[] {
   return items.filter(item => {
     const lowerTitle = item.title.toLowerCase();
-    return !EXCLUDE_KEYWORDS.some(keyword => lowerTitle.includes(keyword));
+    
+    // Exclude by keywords
+    if (EXCLUDE_KEYWORDS.some(keyword => lowerTitle.includes(keyword))) {
+      return false;
+    }
+    
+    // Exclude below minimum price threshold
+    if (item.price < MIN_PRICE_THRESHOLD) {
+      return false;
+    }
+    
+    return true;
   });
 }
 
-// Build optimized search query
-function buildSearchQuery(
+// Build multiple search query variations
+function buildSearchQueries(
   title: string, 
   issueNumber?: string, 
   grade?: string,
   publisher?: string,
   year?: number
-): string {
-  let query = title;
+): string[] {
+  const queries: string[] = [];
+  const baseTitle = title.replace(/[^\w\s-]/g, '').trim();
   
-  // Add issue number
+  // Primary query: title + issue + exclusions
+  let primaryQuery = baseTitle;
   if (issueNumber) {
-    query += ` #${issueNumber}`;
+    primaryQuery += ` #${issueNumber}`;
   }
+  primaryQuery += ' -reprint -facsimile';
+  queries.push(primaryQuery);
   
-  // Add grade for slabbed comics
-  if (grade) {
-    query += ` CGC ${grade}`;
-  }
-  
-  // Add publisher if detected
+  // Secondary: with publisher
   if (publisher) {
-    query += ` ${publisher}`;
+    let pubQuery = `${publisher} ${baseTitle}`;
+    if (issueNumber) pubQuery += ` #${issueNumber}`;
+    pubQuery += ' -reprint -facsimile';
+    queries.push(pubQuery);
   }
   
-  // For vintage comics, add era hint
-  if (year && year < 1980) {
-    query += ' vintage original';
-  } else if (year && year < 2000) {
-    query += ' original';
+  // Tertiary: simplified for vintage
+  if (year && year < 1985) {
+    let vintageQuery = `${baseTitle} ${issueNumber || ''} vintage original comic`;
+    queries.push(vintageQuery.trim());
   }
   
-  // Exclude common reprint keywords in query
-  query += ' -reprint -facsimile -"true believers"';
+  return queries;
+}
+
+// Get grade multiplier for price adjustment
+function getGradeMultiplier(grade?: string, condition?: string): number {
+  if (grade && GRADE_MULTIPLIERS[grade]) {
+    return GRADE_MULTIPLIERS[grade];
+  }
   
-  return query;
+  if (condition) {
+    const normalizedCondition = condition.toLowerCase().trim();
+    const mappedGrade = CONDITION_TO_GRADE[normalizedCondition];
+    if (mappedGrade && GRADE_MULTIPLIERS[mappedGrade]) {
+      return GRADE_MULTIPLIERS[mappedGrade];
+    }
+  }
+  
+  return 1.0; // Default: assume NM
+}
+
+// Generate cache key
+function getCacheKey(title: string, issueNumber?: string, grade?: string, publisher?: string, year?: number): string {
+  return `${title}|${issueNumber || ''}|${grade || ''}|${publisher || ''}|${year || ''}`.toLowerCase();
 }
 
 serve(async (req) => {
@@ -184,12 +384,31 @@ serve(async (req) => {
   }
 
   try {
-    const { title, issueNumber, grade, publisher, year } = await req.json();
+    const { title, issueNumber, grade, publisher, year, condition, keyNotes } = await req.json();
     
     if (!title) {
       return new Response(
         JSON.stringify({ error: "Title is required" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check cache first
+    const cacheKey = getCacheKey(title, issueNumber, grade, publisher, year);
+    const cached = priceCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+      console.log(`[eBay Pricing] Cache hit for: "${title}" #${issueNumber || 'N/A'}`);
+      
+      // Apply grade adjustment to cached data if condition provided
+      const result = { ...cached.data };
+      if (condition && result.avgPrice) {
+        const multiplier = getGradeMultiplier(grade, condition);
+        result.gradeAdjustedPrice = Math.round(result.avgPrice * multiplier * 100) / 100;
+      }
+      
+      return new Response(
+        JSON.stringify(result),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -206,7 +425,9 @@ serve(async (req) => {
           items: [], 
           avgPrice: null, 
           minPrice: null, 
-          maxPrice: null, 
+          maxPrice: null,
+          medianPrice: null,
+          priceRange: null,
           totalResults: 0,
           confidence: { score: 0, reasons: ['eBay credentials not configured'] },
           isBeta: true,
@@ -218,9 +439,9 @@ serve(async (req) => {
 
     // Detect publisher if not provided
     const detectedPublisher = publisher || detectPublisher(title);
+    const isKeyIssue = !!keyNotes;
     
-    console.log(`[eBay Pricing] Fetching for: "${title}" #${issueNumber || 'N/A'}, publisher: ${detectedPublisher || 'unknown'}, year: ${year || 'unknown'}, ENV: ${EBAY_ENV}`);
-    console.log(`[eBay Pricing] Client ID prefix: ${EBAY_CLIENT_ID.substring(0, 10)}...`);
+    console.log(`[eBay Pricing] Fetching for: "${title}" #${issueNumber || 'N/A'}, publisher: ${detectedPublisher || 'unknown'}, year: ${year || 'unknown'}, isKey: ${isKeyIssue}`);
 
     // Get OAuth token
     const authString = btoa(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`);
@@ -247,11 +468,13 @@ serve(async (req) => {
           items: [], 
           avgPrice: null, 
           minPrice: null, 
-          maxPrice: null, 
+          maxPrice: null,
+          medianPrice: null,
+          priceRange: null,
           totalResults: 0,
           confidence: { score: 0, reasons: ['eBay authentication failed'] },
           isBeta: true,
-          warning: `eBay auth failed: ${errorText.substring(0, 100)}`
+          warning: `eBay auth failed`
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -259,112 +482,162 @@ serve(async (req) => {
 
     const { access_token } = await tokenResponse.json();
 
-    // Build optimized search query
-    const searchQuery = buildSearchQuery(title, issueNumber, grade, detectedPublisher, year);
-    console.log('[eBay Pricing] Search query:', searchQuery);
+    // Build multiple search queries
+    const searchQueries = buildSearchQueries(title, issueNumber, grade, detectedPublisher, year);
+    console.log('[eBay Pricing] Search queries:', searchQueries);
 
-    // Search Browse API for sold listings
     const browseUrl = EBAY_ENV === 'SANDBOX'
       ? 'https://api.sandbox.ebay.com/buy/browse/v1/item_summary/search'
       : 'https://api.ebay.com/buy/browse/v1/item_summary/search';
 
-    // Request more items to filter and get better confidence
-    const searchParams = new URLSearchParams({
-      q: searchQuery,
-      filter: 'buyingOptions:{FIXED_PRICE|AUCTION},soldItemsOnly:{true}',
-      fieldgroups: 'EXTENDED',
-      limit: '10', // Get more results for better filtering
-      sort: 'endTimeNewest', // Most recent sales first for better relevance
-    });
+    // Try multiple queries and combine results
+    let allItems: EbaySoldItem[] = [];
+    const seenUrls = new Set<string>();
 
-    const browseResponse = await fetch(`${browseUrl}?${searchParams}`, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
-        'X-EBAY-C-ENDUSERCTX': 'contextualLocation=country=US',
-      },
-    });
+    for (const query of searchQueries) {
+      try {
+        const searchParams = new URLSearchParams({
+          q: query,
+          filter: 'buyingOptions:{FIXED_PRICE|AUCTION},soldItemsOnly:{true}',
+          fieldgroups: 'EXTENDED',
+          limit: '15',
+          sort: 'endTimeNewest',
+        });
 
-    if (!browseResponse.ok) {
-      const errorText = await browseResponse.text();
-      console.error('[eBay Pricing] Browse API error:', errorText);
-      return new Response(
-        JSON.stringify({ 
-          ok: true,
-          items: [],
-          avgPrice: null,
-          minPrice: null,
-          maxPrice: null,
-          totalResults: 0,
-          confidence: { score: 0, reasons: ['eBay search failed'] },
-          isBeta: true,
-          warning: 'Market estimate unavailable — refine details'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        const browseResponse = await fetch(`${browseUrl}?${searchParams}`, {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+            'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+            'X-EBAY-C-ENDUSERCTX': 'contextualLocation=country=US',
+          },
+        });
 
-    const browseData = await browseResponse.json();
-    let items: EbaySoldItem[] = [];
-
-    if (browseData.itemSummaries && browseData.itemSummaries.length > 0) {
-      for (const item of browseData.itemSummaries) {
-        const price = parseFloat(item.price?.value || '0');
-        if (price > 0) {
-          items.push({
-            title: item.title || '',
-            price,
-            currency: item.price?.currency || 'USD',
-            endDate: item.itemEndDate || '',
-            url: item.itemWebUrl || '',
-            imageUrl: item.image?.imageUrl || item.thumbnailImages?.[0]?.imageUrl,
-          });
+        if (browseResponse.ok) {
+          const browseData = await browseResponse.json();
+          
+          if (browseData.itemSummaries) {
+            for (const item of browseData.itemSummaries) {
+              // Skip duplicates
+              if (seenUrls.has(item.itemWebUrl)) continue;
+              seenUrls.add(item.itemWebUrl);
+              
+              const price = parseFloat(item.price?.value || '0');
+              if (price > 0) {
+                const gradedInfo = detectGradedStatus(item.title || '');
+                allItems.push({
+                  title: item.title || '',
+                  price,
+                  currency: item.price?.currency || 'USD',
+                  endDate: item.itemEndDate || '',
+                  url: item.itemWebUrl || '',
+                  imageUrl: item.image?.imageUrl || item.thumbnailImages?.[0]?.imageUrl,
+                  isGraded: gradedInfo.isGraded,
+                  detectedGrade: gradedInfo.grade,
+                });
+              }
+            }
+          }
         }
+      } catch (queryError) {
+        console.warn(`[eBay Pricing] Query failed: ${query}`, queryError);
       }
+      
+      // Stop if we have enough results
+      if (allItems.length >= 20) break;
     }
 
-    // Filter out reprints and facsimiles
-    const originalItemCount = items.length;
-    items = filterResults(items);
-    const filteredCount = originalItemCount - items.length;
+    // Filter out reprints and low-quality
+    const originalCount = allItems.length;
+    allItems = filterResults(allItems);
+    const filteredCount = originalCount - allItems.length;
     
     if (filteredCount > 0) {
-      console.log(`[eBay Pricing] Filtered out ${filteredCount} reprints/facsimiles`);
+      console.log(`[eBay Pricing] Filtered out ${filteredCount} reprints/low-quality listings`);
     }
 
-    // Take top 5 most relevant after filtering
-    items = items.slice(0, 5);
+    // Separate raw vs graded items
+    const rawItems = allItems.filter(i => !i.isGraded);
+    const gradedItems = allItems.filter(i => i.isGraded);
+    
+    // Take top 10 after filtering
+    allItems = allItems.slice(0, 10);
 
-    // Calculate prices
-    const prices = items.map(i => i.price);
-    const avgPrice = prices.length > 0
-      ? prices.reduce((sum, p) => sum + p, 0) / prices.length
+    // Calculate prices with outlier removal
+    const prices = allItems.map(i => i.price);
+    const cleanedPrices = removeOutliers(prices);
+    
+    const avgPrice = cleanedPrices.length > 0
+      ? Math.round((cleanedPrices.reduce((sum, p) => sum + p, 0) / cleanedPrices.length) * 100) / 100
       : null;
-    const minPrice = prices.length > 0 ? Math.min(...prices) : null;
-    const maxPrice = prices.length > 0 ? Math.max(...prices) : null;
+    const medianPrice = cleanedPrices.length > 0 
+      ? Math.round(calculateMedian(cleanedPrices) * 100) / 100 
+      : null;
+    const minPrice = cleanedPrices.length > 0 ? Math.min(...cleanedPrices) : null;
+    const maxPrice = cleanedPrices.length > 0 ? Math.max(...cleanedPrices) : null;
+
+    // Calculate price range (low/mid/high)
+    const priceRange = cleanedPrices.length >= 3 ? {
+      low: Math.round(cleanedPrices[Math.floor(cleanedPrices.length * 0.25)] * 100) / 100,
+      mid: medianPrice!,
+      high: Math.round(cleanedPrices[Math.floor(cleanedPrices.length * 0.75)] * 100) / 100,
+    } : null;
+
+    // Calculate raw vs graded pricing
+    const rawPrices = rawItems.map(i => i.price);
+    const gradedPrices = gradedItems.map(i => i.price);
+    const rawVsGradedPricing = {
+      raw: rawPrices.length >= 2 ? {
+        avg: Math.round((rawPrices.reduce((s, p) => s + p, 0) / rawPrices.length) * 100) / 100,
+        count: rawPrices.length
+      } : null,
+      graded: gradedPrices.length >= 2 ? {
+        avg: Math.round((gradedPrices.reduce((s, p) => s + p, 0) / gradedPrices.length) * 100) / 100,
+        count: gradedPrices.length
+      } : null,
+    };
 
     // Calculate confidence score
-    const confidence = calculateConfidence(items, searchQuery, title, issueNumber);
+    const confidence = calculateConfidence(allItems, searchQueries[0], title, issueNumber);
     
-    console.log(`[eBay Pricing] Found ${items.length} items after filtering, avg: $${avgPrice?.toFixed(2)}, confidence: ${confidence.score}%`);
-    console.log(`[eBay Pricing] Confidence reasons:`, confidence.reasons);
+    // Grade-adjusted price
+    let gradeAdjustedPrice: number | null = null;
+    if (avgPrice && (condition || grade)) {
+      const multiplier = getGradeMultiplier(grade, condition);
+      gradeAdjustedPrice = Math.round(avgPrice * multiplier * 100) / 100;
+    }
 
-    // Low confidence response
+    console.log(`[eBay Pricing] Found ${allItems.length} items, avg: $${avgPrice?.toFixed(2)}, median: $${medianPrice?.toFixed(2)}, confidence: ${confidence.score}%`);
+
+    // Build result
     const isLowConfidence = confidence.score < 50;
     
+    const result: PricingResult = {
+      ok: true,
+      items: allItems,
+      avgPrice: isLowConfidence ? null : avgPrice,
+      minPrice: isLowConfidence ? null : minPrice,
+      maxPrice: isLowConfidence ? null : maxPrice,
+      medianPrice: isLowConfidence ? null : medianPrice,
+      priceRange: isLowConfidence ? null : priceRange,
+      totalResults: seenUrls.size,
+      confidence,
+      isBeta: true,
+      warning: isLowConfidence ? 'Market estimate unavailable — refine details' : undefined,
+      searchQuery: searchQueries[0],
+      gradeAdjustedPrice: isLowConfidence ? null : gradeAdjustedPrice,
+      isKeyIssue,
+      keyDetails: isKeyIssue ? keyNotes : undefined,
+      rawVsGradedPricing: isLowConfidence ? undefined : rawVsGradedPricing,
+    };
+
+    // Cache successful results
+    if (!isLowConfidence && allItems.length > 0) {
+      priceCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      console.log(`[eBay Pricing] Cached result for: "${title}" #${issueNumber || 'N/A'}`);
+    }
+    
     return new Response(
-      JSON.stringify({
-        ok: true,
-        items,
-        avgPrice: isLowConfidence ? null : avgPrice,
-        minPrice: isLowConfidence ? null : minPrice,
-        maxPrice: isLowConfidence ? null : maxPrice,
-        totalResults: browseData.total || 0,
-        confidence,
-        isBeta: true,
-        warning: isLowConfidence ? 'Market estimate unavailable — refine details' : undefined,
-        searchQuery, // Include for debugging
-      }),
+      JSON.stringify(result),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -377,6 +650,8 @@ serve(async (req) => {
         avgPrice: null,
         minPrice: null,
         maxPrice: null,
+        medianPrice: null,
+        priceRange: null,
         totalResults: 0,
         confidence: { score: 0, reasons: ['Internal error'] },
         isBeta: true,
