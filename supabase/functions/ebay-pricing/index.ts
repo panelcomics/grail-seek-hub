@@ -34,35 +34,59 @@ serve(async (req) => {
     const EBAY_CLIENT_SECRET = Deno.env.get('EBAY_CLIENT_SECRET_PROD');
     const EBAY_ENV = Deno.env.get('EBAY_ENV') || 'PRODUCTION';
 
+    // Graceful fallback if credentials missing
     if (!EBAY_CLIENT_ID || !EBAY_CLIENT_SECRET) {
-      console.error('Missing eBay credentials');
+      console.warn('[eBay Pricing] Credentials not configured - returning empty pricing');
       return new Response(
-        JSON.stringify({ error: "eBay credentials not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          ok: true, 
+          items: [], 
+          avgPrice: null, 
+          minPrice: null, 
+          maxPrice: null, 
+          totalResults: 0,
+          warning: "eBay pricing unavailable - credentials not configured"
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log(`[eBay Pricing] Fetching for: "${title}" #${issueNumber || 'N/A'}, ENV: ${EBAY_ENV}`);
+    console.log(`[eBay Pricing] Client ID prefix: ${EBAY_CLIENT_ID.substring(0, 10)}...`);
+
     // Get OAuth token
     const authString = btoa(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`);
-    const tokenResponse = await fetch(
-      EBAY_ENV === 'SANDBOX' 
-        ? 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
-        : 'https://api.ebay.com/identity/v1/oauth2/token',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${authString}`,
-        },
-        body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope',
-      }
-    );
+    const tokenUrl = EBAY_ENV === 'SANDBOX' 
+      ? 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
+      : 'https://api.ebay.com/identity/v1/oauth2/token';
+    
+    console.log(`[eBay Pricing] Using token URL: ${tokenUrl}`);
+    
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${authString}`,
+      },
+      body: 'grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope',
+    });
 
     if (!tokenResponse.ok) {
-      console.error('eBay OAuth failed:', await tokenResponse.text());
+      const errorText = await tokenResponse.text();
+      console.error(`[eBay Pricing] OAuth failed (${tokenResponse.status}): ${errorText}`);
+      
+      // Return graceful fallback instead of error - scanning should still work
       return new Response(
-        JSON.stringify({ error: "eBay authentication failed" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          ok: true, 
+          items: [], 
+          avgPrice: null, 
+          minPrice: null, 
+          maxPrice: null, 
+          totalResults: 0,
+          warning: `eBay auth failed: ${errorText.substring(0, 100)}`
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
