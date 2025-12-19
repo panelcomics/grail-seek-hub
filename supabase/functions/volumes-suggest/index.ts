@@ -106,19 +106,23 @@ serve(async (req) => {
     }
 
     try {
-      // Use original query for API (preserves "the", etc.)
+      // Use SEARCH endpoint for keyword matching (not volumes with filter)
+      // The filter param on volumes endpoint expects exact matches
+      // The search endpoint does proper keyword/fuzzy matching
       const params = new URLSearchParams({
         api_key: apiKey,
         format: "json",
-        filter: `name:${query}`,
-        sort: "count_of_issues:desc", // Main series (more issues) first
+        resources: "volume",
+        query: query,
         limit: String(Math.max(limit, 50)),
         offset: String(offset),
+        field_list: "id,name,publisher,start_year,count_of_issues,image,deck,api_detail_url"
       });
 
-      console.log('[VOLUMES-SUGGEST] Querying live ComicVine API...');
+      console.log('[VOLUMES-SUGGEST] Querying live ComicVine SEARCH API...');
+      console.log('[VOLUMES-SUGGEST] Search query:', query);
       
-      const resp = await fetch(`https://comicvine.gamespot.com/api/volumes/?${params.toString()}`, {
+      const resp = await fetch(`https://comicvine.gamespot.com/api/search/?${params.toString()}`, {
         headers: { 'User-Agent': 'GrailSeeker-Scanner/1.0' }
       });
       
