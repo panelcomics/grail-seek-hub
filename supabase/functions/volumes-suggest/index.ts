@@ -114,13 +114,14 @@ serve(async (req) => {
         format: "json",
         resources: "volume",
         query: query,
-        limit: String(Math.max(limit, 50)),
-        offset: String(offset),
+        limit: String(limit), // Request exactly the limit we need for this page
+        offset: String(offset), // ComicVine handles pagination
         field_list: "id,name,publisher,start_year,count_of_issues,image,deck,api_detail_url"
       });
 
       console.log('[VOLUMES-SUGGEST] Querying live ComicVine SEARCH API...');
       console.log('[VOLUMES-SUGGEST] Search query:', query);
+      console.log('[VOLUMES-SUGGEST] Pagination: offset=', offset, 'limit=', limit);
       
       const resp = await fetch(`https://comicvine.gamespot.com/api/search/?${params.toString()}`, {
         headers: { 'User-Agent': 'GrailSeeker-Scanner/1.0' }
@@ -141,9 +142,10 @@ serve(async (req) => {
       const apiResults = Array.isArray(json.results) ? json.results : [];
       const totalFromAPI = typeof json.number_of_total_results === 'number' ? json.number_of_total_results : 0;
 
-      console.log('[VOLUMES-SUGGEST] Live API returned', apiResults.length, 'results (total:', totalFromAPI, ')');
+      console.log('[VOLUMES-SUGGEST] Live API returned', apiResults.length, 'results at offset', offset, '(total:', totalFromAPI, ')');
 
-      // Score and sort results
+      // Score and sort results within this page
+      // Note: ComicVine already paginated the results, we just score and return them
       const scoredResults = apiResults.map((v: any) => {
         const normalizedTitle = normalizeTitle(v.name || "");
 
@@ -188,9 +190,11 @@ serve(async (req) => {
         };
       });
 
+      // Sort by score within this page
       scoredResults.sort((a: any, b: any) => a.score - b.score);
       
-      const results = scoredResults.slice(0, limit);
+      // Return all results from this page (already paginated by ComicVine)
+      const results = scoredResults;
       
       console.log('[VOLUMES-SUGGEST] Returning', results.length, 'scored results from live API');
 
