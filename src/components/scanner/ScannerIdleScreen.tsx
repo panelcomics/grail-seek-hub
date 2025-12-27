@@ -2,6 +2,7 @@
  * SCANNER IDLE SCREEN
  * ==========================================================================
  * Initial camera/upload screen with production-ready copy.
+ * Includes guidance overlay when camera is active.
  * ==========================================================================
  */
 
@@ -10,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Camera, Upload, X } from "lucide-react";
 import { SCANNER_COPY } from "@/types/scannerState";
+import { ScannerGuidanceOverlay } from "./ScannerGuidanceOverlay";
+import { FormatFilter } from "./ScannerAssistChips";
 
 interface ScannerIdleScreenProps {
   cameraActive: boolean;
@@ -18,6 +21,7 @@ interface ScannerIdleScreenProps {
   onStopCamera: () => void;
   onCapturePhoto: () => void;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  format?: FormatFilter;
 }
 
 export function ScannerIdleScreen({
@@ -27,6 +31,7 @@ export function ScannerIdleScreen({
   onStopCamera,
   onCapturePhoto,
   onFileUpload,
+  format = 'raw',
 }: ScannerIdleScreenProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +76,8 @@ export function ScannerIdleScreen({
                   playsInline
                   className="w-full h-full object-cover"
                 />
+                {/* Guidance Overlay */}
+                <ScannerGuidanceOverlay format={format} />
               </div>
               <div className="flex gap-2">
                 <Button
