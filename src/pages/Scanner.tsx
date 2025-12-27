@@ -22,7 +22,7 @@ import {
 import { ScannerIdleScreen } from "@/components/scanner/ScannerIdleScreen";
 import { ScannerScanningScreen } from "@/components/scanner/ScannerScanningScreen";
 import { ScannerTransitionScreen } from "@/components/scanner/ScannerTransitionScreen";
-import { ScannerResultCard } from "@/components/scanner/ScannerResultCard";
+import { ScanResultSummaryCard } from "@/components/scanner/ScanResultSummaryCard";
 import { ScannerMatchHighScreen } from "@/components/scanner/ScannerMatchHighScreen";
 import { ScannerMatchMediumScreen } from "@/components/scanner/ScannerMatchMediumScreen";
 import { ScannerMatchLowScreen } from "@/components/scanner/ScannerMatchLowScreen";
@@ -809,50 +809,44 @@ export default function Scanner() {
         />
       )}
 
-      {/* NEW: Unified Result Summary Card */}
-      {scannerState === "result" && selectedPick && (
-        <ScannerResultCard
-          match={selectedPick}
+      {/* 
+        SCAN RESULT SUMMARY CARD (Hero at top of all result states)
+        Additive Summary Card layer — do not refactor scanner pipeline
+        Shows for: result, match_high, match_medium, match_low, multi_match, confirm, success, error_*
+      */}
+      {scannerState !== "idle" && 
+       scannerState !== "scanning" && 
+       scannerState !== "transition" && (
+        <ScanResultSummaryCard
+          match={selectedPick || (searchResults.length > 0 ? searchResults[0] : null)}
           previewImage={previewImage}
           confidence={confidence}
-          onConfirm={handleResultConfirm}
-          onEdit={handleResultEdit}
+          scannerState={scannerState}
+          onConfirm={() => {
+            if (scannerState === "success") {
+              handleSetPrice();
+            } else if (scannerState.startsWith("error_")) {
+              if (scannerState === "error_camera") {
+                startCamera();
+              } else {
+                resetScanner();
+                // Trigger re-scan after reset
+                setTimeout(() => {
+                  if (previewImage) processImage(previewImage);
+                }, 100);
+              }
+            } else {
+              setScannerState("confirm");
+            }
+          }}
+          onEdit={() => setScannerState("confirm")}
           onScanAgain={resetScanner}
+          onManualSearch={() => setShowManualSearch(true)}
           isManualEntry={isManualEntry}
         />
       )}
 
-      {/* High Confidence Match (legacy - kept for fallback) */}
-      {scannerState === "match_high" && selectedPick && (
-        <ScannerMatchHighScreen
-          match={selectedPick}
-          previewImage={previewImage}
-          onConfirm={handleHighConfidenceConfirm}
-          onEdit={() => setScannerState("confirm")}
-          onNotRight={() => setShowManualSearch(true)}
-        />
-      )}
-
-      {/* Medium Confidence Match (legacy - kept for fallback) */}
-      {scannerState === "match_medium" && searchResults.length > 0 && (
-        <ScannerMatchMediumScreen
-          match={searchResults[0]}
-          previewImage={previewImage}
-          onReview={() => setScannerState("multi_match")}
-          onSearchManually={() => setShowManualSearch(true)}
-        />
-      )}
-
-      {/* Low Confidence / No Match */}
-      {scannerState === "match_low" && (
-        <ScannerMatchLowScreen
-          previewImage={previewImage}
-          onAddDetails={handleEnterManually}
-          onTryAnother={resetScanner}
-        />
-      )}
-
-      {/* Multi-Match Selection */}
+      {/* Multi-Match Selection - Shows BELOW Summary Card */}
       {scannerState === "multi_match" && searchResults.length > 0 && (
         <ScannerMultiMatchScreen
           matches={searchResults}
@@ -861,7 +855,7 @@ export default function Scanner() {
         />
       )}
 
-      {/* Confirm Screen */}
+      {/* Confirm Screen - Shows BELOW Summary Card */}
       {scannerState === "confirm" && (
         <ScannerConfirmScreen
           match={selectedPick}
@@ -871,7 +865,7 @@ export default function Scanner() {
         />
       )}
 
-      {/* Success Screen */}
+      {/* Success Screen - Shows BELOW Summary Card */}
       {scannerState === "success" && (
         <ScannerSuccessScreen
           match={selectedPick}
@@ -879,27 +873,6 @@ export default function Scanner() {
           onSetPrice={handleSetPrice}
           onScanAnother={resetScanner}
           onGoToListings={handleGoToListings}
-        />
-      )}
-
-      {/* Error Screens */}
-      {(scannerState === "error_camera" || scannerState === "error_image" || scannerState === "error_network") && (
-        <ScannerErrorScreen
-          errorType={scannerState as 'error_camera' | 'error_image' | 'error_network'}
-          onPrimaryAction={() => {
-            if (scannerState === "error_camera") {
-              startCamera();
-            } else {
-              resetScanner();
-            }
-          }}
-          onSecondaryAction={() => {
-            if (scannerState === "error_network") {
-              // Save for later
-              sonnerToast.info("Photo saved - you can finish listing later");
-            }
-            resetScanner();
-          }}
         />
       )}
 

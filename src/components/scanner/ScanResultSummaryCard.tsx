@@ -1,8 +1,10 @@
 /**
- * SCANNER RESULT SUMMARY CARD
+ * SCAN RESULT SUMMARY CARD
  * ==========================================================================
- * Unified result card that appears after every scan.
- * Confidence-first approach - every scan feels successful.
+ * Additive Summary Card layer — do not refactor scanner pipeline
+ * 
+ * This is the unified "hero" card that appears at the top after EVERY scan.
+ * It provides consistent forward-progress messaging and actions.
  * ==========================================================================
  */
 
@@ -10,28 +12,45 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Pencil, RotateCcw } from "lucide-react";
+import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw } from "lucide-react";
 import { ComicVinePick } from "@/types/comicvine";
+import { ScannerState } from "@/types/scannerState";
 import { ValueHintModule } from "./ValueHintModule";
 import { cn } from "@/lib/utils";
 
-interface ScannerResultCardProps {
+interface ScanResultSummaryCardProps {
   match: ComicVinePick | null;
   previewImage?: string | null;
   confidence: number | null;
+  scannerState: ScannerState;
   onConfirm: () => void;
   onEdit: () => void;
   onScanAgain: () => void;
+  onManualSearch?: () => void;
   isManualEntry?: boolean;
 }
 
-type StatusType = 'ready' | 'review' | 'manual';
+type StatusType = 'ready' | 'review' | 'manual' | 'choose' | 'retry';
 
-const getStatusConfig = (confidence: number | null, isManualEntry: boolean): { 
+const getStatusConfig = (
+  scannerState: ScannerState,
+  confidence: number | null,
+  isManualEntry: boolean
+): { 
   type: StatusType; 
   label: string; 
   className: string;
 } => {
+  // Error states
+  if (scannerState.startsWith('error_')) {
+    return {
+      type: 'retry',
+      label: 'Try Again',
+      className: 'bg-muted text-muted-foreground border-muted'
+    };
+  }
+  
+  // Manual entry
   if (isManualEntry) {
     return {
       type: 'manual',
@@ -40,6 +59,25 @@ const getStatusConfig = (confidence: number | null, isManualEntry: boolean): {
     };
   }
   
+  // Multi-match
+  if (scannerState === 'multi_match') {
+    return {
+      type: 'choose',
+      label: 'Choose Best Match',
+      className: 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+    };
+  }
+  
+  // Low confidence / no good match
+  if (scannerState === 'match_low' || (confidence !== null && confidence < 0.45)) {
+    return {
+      type: 'manual',
+      label: 'Manual Details Added',
+      className: 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+    };
+  }
+  
+  // High confidence
   if (confidence !== null && confidence >= 0.80) {
     return {
       type: 'ready',
@@ -48,6 +86,7 @@ const getStatusConfig = (confidence: number | null, isManualEntry: boolean): {
     };
   }
   
+  // Medium confidence or needs review
   return {
     type: 'review',
     label: 'Needs Quick Review',
@@ -55,25 +94,44 @@ const getStatusConfig = (confidence: number | null, isManualEntry: boolean): {
   };
 };
 
-export function ScannerResultCard({
+const getButtonConfig = (scannerState: ScannerState) => {
+  switch (scannerState) {
+    case 'confirm':
+      return { primary: 'Save & Continue', primaryIcon: CheckCircle2 };
+    case 'success':
+      return { primary: 'Set Price & Condition', primaryIcon: ListChecks };
+    case 'error_camera':
+    case 'error_image':
+    case 'error_network':
+      return { primary: 'Retry Scan', primaryIcon: RefreshCw };
+    case 'multi_match':
+      return { primary: 'Confirm & Continue', primaryIcon: CheckCircle2 };
+    default:
+      return { primary: 'Confirm & Continue', primaryIcon: CheckCircle2 };
+  }
+};
+
+export function ScanResultSummaryCard({
   match,
   previewImage,
   confidence,
+  scannerState,
   onConfirm,
   onEdit,
   onScanAgain,
+  onManualSearch,
   isManualEntry = false
-}: ScannerResultCardProps) {
+}: ScanResultSummaryCardProps) {
   const [showContent, setShowContent] = useState(false);
   const [showValueHint, setShowValueHint] = useState(false);
 
-  const status = getStatusConfig(confidence, isManualEntry);
+  const status = getStatusConfig(scannerState, confidence, isManualEntry);
+  const buttonConfig = getButtonConfig(scannerState);
+  const PrimaryIcon = buttonConfig.primaryIcon;
 
   // Staggered animation for "magic" feel
   useEffect(() => {
-    // Content fades in after brief delay
     const contentTimer = setTimeout(() => setShowContent(true), 100);
-    // Value hint fades in 1 second after content
     const valueTimer = setTimeout(() => setShowValueHint(true), 1100);
     
     return () => {
@@ -82,10 +140,21 @@ export function ScannerResultCard({
     };
   }, []);
 
-  const displayTitle = match?.volumeName || match?.title || 'Unknown Title';
+  // Derive display values with graceful degradation
+  const displayTitle = match?.volumeName || match?.title || '';
   const displayIssue = match?.issue ? `#${match.issue}` : '';
   const displayYear = match?.year || '';
   const displayPublisher = match?.publisher || '';
+  
+  // Build secondary line, omitting missing values cleanly
+  const secondaryParts = [displayPublisher, displayYear, 'Comic Book'].filter(Boolean);
+  const secondaryLine = secondaryParts.join(' · ');
+
+  // Determine best cover image
+  const coverImage = match?.coverUrl || match?.thumbUrl || previewImage || null;
+
+  // Show different secondary button for multi_match
+  const isMultiMatch = scannerState === 'multi_match';
 
   return (
     <Card className="overflow-hidden">
@@ -116,11 +185,20 @@ export function ScannerResultCard({
             {/* Cover Image - Visually dominant */}
             <div className="flex-shrink-0">
               <div className="w-28 h-40 md:w-36 md:h-52 rounded-lg overflow-hidden bg-muted border-2 border-border shadow-lg">
-                <img
-                  src={previewImage || match?.coverUrl || match?.thumbUrl || '/placeholder.svg'}
-                  alt="Scanned cover"
-                  className="w-full h-full object-cover"
-                />
+                {coverImage ? (
+                  <img
+                    src={coverImage}
+                    alt="Scanned cover"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <div className="text-center text-xs p-2">
+                      <div className="w-12 h-16 mx-auto mb-2 border-2 border-dashed border-muted-foreground/30 rounded" />
+                      Cover
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -133,13 +211,21 @@ export function ScannerResultCard({
               
               {/* Title */}
               <h3 className="text-xl md:text-2xl font-bold text-foreground leading-tight">
-                {displayTitle} {displayIssue}
+                {displayTitle ? (
+                  <>
+                    {displayTitle} {displayIssue}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground italic">Add details to continue</span>
+                )}
               </h3>
               
               {/* Publisher · Year · Format */}
-              <p className="text-sm text-muted-foreground">
-                {[displayPublisher, displayYear, 'Comic Book'].filter(Boolean).join(' · ')}
-              </p>
+              {secondaryLine && (
+                <p className="text-sm text-muted-foreground">
+                  {secondaryLine}
+                </p>
+              )}
 
               {/* Status Chip */}
               <Badge 
@@ -149,13 +235,15 @@ export function ScannerResultCard({
                 {status.type === 'ready' && <span className="mr-1.5">🟢</span>}
                 {status.type === 'review' && <span className="mr-1.5">🟡</span>}
                 {status.type === 'manual' && <span className="mr-1.5">🔵</span>}
+                {status.type === 'choose' && <span className="mr-1.5">🔵</span>}
+                {status.type === 'retry' && <span className="mr-1.5">⚪</span>}
                 {status.label}
               </Badge>
             </div>
           </div>
 
-          {/* Value Hint - Fades in after delay */}
-          {showValueHint && match && (
+          {/* Value Hint - Fades in after delay (only show if we have a match with data) */}
+          {showValueHint && match && match.id && (
             <div 
               className={cn(
                 "mb-6 transition-all duration-500 ease-out",
@@ -173,19 +261,30 @@ export function ScannerResultCard({
               size="lg" 
               className="w-full font-semibold"
             >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Confirm & Continue
+              <PrimaryIcon className="w-4 h-4 mr-2" />
+              {buttonConfig.primary}
             </Button>
             
             <div className="flex gap-2">
-              <Button 
-                onClick={onEdit} 
-                variant="outline" 
-                className="flex-1"
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit Details
-              </Button>
+              {isMultiMatch && onManualSearch ? (
+                <Button 
+                  onClick={onManualSearch} 
+                  variant="outline" 
+                  className="flex-1"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Search Manually
+                </Button>
+              ) : (
+                <Button 
+                  onClick={onEdit} 
+                  variant="outline" 
+                  className="flex-1"
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Details
+                </Button>
+              )}
               
               <Button 
                 onClick={onScanAgain} 

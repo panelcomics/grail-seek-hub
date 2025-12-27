@@ -37,7 +37,7 @@ export function ScannerMultiMatchScreen({
   return (
     <Card>
       <CardHeader className="text-center pb-3">
-        <CardTitle className="text-xl">{copy.header}</CardTitle>
+        <CardTitle className="text-xl">Choose the Closest Match</CardTitle>
         <CardDescription>{copy.subtext}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -116,7 +116,7 @@ export function ScannerMultiMatchScreen({
             onClick={onEnterManually}
             className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
           >
-            {copy.tertiaryButton}
+            None of these? Enter manually
           </button>
         </div>
       </CardContent>
