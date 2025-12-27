@@ -252,6 +252,22 @@ All colors MUST be HSL.
   [class*="animate-"] {
     animation-duration: 0.334s; /* Minimum duration for 3Hz compliance */
   }
+
+  /* Scale-in animation for scanner magic transitions */
+  @keyframes scale-in-anim {
+    from {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  .animate-scale-in {
+    animation: scale-in-anim 0.3s ease-out forwards;
+  }
   
   /* Hide scrollbar for horizontal carousels */
   .scrollbar-hide {

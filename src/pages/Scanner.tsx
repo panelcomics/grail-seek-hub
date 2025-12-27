@@ -21,6 +21,8 @@ import {
 // Screen Components
 import { ScannerIdleScreen } from "@/components/scanner/ScannerIdleScreen";
 import { ScannerScanningScreen } from "@/components/scanner/ScannerScanningScreen";
+import { ScannerTransitionScreen } from "@/components/scanner/ScannerTransitionScreen";
+import { ScannerResultCard } from "@/components/scanner/ScannerResultCard";
 import { ScannerMatchHighScreen } from "@/components/scanner/ScannerMatchHighScreen";
 import { ScannerMatchMediumScreen } from "@/components/scanner/ScannerMatchMediumScreen";
 import { ScannerMatchLowScreen } from "@/components/scanner/ScannerMatchLowScreen";
@@ -115,6 +117,7 @@ export default function Scanner() {
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [showManualSearch, setShowManualSearch] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false); // Track if user entered manually
   
   // Debug state
   const [debugData, setDebugData] = useState({
@@ -267,51 +270,52 @@ export default function Scanner() {
         });
         
         // Determine state based on confidence and matches
-        const newState = determineScannerState(pickConfidence, picks);
-        setScannerState(newState);
+        // Now we go to 'transition' first for the magic feel, then to result card
         
-        if (newState === 'match_high') {
-          setSelectedPick(topPick);
+        setSelectedPick(topPick);
+        setPrefillData({
+          title: topPick.volumeName || topPick.title,
+          issueNumber: topPick.issue || undefined,
+          publisher: topPick.publisher || undefined,
+          year: topPick.year || undefined,
+          comicvineId: topPick.id,
+          comicvineCoverUrl: topPick.coverUrl
+        });
+        
+        // Go to transition state for magic feel
+        setScannerState("transition");
+        
+        // Fetch detailed issue info in background
+        const issueDetails = await fetchIssueDetails(topPick);
+        if (issueDetails) {
+          topPick.title = issueDetails.title || topPick.title;
+          topPick.coverUrl = issueDetails.cover_url || topPick.coverUrl;
+          topPick.writer = issueDetails.writer;
+          topPick.artist = issueDetails.artist;
+          topPick.description = issueDetails.description;
+          
+          setSelectedPick({ ...topPick });
           setPrefillData({
-            title: topPick.volumeName || topPick.title,
+            title: issueDetails.volume_name || topPick.volumeName || topPick.title,
             issueNumber: topPick.issue || undefined,
-            publisher: topPick.publisher || undefined,
+            publisher: topPick.publisher || issueDetails.publisher,
             year: topPick.year || undefined,
             comicvineId: topPick.id,
-            comicvineCoverUrl: topPick.coverUrl
+            comicvineCoverUrl: issueDetails.cover_url || topPick.coverUrl,
+            description: issueDetails.description
           });
-          
-          // Fetch detailed issue info
-          const issueDetails = await fetchIssueDetails(topPick);
-          if (issueDetails) {
-            topPick.title = issueDetails.title || topPick.title;
-            topPick.coverUrl = issueDetails.cover_url || topPick.coverUrl;
-            topPick.writer = issueDetails.writer;
-            topPick.artist = issueDetails.artist;
-            topPick.description = issueDetails.description;
-            
-            setPrefillData({
-              title: issueDetails.volume_name || topPick.volumeName || topPick.title,
-              issueNumber: topPick.issue || undefined,
-              publisher: topPick.publisher || issueDetails.publisher,
-              year: topPick.year || undefined,
-              comicvineId: topPick.id,
-              comicvineCoverUrl: issueDetails.cover_url || topPick.coverUrl,
-              description: issueDetails.description
-            });
-          }
+        }
 
-          saveToRecentScans(topPick);
-          
-          if (user?.id && uploadedImageUrlRef.current) {
-            await saveScanToHistory(user.id, uploadedImageUrlRef.current, topPick);
-            const dbHistory = await loadScanHistory(user.id, 10);
-            if (dbHistory.length > 0) {
-              setRecentScans(dbHistory);
-            }
-          } else {
-            setRecentScans(loadRecentScans());
+        saveToRecentScans(topPick);
+        
+        if (user?.id && uploadedImageUrlRef.current) {
+          await saveScanToHistory(user.id, uploadedImageUrlRef.current, topPick);
+          const dbHistory = await loadScanHistory(user.id, 10);
+          if (dbHistory.length > 0) {
+            setRecentScans(dbHistory);
           }
+        } else {
+          setRecentScans(loadRecentScans());
         }
       } else {
         // No matches found
@@ -638,6 +642,7 @@ export default function Scanner() {
     setFilterWrongYear(false);
     setFilterSlabbed(false);
     setShowManualSearch(false);
+    setIsManualEntry(false);
   };
 
   // Confirm screen save handler
@@ -717,13 +722,29 @@ export default function Scanner() {
     navigate("/my-inventory");
   };
 
-  // High confidence confirm handler
+  // High confidence confirm handler - now goes to result card
   const handleHighConfidenceConfirm = () => {
+    setScannerState("confirm");
+  };
+
+  // Transition complete - show result card
+  const handleTransitionComplete = () => {
+    setScannerState("result");
+  };
+
+  // Result card confirm - go to confirm/edit screen
+  const handleResultConfirm = () => {
+    setScannerState("confirm");
+  };
+
+  // Result card edit - go to confirm screen in edit mode
+  const handleResultEdit = () => {
     setScannerState("confirm");
   };
 
   // Enter manually handler
   const handleEnterManually = () => {
+    setIsManualEntry(true);
     setSelectedPick({
       id: 0,
       resource: 'issue',
@@ -780,7 +801,28 @@ export default function Scanner() {
         <ScannerScanningScreen />
       )}
 
-      {/* High Confidence Match */}
+      {/* Transition Screen - Brief "Identifying match..." */}
+      {scannerState === "transition" && (
+        <ScannerTransitionScreen
+          onComplete={handleTransitionComplete}
+          previewImage={previewImage}
+        />
+      )}
+
+      {/* NEW: Unified Result Summary Card */}
+      {scannerState === "result" && selectedPick && (
+        <ScannerResultCard
+          match={selectedPick}
+          previewImage={previewImage}
+          confidence={confidence}
+          onConfirm={handleResultConfirm}
+          onEdit={handleResultEdit}
+          onScanAgain={resetScanner}
+          isManualEntry={isManualEntry}
+        />
+      )}
+
+      {/* High Confidence Match (legacy - kept for fallback) */}
       {scannerState === "match_high" && selectedPick && (
         <ScannerMatchHighScreen
           match={selectedPick}
@@ -791,7 +833,7 @@ export default function Scanner() {
         />
       )}
 
-      {/* Medium Confidence Match */}
+      {/* Medium Confidence Match (legacy - kept for fallback) */}
       {scannerState === "match_medium" && searchResults.length > 0 && (
         <ScannerMatchMediumScreen
           match={searchResults[0]}
