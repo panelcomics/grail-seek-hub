@@ -21,6 +21,7 @@ import ArtistVerification from "./pages/ArtistVerification";
 import CreateClaimSale from "./pages/CreateClaimSale";
 import ClaimSaleDetail from "./pages/ClaimSaleDetail";
 import SellerDashboard from "./pages/SellerDashboard";
+import SellerHomeDashboard from "./pages/SellerHomeDashboard";
 import Dashboard from "./pages/Dashboard";
 import MyOrders from "./pages/MyOrders";
 import Messages from "./pages/Messages";
@@ -134,7 +135,8 @@ const AppContent = () => {
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/seller/dashboard" element={<SellerDashboard />} />
-            <Route path="/order/:id" element={<OrderDetail />} />
+            <Route path="/seller/home" element={<SellerHomeDashboard />} />
+            <Route path="/seller" element={<SellerHomeDashboard />} />
             <Route path="/checkout/:orderId" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
