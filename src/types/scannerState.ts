@@ -9,6 +9,8 @@
 export type ScannerState =
   | 'idle'
   | 'scanning'
+  | 'transition'      // New: brief "Identifying match..." state
+  | 'result'          // New: unified result summary card
   | 'match_high'
   | 'match_medium'
   | 'match_low'
@@ -39,6 +41,17 @@ export const SCANNER_COPY: Record<ScannerState, ScannerCopy> = {
   scanning: {
     header: "Scanning Cover…",
     subtext: "Identifying title and issue",
+  },
+  transition: {
+    header: "Scan Complete",
+    subtext: "Identifying match…",
+  },
+  result: {
+    header: "Scan Complete",
+    subtext: "We found the closest match — quick review before listing.",
+    primaryButton: "Confirm & Continue",
+    secondaryButton: "Edit Details",
+    tertiaryButton: "Scan Again",
   },
   match_high: {
     header: "Best Match Found",
