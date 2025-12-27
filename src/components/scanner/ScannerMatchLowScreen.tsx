@@ -27,8 +27,8 @@ export function ScannerMatchLowScreen({
   return (
     <Card>
       <CardHeader className="text-center pb-3">
-        <div className="mx-auto w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
-          <Lightbulb className="w-6 h-6 text-blue-500" />
+        <div className="mx-auto w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mb-3">
+          <Lightbulb className="w-6 h-6 text-success" />
         </div>
         <CardTitle className="text-xl">{copy.header}</CardTitle>
         <CardDescription>{copy.subtext}</CardDescription>
