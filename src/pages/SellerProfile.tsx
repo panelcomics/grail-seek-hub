@@ -52,6 +52,7 @@ interface SellerProfile {
   verified_artist: boolean;
   is_verified_seller: boolean;
   is_featured_seller: boolean;
+  is_founding_seller?: boolean;
   bio: string | null;
   joined_at: string;
   completed_sales_count?: number;  // Will fetch separately if needed
@@ -136,15 +137,19 @@ export default function SellerProfile() {
       setProfile(profileData);
       setProfileUserId(profileData.user_id);
 
-      // Fetch actual sales count for verified badge (from profiles table with proper auth)
+      // Fetch actual sales count and founding seller status (from profiles table with proper auth)
       const { data: salesData } = await supabase
         .from("profiles")
-        .select("completed_sales_count")
+        .select("completed_sales_count, is_founding_seller")
         .eq("user_id", profileData.user_id)
         .maybeSingle();
 
       if (salesData) {
-        setProfile(prev => prev ? { ...prev, completed_sales_count: salesData.completed_sales_count || 0 } : null);
+        setProfile(prev => prev ? { 
+          ...prev, 
+          completed_sales_count: salesData.completed_sales_count || 0,
+          is_founding_seller: salesData.is_founding_seller || false
+        } : null);
       }
 
       // Fetch seller settings
@@ -309,6 +314,7 @@ export default function SellerProfile() {
           sellerTier={profile.seller_tier}
           isVerifiedSeller={profile.is_verified_seller}
           isFeaturedSeller={profile.is_featured_seller}
+          isFoundingSeller={profile.is_founding_seller}
           isVerifiedArtist={profile.verified_artist}
           completedSalesCount={profile.completed_sales_count || 0}
           followerCount={followerCount}
