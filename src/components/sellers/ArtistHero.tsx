@@ -4,6 +4,7 @@ import { Palette, Scroll, Heart, MessageSquare } from "lucide-react";
 import { SellerBadge } from "@/components/SellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { FeaturedSellerBadge } from "@/components/FeaturedSellerBadge";
+import { FoundingSellerBadge } from "@/components/FoundingSellerBadge";
 import { RoleBadge } from "@/components/creators/RoleBadge";
 
 interface ArtistHeroProps {
@@ -24,6 +25,7 @@ interface ArtistHeroProps {
   // TODO: Add creator role fields when creator_roles integration is complete
   isArtist?: boolean;
   isWriter?: boolean;
+  isFoundingSeller?: boolean;
 }
 
 export function ArtistHero({
@@ -43,6 +45,7 @@ export function ArtistHero({
   onShopClick,
   isArtist = false,
   isWriter = false,
+  isFoundingSeller = false,
 }: ArtistHeroProps) {
   return (
     <div className="relative overflow-hidden">
@@ -80,6 +83,7 @@ export function ArtistHero({
                 {/* Role subtitle */}
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                   <RoleBadge isArtist={isArtist} isWriter={isWriter} variant="secondary" />
+                  {isFoundingSeller && <FoundingSellerBadge size="md" />}
                   {isFeaturedSeller && <FeaturedSellerBadge />}
                   <VerifiedSellerBadge salesCount={completedSalesCount} size="md" />
                   {sellerTier && <SellerBadge tier={sellerTier} />}

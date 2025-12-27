@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Camera, ArrowRight, CheckCircle2, BookOpen, Tag } from "lucide-react";
+import { FoundingSellerBadge } from "@/components/FoundingSellerBadge";
+import { useFoundingSeller } from "@/hooks/useFoundingSeller";
 
 interface InventoryItem {
   id: string;
@@ -33,6 +35,7 @@ interface SellerStatus {
 const SellerHomeDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isFoundingSeller } = useFoundingSeller();
   const [isLoading, setIsLoading] = useState(true);
   const [todayProgress, setTodayProgress] = useState<TodayProgress>({
     booksScanned: 0,
@@ -194,10 +197,23 @@ const SellerHomeDashboard = () => {
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       {/* Section 1: Dashboard Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Seller Dashboard</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-2xl font-bold">Seller Dashboard</h1>
+          {isFoundingSeller && <FoundingSellerBadge size="md" />}
+        </div>
         <p className="text-muted-foreground">{subheader}</p>
       </div>
 
+      {/* Founding Seller Recognition Note */}
+      {isFoundingSeller && (
+        <Card className="mb-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+          <CardContent className="py-3 px-4">
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              Thanks for being a Founding Seller — your feedback helps shape the platform.
+            </p>
+          </CardContent>
+        </Card>
+      )}
       {/* Section 2: Today's Progress Card */}
       <Card className="mb-4">
         <CardHeader className="pb-2">

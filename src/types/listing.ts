@@ -9,6 +9,7 @@ export interface ListingProfile {
   username: string | null;
   avatar_url: string | null;
   is_verified_seller: boolean | null;
+  is_founding_seller?: boolean | null;
   completed_sales_count: number | null;
   seller_tier: string | null;
   is_featured_seller: boolean | null;
