@@ -771,6 +771,7 @@ export default function Scanner() {
           onStopCamera={stopCamera}
           onCapturePhoto={capturePhoto}
           onFileUpload={handleFileUpload}
+          format={scanContext.format}
         />
       )}
 
