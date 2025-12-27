@@ -28,6 +28,7 @@ import { ScannerMultiMatchScreen } from "@/components/scanner/ScannerMultiMatchS
 import { ScannerConfirmScreen } from "@/components/scanner/ScannerConfirmScreen";
 import { ScannerSuccessScreen } from "@/components/scanner/ScannerSuccessScreen";
 import { ScannerErrorScreen } from "@/components/scanner/ScannerErrorScreen";
+import { ScannerAssistChips, ScanContext, applyPublisherBias } from "@/components/scanner/ScannerAssistChips";
 
 // Other Components
 import { ScannerListingForm } from "@/components/ScannerListingForm";
@@ -123,6 +124,12 @@ export default function Scanner() {
     confidence: null as number | null,
     queryParams: null as any,
     comicvineQuery: ""
+  });
+
+  // Scanner assist context (publisher/format filters)
+  const [scanContext, setScanContext] = useState<ScanContext>({
+    publisherFilter: null,
+    format: 'raw'
   });
 
   // Load recent scans on mount
@@ -241,7 +248,9 @@ export default function Scanner() {
       if (error) throw error;
 
       if (data.ok && data.picks && data.picks.length > 0) {
-        const picks = data.picks;
+        // Apply publisher bias if filter is set
+        const rawPicks = data.picks as ComicVinePick[];
+        const picks = applyPublisherBias(rawPicks, scanContext.publisherFilter) as ComicVinePick[];
         const topPick = picks[0];
         const pickConfidence = topPick.score || 0;
         
@@ -280,7 +289,6 @@ export default function Scanner() {
             topPick.writer = issueDetails.writer;
             topPick.artist = issueDetails.artist;
             topPick.description = issueDetails.description;
-            topPick.coverDate = issueDetails.cover_date;
             
             setPrefillData({
               title: issueDetails.volume_name || topPick.volumeName || topPick.title,
@@ -747,6 +755,11 @@ export default function Scanner() {
           recentScans={recentScans}
           onSelectScan={handleRecentScanSelect}
         />
+      )}
+
+      {/* Scanner Assist Chips - show on idle */}
+      {scannerState === "idle" && (
+        <ScannerAssistChips onChange={setScanContext} />
       )}
 
       {/* Idle Screen */}
