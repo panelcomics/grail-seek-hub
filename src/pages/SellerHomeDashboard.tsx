@@ -10,6 +10,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Camera, ArrowRight, CheckCircle2, BookOpen, Tag } from "lucide-react";
 import { FoundingSellerBadge } from "@/components/FoundingSellerBadge";
 import { useFoundingSeller } from "@/hooks/useFoundingSeller";
+import { SellerMomentumIndicator, SellerMomentumEmpty } from "@/components/seller/SellerMomentumIndicator";
+import { useSellerMomentum } from "@/hooks/useSellerMomentum";
 
 interface InventoryItem {
   id: string;
@@ -36,6 +38,7 @@ const SellerHomeDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isFoundingSeller } = useFoundingSeller();
+  const { streakDays, isLoading: momentumLoading, hasActivity } = useSellerMomentum();
   const [isLoading, setIsLoading] = useState(true);
   const [todayProgress, setTodayProgress] = useState<TodayProgress>({
     booksScanned: 0,
@@ -197,11 +200,23 @@ const SellerHomeDashboard = () => {
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       {/* Section 1: Dashboard Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex items-center gap-3 mb-1 flex-wrap">
           <h1 className="text-2xl font-bold">Seller Dashboard</h1>
           {isFoundingSeller && <FoundingSellerBadge size="md" />}
         </div>
-        <p className="text-muted-foreground">{subheader}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <p className="text-muted-foreground">{subheader}</p>
+          {/* Momentum indicator - small, secondary placement */}
+          <SellerMomentumIndicator 
+            streakDays={streakDays} 
+            isLoading={momentumLoading} 
+            size="sm" 
+          />
+        </div>
+        {/* Early state message when no activity yet */}
+        {!momentumLoading && hasActivity && streakDays === 0 && (
+          <SellerMomentumEmpty className="mt-1" />
+        )}
       </div>
 
       {/* Founding Seller Recognition Note */}
