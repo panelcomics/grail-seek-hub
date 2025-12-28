@@ -1,7 +1,9 @@
+// Crowdfunding confidence + momentum layers (additive, safe-mode)
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Rocket } from "lucide-react";
+import { CampaignMomentumIndicator } from "@/components/crowdfund/CampaignMomentumIndicator";
 
 interface Campaign {
   id: string;
@@ -14,6 +16,7 @@ interface Campaign {
   current_pledged_cents: number;
   backers_count: number;
   ends_at: string;
+  created_at?: string;
   creator_id: string;
   is_demo?: boolean;
   profiles?: {
@@ -103,7 +106,7 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
             />
           </div>
           
-          {/* Funding Stats */}
+          {/* Funding Stats - Progress-first language */}
           <div className="flex justify-between items-baseline">
             <div>
               <span className="font-bold text-lg text-foreground">
@@ -114,9 +117,22 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
               </span>
             </div>
             <span className="text-sm font-medium text-primary">
-              {percentFunded.toFixed(0)}%
+              {percentFunded > 0 
+                ? `${percentFunded.toFixed(0)}%`
+                : "Just launched"
+              }
             </span>
           </div>
+
+          {/* Momentum indicator on cards - subtle */}
+          {campaign.created_at && (
+            <CampaignMomentumIndicator
+              backersCount={campaign.backers_count}
+              currentPledgedCents={campaign.current_pledged_cents}
+              createdAt={campaign.created_at}
+              className="pt-1"
+            />
+          )}
         </div>
 
         {/* Footer Stats */}

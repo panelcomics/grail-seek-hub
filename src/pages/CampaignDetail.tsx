@@ -1,3 +1,4 @@
+// Crowdfunding confidence + momentum layers (additive, safe-mode)
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +19,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { formatDistanceToNow } from "date-fns";
+import { CampaignMomentumIndicator } from "@/components/crowdfund/CampaignMomentumIndicator";
+import { CreatorTrustCard } from "@/components/crowdfund/CreatorTrustCard";
+import { RecentBackersStrip } from "@/components/crowdfund/RecentBackersStrip";
 
 interface Campaign {
   id: string;
@@ -341,7 +345,14 @@ export default function CampaignDetail() {
                   <div className="space-y-2 flex-1">
                     <Badge variant="secondary" className="mb-2">{campaign.category}</Badge>
                     <h1 className="text-3xl md:text-4xl font-bold leading-tight">{campaign.title}</h1>
-                    <p className="text-lg text-muted-foreground">{campaign.short_tagline}</p>
+                    {/* Momentum Indicator - directly under title */}
+                    <CampaignMomentumIndicator
+                      backersCount={campaign.backers_count}
+                      currentPledgedCents={campaign.current_pledged_cents}
+                      createdAt={campaign.created_at}
+                      className="mt-2"
+                    />
+                    <p className="text-lg text-muted-foreground mt-2">{campaign.short_tagline}</p>
                   </div>
                 </div>
 
@@ -549,8 +560,17 @@ export default function CampaignDetail() {
                 </div>
                 
                 <div className="text-lg font-semibold text-primary">
-                  {percentFunded.toFixed(0)}% funded
+                  {percentFunded > 0 
+                    ? `${percentFunded.toFixed(0)}% funded`
+                    : "Early funding underway"
+                  }
                 </div>
+
+                {/* Recent Backers Strip - visual activity reinforcement */}
+                <RecentBackersStrip 
+                  backersCount={campaign.backers_count} 
+                  className="pt-2"
+                />
               </div>
 
               {/* Stats Grid */}
@@ -593,6 +613,13 @@ export default function CampaignDetail() {
                 </div>
               )}
             </div>
+
+            {/* Creator Trust Card - non-primary placement */}
+            <CreatorTrustCard
+              creatorUsername={creator?.username}
+              isActiveSeller={true}
+              isEarlyCreator={true}
+            />
 
             {/* Rewards Section */}
             {rewards.length > 0 && campaign.status === 'live' && daysRemaining > 0 && (
