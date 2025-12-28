@@ -31,7 +31,7 @@ const updateTypeConfig: Record<UpdateType, { label: string; icon: React.ReactNod
   shipping: { label: "Shipping Update", icon: <Truck className="h-3 w-3" /> },
 };
 
-function UpdateEntry({ update }: { update: Update }) {
+function UpdateEntry({ update, isFirst, isOnly }: { update: Update; isFirst: boolean; isOnly: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const typeConfig = update.update_type ? updateTypeConfig[update.update_type] : null;
   
@@ -101,26 +101,51 @@ function UpdateEntry({ update }: { update: Update }) {
             />
           </div>
         )}
+
+        {/* First update confidence copy - appears once per campaign */}
+        {isFirst && isOnly && (
+          <p className="text-xs text-muted-foreground/70 mt-3 italic">
+            This creator is actively sharing progress with backers.
+          </p>
+        )}
+
+        {/* Ongoing update reinforcement - subtle footer for non-first updates */}
+        {!isFirst && (
+          <p className="text-xs text-muted-foreground/60 mt-2">
+            Updates like this help keep backers informed as the project moves forward.
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-export function CreatorUpdateTimeline({ updates, className }: CreatorUpdateTimelineProps) {
+interface CreatorUpdateTimelineExtendedProps extends CreatorUpdateTimelineProps {
+  daysSinceLaunch?: number;
+}
+
+export function CreatorUpdateTimeline({ updates, className, daysSinceLaunch = 0 }: CreatorUpdateTimelineExtendedProps) {
+  const hasMultipleUpdates = updates && updates.length >= 2;
+
   // If no updates, show empty state
   if (!updates || updates.length === 0) {
     return (
       <Card className={cn("border-border/50", className)}>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold">Creator Updates</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Updates are shared directly by the creator as the campaign progresses.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
-            <p className="text-sm">Creator updates will appear here.</p>
-            <p className="text-xs mt-1 text-muted-foreground/70">
-              Backers will be notified as the campaign progresses.
-            </p>
+            <p className="text-sm">Creator updates will appear here as the campaign progresses.</p>
+            {daysSinceLaunch > 3 && (
+              <p className="text-xs mt-2 text-muted-foreground/70">
+                Many creators post updates as milestones are reached.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -129,15 +154,30 @@ export function CreatorUpdateTimeline({ updates, className }: CreatorUpdateTimel
 
   return (
     <Card className={cn("border-border/50", className)}>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold">Creator Updates</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Updates are shared directly by the creator as the campaign progresses.
+        </p>
       </CardHeader>
       <CardContent>
         <div className="space-y-0">
-          {updates.map((update) => (
-            <UpdateEntry key={update.id} update={update} />
+          {updates.map((update, index) => (
+            <UpdateEntry
+              key={update.id}
+              update={update}
+              isFirst={index === 0}
+              isOnly={updates.length === 1}
+            />
           ))}
         </div>
+
+        {/* Mid-campaign trust reinforcement - after 2+ updates */}
+        {hasMultipleUpdates && (
+          <p className="text-xs text-muted-foreground/70 mt-4 text-center border-t pt-4">
+            This creator has been consistently sharing updates with backers.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
