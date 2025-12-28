@@ -77,6 +77,7 @@ import CrowdfundLaunch from "./pages/CrowdfundLaunch";
 import CrowdfundMyProjects from "./pages/CrowdfundMyProjects";
 import CampaignDetail from "./pages/CampaignDetail";
 import CrowdfundMyPledges from "./pages/CrowdfundMyPledges";
+import CrowdfundCreatorDashboard from "./pages/crowdfund/CreatorDashboard";
 import CreatorApply from "./pages/creators/Apply";
 import CreatorDashboard from "./pages/creators/Dashboard";
 import CreatorAdmin from "./pages/creators/Admin";
@@ -188,6 +189,7 @@ const AppContent = () => {
             <Route path="/crowdfund/my-projects" element={<CrowdfundMyProjects />} />
             <Route path="/crowdfund/my-pledges" element={<CrowdfundMyPledges />} />
             <Route path="/crowdfund/campaign/:slug" element={<CampaignDetail />} />
+            <Route path="/crowdfund/campaign/:slug/dashboard" element={<CrowdfundCreatorDashboard />} />
             <Route path="/creators/apply" element={<CreatorApply />} />
             <Route path="/creators/dashboard" element={<CreatorDashboard />} />
             <Route path="/creators/admin" element={<CreatorAdmin />} />
