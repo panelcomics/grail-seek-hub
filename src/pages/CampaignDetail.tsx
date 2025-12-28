@@ -22,6 +22,7 @@ import { formatDistanceToNow } from "date-fns";
 import { CampaignMomentumIndicator } from "@/components/crowdfund/CampaignMomentumIndicator";
 import { CreatorTrustCard } from "@/components/crowdfund/CreatorTrustCard";
 import { RecentBackersStrip } from "@/components/crowdfund/RecentBackersStrip";
+import { CreatorUpdateTimeline } from "@/components/crowdfund/CreatorUpdateTimeline";
 
 interface Campaign {
   id: string;
@@ -403,6 +404,9 @@ export default function CampaignDetail() {
                   <div className="whitespace-pre-wrap text-foreground">{campaign.story_markdown}</div>
                 </div>
 
+                {/* Creator Update Timeline - below description, above FAQs */}
+                <CreatorUpdateTimeline updates={updates} />
+
                 {campaign.risks_markdown && (
                   <div className="prose prose-lg max-w-none">
                     <h2 className="text-2xl font-bold mb-4">Risks & Challenges</h2>
@@ -445,8 +449,8 @@ export default function CampaignDetail() {
                 {updates.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground bg-muted/30 rounded-lg">
                     <div className="text-4xl mb-4">📢</div>
-                    <p className="text-lg">No updates yet</p>
-                    <p className="text-sm mt-2">Check back soon for project updates!</p>
+                    <p className="text-lg">Creator updates will appear here.</p>
+                    <p className="text-sm mt-2 text-muted-foreground/70">Backers will be notified as the campaign progresses.</p>
                   </div>
                 ) : (
                   updates.map((update) => (
