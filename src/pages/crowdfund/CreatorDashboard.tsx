@@ -12,6 +12,8 @@ import { NextActionCard } from "@/components/crowdfund/NextActionCard";
 import { RecentUpdatesPreview } from "@/components/crowdfund/RecentUpdatesPreview";
 import { LaunchTipsPanel } from "@/components/crowdfund/LaunchTipsPanel";
 import { PostUpdateModal } from "@/components/crowdfund/PostUpdateModal";
+import { CreatorPhaseTip } from "@/components/crowdfund/CreatorPhaseTip";
+import { useCampaignPhaseTips } from "@/hooks/useCampaignPhaseTips";
 
 interface Campaign {
   id: string;
@@ -168,6 +170,16 @@ export default function CreatorDashboard() {
   const isNewCampaign =
     Date.now() - new Date(campaign.created_at).getTime() < 48 * 60 * 60 * 1000;
 
+  // Phase-based tips
+  const lastUpdateAt = updates.length > 0 ? updates[0].created_at : null;
+  const { currentTip, dismissTip } = useCampaignPhaseTips({
+    campaignCreatedAt: campaign.created_at,
+    campaignStatus: campaign.status,
+    updatesCount: updates.length,
+    lastUpdateAt,
+    backersCount: campaign.backers_count,
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -196,6 +208,20 @@ export default function CreatorDashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Phase-based contextual tip */}
+        {currentTip && (
+          <div className="mb-6">
+            <CreatorPhaseTip
+              phase={currentTip.phase}
+              tipCopy={currentTip.tipCopy}
+              ctaLabel={currentTip.ctaLabel}
+              dismissLabel={currentTip.dismissLabel}
+              onAction={() => setPostModalOpen(true)}
+              onDismiss={() => dismissTip(currentTip.phase)}
+            />
+          </div>
+        )}
 
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
