@@ -10,8 +10,10 @@
     <meta name="author" content="Grail Seeker" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="image" href="/src/assets/hero-comics-compressed.webp" type="image/webp" fetchpriority="high">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Preload critical font with display=swap to avoid render blocking -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
 
     <meta property="og:title" content="Grail Seeker - Find Your Holy Grail Collectibles" />
     <meta property="og:description" content="The ultimate marketplace for comic books and sports cards. Buy local, ship nationwide, or score instant deals in timed auctions." />

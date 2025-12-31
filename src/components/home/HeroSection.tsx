@@ -37,9 +37,10 @@ export function HeroSection() {
                     className="w-full h-[180px] sm:h-96 object-cover object-[30%_center] sm:object-center"
                     width={667}
                     height={384}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 50vw"
                     loading="eager"
                     fetchPriority="high"
-                    decoding="async"
+                    decoding="sync"
                   />
                   {/* Visual indicator overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent pointer-events-none" />
@@ -80,9 +81,10 @@ export function HeroSection() {
                   className="w-full h-80 sm:h-96 lg:h-[500px] object-cover object-center"
                   width={667}
                   height={500}
+                  sizes="(max-width: 1024px) 100vw, 50vw"
                   loading="eager"
                   fetchPriority="high"
-                  decoding="async"
+                  decoding="sync"
                 />
               </div>
             </div>
