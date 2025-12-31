@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
 import { EnhancedSearchInput } from "./EnhancedSearchInput";
-import heroComics from "@/assets/hero-comics.png";
+import heroComics from "@/assets/hero-comics-optimized.webp";
 
 export function HeroSection() {
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
@@ -35,6 +35,11 @@ export function HeroSection() {
                     src={heroComics}
                     alt="Vintage comic book collection featuring Marvel and DC classics"
                     className="w-full h-[180px] sm:h-96 object-cover object-[30%_center] sm:object-center"
+                    width={667}
+                    height={384}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="async"
                   />
                   {/* Visual indicator overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent pointer-events-none" />
@@ -73,6 +78,11 @@ export function HeroSection() {
                   src={heroComics}
                   alt="Vintage comic book collection featuring Marvel and DC classics"
                   className="w-full h-80 sm:h-96 lg:h-[500px] object-cover object-center"
+                  width={667}
+                  height={500}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
                 />
               </div>
             </div>

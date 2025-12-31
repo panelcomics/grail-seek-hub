@@ -83,6 +83,9 @@ export function CompactItemCard({
           <img
             src={image}
             alt={title}
+            width={300}
+            height={400}
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 20vw"
             className="w-full h-full object-contain p-1.5 sm:p-2 transition-transform duration-300 group-hover:scale-105"
             loading={priority ? "eager" : "lazy"}
             decoding="async"
