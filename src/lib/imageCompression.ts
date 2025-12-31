@@ -3,9 +3,9 @@
  * Compresses images before uploading to reduce API costs and improve performance
  */
 
-const MAX_DIMENSION = 1600;
-const JPEG_QUALITY = 0.8;
-const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_DIMENSION = 800; // Reduced for faster loading - most displays show at 400px or less
+const JPEG_QUALITY = 0.7; // Improved compression while maintaining quality
+const MAX_SIZE_BYTES = 500 * 1024; // 500KB max for better performance
 
 export interface CompressionResult {
   base64: string; // Raw base64 without data URL prefix
