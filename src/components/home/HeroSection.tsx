@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { WaitlistModal } from "./WaitlistModal";
 import { EnhancedSearchInput } from "./EnhancedSearchInput";
-import heroComics from "@/assets/hero-comics-optimized.webp";
+import heroComics from "@/assets/hero-comics-compressed.webp";
 
 export function HeroSection() {
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
