@@ -98,6 +98,7 @@ import HelpBuyerProtection from "./pages/help/BuyerProtection";
 import SettingsNotifications from "./pages/SettingsNotifications";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
+import { ScrollToTop } from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -213,6 +214,7 @@ const AppContent = () => {
           </Routes>
         </div>
         {!hideFooter && <Footer />}
+        <ScrollToTop />
       </AppLayout>
     </div>
   );
