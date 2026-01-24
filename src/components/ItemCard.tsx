@@ -14,6 +14,7 @@ import { useWatchAuction } from "@/hooks/useWatchAuction";
 import { SoldOffPlatformBadge } from "@/components/SoldOffPlatformBadge";
 import { getRotationTransform } from "@/lib/imageRotation";
 import { HeatScoreBadge } from "@/components/HeatScoreBadge";
+import { HoverImagePreview, useSupportsHover } from "@/components/HoverImagePreview";
 import {
   Tooltip,
   TooltipContent,
@@ -127,6 +128,7 @@ const ItemCard = ({
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
+  const supportsHover = useSupportsHover();
   
   const isUrgent = countdown > 0 && countdown <= 600; // Last 10 minutes
 
@@ -230,51 +232,59 @@ const ItemCard = ({
   return (
     <Link to={`/listing/${id}`}>
       <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
-        {/* Image container with responsive sizing */}
-        <div className="relative overflow-hidden bg-muted flex-shrink-0 w-full h-[240px] sm:h-[280px] md:h-[320px] lg:aspect-[3/4] lg:h-auto flex items-center justify-center">
-          <img
-            src={image}
-            alt={title}
-            width="280"
-            height="373"
-            sizes="(max-width: 640px) 280px, (max-width: 768px) 256px, 256px"
-            className="w-full h-full object-contain p-2 sm:p-3 md:p-4 transition-transform duration-500 group-hover:scale-105"
-            loading={priority ? "eager" : "lazy"}
-            decoding="async"
-            fetchPriority={priority ? "high" : "auto"}
-            style={{
-              transform: `${getRotationTransform(imageRotation)} scale(1)`
-            }}
-          />
-          
-          {/* Top-right: Favorite button (only if enabled) */}
-          {showFavorite && (
-            <div className="absolute top-2 right-2">
-              <FavoriteButton listingId={id} showCount />
-            </div>
-          )}
+        {/* Image container with hover-to-enlarge on desktop */}
+        <HoverImagePreview
+          imageSrc={image}
+          imageAlt={title}
+          rotation={imageRotation}
+          delay={1000}
+          disabled={!supportsHover}
+        >
+          <div className="relative overflow-hidden bg-muted flex-shrink-0 w-full h-[240px] sm:h-[280px] md:h-[320px] lg:aspect-[3/4] lg:h-auto flex items-center justify-center">
+            <img
+              src={image}
+              alt={title}
+              width="280"
+              height="373"
+              sizes="(max-width: 640px) 280px, (max-width: 768px) 256px, 256px"
+              className="w-full h-full object-contain p-2 sm:p-3 md:p-4 transition-transform duration-500 group-hover:scale-105"
+              loading={priority ? "eager" : "lazy"}
+              decoding="async"
+              fetchPriority={priority ? "high" : "auto"}
+              style={{
+                transform: `${getRotationTransform(imageRotation)} scale(1)`
+              }}
+            />
+            
+            {/* Top-right: Favorite button (only if enabled) */}
+            {showFavorite && (
+              <div className="absolute top-2 right-2">
+                <FavoriteButton listingId={id} showCount />
+              </div>
+            )}
 
-          {/* Bottom: Auction countdown */}
-          {isAuction && countdown > 0 && (
-            <div className={`absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-center gap-1.5 text-xs font-bold backdrop-blur-md ${
-              isUrgent 
-                ? 'bg-destructive/95 text-destructive-foreground' 
-                : 'bg-black/85 text-white'
-            }`}>
-              <Clock className="h-3.5 w-3.5" />
-              Ends in {formatTime(countdown)}
-            </div>
-          )}
+            {/* Bottom: Auction countdown */}
+            {isAuction && countdown > 0 && (
+              <div className={`absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-center gap-1.5 text-xs font-bold backdrop-blur-md ${
+                isUrgent 
+                  ? 'bg-destructive/95 text-destructive-foreground' 
+                  : 'bg-black/85 text-white'
+              }`}>
+                <Clock className="h-3.5 w-3.5" />
+                Ends in {formatTime(countdown)}
+              </div>
+            )}
 
-          {/* No badges over image - all dealer badges moved to bottom metadata row */}
+            {/* No badges over image - all dealer badges moved to bottom metadata row */}
 
-          {/* Sold off-platform badge - top center */}
-          {soldOffPlatform && (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2">
-              <SoldOffPlatformBadge />
-            </div>
-          )}
-        </div>
+            {/* Sold off-platform badge - top center */}
+            {soldOffPlatform && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2">
+                <SoldOffPlatformBadge />
+              </div>
+            )}
+          </div>
+        </HoverImagePreview>
         
         {/* Card content */}
         <div className="p-3 flex-1 flex flex-col min-h-0">
