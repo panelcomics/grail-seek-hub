@@ -31,6 +31,7 @@ import { ScannerConfirmScreen } from "@/components/scanner/ScannerConfirmScreen"
 import { ScannerSuccessScreen } from "@/components/scanner/ScannerSuccessScreen";
 import { ScannerErrorScreen } from "@/components/scanner/ScannerErrorScreen";
 import { ScannerAssistChips, ScanContext, applyPublisherBias } from "@/components/scanner/ScannerAssistChips";
+import { VariantInfo } from "@/components/scanner/VariantBadge";
 
 // Other Components
 import { ScannerListingForm } from "@/components/ScannerListingForm";
@@ -118,6 +119,7 @@ export default function Scanner() {
   const [showDebug, setShowDebug] = useState(false);
   const [showManualSearch, setShowManualSearch] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false); // Track if user entered manually
+  const [variantInfo, setVariantInfo] = useState<VariantInfo | null>(null); // Track detected variant
   
   // Debug state
   const [debugData, setDebugData] = useState({
@@ -268,6 +270,19 @@ export default function Scanner() {
           queryParams: null,
           comicvineQuery: ""
         });
+        
+        // Extract variant info from response
+        if (data.extracted?.isVariant) {
+          setVariantInfo({
+            isVariant: true,
+            variantType: data.extracted.variantType || null,
+            variantDetails: data.extracted.variantDetails || null,
+            ratioVariant: data.extracted.ratioVariant || null,
+            variantArtist: data.extracted.variantArtist || null
+          });
+        } else {
+          setVariantInfo(null);
+        }
         
         // Determine state based on confidence and matches
         // Now we go to 'transition' first for the magic feel, then to result card
@@ -643,6 +658,7 @@ export default function Scanner() {
     setFilterSlabbed(false);
     setShowManualSearch(false);
     setIsManualEntry(false);
+    setVariantInfo(null);
   };
 
   // Confirm screen save handler
@@ -843,6 +859,7 @@ export default function Scanner() {
           onScanAgain={resetScanner}
           onManualSearch={() => setShowManualSearch(true)}
           isManualEntry={isManualEntry}
+          variantInfo={variantInfo}
         />
       )}
 

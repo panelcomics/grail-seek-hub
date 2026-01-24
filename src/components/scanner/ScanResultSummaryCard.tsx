@@ -16,6 +16,7 @@ import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw } from "
 import { ComicVinePick } from "@/types/comicvine";
 import { ScannerState } from "@/types/scannerState";
 import { ValueHintModule } from "./ValueHintModule";
+import { VariantBadge, VariantInfo } from "./VariantBadge";
 import { cn } from "@/lib/utils";
 
 interface ScanResultSummaryCardProps {
@@ -28,6 +29,7 @@ interface ScanResultSummaryCardProps {
   onScanAgain: () => void;
   onManualSearch?: () => void;
   isManualEntry?: boolean;
+  variantInfo?: VariantInfo | null;
 }
 
 type StatusType = 'ready' | 'review' | 'manual' | 'choose' | 'retry';
@@ -120,7 +122,8 @@ export function ScanResultSummaryCard({
   onEdit,
   onScanAgain,
   onManualSearch,
-  isManualEntry = false
+  isManualEntry = false,
+  variantInfo = null
 }: ScanResultSummaryCardProps) {
   const [showContent, setShowContent] = useState(false);
   const [showValueHint, setShowValueHint] = useState(false);
@@ -225,6 +228,13 @@ export function ScanResultSummaryCard({
                 <p className="text-sm text-muted-foreground">
                   {secondaryLine}
                 </p>
+              )}
+
+              {/* Variant Badge - show prominently if variant detected */}
+              {variantInfo && variantInfo.isVariant && (
+                <div className="pt-1">
+                  <VariantBadge variant={variantInfo} size="md" />
+                </div>
               )}
 
               {/* Status Chip */}

@@ -248,6 +248,129 @@ function extractYear(text: string): number | null {
   return yearMatch ? parseInt(yearMatch[1]) : null;
 }
 
+// Variant cover detection patterns
+interface VariantInfo {
+  isVariant: boolean;
+  variantType: string | null;
+  variantDetails: string | null;
+  ratioVariant: string | null;
+  artistName: string | null;
+}
+
+function detectVariantCover(ocrText: string): VariantInfo {
+  const lower = ocrText.toLowerCase();
+  const result: VariantInfo = {
+    isVariant: false,
+    variantType: null,
+    variantDetails: null,
+    ratioVariant: null,
+    artistName: null
+  };
+  
+  // Ratio variant patterns (1:10, 1:25, 1:50, 1:100, etc.)
+  const ratioMatch = ocrText.match(/\b1[:\/](\d{1,4})\b/i);
+  if (ratioMatch) {
+    result.isVariant = true;
+    result.variantType = 'ratio';
+    result.ratioVariant = `1:${ratioMatch[1]}`;
+    result.variantDetails = `${result.ratioVariant} Incentive Variant`;
+  }
+  
+  // Virgin/textless cover
+  if (/\b(virgin|textless|logo[\s-]?free|clean\s*cover)\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'virgin';
+    result.variantDetails = result.variantDetails 
+      ? `${result.variantDetails} (Virgin)` 
+      : 'Virgin Cover (No Logo/Text)';
+  }
+  
+  // Variant cover explicit mentions
+  if (/\b(variant|var\.?|cvr\s*[b-z]|cover\s*[b-z])\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'variant';
+    
+    // Try to extract cover letter (Cover B, Cover C, etc.)
+    const coverLetterMatch = ocrText.match(/\b(?:cvr|cover)\s*([b-z])\b/i);
+    if (coverLetterMatch) {
+      result.variantDetails = result.variantDetails || `Cover ${coverLetterMatch[1].toUpperCase()} Variant`;
+    }
+  }
+  
+  // Homage cover detection
+  if (/\b(homage|tribute|reimagined)\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'homage';
+    result.variantDetails = result.variantDetails || 'Homage Variant';
+  }
+  
+  // Sketch/B&W variant
+  if (/\b(sketch|b[\s&]*w|black\s*(and|&)?\s*white|line\s*art)\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'sketch';
+    result.variantDetails = result.variantDetails || 'Sketch/B&W Variant';
+  }
+  
+  // Foil/metallic variant
+  if (/\b(foil|metallic|holographic|holo|chrome)\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'foil';
+    result.variantDetails = result.variantDetails || 'Foil/Metallic Cover';
+  }
+  
+  // Exclusive variants (store, convention, etc.)
+  const exclusiveMatch = ocrText.match(/\b(exclusive|excl\.?|limited|convention|sdcc|nycc|c2e2|eccc|comic[\s-]?con)\b/i);
+  if (exclusiveMatch) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'exclusive';
+    const excType = exclusiveMatch[1].toUpperCase();
+    if (['SDCC', 'NYCC', 'C2E2', 'ECCC'].includes(excType)) {
+      result.variantDetails = result.variantDetails || `${excType} Convention Exclusive`;
+    } else {
+      result.variantDetails = result.variantDetails || 'Exclusive Variant';
+    }
+  }
+  
+  // Second/third/fourth printing
+  const printingMatch = ocrText.match(/\b(second|2nd|third|3rd|fourth|4th|fifth|5th|\d+(?:st|nd|rd|th))\s*print(?:ing)?\b/i);
+  if (printingMatch) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'printing';
+    result.variantDetails = result.variantDetails || `${printingMatch[1]} Printing`;
+  }
+  
+  // Newsstand variant
+  if (/\bNewsstand\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'newsstand';
+    result.variantDetails = result.variantDetails || 'Newsstand Edition';
+  }
+  
+  // Try to extract artist name for variant covers
+  // Common artist attribution patterns
+  const artistPatterns = [
+    /\bart(?:ist)?\s*(?:by|:)\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    /\bcover\s*(?:by|:)\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:variant|cover)\b/i,
+  ];
+  
+  for (const pattern of artistPatterns) {
+    const artistMatch = ocrText.match(pattern);
+    if (artistMatch && artistMatch[1].length > 3) {
+      result.artistName = artistMatch[1];
+      break;
+    }
+  }
+  
+  // If we detected a variant but have no details, give generic description
+  if (result.isVariant && !result.variantDetails) {
+    result.variantDetails = 'Variant Cover';
+  }
+  
+  console.log('[SCAN-ITEM] Variant detection:', result);
+  return result;
+}
+
 // Query ComicVine with the extracted data
 async function searchComicVine(
   apiKey: string, 
@@ -563,8 +686,9 @@ serve(async (req) => {
     const { title, issue, confidence: extractionConfidence, method: extractionMethod } = extractTitleAndIssue(ocrText);
     const publisher = extractPublisher(ocrText);
     const year = extractYear(ocrText);
+    const variantInfo = detectVariantCover(ocrText);
     
-    console.log('[SCAN-ITEM] Extracted:', { title, issue, publisher, year, isSlab, extractionMethod });
+    console.log('[SCAN-ITEM] Extracted:', { title, issue, publisher, year, isSlab, extractionMethod, variantInfo });
 
     let results: any[] = [];
     
@@ -596,7 +720,13 @@ serve(async (req) => {
           isSlab,
           finalCleanTitle: title,
           extractionMethod,
-          extractionConfidence
+          extractionConfidence,
+          // Variant detection fields
+          isVariant: variantInfo.isVariant,
+          variantType: variantInfo.variantType,
+          variantDetails: variantInfo.variantDetails,
+          ratioVariant: variantInfo.ratioVariant,
+          variantArtist: variantInfo.artistName
         },
         picks: results.slice(0, 10),
         ocrText,
