@@ -17,6 +17,7 @@ import { ComicVinePick } from "@/types/comicvine";
 import { ScannerState } from "@/types/scannerState";
 import { ValueHintModule } from "./ValueHintModule";
 import { VariantBadge, VariantInfo } from "./VariantBadge";
+import { ScanFeedbackSelector } from "./ScanFeedbackSelector";
 import { cn } from "@/lib/utils";
 
 interface ScanResultSummaryCardProps {
@@ -261,6 +262,16 @@ export function ScanResultSummaryCard({
               )}
             >
               <ValueHintModule match={match} />
+            </div>
+          )}
+
+          {/* Feedback Selector - Help improve accuracy */}
+          {match && scannerState !== 'confirm' && scannerState !== 'success' && (
+            <div className="mb-6 p-3 bg-muted/30 rounded-lg border border-border/50">
+              <ScanFeedbackSelector 
+                match={match} 
+                confidence={confidence}
+              />
             </div>
           )}
 
