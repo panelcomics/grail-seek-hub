@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw, Flag, Sparkles } from "lucide-react";
+import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw, Flag, Sparkles, Copy } from "lucide-react";
 import { ComicVinePick } from "@/types/comicvine";
 import { ScannerState } from "@/types/scannerState";
 import { ValueHintModule } from "./ValueHintModule";
@@ -20,6 +20,15 @@ import { VariantBadge, VariantInfo } from "./VariantBadge";
 import { ScanFeedbackSelector } from "./ScanFeedbackSelector";
 import { ConfidenceTierBadge } from "./ConfidenceTierBadge";
 import { cn } from "@/lib/utils";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { toast } from "sonner";
+
+interface TopMatchSummary {
+  id: number;
+  title: string;
+  issue: string;
+  confidence: number;
+}
 
 interface ScanResultSummaryCardProps {
   match: ComicVinePick | null;
@@ -35,6 +44,12 @@ interface ScanResultSummaryCardProps {
   variantInfo?: VariantInfo | null;
   /** If source="correction_override", show special banner */
   source?: string;
+  /** Strategy used for matching (for debug) */
+  strategy?: string;
+  /** Normalized input text (for debug) */
+  normalizedInput?: string;
+  /** Top matches summary for debug copy */
+  topMatches?: TopMatchSummary[];
 }
 
 type StatusType = 'ready' | 'review' | 'manual' | 'choose' | 'retry';
@@ -130,8 +145,12 @@ export function ScanResultSummaryCard({
   onReportWrongMatch,
   isManualEntry = false,
   variantInfo = null,
-  source
+  source,
+  strategy,
+  normalizedInput,
+  topMatches
 }: ScanResultSummaryCardProps) {
+  const { isAdmin } = useAdminCheck();
   const [showContent, setShowContent] = useState(false);
   const [showValueHint, setShowValueHint] = useState(false);
 
@@ -141,6 +160,26 @@ export function ScanResultSummaryCard({
   
   // Check if this is a correction override
   const isCorrectionOverride = source === 'correction_override';
+
+  // Copy debug JSON to clipboard (admin only)
+  const handleCopyDebug = () => {
+    const debugPayload = {
+      normalized_input: normalizedInput || null,
+      confidence,
+      strategy: strategy || null,
+      source: source || "normal",
+      topMatches: topMatches || [],
+      selectedMatch: match ? {
+        id: match.id,
+        title: match.volumeName || match.title,
+        issue: match.issue,
+        year: match.year,
+        publisher: match.publisher
+      } : null
+    };
+    navigator.clipboard.writeText(JSON.stringify(debugPayload, null, 2));
+    toast.success("Debug JSON copied to clipboard");
+  };
 
   // Staggered animation for "magic" feel
   useEffect(() => {
@@ -177,12 +216,25 @@ export function ScanResultSummaryCard({
           <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5 text-success" />
           </div>
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-bold text-foreground">Scan Complete</h2>
             <p className="text-sm text-muted-foreground">
               We found the closest match — quick review before listing.
             </p>
           </div>
+          {/* Admin-only Copy Debug button */}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyDebug}
+              className="text-muted-foreground hover:text-foreground"
+              title="Copy debug JSON"
+            >
+              <Copy className="h-4 w-4 mr-1" />
+              Debug
+            </Button>
+          )}
         </div>
       </div>
 

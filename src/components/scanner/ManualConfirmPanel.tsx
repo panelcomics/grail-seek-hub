@@ -264,7 +264,23 @@ export function ManualConfirmPanel({
         {!showNoneOfThese ? (
           <Button
             variant="ghost"
-            onClick={() => setShowNoneOfThese(true)}
+            onClick={async () => {
+              setShowNoneOfThese(true);
+              // Log "None of these" click to scan_events for analytics
+              try {
+                await supabase.from("scan_events").insert({
+                  user_id: user?.id || null,
+                  normalized_input: normalizeInputText(inputText),
+                  confidence: originalConfidence,
+                  strategy: null,
+                  source: "manual_search",
+                  rejected_reason: "none_of_these"
+                });
+                console.log("[SCAN_EVENTS] Logged 'None of these' click");
+              } catch (err) {
+                console.error("[SCAN_EVENTS] Failed to log:", err);
+              }
+            }}
             className="w-full text-muted-foreground"
           >
             <ChevronDown className="h-4 w-4 mr-2" />
