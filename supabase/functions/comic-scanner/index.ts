@@ -1664,6 +1664,53 @@ async function searchComicVine(query: string): Promise<{
 }
 
 // ============================================================================
+// SCAN EVENT LOGGER - Log scan events for health monitoring
+// ============================================================================
+async function logScanEvent(data: {
+  normalized_input: string;
+  confidence: number | null;
+  strategy: string;
+  source: string;
+  rejected_reason?: string;
+}): Promise<void> {
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return; // Silently skip if not configured
+  }
+  
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/scan_events`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          normalized_input: data.normalized_input.slice(0, 500),
+          confidence: data.confidence,
+          strategy: data.strategy,
+          source: data.source,
+          rejected_reason: data.rejected_reason || null
+        })
+      }
+    );
+    
+    if (!response.ok) {
+      console.warn('[SCAN_EVENT] Failed to log:', response.status);
+    }
+  } catch (err) {
+    // Silently fail - logging should never break the scanner
+    console.warn('[SCAN_EVENT] Error:', err);
+  }
+}
+
+// ============================================================================
 // CORRECTION OVERRIDE - Check for stored corrections before ComicVine
 // ============================================================================
 async function checkCorrectionOverride(query: string): Promise<TopMatch | null> {
@@ -1824,6 +1871,15 @@ Deno.serve(async (req) => {
       fallbackPath: searchResult.fallbackPath,
       matchCount: searchResult.topMatches.length,
       timestamp: new Date().toISOString()
+    });
+    
+    // Log scan event to database for health monitoring
+    const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+    logScanEvent({
+      normalized_input: normalizedQuery,
+      confidence: searchResult.confidence,
+      strategy: searchResult.fallbackPath || 'issue-search',
+      source: 'normal'
     });
     
     if (!searchResult.topMatch && searchResult.topMatches.length === 0) {

@@ -5,7 +5,7 @@ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Users, Package, ShoppingCart, Flag, Settings, FileText } from "lucide-react";
+import { Loader2, Users, Package, ShoppingCart, Flag, Settings, FileText, Activity } from "lucide-react";
 import { AdminPanel } from "@/components/AdminPanel";
 
 export default function AdminDashboard() {
@@ -148,6 +148,16 @@ export default function AdminDashboard() {
                     Featured Shops
                   </CardTitle>
                   <CardDescription>Curate featured seller showcases</CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/admin/scanner-health")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    Scanner Health
+                  </CardTitle>
+                  <CardDescription>Monitor scanner accuracy and corrections</CardDescription>
                 </CardHeader>
               </Card>
             </div>
