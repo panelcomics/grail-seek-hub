@@ -102,6 +102,13 @@ const FALLBACK_TIMEOUT_MS = 2000; // 2 second timeout for fallback
 const SHORT_TITLE_LENGTH = 8;     // Titles <= this are considered "common"
 const COMMON_TITLES = ['x-men', 'batman', 'superman', 'spider-man', 'hulk', 'wolverine', 'avengers', 'flash', 'iron man'];
 
+// Volume-first Issue #1 rule constants
+const ISSUE_1_YEAR_WINDOW = 3;    // ±3 years for volume filtering
+const SCORE_VOLUME_EXACT_YEAR = 40;
+const SCORE_VOLUME_YEAR_OFF_1 = 30;
+const SCORE_VOLUME_YEAR_OFF_2_3 = 15;
+const SCORE_VOLUME_HISTORICAL_BIAS = 5; // Bonus for older volumes when issue=1
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -207,6 +214,18 @@ function isAmbiguousQuery(title: string, issueNumber: string | null): boolean {
   if (COMMON_TITLES.some(common => normalizedTitle.includes(common))) return true;
   
   return false;
+}
+
+// ============================================================================
+// ISSUE #1 VOLUME-FIRST RULE - Detect when to use priority volume search
+// ============================================================================
+function shouldUseIssue1VolumeFirst(parsedQuery: { issue: string | null; year: number | null }): boolean {
+  // Only trigger for Issue #1 WITH a year provided
+  if (parsedQuery.issue !== '1') return false;
+  if (!parsedQuery.year) return false;
+  if (!isValidYear(parsedQuery.year)) return false;
+  
+  return true;
 }
 
 // ============================================================================
@@ -835,6 +854,211 @@ async function volumeFirstFallback(
 }
 
 // ============================================================================
+// ISSUE #1 VOLUME-FIRST PRIORITY SEARCH
+// This runs BEFORE general search when issue=1 AND year is provided
+// Uses stricter year filtering (±3 years) and historical bias
+// ============================================================================
+async function issue1VolumeFirstSearch(
+  parsedQuery: { title: string; issue: string | null; year: number | null; publisher: string | null }
+): Promise<TopMatch[]> {
+  console.log('[ISSUE-1-RULE] Volume-first rule triggered for Issue #1 with year:', parsedQuery.year);
+  
+  // Step 1: Search for volumes
+  const volumes = await searchVolumes(parsedQuery.title);
+  if (volumes.length === 0) {
+    console.log('[ISSUE-1-RULE] No volumes found');
+    return [];
+  }
+  
+  console.log('[ISSUE-1-RULE] Found', volumes.length, 'total volumes');
+  
+  // Step 2: Filter volumes by year proximity (±3 years only)
+  const targetYear = parsedQuery.year!;
+  const filteredVolumes = volumes.filter(v => {
+    if (!v.start_year) return false;
+    const volumeYear = typeof v.start_year === 'string' ? parseInt(v.start_year) : v.start_year;
+    if (isNaN(volumeYear)) return false;
+    const yearDiff = Math.abs(volumeYear - targetYear);
+    return yearDiff <= ISSUE_1_YEAR_WINDOW;
+  });
+  
+  console.log('[ISSUE-1-RULE] Volumes within ±' + ISSUE_1_YEAR_WINDOW + ' years:', filteredVolumes.length);
+  
+  // If no volumes in year window, fall back to all volumes but with lower confidence
+  const volumesToScore = filteredVolumes.length > 0 ? filteredVolumes : volumes.slice(0, 10);
+  const isYearFiltered = filteredVolumes.length > 0;
+  
+  // Step 3: Score volumes with enhanced Issue #1 ranking
+  const scoredVolumes = volumesToScore.map(v => {
+    let score = 0;
+    const volumeYear = typeof v.start_year === 'string' ? parseInt(v.start_year) : v.start_year;
+    
+    // Title similarity (0-40 points)
+    const similarity = stringSimilarity(parsedQuery.title, v.name);
+    score += similarity * SCORE_TITLE_MAX;
+    
+    // Year proximity scoring (stronger weights for Issue #1)
+    if (volumeYear && !isNaN(volumeYear)) {
+      const yearDiff = Math.abs(volumeYear - targetYear);
+      
+      if (yearDiff === 0) {
+        score += SCORE_VOLUME_EXACT_YEAR; // +40 for exact year
+      } else if (yearDiff === 1) {
+        score += SCORE_VOLUME_YEAR_OFF_1; // +30 for ±1 year
+      } else if (yearDiff <= 3) {
+        score += SCORE_VOLUME_YEAR_OFF_2_3; // +15 for ±2-3 years
+      } else {
+        score += PENALTY_YEAR_OFF_GT_7; // -20 for >3 years (shouldn't happen if filtered)
+      }
+      
+      // Historical bias: prefer older "first run" volumes for issue #1
+      // Earlier volumes are more likely to be original runs
+      if (volumeYear < targetYear + 2) {
+        score += SCORE_VOLUME_HISTORICAL_BIAS;
+      }
+    } else {
+      score += PENALTY_YEAR_MISSING;
+    }
+    
+    // Publisher match
+    if (parsedQuery.publisher && v.publisher?.name) {
+      const pubName = v.publisher.name.toLowerCase();
+      const queryPub = parsedQuery.publisher.toLowerCase();
+      if (pubName === queryPub || pubName.includes(queryPub) || queryPub.includes(pubName)) {
+        score += SCORE_PUBLISHER_MATCH;
+      }
+    }
+    
+    // Prefer volumes with more issues (more likely to be main series, not one-shots)
+    if (v.count_of_issues > 50) score += 10;
+    else if (v.count_of_issues > 20) score += 6;
+    else if (v.count_of_issues > 5) score += 3;
+    
+    // Penalize collections
+    const volName = v.name.toLowerCase();
+    if (volName.includes('tpb') || volName.includes('collection') || volName.includes('omnibus')) {
+      score += PENALTY_TPB_COLLECTION;
+    }
+    
+    return { volume: v, score, volumeYear };
+  }).sort((a, b) => b.score - a.score);
+  
+  console.log('[ISSUE-1-RULE] Top 3 scored volumes:', scoredVolumes.slice(0, 3).map(sv => ({
+    name: sv.volume.name,
+    year: sv.volumeYear,
+    publisher: sv.volume.publisher?.name,
+    score: sv.score,
+    issues: sv.volume.count_of_issues
+  })));
+  
+  // Step 4: Take top 3 volumes and fetch issue #1 from each
+  const topVolumes = scoredVolumes.slice(0, 3);
+  const matchPromises = topVolumes.map(async ({ volume, score: volumeScore, volumeYear }) => {
+    try {
+      const issues = await fetchVolumeIssues(volume.id);
+      
+      // Find issue #1
+      const issue1 = issues.find(issue => {
+        const issueNum = issue.issue_number?.toString().replace(/^0+/, '');
+        return issueNum === '1';
+      });
+      
+      if (!issue1) {
+        console.log('[ISSUE-1-RULE] No issue #1 found in volume:', volume.name);
+        return null;
+      }
+      
+      const coverDate = issue1.cover_date;
+      const issueYear = coverDate ? new Date(coverDate).getFullYear() : volumeYear;
+      
+      // Calculate final confidence
+      let confidence = volumeScore;
+      let hasExactYear = false;
+      
+      // Add issue match bonus (we found issue #1)
+      confidence += SCORE_ISSUE_EXACT;
+      
+      // Check issue year against target year
+      if (issueYear) {
+        const yearDiff = Math.abs(issueYear - targetYear);
+        if (yearDiff === 0) {
+          confidence += SCORE_YEAR_EXACT;
+          hasExactYear = true;
+        } else if (yearDiff === 1) {
+          confidence += SCORE_YEAR_OFF_1;
+          hasExactYear = true; // Close enough for tie-breaking
+        } else if (yearDiff <= 3) {
+          confidence += SCORE_YEAR_OFF_2_3;
+        } else {
+          confidence += PENALTY_YEAR_OFF_GT_7;
+        }
+      } else {
+        confidence += PENALTY_YEAR_MISSING;
+      }
+      
+      // If we used year-filtered volumes, this is higher confidence
+      if (isYearFiltered) {
+        confidence += 5; // Small bonus for being in the year window
+      }
+      
+      // Cap at 130 for Issue #1 volume-first matches (slightly higher than regular)
+      confidence = Math.min(130, Math.max(0, confidence));
+      
+      console.log('[ISSUE-1-RULE] Found issue #1:', volume.name, 'year:', issueYear, 'confidence:', confidence);
+      
+      return {
+        comicvine_issue_id: issue1.id,
+        comicvine_volume_id: volume.id,
+        series: volume.name,
+        issue: '1',
+        year: issueYear,
+        publisher: volume.publisher?.name || null,
+        coverUrl: issue1.image?.medium_url || volume.image?.medium_url || null,
+        confidence,
+        fallbackPath: 'issue-1-volume-first',
+        _hasExactYear: hasExactYear,
+        _hasExactIssue: true
+      } as TopMatch;
+    } catch (err) {
+      console.error('[ISSUE-1-RULE] Error fetching issues for volume', volume.id, err);
+      return null;
+    }
+  });
+  
+  const matches = (await Promise.all(matchPromises)).filter((m): m is TopMatch => m !== null);
+  
+  // Sort by confidence, then by year proximity for tie-breaking
+  matches.sort((a, b) => {
+    const scoreDiff = b.confidence - a.confidence;
+    if (Math.abs(scoreDiff) > 5) return scoreDiff;
+    
+    // Tie-break: prefer exact year match
+    const aExactYear = (a as any)._hasExactYear || false;
+    const bExactYear = (b as any)._hasExactYear || false;
+    if (bExactYear && !aExactYear) return 1;
+    if (aExactYear && !bExactYear) return -1;
+    
+    // Tie-break: prefer year closer to target
+    if (a.year && b.year) {
+      const aDiff = Math.abs(a.year - targetYear);
+      const bDiff = Math.abs(b.year - targetYear);
+      if (aDiff !== bDiff) return aDiff - bDiff;
+    }
+    
+    return scoreDiff;
+  });
+  
+  console.log('[ISSUE-1-RULE] Final matches:', matches.length, matches.slice(0, 3).map(m => ({
+    series: m.series,
+    year: m.year,
+    publisher: m.publisher,
+    confidence: m.confidence
+  })));
+  
+  return matches;
+}
+
+// ============================================================================
 // TIMEOUT WRAPPER
 // ============================================================================
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallbackValue: T): Promise<T> {
@@ -854,8 +1078,46 @@ async function searchComicVine(query: string): Promise<{
   fallbackUsed: boolean;
   fallbackPath: string | null;
 }> {
-  // First pass: Issue search
-  const { results, parsedQuery } = await searchComicVineIssues(query);
+  // Parse query first to check for Issue #1 rule
+  const parsedQuery = parseQuery(query);
+  
+  // =========================================================================
+  // ISSUE #1 VOLUME-FIRST RULE
+  // When issue=1 AND year is provided, use volume-first search FIRST
+  // This ensures we find the correct original run (e.g., Saga #1 2012)
+  // =========================================================================
+  if (shouldUseIssue1VolumeFirst(parsedQuery)) {
+    console.log('[SCANNER] Issue #1 + year detected, using volume-first priority search');
+    
+    const issue1Matches = await withTimeout(
+      issue1VolumeFirstSearch(parsedQuery),
+      FALLBACK_TIMEOUT_MS * 1.5, // Slightly longer timeout for this path
+      []
+    );
+    
+    if (issue1Matches.length > 0) {
+      const bestMatch = issue1Matches[0];
+      
+      console.log('[SCANNER] Issue #1 rule found match:', bestMatch.series, '#1', bestMatch.year, 'confidence:', bestMatch.confidence);
+      
+      // If we got a high-confidence match from Issue #1 rule, use it directly
+      if (bestMatch.confidence >= CONFIDENCE_THRESHOLD) {
+        return {
+          topMatch: null, // Will be populated by caller if needed
+          topMatches: issue1Matches.slice(0, 3),
+          confidence: bestMatch.confidence,
+          fallbackUsed: true,
+          fallbackPath: 'issue-1-volume-first'
+        };
+      }
+    }
+    
+    // If Issue #1 rule didn't find good matches, fall through to regular search
+    console.log('[SCANNER] Issue #1 rule found no high-confidence matches, falling back to regular search');
+  }
+  
+  // First pass: Issue search (for non-Issue #1 queries or Issue #1 without year)
+  const { results } = await searchComicVineIssues(query);
   
   if (results.length === 0) {
     // No results from first pass, try volume-first fallback
