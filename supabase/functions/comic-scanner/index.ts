@@ -321,99 +321,251 @@ async function getEbaySoldPrices(accessToken: string, title: string, issueNumber
 }
 
 // ============================================================================
-// QUERY PARSING
+// QUERY PARSING - Improved to distinguish year vs issue correctly
 // ============================================================================
+const CURRENT_YEAR = new Date().getFullYear();
+
+function isValidYear(num: number): boolean {
+  // Valid comic years: 1900 to current year + 1
+  return num >= 1900 && num <= CURRENT_YEAR + 1;
+}
+
 function parseQuery(query: string): { title: string; issue: string | null; year: number | null; publisher: string | null } {
-  const yearMatch = query.match(/\b(19[4-9]\d|20[0-2]\d)\b/);
-  const year = yearMatch ? parseInt(yearMatch[1]) : null;
+  let cleanQuery = query;
   
-  let cleanQuery = query.replace(/\b(19[4-9]\d|20[0-2]\d)\b/g, '').trim();
-  cleanQuery = cleanQuery.replace(/\b(jim lee|todd mcfarlane|frank miller|alex ross|rob liefeld|mark bagley|john romita)\b/gi, '').trim();
+  // Remove creator names first
+  cleanQuery = cleanQuery.replace(/\b(jim lee|todd mcfarlane|frank miller|alex ross|rob liefeld|mark bagley|john romita|stan lee|jack kirby|steve ditko)\b/gi, '').trim();
   
   // Extract publisher hints
   let publisher: string | null = null;
-  const publisherMatch = cleanQuery.match(/\b(marvel|dc|image|dark horse|valiant|idw|dynamite|boom)\b/i);
+  const publisherMatch = cleanQuery.match(/\b(marvel|dc|image|dark horse|valiant|idw|dynamite|boom|mirage|archie|dell|gold key|charlton|fawcett)\b/i);
   if (publisherMatch) {
     publisher = publisherMatch[1];
     cleanQuery = cleanQuery.replace(new RegExp(`\\b${publisher}\\b`, 'i'), '').trim();
   }
   
-  const hashMatch = cleanQuery.match(/#\s*(\d{1,4})\b/);
-  const standaloneMatch = cleanQuery.match(/\s(\d{1,4})\s*$/);
-  const middleNumberMatch = cleanQuery.match(/\s(\d{1,4})\s/);
-  
+  // Step 1: Extract explicit issue number (# prefix)
+  // This always takes priority - "#1938" means issue 1938, not year
   let issue: string | null = null;
+  const hashMatch = cleanQuery.match(/#\s*(\d{1,4})\b/);
   if (hashMatch) {
     issue = hashMatch[1];
     cleanQuery = cleanQuery.replace(/#\s*\d{1,4}\b/, '').trim();
-  } else if (standaloneMatch) {
-    issue = standaloneMatch[1];
-    cleanQuery = cleanQuery.replace(/\s\d{1,4}\s*$/, '').trim();
-  } else if (middleNumberMatch) {
-    issue = middleNumberMatch[1];
-    cleanQuery = cleanQuery.replace(new RegExp(`\\s${issue}\\s?`), ' ').trim();
   }
+  
+  // Step 2: Find all remaining numbers
+  const numberMatches = [...cleanQuery.matchAll(/\b(\d{1,4})\b/g)];
+  const numbers = numberMatches.map(m => ({
+    value: parseInt(m[1]),
+    str: m[1],
+    index: m.index!
+  }));
+  
+  let year: number | null = null;
+  
+  // Step 3: Identify year from 4-digit numbers
+  // A 4-digit number is a year if it's in valid range and wasn't preceded by #
+  const fourDigitNumbers = numbers.filter(n => n.str.length === 4 && isValidYear(n.value));
+  
+  if (fourDigitNumbers.length > 0) {
+    // Take the first valid 4-digit year
+    year = fourDigitNumbers[0].value;
+    // Remove year from query
+    cleanQuery = cleanQuery.replace(new RegExp(`\\b${year}\\b`), '').trim();
+  }
+  
+  // Step 4: If we don't have an issue yet, look for standalone numbers
+  if (!issue) {
+    // Refresh number matches after removing year
+    const remainingMatches = [...cleanQuery.matchAll(/\b(\d{1,4})\b/g)];
+    
+    for (const match of remainingMatches) {
+      const num = parseInt(match[1]);
+      const numStr = match[1];
+      
+      // Skip if this looks like another year (4-digit in valid range)
+      if (numStr.length === 4 && isValidYear(num)) {
+        continue;
+      }
+      
+      // 1-3 digit numbers or 4-digit numbers outside year range are issue numbers
+      if (numStr.length <= 3 || !isValidYear(num)) {
+        issue = numStr;
+        cleanQuery = cleanQuery.replace(new RegExp(`\\b${numStr}\\b`), '').trim();
+        break;
+      }
+    }
+  }
+  
+  // Step 5: Handle edge case where issue is 4-digits but clearly not a year
+  // e.g., "Action Comics 1938" where 1938 could be year OR issue
+  // If we have a 4-digit issue that's ALSO a valid year and no year detected,
+  // check context: if title suggests old series, treat as year
+  if (issue && issue.length === 4 && isValidYear(parseInt(issue)) && !year) {
+    const issueNum = parseInt(issue);
+    // If the number is in Golden/Silver age range (1938-1975) and title doesn't 
+    // suggest a high-numbered series, it's probably a year
+    const titleLower = cleanQuery.toLowerCase();
+    const likelyLongRunning = titleLower.includes('action') || 
+                              titleLower.includes('detective') || 
+                              titleLower.includes('superman') ||
+                              titleLower.includes('batman') ||
+                              titleLower.includes('amazing spider') ||
+                              titleLower.includes('fantastic four');
+    
+    // For "Action Comics #1 1938" - issue was already extracted via #
+    // For "Action Comics 1 1938" - we need to be smart
+    // If no explicit # and number is a valid year, prefer treating as year
+    if (!hashMatch && issueNum >= 1938 && issueNum <= 2000) {
+      year = issueNum;
+      issue = null;
+      // Don't remove from cleanQuery again, it was already removed
+    }
+  }
+  
+  // Step 6: Check for "No." or "Issue" patterns
+  if (!issue) {
+    const noMatch = cleanQuery.match(/\bno\.?\s*(\d{1,4})\b/i);
+    const issueMatch = cleanQuery.match(/\bissue\s*(\d{1,4})\b/i);
+    
+    if (noMatch) {
+      issue = noMatch[1];
+      cleanQuery = cleanQuery.replace(/\bno\.?\s*\d{1,4}\b/i, '').trim();
+    } else if (issueMatch) {
+      issue = issueMatch[1];
+      cleanQuery = cleanQuery.replace(/\bissue\s*\d{1,4}\b/i, '').trim();
+    }
+  }
+  
+  // Clean up extra whitespace and parentheses
+  cleanQuery = cleanQuery.replace(/\(\s*\)/g, '').replace(/\s+/g, ' ').trim();
+  
+  console.log('[PARSER] Input:', query);
+  console.log('[PARSER] Result:', { title: cleanQuery, issue, year, publisher });
   
   return { title: cleanQuery, issue, year, publisher };
 }
 
 // ============================================================================
-// SCORING FUNCTIONS
+// SCORING FUNCTIONS - Enhanced with strong year weighting
 // ============================================================================
-function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue: string | null; year: number | null }): number {
+
+// Scoring weights
+const SCORE_TITLE_MAX = 40;
+const SCORE_ISSUE_EXACT = 35;
+const SCORE_ISSUE_NORMALIZED = 30;
+const SCORE_PUBLISHER_MATCH = 10;
+const SCORE_YEAR_EXACT = 35;
+const SCORE_YEAR_OFF_1 = 25;
+const SCORE_YEAR_OFF_2_3 = 15;
+const SCORE_YEAR_OFF_4_7 = 5;
+const PENALTY_YEAR_OFF_GT_7 = -20;
+const PENALTY_YEAR_MISSING = -15;
+const PENALTY_TPB_COLLECTION = -30;
+
+function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue: string | null; year: number | null; publisher?: string | null }): number {
   let score = 0;
+  let yearScore = 0;
+  let hasExactYear = false;
+  let hasExactIssue = false;
   
   const volumeName = result.volume?.name?.toLowerCase() || '';
   const queryTitle = parsedQuery.title.toLowerCase();
   
-  // Title matching (0-50 points)
+  // === Title similarity (0-40 points) ===
   if (volumeName === queryTitle) {
-    score += 50;
+    score += SCORE_TITLE_MAX;
   } else if (volumeName.includes(queryTitle) || queryTitle.includes(volumeName)) {
-    score += 35;
+    score += 30;
   } else {
+    // Word overlap scoring
     const queryWords = queryTitle.split(/\s+/).filter(w => w.length > 2);
     const volumeWords = volumeName.split(/\s+/).filter(w => w.length > 2);
     const overlap = queryWords.filter(w => volumeWords.includes(w)).length;
-    score += Math.min(overlap * 10, 30);
+    const overlapRatio = queryWords.length > 0 ? overlap / queryWords.length : 0;
+    score += Math.round(overlapRatio * SCORE_TITLE_MAX);
   }
   
-  // Issue number matching (0-30 points)
+  // === Issue number matching (+35 exact, +30 normalized) ===
   if (parsedQuery.issue && result.issue_number) {
-    if (result.issue_number === parsedQuery.issue) {
-      score += 30;
-    } else if (result.issue_number.replace(/^0+/, '') === parsedQuery.issue.replace(/^0+/, '')) {
-      score += 25;
-    }
-  }
-  
-  // Year matching
-  if (result.cover_date) {
-    const resultYear = new Date(result.cover_date).getFullYear();
+    const resultIssue = result.issue_number.toString().replace(/^0+/, '');
+    const queryIssue = parsedQuery.issue.replace(/^0+/, '');
     
-    if (parsedQuery.year) {
-      if (resultYear === parsedQuery.year) {
-        score += 40;
-      } else if (Math.abs(resultYear - parsedQuery.year) <= 1) {
-        score += 25;
-      } else if (Math.abs(resultYear - parsedQuery.year) <= 3) {
-        score += 10;
-      } else {
-        score -= Math.min(Math.abs(resultYear - parsedQuery.year), 30);
-      }
+    if (resultIssue === queryIssue) {
+      score += SCORE_ISSUE_EXACT;
+      hasExactIssue = true;
+    } else if (resultIssue.toLowerCase() === queryIssue.toLowerCase()) {
+      score += SCORE_ISSUE_NORMALIZED;
     }
-  } else if (parsedQuery.year) {
-    score -= 10;
   }
   
-  // Penalize collections, trades, reprints
+  // === Year scoring (strong signal when provided) ===
+  if (parsedQuery.year) {
+    if (result.cover_date) {
+      const resultYear = new Date(result.cover_date).getFullYear();
+      const yearDiff = Math.abs(resultYear - parsedQuery.year);
+      
+      if (yearDiff === 0) {
+        yearScore = SCORE_YEAR_EXACT;
+        hasExactYear = true;
+      } else if (yearDiff === 1) {
+        yearScore = SCORE_YEAR_OFF_1;
+      } else if (yearDiff <= 3) {
+        yearScore = SCORE_YEAR_OFF_2_3;
+      } else if (yearDiff <= 7) {
+        yearScore = SCORE_YEAR_OFF_4_7;
+      } else {
+        yearScore = PENALTY_YEAR_OFF_GT_7;
+      }
+    } else {
+      // Year provided but candidate has no year = penalty
+      yearScore = PENALTY_YEAR_MISSING;
+    }
+    score += yearScore;
+  }
+  
+  // === Publisher match (if available) ===
+  // Note: First-pass results don't include publisher, but volume-first does
+  // We'll track this for tie-breaking
+  
+  // === Penalize collections, trades, reprints, foreign editions ===
   const name = (result.name || '').toLowerCase();
   const desc = (result.description || '').toLowerCase();
-  if (name.includes('tpb') || name.includes('trade') || name.includes('collection') ||
-      name.includes('maestros') || name.includes('translates') ||
-      desc.includes('collects') || desc.includes('reprints')) {
-    score -= 40;
+  const volName = volumeName;
+  
+  const isTPBOrCollection = 
+    name.includes('tpb') || 
+    name.includes('trade paperback') || 
+    name.includes('collection') ||
+    name.includes('omnibus') ||
+    name.includes('graphic novel') ||
+    volName.includes('tpb') ||
+    volName.includes('collection') ||
+    desc.includes('collects issues') ||
+    desc.includes('reprints');
+    
+  const isForeignEdition =
+    name.includes('spanish') ||
+    name.includes('french') ||
+    name.includes('german') ||
+    name.includes('italian') ||
+    name.includes('portuguese') ||
+    name.includes('edición') ||
+    name.includes('edition') && (name.includes('foreign') || name.includes('international')) ||
+    volName.includes('spanish') ||
+    volName.includes('french');
+  
+  if (isTPBOrCollection) {
+    score += PENALTY_TPB_COLLECTION;
   }
+  if (isForeignEdition) {
+    score += PENALTY_TPB_COLLECTION;
+  }
+  
+  // Store metadata for tie-breaking
+  (result as any)._hasExactYear = hasExactYear;
+  (result as any)._hasExactIssue = hasExactIssue;
+  (result as any)._yearScore = yearScore;
   
   return score;
 }
@@ -421,29 +573,42 @@ function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue
 function scoreVolume(volume: ComicVineVolume, parsedQuery: { title: string; year: number | null; publisher: string | null }): number {
   let score = 0;
   
-  // Title similarity (0-50 points)
+  // Title similarity (0-40 points)
   const similarity = stringSimilarity(parsedQuery.title, volume.name);
-  score += similarity * 50;
+  score += similarity * SCORE_TITLE_MAX;
   
-  // Year proximity (0-30 points)
+  // Year proximity (strong signal when provided)
   if (parsedQuery.year && volume.start_year) {
     const volumeYear = typeof volume.start_year === 'string' ? parseInt(volume.start_year) : volume.start_year;
     const yearDiff = Math.abs(volumeYear - parsedQuery.year);
-    if (yearDiff === 0) score += 30;
-    else if (yearDiff <= 1) score += 20;
-    else if (yearDiff <= 3) score += 10;
-    else score -= Math.min(yearDiff, 20);
+    
+    if (yearDiff === 0) score += SCORE_YEAR_EXACT;
+    else if (yearDiff === 1) score += SCORE_YEAR_OFF_1;
+    else if (yearDiff <= 3) score += SCORE_YEAR_OFF_2_3;
+    else if (yearDiff <= 7) score += SCORE_YEAR_OFF_4_7;
+    else score += PENALTY_YEAR_OFF_GT_7;
+  } else if (parsedQuery.year && !volume.start_year) {
+    score += PENALTY_YEAR_MISSING;
   }
   
-  // Publisher match (0-20 points)
+  // Publisher match (0-10 points)
   if (parsedQuery.publisher && volume.publisher?.name) {
-    const pubSimilarity = stringSimilarity(parsedQuery.publisher, volume.publisher.name);
-    score += pubSimilarity * 20;
+    const pubName = volume.publisher.name.toLowerCase();
+    const queryPub = parsedQuery.publisher.toLowerCase();
+    if (pubName === queryPub || pubName.includes(queryPub) || queryPub.includes(pubName)) {
+      score += SCORE_PUBLISHER_MATCH;
+    }
   }
   
   // Prefer volumes with more issues (more likely to be main series)
-  if (volume.count_of_issues > 50) score += 10;
-  else if (volume.count_of_issues > 20) score += 5;
+  if (volume.count_of_issues > 50) score += 8;
+  else if (volume.count_of_issues > 20) score += 4;
+  
+  // Penalize volumes that look like collections
+  const volName = volume.name.toLowerCase();
+  if (volName.includes('tpb') || volName.includes('collection') || volName.includes('omnibus')) {
+    score += PENALTY_TPB_COLLECTION;
+  }
   
   return score;
 }
@@ -606,12 +771,36 @@ async function volumeFirstFallback(
           const coverDate = exactMatch.cover_date;
           const year = coverDate ? new Date(coverDate).getFullYear() : null;
           
-          // Calculate confidence (0-100)
+          // Calculate confidence using consistent year scoring
           let confidence = volumeScore;
-          if (year && parsedQuery.year && year === parsedQuery.year) {
-            confidence += 20;
+          let hasExactYear = false;
+          
+          // Add issue match bonus
+          confidence += SCORE_ISSUE_EXACT;
+          
+          // Add year score (using same weights as scoreResult)
+          if (parsedQuery.year) {
+            if (year) {
+              const yearDiff = Math.abs(year - parsedQuery.year);
+              if (yearDiff === 0) {
+                confidence += SCORE_YEAR_EXACT;
+                hasExactYear = true;
+              } else if (yearDiff === 1) {
+                confidence += SCORE_YEAR_OFF_1;
+              } else if (yearDiff <= 3) {
+                confidence += SCORE_YEAR_OFF_2_3;
+              } else if (yearDiff <= 7) {
+                confidence += SCORE_YEAR_OFF_4_7;
+              } else {
+                confidence += PENALTY_YEAR_OFF_GT_7;
+              }
+            } else {
+              confidence += PENALTY_YEAR_MISSING;
+            }
           }
-          confidence = Math.min(100, Math.max(0, confidence));
+          
+          // Cap confidence at 120 for exceptional matches (exact title + issue + year)
+          confidence = Math.min(120, Math.max(0, confidence));
           
           return {
             comicvine_issue_id: exactMatch.id,
@@ -622,7 +811,9 @@ async function volumeFirstFallback(
             publisher: volume.publisher?.name || null,
             coverUrl: exactMatch.image?.medium_url || volume.image?.medium_url || null,
             confidence,
-            fallbackPath: 'volume-first'
+            fallbackPath: 'volume-first',
+            _hasExactYear: hasExactYear,
+            _hasExactIssue: true
           } as TopMatch;
         }
       }
@@ -716,9 +907,12 @@ async function searchComicVine(query: string): Promise<{
       []
     );
     
-    // Convert first-pass results to TopMatch format
+    // Convert first-pass results to TopMatch format with tie-breaking metadata
     const firstPassMatches: TopMatch[] = scored.slice(0, 3).map(s => {
       const year = s.result.cover_date ? new Date(s.result.cover_date).getFullYear() : null;
+      const hasExactYear = (s.result as any)._hasExactYear || false;
+      const hasExactIssue = (s.result as any)._hasExactIssue || false;
+      
       return {
         comicvine_issue_id: s.result.id,
         comicvine_volume_id: s.result.volume?.id || 0,
@@ -728,43 +922,100 @@ async function searchComicVine(query: string): Promise<{
         publisher: null, // First pass doesn't include publisher
         coverUrl: s.result.image?.medium_url || null,
         confidence: s.score,
-        fallbackPath: 'issue-search'
+        fallbackPath: 'issue-search',
+        _hasExactYear: hasExactYear,
+        _hasExactIssue: hasExactIssue
       };
     });
     
-    // Merge and dedupe results, preferring higher confidence
+    // Merge and dedupe results
     const allMatches = [...fallbackMatches, ...firstPassMatches];
     const seenIds = new Set<number>();
     const uniqueMatches: TopMatch[] = [];
     
-    for (const match of allMatches.sort((a, b) => b.confidence - a.confidence)) {
+    // Enhanced sorting with tie-breaking
+    const sortedMatches = allMatches.sort((a, b) => {
+      const scoreDiff = b.confidence - a.confidence;
+      
+      // If scores are close (within 5 points), apply tie-breakers
+      if (Math.abs(scoreDiff) <= 5) {
+        const aExactYear = (a as any)._hasExactYear || false;
+        const bExactYear = (b as any)._hasExactYear || false;
+        const aExactIssue = (a as any)._hasExactIssue || false;
+        const bExactIssue = (b as any)._hasExactIssue || false;
+        
+        // Tie-breaker 1: Prefer exact year match
+        if (bExactYear && !aExactYear) return 1;
+        if (aExactYear && !bExactYear) return -1;
+        
+        // Tie-breaker 2: Prefer exact issue match
+        if (bExactIssue && !aExactIssue) return 1;
+        if (aExactIssue && !bExactIssue) return -1;
+        
+        // Tie-breaker 3: Prefer publisher present
+        if (b.publisher && !a.publisher) return 1;
+        if (a.publisher && !b.publisher) return -1;
+        
+        // Tie-breaker 4: For issue #1, prefer older "first run" volumes
+        if (parsedQuery.issue === '1' && a.year && b.year) {
+          if (parsedQuery.year) {
+            // If year provided, prefer closer to that year
+            const aDiff = Math.abs(a.year - parsedQuery.year);
+            const bDiff = Math.abs(b.year - parsedQuery.year);
+            if (aDiff !== bDiff) return aDiff - bDiff;
+          } else {
+            // No year provided, prefer older volume for classic series
+            return a.year - b.year;
+          }
+        }
+        
+        // Tie-breaker 5: Prefer complete metadata
+        const aComplete = (a.year ? 1 : 0) + (a.publisher ? 1 : 0);
+        const bComplete = (b.year ? 1 : 0) + (b.publisher ? 1 : 0);
+        if (bComplete !== aComplete) return bComplete - aComplete;
+      }
+      
+      return scoreDiff;
+    });
+    
+    for (const match of sortedMatches) {
       if (!seenIds.has(match.comicvine_issue_id)) {
         seenIds.add(match.comicvine_issue_id);
         uniqueMatches.push(match);
       }
     }
     
-    // FIX: Use the best match from uniqueMatches as topMatch, not the first-pass result
-    // This ensures volume-first fallback results with higher confidence are prioritized
+    // If any candidate has BOTH exact issue AND exact year match, ensure it's #1
+    const exactMatchIndex = uniqueMatches.findIndex(m => 
+      (m as any)._hasExactYear && (m as any)._hasExactIssue
+    );
+    if (exactMatchIndex > 0) {
+      const exactMatch = uniqueMatches[exactMatchIndex];
+      uniqueMatches.splice(exactMatchIndex, 1);
+      uniqueMatches.unshift(exactMatch);
+      console.log('[SCANNER] Promoted exact year+issue match to #1:', exactMatch.series, '#', exactMatch.issue, exactMatch.year);
+    }
+    
+    // Get the best match
     const bestMatch = uniqueMatches[0];
     let bestTopMatch: ComicVineIssue | null = null;
     
     if (bestMatch) {
-      // If the best match came from fallback, find the corresponding first-pass result OR
-      // create a synthetic one from the topMatch data
       const matchingFirstPass = results.find(r => r.id === bestMatch.comicvine_issue_id);
       if (matchingFirstPass) {
         bestTopMatch = matchingFirstPass;
       } else if (topResult && bestMatch.comicvine_issue_id === topResult.id) {
         bestTopMatch = topResult;
       } else {
-        // Best match came from volume-first fallback, use topResult but the confidence/topMatches
-        // will reflect the correct data - the UI should use topMatches[0] for display
         bestTopMatch = topResult || null;
       }
     }
     
-    console.log('[SCANNER] Best match selected:', bestMatch?.series, '#', bestMatch?.issue, 'confidence:', bestMatch?.confidence);
+    console.log('[SCANNER] Best match selected:', bestMatch?.series, '#', bestMatch?.issue, 'year:', bestMatch?.year, 'confidence:', bestMatch?.confidence);
+    console.log('[SCANNER] Top 3 final:', uniqueMatches.slice(0, 3).map(m => ({
+      series: m.series, issue: m.issue, year: m.year, confidence: m.confidence, 
+      exactYear: (m as any)._hasExactYear, exactIssue: (m as any)._hasExactIssue
+    })));
     
     return {
       topMatch: bestTopMatch,
