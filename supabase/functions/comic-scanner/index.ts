@@ -1664,6 +1664,71 @@ async function searchComicVine(query: string): Promise<{
 }
 
 // ============================================================================
+// CORRECTION OVERRIDE - Check for stored corrections before ComicVine
+// ============================================================================
+async function checkCorrectionOverride(query: string): Promise<TopMatch | null> {
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('[CORRECTION] Supabase credentials not available, skipping correction check');
+    return null;
+  }
+  
+  // Normalize the query the same way ManualConfirmPanel does
+  const normalizedInput = query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  if (!normalizedInput) return null;
+  
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/scan_corrections?normalized_input=eq.${encodeURIComponent(normalizedInput)}&order=created_at.desc&limit=1`,
+      {
+        headers: {
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      console.error('[CORRECTION] Failed to check corrections:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (!data || data.length === 0) {
+      console.log('[CORRECTION] No stored correction found for:', normalizedInput);
+      return null;
+    }
+    
+    const correction = data[0];
+    console.log('[CORRECTION] Found stored correction for:', normalizedInput, '-> ComicVine ID:', correction.selected_comicvine_id);
+    
+    return {
+      comicvine_issue_id: correction.selected_comicvine_id,
+      comicvine_volume_id: correction.selected_volume_id || 0,
+      series: correction.selected_title || '',
+      issue: correction.selected_issue || '',
+      year: correction.selected_year,
+      publisher: correction.selected_publisher,
+      coverUrl: correction.selected_cover_url,
+      confidence: 98, // High confidence for user-verified corrections
+      fallbackPath: 'correction_override'
+    };
+  } catch (err) {
+    console.error('[CORRECTION] Error checking corrections:', err);
+    return null;
+  }
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 Deno.serve(async (req) => {
@@ -1694,7 +1759,61 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Search Comic Vine with volume-first fallback
+    // ==========================================================================
+    // STEP 1: Check for stored correction BEFORE any ComicVine calls
+    // ==========================================================================
+    const correctionOverride = await checkCorrectionOverride(query);
+    
+    if (correctionOverride) {
+      console.log('[SCANNER] Using correction override, skipping ComicVine search');
+      
+      // Log for analytics
+      console.log('[SCANNER-ANALYTICS]', {
+        query,
+        confidence: correctionOverride.confidence,
+        fallbackUsed: false,
+        fallbackPath: 'correction_override',
+        matchCount: 1,
+        source: 'correction_override',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Return the correction directly without hitting ComicVine
+      const result = {
+        found: true,
+        comic: {
+          comicvine_id: correctionOverride.comicvine_issue_id,
+          title: correctionOverride.series,
+          issue_number: correctionOverride.issue,
+          full_title: `${correctionOverride.series} #${correctionOverride.issue}`,
+          publisher: correctionOverride.publisher || 'Comic',
+          year: correctionOverride.year,
+          cover_image: correctionOverride.coverUrl,
+          cover_thumb: correctionOverride.coverUrl,
+          description: null,
+          characters: [],
+          ebay_avg_price: 0,
+          trade_fee_total: 0,
+          trade_fee_each: 0,
+          fee_tier: '$0-$50',
+        },
+        topMatches: [correctionOverride],
+        confidence: correctionOverride.confidence,
+        fallbackUsed: false,
+        fallbackPath: 'correction_override',
+        needsUserConfirmation: false,
+        source: 'correction_override'
+      };
+      
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ==========================================================================
+    // STEP 2: No correction found, proceed with ComicVine search
+    // ==========================================================================
     const searchResult = await searchComicVine(query);
     
     // Log for analytics
