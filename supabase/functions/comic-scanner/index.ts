@@ -149,15 +149,124 @@ async function getEbayAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+// Parse query to extract title, issue, year
+function parseQuery(query: string): { title: string; issue: string | null; year: number | null } {
+  const yearMatch = query.match(/\b(19[4-9]\d|20[0-2]\d)\b/);
+  const year = yearMatch ? parseInt(yearMatch[1]) : null;
+  
+  // Remove year from query
+  let cleanQuery = query.replace(/\b(19[4-9]\d|20[0-2]\d)\b/g, '').trim();
+  
+  // Remove known artist names first
+  cleanQuery = cleanQuery.replace(/\b(jim lee|todd mcfarlane|frank miller|alex ross|rob liefeld|mark bagley|john romita)\b/gi, '').trim();
+  
+  // Extract issue number - look for #N or standalone numbers
+  const hashMatch = cleanQuery.match(/#\s*(\d{1,4})\b/);
+  const standaloneMatch = cleanQuery.match(/\s(\d{1,4})\s*$/); // Number at end
+  const middleNumberMatch = cleanQuery.match(/\s(\d{1,4})\s/); // Number in middle
+  
+  let issue: string | null = null;
+  if (hashMatch) {
+    issue = hashMatch[1];
+    cleanQuery = cleanQuery.replace(/#\s*\d{1,4}\b/, '').trim();
+  } else if (standaloneMatch) {
+    issue = standaloneMatch[1];
+    cleanQuery = cleanQuery.replace(/\s\d{1,4}\s*$/, '').trim();
+  } else if (middleNumberMatch) {
+    // Number in middle of string (like "X-Men 1 1991")
+    issue = middleNumberMatch[1];
+    cleanQuery = cleanQuery.replace(new RegExp(`\\s${issue}\\s?`), ' ').trim();
+  }
+  
+  return { title: cleanQuery, issue, year };
+}
+
+// Score results to find best match
+function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue: string | null; year: number | null }): number {
+  let score = 0;
+  
+  const volumeName = result.volume?.name?.toLowerCase() || '';
+  const queryTitle = parsedQuery.title.toLowerCase();
+  
+  // Title matching (0-50 points)
+  if (volumeName === queryTitle) {
+    score += 50;
+  } else if (volumeName.includes(queryTitle) || queryTitle.includes(volumeName)) {
+    score += 35;
+  } else {
+    // Word overlap
+    const queryWords = queryTitle.split(/\s+/).filter(w => w.length > 2);
+    const volumeWords = volumeName.split(/\s+/).filter(w => w.length > 2);
+    const overlap = queryWords.filter(w => volumeWords.includes(w)).length;
+    score += Math.min(overlap * 10, 30);
+  }
+  
+  // Issue number matching (0-30 points)
+  if (parsedQuery.issue && result.issue_number) {
+    if (result.issue_number === parsedQuery.issue) {
+      score += 30;
+    } else if (result.issue_number.replace(/^0+/, '') === parsedQuery.issue.replace(/^0+/, '')) {
+      score += 25; // Leading zero difference
+    }
+  }
+  
+  // Year matching (heavily weighted when user specifies year)
+  if (result.cover_date) {
+    const resultYear = new Date(result.cover_date).getFullYear();
+    
+    if (parsedQuery.year) {
+      // User specified a year - heavily weight exact/close matches
+      if (resultYear === parsedQuery.year) {
+        score += 40; // Exact match - big bonus
+      } else if (Math.abs(resultYear - parsedQuery.year) <= 1) {
+        score += 25; // Within 1 year
+      } else if (Math.abs(resultYear - parsedQuery.year) <= 3) {
+        score += 10; // Within 3 years
+      } else {
+        // Penalize results that are far from specified year
+        score -= Math.min(Math.abs(resultYear - parsedQuery.year), 30);
+      }
+    }
+  } else if (parsedQuery.year) {
+    // User specified year but result has no date - slight penalty
+    score -= 10;
+  }
+  
+  // Penalize collections, trades, reprints
+  const name = (result.name || '').toLowerCase();
+  const desc = (result.description || '').toLowerCase();
+  if (name.includes('tpb') || name.includes('trade') || name.includes('collection') ||
+      name.includes('maestros') || name.includes('translates') ||
+      desc.includes('collects') || desc.includes('reprints')) {
+    score -= 40;
+  }
+  
+  return score;
+}
+
 async function searchComicVine(query: string): Promise<ComicVineIssue | null> {
   console.log('Searching Comic Vine for:', query);
+  
+  const parsedQuery = parseQuery(query);
+  console.log('Parsed query:', parsedQuery);
+  
+  // Build a more targeted search query
+  let searchQuery = parsedQuery.title;
+  if (parsedQuery.issue) {
+    searchQuery += ` ${parsedQuery.issue}`;
+  }
+  
+  // Add year to search query if specified (helps ComicVine rank relevant results higher)
+  if (parsedQuery.year) {
+    searchQuery += ` ${parsedQuery.year}`;
+  }
   
   const params = new URLSearchParams({
     api_key: COMICVINE_API_KEY!,
     format: 'json',
-    query: query,
+    query: searchQuery,
     resources: 'issue',
-    limit: '1',
+    limit: '25', // Get more results to find the right one
   });
 
   const response = await fetch(
@@ -181,7 +290,22 @@ async function searchComicVine(query: string): Promise<ComicVineIssue | null> {
     return null;
   }
 
-  return data.results[0];
+  // Score all results and pick the best
+  const scored = data.results.map((result: ComicVineIssue) => ({
+    result,
+    score: scoreResult(result, parsedQuery)
+  }));
+  
+  scored.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
+  
+  console.log('Top 3 scored results:', scored.slice(0, 3).map((s: { result: ComicVineIssue; score: number }) => ({
+    title: s.result.volume?.name,
+    issue: s.result.issue_number,
+    year: s.result.cover_date,
+    score: s.score
+  })));
+
+  return scored[0].result;
 }
 
 async function getEbaySoldPrices(accessToken: string, title: string, issueNumber: string): Promise<number | null> {
