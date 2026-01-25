@@ -125,6 +125,12 @@ export const CONFIDENCE_THRESHOLDS = {
 };
 
 /**
+ * Threshold below which ManualConfirmPanel auto-opens
+ * to ask user to verify the match. Tunable for UX testing.
+ */
+export const SCAN_AUTO_CONFIRM_THRESHOLD = 70;
+
+/**
  * Determine scanner state based on results and confidence
  */
 export function determineScannerState(

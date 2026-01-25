@@ -15,7 +15,8 @@ import { ComicVinePick } from "@/types/comicvine";
 import { 
   ScannerState, 
   determineScannerState, 
-  CONFIDENCE_THRESHOLDS 
+  CONFIDENCE_THRESHOLDS,
+  SCAN_AUTO_CONFIRM_THRESHOLD
 } from "@/types/scannerState";
 
 // Screen Components
@@ -803,13 +804,13 @@ export default function Scanner() {
   };
 
   // Transition complete - show result card
-  // If confidence < 70, auto-open ManualConfirmPanel for user confirmation
+  // If confidence < SCAN_AUTO_CONFIRM_THRESHOLD, auto-open ManualConfirmPanel for user confirmation
   const handleTransitionComplete = () => {
     setScannerState("result");
     
-    // Auto-trigger low confidence confirmation if confidence < 70
+    // Auto-trigger low confidence confirmation if below threshold
     // Don't trigger if it's a correction override (already user-verified)
-    if (confidence !== null && confidence < 70 && scanSource !== 'correction_override' && topMatches.length > 0) {
+    if (confidence !== null && confidence < SCAN_AUTO_CONFIRM_THRESHOLD && scanSource !== 'correction_override' && topMatches.length > 0) {
       setIsLowConfidenceMode(true);
       setShowManualConfirm(true);
     }
