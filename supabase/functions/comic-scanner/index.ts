@@ -952,7 +952,7 @@ async function fetchVolumeIssues(volumeId: number): Promise<any[]> {
 
 /**
  * Fetch a SPECIFIC issue from a volume by issue number
- * This is more efficient than fetching all issues for large volumes
+ * First tries direct API filter; if that fails, uses paginated search
  */
 async function fetchSpecificIssue(volumeId: number, issueNumber: string): Promise<any | null> {
   console.log('[VOLUME-FIRST] Fetching specific issue:', issueNumber, 'from volume:', volumeId);
@@ -960,6 +960,7 @@ async function fetchSpecificIssue(volumeId: number, issueNumber: string): Promis
   // Normalize issue number for filter
   const normalizedIssue = issueNumber.replace(/^0+/, '');
   
+  // First try direct filter (works for many series)
   const params = new URLSearchParams({
     api_key: COMICVINE_API_KEY!,
     format: 'json',
@@ -973,30 +974,92 @@ async function fetchSpecificIssue(volumeId: number, issueNumber: string): Promis
     { headers: { 'User-Agent': 'GrailSeeker/1.0' } }
   );
 
-  if (!response.ok) {
-    console.error('[VOLUME-FIRST] Specific issue fetch error:', response.status);
+  if (response.ok) {
+    const data = await response.json();
+    const results = data.results || [];
+    
+    const exactMatch = results.find((issue: any) => {
+      const resultIssue = issue.issue_number?.toString().replace(/^0+/, '');
+      return resultIssue === normalizedIssue;
+    });
+    
+    if (exactMatch) {
+      console.log('[VOLUME-FIRST] Found exact issue via direct filter:', exactMatch.id);
+      return exactMatch;
+    }
+  }
+  
+  // Direct filter failed - use paginated search
+  console.log('[VOLUME-FIRST] Direct filter failed, using paginated search for issue', issueNumber);
+  
+  const targetIssueNum = parseInt(normalizedIssue, 10);
+  if (isNaN(targetIssueNum)) {
+    console.log('[VOLUME-FIRST] Non-numeric issue number:', issueNumber);
     return null;
   }
+  
+  // Calculate approximate offset - issues are roughly chronological
+  // For issue #423, start around offset 400
+  const estimatedOffset = Math.max(0, targetIssueNum - 25);
+  const maxPages = 3; // Search up to 3 pages (150 issues)
+  
+  for (let page = 0; page < maxPages; page++) {
+    const offset = estimatedOffset + (page * 50);
+    
+    const paginatedParams = new URLSearchParams({
+      api_key: COMICVINE_API_KEY!,
+      format: 'json',
+      filter: `volume:${volumeId}`,
+      offset: offset.toString(),
+      limit: '50',
+      sort: 'issue_number:asc',
+      field_list: 'id,name,issue_number,cover_date,image,volume'
+    });
 
-  const data = await response.json();
-  const results = data.results || [];
-  
-  if (results.length === 0) {
-    console.log('[VOLUME-FIRST] No issue found for', issueNumber, 'in volume', volumeId);
-    return null;
+    try {
+      const pageResponse = await fetch(
+        `https://comicvine.gamespot.com/api/issues/?${paginatedParams}`,
+        { headers: { 'User-Agent': 'GrailSeeker/1.0' } }
+      );
+
+      if (!pageResponse.ok) {
+        console.error('[VOLUME-FIRST] Paginated fetch error:', pageResponse.status);
+        continue;
+      }
+
+      const pageData = await pageResponse.json();
+      const pageResults = pageData.results || [];
+      
+      if (pageResults.length === 0) {
+        console.log('[VOLUME-FIRST] No more issues at offset', offset);
+        break;
+      }
+      
+      // Search for exact match
+      const exactMatch = pageResults.find((issue: any) => {
+        const resultIssue = issue.issue_number?.toString().replace(/^0+/, '');
+        return resultIssue === normalizedIssue;
+      });
+      
+      if (exactMatch) {
+        console.log('[VOLUME-FIRST] Found issue via pagination at offset', offset, ':', exactMatch.id);
+        return exactMatch;
+      }
+      
+      // Check if we've passed the target issue number
+      const lastIssue = pageResults[pageResults.length - 1];
+      const lastIssueNum = parseInt(lastIssue.issue_number?.toString().replace(/^0+/, '') || '0', 10);
+      if (lastIssueNum > targetIssueNum + 10) {
+        console.log('[VOLUME-FIRST] Passed target issue, stopping search');
+        break;
+      }
+    } catch (err) {
+      console.error('[VOLUME-FIRST] Pagination error:', err);
+    }
   }
   
-  // Find exact match
-  const exactMatch = results.find((issue: any) => {
-    const resultIssue = issue.issue_number?.toString().replace(/^0+/, '');
-    return resultIssue === normalizedIssue;
-  });
-  
-  if (exactMatch) {
-    console.log('[VOLUME-FIRST] Found exact issue match:', exactMatch.id);
-  }
-  
-  return exactMatch || results[0];
+  console.log('[VOLUME-FIRST] Issue', issueNumber, 'not found in volume', volumeId);
+  return null;
 }
 
 async function volumeFirstFallback(
@@ -1011,8 +1074,30 @@ async function volumeFirstFallback(
     return [];
   }
   
-  // Step 2: Score and sort volumes
-  const scoredVolumes = volumes.map(v => ({
+  // Step 2: Filter volumes by issue count if looking for high issue numbers
+  const requestedIssueNum = parsedQuery.issue ? parseInt(parsedQuery.issue.replace(/^0+/, ''), 10) : 0;
+  const filteredVolumes = volumes.filter(v => {
+    // If looking for a high issue number, filter out volumes that can't have it
+    if (requestedIssueNum > 0 && v.count_of_issues) {
+      // Allow some buffer - ComicVine issue counts aren't always accurate
+      if (v.count_of_issues < requestedIssueNum * 0.8) {
+        console.log('[VOLUME-FIRST] Filtering out volume', v.name, 'year:', v.start_year, 
+          '- only has', v.count_of_issues, 'issues, need issue #', requestedIssueNum);
+        return false;
+      }
+    }
+    return true;
+  });
+  
+  console.log('[VOLUME-FIRST] Volumes after issue-count filter:', filteredVolumes.length, 'of', volumes.length);
+  
+  // If no volumes pass the filter, fall back to top volumes by issue count
+  const volumesToScore = filteredVolumes.length > 0 
+    ? filteredVolumes 
+    : volumes.sort((a, b) => (b.count_of_issues || 0) - (a.count_of_issues || 0)).slice(0, 5);
+  
+  // Step 3: Score and sort volumes
+  const scoredVolumes = volumesToScore.map(v => ({
     volume: v,
     score: scoreVolume(v, parsedQuery)
   })).sort((a, b) => b.score - a.score);
@@ -1020,10 +1105,11 @@ async function volumeFirstFallback(
   console.log('[VOLUME-FIRST] Top 3 volumes:', scoredVolumes.slice(0, 3).map(sv => ({
     name: sv.volume.name,
     year: sv.volume.start_year,
+    issueCount: sv.volume.count_of_issues,
     score: sv.score
   })));
   
-  // Step 3: Take top 3 volumes and find specific issue in each
+  // Step 4: Take top 3 volumes and find specific issue in each
   const topVolumes = scoredVolumes.slice(0, 3);
   const matchPromises = topVolumes.map(async ({ volume, score: volumeScore }) => {
     try {
@@ -1074,60 +1160,6 @@ async function volumeFirstFallback(
       return null;
     } catch (err) {
       console.error('[VOLUME-FIRST] Error fetching issue for volume', volume.id, err);
-      return null;
-    }
-  });
-          
-          // Calculate confidence using consistent year scoring
-          let confidence = volumeScore;
-          let hasExactYear = false;
-          
-          // Add issue match bonus
-          confidence += SCORE_ISSUE_EXACT;
-          
-          // Add year score (using same weights as scoreResult)
-          if (parsedQuery.year) {
-            if (year) {
-              const yearDiff = Math.abs(year - parsedQuery.year);
-              if (yearDiff === 0) {
-                confidence += SCORE_YEAR_EXACT;
-                hasExactYear = true;
-              } else if (yearDiff === 1) {
-                confidence += SCORE_YEAR_OFF_1;
-              } else if (yearDiff <= 3) {
-                confidence += SCORE_YEAR_OFF_2_3;
-              } else if (yearDiff <= 10) {
-                confidence += SCORE_YEAR_OFF_4_10;
-              } else {
-                confidence += PENALTY_YEAR_OFF_GT_10;
-              }
-            } else {
-              confidence += PENALTY_YEAR_MISSING;
-            }
-          }
-          
-          // Cap confidence at 120 for exceptional matches (exact title + issue + year)
-          confidence = Math.min(120, Math.max(0, confidence));
-          
-          return {
-            comicvine_issue_id: exactMatch.id,
-            comicvine_volume_id: volume.id,
-            series: volume.name,
-            issue: exactMatch.issue_number,
-            year,
-            publisher: volume.publisher?.name || null,
-            coverUrl: exactMatch.image?.medium_url || volume.image?.medium_url || null,
-            confidence,
-            fallbackPath: 'volume-first',
-            _hasExactYear: hasExactYear,
-            _hasExactIssue: true
-          } as TopMatch;
-        }
-      }
-      
-      return null;
-    } catch (err) {
-      console.error('[VOLUME-FIRST] Error fetching issues for volume', volume.id, err);
       return null;
     }
   });
