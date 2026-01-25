@@ -3165,6 +3165,39 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_events: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          normalized_input: string
+          rejected_reason: string | null
+          source: string | null
+          strategy: string | null
+          user_id: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          normalized_input: string
+          rejected_reason?: string | null
+          source?: string | null
+          strategy?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          normalized_input?: string
+          rejected_reason?: string | null
+          source?: string | null
+          strategy?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       scan_rate_limits: {
         Row: {
           created_at: string

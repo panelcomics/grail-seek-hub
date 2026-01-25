@@ -18,6 +18,7 @@ import { ScannerState } from "@/types/scannerState";
 import { ValueHintModule } from "./ValueHintModule";
 import { VariantBadge, VariantInfo } from "./VariantBadge";
 import { ScanFeedbackSelector } from "./ScanFeedbackSelector";
+import { ConfidenceTierBadge } from "./ConfidenceTierBadge";
 import { cn } from "@/lib/utils";
 
 interface ScanResultSummaryCardProps {
@@ -267,18 +268,21 @@ export function ScanResultSummaryCard({
                 </div>
               )}
 
-              {/* Status Chip */}
-              <Badge 
-                variant="outline" 
-                className={cn("text-xs font-medium px-3 py-1", status.className)}
-              >
-                {status.type === 'ready' && <span className="mr-1.5">🟢</span>}
-                {status.type === 'review' && <span className="mr-1.5">🟡</span>}
-                {status.type === 'manual' && <span className="mr-1.5">🔵</span>}
-                {status.type === 'choose' && <span className="mr-1.5">🔵</span>}
-                {status.type === 'retry' && <span className="mr-1.5">⚪</span>}
-                {status.label}
-              </Badge>
+              {/* Confidence Tier Badge + Status */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <ConfidenceTierBadge confidence={confidence} size="sm" />
+                <Badge 
+                  variant="outline" 
+                  className={cn("text-xs font-medium px-3 py-1", status.className)}
+                >
+                  {status.type === 'ready' && <span className="mr-1.5">🟢</span>}
+                  {status.type === 'review' && <span className="mr-1.5">🟡</span>}
+                  {status.type === 'manual' && <span className="mr-1.5">🔵</span>}
+                  {status.type === 'choose' && <span className="mr-1.5">🔵</span>}
+                  {status.type === 'retry' && <span className="mr-1.5">⚪</span>}
+                  {status.label}
+                </Badge>
+              </div>
             </div>
           </div>
 
