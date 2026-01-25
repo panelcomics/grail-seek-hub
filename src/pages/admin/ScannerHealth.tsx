@@ -7,6 +7,7 @@
  * - Correction override hit rate
  * - Top corrected inputs
  * - Top rejection reasons
+ * - Top Pain Points sections
  * ==========================================================================
  */
 
@@ -25,7 +26,9 @@ import {
   RefreshCw,
   Target,
   ShieldAlert,
-  ArrowLeft
+  ArrowLeft,
+  XCircle,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +39,7 @@ interface ScanMetrics {
   total: number;
   lowConfidence: number;
   correctionOverrides: number;
+  noneOfTheseCount: number;
   byStrategy: Record<string, number>;
 }
 
@@ -49,6 +53,22 @@ interface RejectionReason {
   count: number;
 }
 
+interface LowConfidenceInput {
+  normalized_input: string;
+  count: number;
+  avgConfidence: number;
+  topStrategy: string;
+}
+
+interface CorrectedInputDetail {
+  normalized_input: string;
+  count: number;
+  selected_title: string | null;
+  selected_issue: string | null;
+  selected_year: number | null;
+  selected_publisher: string | null;
+}
+
 export default function ScannerHealth() {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useAdminCheck();
@@ -60,10 +80,15 @@ export default function ScannerHealth() {
     total: 0, 
     lowConfidence: 0, 
     correctionOverrides: 0,
+    noneOfTheseCount: 0,
     byStrategy: {}
   });
   const [topCorrected, setTopCorrected] = useState<TopCorrectedInput[]>([]);
   const [rejectionReasons, setRejectionReasons] = useState<RejectionReason[]>([]);
+  
+  // Pain Points state
+  const [lowConfidenceInputs, setLowConfidenceInputs] = useState<LowConfidenceInput[]>([]);
+  const [correctedInputDetails, setCorrectedInputDetails] = useState<CorrectedInputDetail[]>([]);
 
   useEffect(() => {
     if (!adminLoading && isAdmin) {
@@ -77,11 +102,16 @@ export default function ScannerHealth() {
       const cutoff = new Date();
       cutoff.setHours(cutoff.getHours() - (period === "24h" ? 24 : 168));
       const cutoffISO = cutoff.toISOString();
+      
+      // 30d cutoff for corrections
+      const cutoff30d = new Date();
+      cutoff30d.setDate(cutoff30d.getDate() - 30);
+      const cutoff30dISO = cutoff30d.toISOString();
 
       // Fetch scan events
       const { data: events, error: eventsError } = await (supabase as any)
         .from("scan_events")
-        .select("confidence, strategy, source, rejected_reason")
+        .select("confidence, strategy, source, rejected_reason, normalized_input")
         .gte("created_at", cutoffISO);
 
       if (eventsError) {
@@ -96,6 +126,11 @@ export default function ScannerHealth() {
       ).length;
       const correctionOverrides = eventList.filter(
         (e: any) => e.source === "correction_override"
+      ).length;
+      
+      // Count "None of these" clicks
+      const noneOfTheseCount = eventList.filter(
+        (e: any) => e.rejected_reason === "none_of_these" || e.source === "manual_search"
       ).length;
 
       // Strategy breakdown
@@ -119,10 +154,43 @@ export default function ScannerHealth() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
-      setMetrics({ total, lowConfidence, correctionOverrides, byStrategy });
+      setMetrics({ total, lowConfidence, correctionOverrides, noneOfTheseCount, byStrategy });
       setRejectionReasons(sortedReasons);
 
-      // Fetch top corrected inputs from scan_corrections
+      // === TOP LOW-CONFIDENCE INPUTS (7d) ===
+      const lowConfEvents = eventList.filter(
+        (e: any) => e.confidence !== null && e.confidence < SCAN_AUTO_CONFIRM_THRESHOLD && e.normalized_input
+      );
+      
+      const lowConfByInput: Record<string, { count: number; totalConf: number; strategies: Record<string, number> }> = {};
+      lowConfEvents.forEach((e: any) => {
+        const input = e.normalized_input;
+        if (!lowConfByInput[input]) {
+          lowConfByInput[input] = { count: 0, totalConf: 0, strategies: {} };
+        }
+        lowConfByInput[input].count++;
+        lowConfByInput[input].totalConf += e.confidence;
+        const strat = e.strategy || "unknown";
+        lowConfByInput[input].strategies[strat] = (lowConfByInput[input].strategies[strat] || 0) + 1;
+      });
+      
+      const sortedLowConf = Object.entries(lowConfByInput)
+        .map(([normalized_input, data]) => {
+          const topStrategy = Object.entries(data.strategies)
+            .sort((a, b) => b[1] - a[1])[0]?.[0] || "unknown";
+          return {
+            normalized_input,
+            count: data.count,
+            avgConfidence: Math.round(data.totalConf / data.count),
+            topStrategy
+          };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
+      
+      setLowConfidenceInputs(sortedLowConf);
+
+      // Fetch top corrected inputs from scan_corrections (simple count)
       const { data: corrections, error: corrError } = await supabase
         .from("scan_corrections")
         .select("normalized_input")
@@ -145,6 +213,39 @@ export default function ScannerHealth() {
         .slice(0, 20);
 
       setTopCorrected(sortedInputs);
+      
+      // === TOP CORRECTED INPUTS WITH DETAILS (30d) ===
+      const { data: corrections30d, error: corr30dError } = await supabase
+        .from("scan_corrections")
+        .select("normalized_input, selected_title, selected_issue, selected_year, selected_publisher")
+        .gte("created_at", cutoff30dISO);
+        
+      if (corr30dError) {
+        console.error("[SCANNER_HEALTH] 30d corrections error:", corr30dError);
+      }
+      
+      const corrDetailCounts: Record<string, CorrectedInputDetail> = {};
+      (corrections30d || []).forEach((c: any) => {
+        const input = c.normalized_input;
+        if (!corrDetailCounts[input]) {
+          corrDetailCounts[input] = {
+            normalized_input: input,
+            count: 0,
+            selected_title: c.selected_title,
+            selected_issue: c.selected_issue,
+            selected_year: c.selected_year,
+            selected_publisher: c.selected_publisher
+          };
+        }
+        corrDetailCounts[input].count++;
+      });
+      
+      const sortedCorrDetails = Object.values(corrDetailCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
+        
+      setCorrectedInputDetails(sortedCorrDetails);
+      
     } catch (err) {
       console.error("[SCANNER_HEALTH] Fetch error:", err);
     } finally {
@@ -214,7 +315,7 @@ export default function ScannerHealth() {
 
         <TabsContent value={period} className="space-y-6 mt-6">
           {/* Key Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
@@ -237,7 +338,7 @@ export default function ScannerHealth() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{loading ? "..." : `${lowConfidenceRate}%`}</p>
-                    <p className="text-xs text-muted-foreground">Low Confidence (&lt;{SCAN_AUTO_CONFIRM_THRESHOLD})</p>
+                    <p className="text-xs text-muted-foreground">Low Conf (&lt;{SCAN_AUTO_CONFIRM_THRESHOLD})</p>
                   </div>
                 </div>
               </CardContent>
@@ -251,7 +352,7 @@ export default function ScannerHealth() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{loading ? "..." : `${correctionOverrideRate}%`}</p>
-                    <p className="text-xs text-muted-foreground">Correction Overrides</p>
+                    <p className="text-xs text-muted-foreground">Correction Hits</p>
                   </div>
                 </div>
               </CardContent>
@@ -266,6 +367,20 @@ export default function ScannerHealth() {
                   <div>
                     <p className="text-2xl font-bold">{loading ? "..." : topCorrected.length}</p>
                     <p className="text-xs text-muted-foreground">Unique Corrections</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-500/10 rounded-lg">
+                    <XCircle className="h-5 w-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{loading ? "..." : metrics.noneOfTheseCount}</p>
+                    <p className="text-xs text-muted-foreground">"None of these"</p>
                   </div>
                 </div>
               </CardContent>
@@ -297,12 +412,114 @@ export default function ScannerHealth() {
             </CardContent>
           </Card>
 
-          {/* Two Column Layout */}
+          {/* Pain Points Section */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-orange-500" />
+              Top Pain Points
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* A) Top Low-Confidence Inputs (7d) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    Low-Confidence Inputs ({period})
+                  </CardTitle>
+                  <CardDescription>
+                    Queries that triggered manual confirm (confidence &lt; {SCAN_AUTO_CONFIRM_THRESHOLD})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="space-y-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  ) : lowConfidenceInputs.length > 0 ? (
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {lowConfidenceInputs.map((item, idx) => (
+                        <div 
+                          key={item.normalized_input}
+                          className="flex items-center justify-between p-2 rounded bg-muted/50 gap-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-mono truncate block">
+                              {idx + 1}. {item.normalized_input}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              avg {item.avgConfidence}% · {item.topStrategy}
+                            </span>
+                          </div>
+                          <Badge variant="secondary" className="shrink-0">
+                            {item.count}×
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No low-confidence scans in this period</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* B) Top Corrected Inputs (30d) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingDown className="h-4 w-4 text-destructive" />
+                    Top Corrected Inputs (30d)
+                  </CardTitle>
+                  <CardDescription>
+                    User-corrected queries with their selected match
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="space-y-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  ) : correctedInputDetails.length > 0 ? (
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {correctedInputDetails.map((item, idx) => (
+                        <div 
+                          key={item.normalized_input}
+                          className="flex items-center justify-between p-2 rounded bg-muted/50 gap-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-mono truncate block">
+                              {idx + 1}. {item.normalized_input}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate block">
+                              → {item.selected_title} #{item.selected_issue}
+                              {item.selected_year && ` (${item.selected_year})`}
+                              {item.selected_publisher && ` · ${item.selected_publisher}`}
+                            </span>
+                          </div>
+                          <Badge variant="secondary" className="shrink-0">
+                            {item.count}×
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No corrections in last 30 days</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Two Column Layout - Existing sections */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Top Corrected Inputs */}
+            {/* Top Corrected Inputs (simple count) */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Top Corrected Inputs</CardTitle>
+                <CardTitle className="text-lg">Top Corrected Inputs ({period})</CardTitle>
                 <CardDescription>
                   Most frequently corrected search queries (indicates matching gaps)
                 </CardDescription>
