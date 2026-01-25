@@ -127,6 +127,7 @@ export default function Scanner() {
   const [needsUserConfirmation, setNeedsUserConfirmation] = useState(false); // Show chooser when low confidence
   const [showManualConfirm, setShowManualConfirm] = useState(false); // Show manual confirm panel
   const [isReportMode, setIsReportMode] = useState(false); // "Wrong match?" correction mode
+  const [scanSource, setScanSource] = useState<string | undefined>(undefined); // Track if result is from correction_override
   
   // Debug state - enhanced for admin panel
   const [debugData, setDebugData] = useState({
@@ -302,6 +303,9 @@ export default function Scanner() {
           })),
           timings: data.timings || {}
         });
+        
+        // Track source (e.g. 'correction_override')
+        setScanSource(data.source || undefined);
         
         // Extract variant info from response
         if (data.extracted?.isVariant) {
@@ -700,6 +704,7 @@ export default function Scanner() {
     setNeedsUserConfirmation(false);
     setShowManualConfirm(false);
     setIsReportMode(false);
+    setScanSource(undefined);
     setDebugData({
       status: "idle",
       raw_ocr: "",
@@ -976,6 +981,7 @@ export default function Scanner() {
           onReportWrongMatch={handleReportWrongMatch}
           isManualEntry={isManualEntry}
           variantInfo={variantInfo}
+          source={scanSource}
         />
       )}
 

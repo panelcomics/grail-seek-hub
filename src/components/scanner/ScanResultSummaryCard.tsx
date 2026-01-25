@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw, Flag } from "lucide-react";
+import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw, Flag, Sparkles } from "lucide-react";
 import { ComicVinePick } from "@/types/comicvine";
 import { ScannerState } from "@/types/scannerState";
 import { ValueHintModule } from "./ValueHintModule";
@@ -32,6 +32,8 @@ interface ScanResultSummaryCardProps {
   onReportWrongMatch?: () => void;
   isManualEntry?: boolean;
   variantInfo?: VariantInfo | null;
+  /** If source="correction_override", show special banner */
+  source?: string;
 }
 
 type StatusType = 'ready' | 'review' | 'manual' | 'choose' | 'retry';
@@ -126,7 +128,8 @@ export function ScanResultSummaryCard({
   onManualSearch,
   onReportWrongMatch,
   isManualEntry = false,
-  variantInfo = null
+  variantInfo = null,
+  source
 }: ScanResultSummaryCardProps) {
   const [showContent, setShowContent] = useState(false);
   const [showValueHint, setShowValueHint] = useState(false);
@@ -134,6 +137,9 @@ export function ScanResultSummaryCard({
   const status = getStatusConfig(scannerState, confidence, isManualEntry);
   const buttonConfig = getButtonConfig(scannerState);
   const PrimaryIcon = buttonConfig.primaryIcon;
+  
+  // Check if this is a correction override
+  const isCorrectionOverride = source === 'correction_override';
 
   // Staggered animation for "magic" feel
   useEffect(() => {
@@ -180,6 +186,27 @@ export function ScanResultSummaryCard({
       </div>
 
       <CardContent className="p-6">
+        {/* Correction Override Banner */}
+        {isCorrectionOverride && (
+          <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Sparkles className="w-4 h-4 text-blue-500" />
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Using your saved correction
+              </span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onReportWrongMatch}
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-500/10"
+            >
+              <Pencil className="w-3 h-3 mr-1" />
+              Edit
+            </Button>
+          </div>
+        )}
+        
         <div 
           className={cn(
             "transition-all duration-500 ease-out",
