@@ -109,6 +109,47 @@ const SCORE_VOLUME_YEAR_OFF_1 = 30;
 const SCORE_VOLUME_YEAR_OFF_2_3 = 15;
 const SCORE_VOLUME_HISTORICAL_BIAS = 5; // Bonus for older volumes when issue=1
 
+// Sanity filtering constants
+const STOPWORDS = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'on', 'with']);
+const FORMAT_KEYWORDS = ['tpb', 'trade', 'collection', 'omnibus', 'megazine', 'magazine', 'hardcover', 'digest', 'annual', 'special edition'];
+const PENALTY_TOKEN_OVERLAP_FAIL = -60;
+const PENALTY_FORMAT_FILTER = -80;
+const PENALTY_PUBLISHER_MISMATCH = -40;
+const SCORE_PUBLISHER_INFERRED = 20;
+
+// Publisher inference map - common titles to expected publishers
+const PUBLISHER_INFERENCE: Record<string, string[]> = {
+  'batman': ['dc', 'dc comics'],
+  'superman': ['dc', 'dc comics'],
+  'wonder woman': ['dc', 'dc comics'],
+  'justice league': ['dc', 'dc comics'],
+  'flash': ['dc', 'dc comics'],
+  'aquaman': ['dc', 'dc comics'],
+  'green lantern': ['dc', 'dc comics'],
+  'detective comics': ['dc', 'dc comics'],
+  'action comics': ['dc', 'dc comics'],
+  'spider-man': ['marvel', 'marvel comics'],
+  'amazing spider-man': ['marvel', 'marvel comics'],
+  'x-men': ['marvel', 'marvel comics'],
+  'avengers': ['marvel', 'marvel comics'],
+  'iron man': ['marvel', 'marvel comics'],
+  'hulk': ['marvel', 'marvel comics'],
+  'incredible hulk': ['marvel', 'marvel comics'],
+  'fantastic four': ['marvel', 'marvel comics'],
+  'captain america': ['marvel', 'marvel comics'],
+  'thor': ['marvel', 'marvel comics'],
+  'daredevil': ['marvel', 'marvel comics'],
+  'wolverine': ['marvel', 'marvel comics'],
+  'spawn': ['image', 'image comics'],
+  'saga': ['image', 'image comics'],
+  'walking dead': ['image', 'image comics'],
+  'invincible': ['image', 'image comics'],
+  'savage dragon': ['image', 'image comics'],
+  'witchblade': ['image', 'image comics', 'top cow'],
+  'teenage mutant ninja turtles': ['mirage', 'idw'],
+  'tmnt': ['mirage', 'idw']
+};
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -214,6 +255,120 @@ function isAmbiguousQuery(title: string, issueNumber: string | null): boolean {
   if (COMMON_TITLES.some(common => normalizedTitle.includes(common))) return true;
   
   return false;
+}
+
+// ============================================================================
+// SANITY FILTERING HELPERS
+// ============================================================================
+
+/**
+ * Extract key tokens from a title, removing stopwords
+ */
+function extractTitleTokens(title: string): string[] {
+  return normalizeTitle(title)
+    .split(/\s+/)
+    .filter(word => word.length > 1 && !STOPWORDS.has(word));
+}
+
+/**
+ * Check token overlap between query title and candidate title
+ * Returns { overlap, passes } where passes is true if minimum overlap met
+ */
+function checkTokenOverlap(queryTitle: string, candidateTitle: string): { overlap: number; passes: boolean; reason?: string } {
+  const queryTokens = extractTitleTokens(queryTitle);
+  const candidateTokens = extractTitleTokens(candidateTitle);
+  
+  if (queryTokens.length === 0 || candidateTokens.length === 0) {
+    return { overlap: 0, passes: true }; // Can't validate, allow through
+  }
+  
+  // Count overlapping tokens
+  const overlap = queryTokens.filter(token => 
+    candidateTokens.some(ct => ct === token || ct.includes(token) || token.includes(ct))
+  ).length;
+  
+  // Minimum required overlap based on query length
+  const minRequired = queryTokens.length >= 3 ? 2 : 1;
+  const passes = overlap >= minRequired;
+  
+  return { 
+    overlap, 
+    passes,
+    reason: passes ? undefined : `Token overlap ${overlap} < required ${minRequired} (query: ${queryTokens.join(',')} vs candidate: ${candidateTokens.join(',')})`
+  };
+}
+
+/**
+ * Check if a candidate contains format keywords that weren't in the query
+ */
+function checkFormatFilter(queryTitle: string, candidateName: string, candidateVolumeName: string): { passes: boolean; reason?: string } {
+  const queryLower = queryTitle.toLowerCase();
+  const candidateLower = (candidateName + ' ' + candidateVolumeName).toLowerCase();
+  
+  // Check each format keyword
+  for (const format of FORMAT_KEYWORDS) {
+    // If candidate has format keyword but query doesn't, it's a mismatch
+    if (candidateLower.includes(format) && !queryLower.includes(format)) {
+      return { passes: false, reason: `Format mismatch: candidate contains '${format}' but query doesn't` };
+    }
+  }
+  
+  return { passes: true };
+}
+
+/**
+ * Infer expected publisher from title
+ */
+function inferPublisher(title: string): string[] | null {
+  const normalizedTitle = normalizeTitle(title);
+  
+  for (const [key, publishers] of Object.entries(PUBLISHER_INFERENCE)) {
+    if (normalizedTitle.includes(key)) {
+      return publishers;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Check publisher match and apply bonus/penalty
+ */
+function scorePublisherMatch(
+  queryTitle: string, 
+  explicitPublisher: string | null, 
+  candidatePublisher: string | null
+): { score: number; reason?: string } {
+  if (!candidatePublisher) {
+    return { score: 0 }; // No publisher to check
+  }
+  
+  const candidatePubLower = candidatePublisher.toLowerCase();
+  
+  // Check explicit publisher first
+  if (explicitPublisher) {
+    const queryPubLower = explicitPublisher.toLowerCase();
+    if (candidatePubLower.includes(queryPubLower) || queryPubLower.includes(candidatePubLower)) {
+      return { score: SCORE_PUBLISHER_INFERRED, reason: 'Explicit publisher match' };
+    } else {
+      return { score: PENALTY_PUBLISHER_MISMATCH, reason: `Publisher mismatch: expected ${explicitPublisher}, got ${candidatePublisher}` };
+    }
+  }
+  
+  // Try inferred publisher
+  const inferredPublishers = inferPublisher(queryTitle);
+  if (inferredPublishers) {
+    const matches = inferredPublishers.some(pub => 
+      candidatePubLower.includes(pub) || pub.includes(candidatePubLower.split(' ')[0])
+    );
+    if (matches) {
+      return { score: SCORE_PUBLISHER_INFERRED, reason: 'Inferred publisher match' };
+    } else {
+      return { score: PENALTY_PUBLISHER_MISMATCH, reason: `Inferred publisher mismatch: expected ${inferredPublishers.join('/')}, got ${candidatePublisher}` };
+    }
+  }
+  
+  return { score: 0 };
 }
 
 // ============================================================================
@@ -477,35 +632,70 @@ const SCORE_PUBLISHER_MATCH = 10;
 const SCORE_YEAR_EXACT = 35;
 const SCORE_YEAR_OFF_1 = 25;
 const SCORE_YEAR_OFF_2_3 = 15;
-const SCORE_YEAR_OFF_4_7 = 5;
-const PENALTY_YEAR_OFF_GT_7 = -20;
-const PENALTY_YEAR_MISSING = -15;
+const SCORE_YEAR_OFF_4_10 = 5;
+const PENALTY_YEAR_OFF_GT_10 = -25;
+const PENALTY_YEAR_MISSING = -10;
 const PENALTY_TPB_COLLECTION = -30;
 
-function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue: string | null; year: number | null; publisher?: string | null }): number {
+function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue: string | null; year: number | null; publisher?: string | null }): { score: number; rejected: boolean; rejectReason?: string } {
   let score = 0;
   let yearScore = 0;
   let hasExactYear = false;
   let hasExactIssue = false;
+  let rejected = false;
+  let rejectReason: string | undefined;
   
-  const volumeName = result.volume?.name?.toLowerCase() || '';
-  const queryTitle = parsedQuery.title.toLowerCase();
+  const volumeName = result.volume?.name || '';
+  const issueName = result.name || '';
+  const queryTitle = parsedQuery.title;
   
-  // === Title similarity (0-40 points) ===
-  if (volumeName === queryTitle) {
+  // =========================================================================
+  // SANITY FILTER 1: Token Overlap Check
+  // =========================================================================
+  const tokenCheck = checkTokenOverlap(queryTitle, volumeName);
+  if (!tokenCheck.passes) {
+    // Also check against issue name as fallback
+    const issueTokenCheck = checkTokenOverlap(queryTitle, issueName);
+    if (!issueTokenCheck.passes) {
+      console.log('[SANITY-FILTER] Rejected due to token overlap:', volumeName, '|', tokenCheck.reason);
+      score += PENALTY_TOKEN_OVERLAP_FAIL;
+      // Don't fully reject, just heavily penalize to allow tie-breaking
+    }
+  }
+  
+  // =========================================================================
+  // SANITY FILTER 2: Format Filter
+  // =========================================================================
+  const formatCheck = checkFormatFilter(queryTitle, issueName, volumeName);
+  if (!formatCheck.passes) {
+    console.log('[SANITY-FILTER] Rejected due to format filter:', volumeName, '|', formatCheck.reason);
+    score += PENALTY_FORMAT_FILTER;
+    rejected = true;
+    rejectReason = formatCheck.reason;
+  }
+  
+  // =========================================================================
+  // Title similarity (0-40 points)
+  // =========================================================================
+  const volNameLower = volumeName.toLowerCase();
+  const queryTitleLower = queryTitle.toLowerCase();
+  
+  if (volNameLower === queryTitleLower) {
     score += SCORE_TITLE_MAX;
-  } else if (volumeName.includes(queryTitle) || queryTitle.includes(volumeName)) {
+  } else if (volNameLower.includes(queryTitleLower) || queryTitleLower.includes(volNameLower)) {
     score += 30;
   } else {
     // Word overlap scoring
-    const queryWords = queryTitle.split(/\s+/).filter(w => w.length > 2);
-    const volumeWords = volumeName.split(/\s+/).filter(w => w.length > 2);
+    const queryWords = queryTitleLower.split(/\s+/).filter(w => w.length > 2);
+    const volumeWords = volNameLower.split(/\s+/).filter(w => w.length > 2);
     const overlap = queryWords.filter(w => volumeWords.includes(w)).length;
     const overlapRatio = queryWords.length > 0 ? overlap / queryWords.length : 0;
     score += Math.round(overlapRatio * SCORE_TITLE_MAX);
   }
   
-  // === Issue number matching (+35 exact, +30 normalized) ===
+  // =========================================================================
+  // Issue number matching (+35 exact, +30 normalized)
+  // =========================================================================
   if (parsedQuery.issue && result.issue_number) {
     const resultIssue = result.issue_number.toString().replace(/^0+/, '');
     const queryIssue = parsedQuery.issue.replace(/^0+/, '');
@@ -518,39 +708,46 @@ function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue
     }
   }
   
-  // === Year scoring (strong signal when provided) ===
+  // =========================================================================
+  // Year scoring - Enhanced with stronger weights for non-#1 queries too
+  // =========================================================================
   if (parsedQuery.year) {
     if (result.cover_date) {
       const resultYear = new Date(result.cover_date).getFullYear();
       const yearDiff = Math.abs(resultYear - parsedQuery.year);
       
       if (yearDiff === 0) {
-        yearScore = SCORE_YEAR_EXACT;
+        yearScore = SCORE_YEAR_EXACT;  // +35
         hasExactYear = true;
       } else if (yearDiff === 1) {
-        yearScore = SCORE_YEAR_OFF_1;
+        yearScore = SCORE_YEAR_OFF_1;  // +25
       } else if (yearDiff <= 3) {
-        yearScore = SCORE_YEAR_OFF_2_3;
-      } else if (yearDiff <= 7) {
-        yearScore = SCORE_YEAR_OFF_4_7;
+        yearScore = SCORE_YEAR_OFF_2_3; // +15
+      } else if (yearDiff <= 10) {
+        yearScore = SCORE_YEAR_OFF_4_10; // +5
       } else {
-        yearScore = PENALTY_YEAR_OFF_GT_7;
+        yearScore = PENALTY_YEAR_OFF_GT_10; // -25 (stronger penalty)
       }
     } else {
       // Year provided but candidate has no year = penalty
-      yearScore = PENALTY_YEAR_MISSING;
+      yearScore = PENALTY_YEAR_MISSING; // -10
     }
     score += yearScore;
   }
   
-  // === Publisher match (if available) ===
-  // Note: First-pass results don't include publisher, but volume-first does
-  // We'll track this for tie-breaking
+  // =========================================================================
+  // SANITY FILTER 3: Publisher Match/Mismatch
+  // This happens only in volume-first path where we have publisher info
+  // For first-pass, we'll add this in tie-breaking
+  // =========================================================================
+  // Publisher scoring is handled separately in the main flow
   
-  // === Penalize collections, trades, reprints, foreign editions ===
-  const name = (result.name || '').toLowerCase();
+  // =========================================================================
+  // Penalize collections, trades, reprints, foreign editions
+  // =========================================================================
+  const name = issueName.toLowerCase();
   const desc = (result.description || '').toLowerCase();
-  const volName = volumeName;
+  const volNameCheck = volNameLower;
   
   const isTPBOrCollection = 
     name.includes('tpb') || 
@@ -558,8 +755,11 @@ function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue
     name.includes('collection') ||
     name.includes('omnibus') ||
     name.includes('graphic novel') ||
-    volName.includes('tpb') ||
-    volName.includes('collection') ||
+    name.includes('megazine') ||
+    name.includes('magazine') ||
+    volNameCheck.includes('tpb') ||
+    volNameCheck.includes('collection') ||
+    volNameCheck.includes('megazine') ||
     desc.includes('collects issues') ||
     desc.includes('reprints');
     
@@ -571,8 +771,8 @@ function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue
     name.includes('portuguese') ||
     name.includes('edición') ||
     name.includes('edition') && (name.includes('foreign') || name.includes('international')) ||
-    volName.includes('spanish') ||
-    volName.includes('french');
+    volNameCheck.includes('spanish') ||
+    volNameCheck.includes('french');
   
   if (isTPBOrCollection) {
     score += PENALTY_TPB_COLLECTION;
@@ -585,8 +785,10 @@ function scoreResult(result: ComicVineIssue, parsedQuery: { title: string; issue
   (result as any)._hasExactYear = hasExactYear;
   (result as any)._hasExactIssue = hasExactIssue;
   (result as any)._yearScore = yearScore;
+  (result as any)._rejected = rejected;
+  (result as any)._rejectReason = rejectReason;
   
-  return score;
+  return { score, rejected, rejectReason };
 }
 
 function scoreVolume(volume: ComicVineVolume, parsedQuery: { title: string; year: number | null; publisher: string | null }): number {
@@ -604,8 +806,8 @@ function scoreVolume(volume: ComicVineVolume, parsedQuery: { title: string; year
     if (yearDiff === 0) score += SCORE_YEAR_EXACT;
     else if (yearDiff === 1) score += SCORE_YEAR_OFF_1;
     else if (yearDiff <= 3) score += SCORE_YEAR_OFF_2_3;
-    else if (yearDiff <= 7) score += SCORE_YEAR_OFF_4_7;
-    else score += PENALTY_YEAR_OFF_GT_7;
+    else if (yearDiff <= 10) score += SCORE_YEAR_OFF_4_10;
+    else score += PENALTY_YEAR_OFF_GT_10;
   } else if (parsedQuery.year && !volume.start_year) {
     score += PENALTY_YEAR_MISSING;
   }
@@ -808,10 +1010,10 @@ async function volumeFirstFallback(
                 confidence += SCORE_YEAR_OFF_1;
               } else if (yearDiff <= 3) {
                 confidence += SCORE_YEAR_OFF_2_3;
-              } else if (yearDiff <= 7) {
-                confidence += SCORE_YEAR_OFF_4_7;
+              } else if (yearDiff <= 10) {
+                confidence += SCORE_YEAR_OFF_4_10;
               } else {
-                confidence += PENALTY_YEAR_OFF_GT_7;
+                confidence += PENALTY_YEAR_OFF_GT_10;
               }
             } else {
               confidence += PENALTY_YEAR_MISSING;
@@ -908,7 +1110,7 @@ async function issue1VolumeFirstSearch(
       } else if (yearDiff <= 3) {
         score += SCORE_VOLUME_YEAR_OFF_2_3; // +15 for ±2-3 years
       } else {
-        score += PENALTY_YEAR_OFF_GT_7; // -20 for >3 years (shouldn't happen if filtered)
+        score += PENALTY_YEAR_OFF_GT_10; // -25 for >3 years (shouldn't happen if filtered)
       }
       
       // Historical bias: prefer older "first run" volumes for issue #1
@@ -990,7 +1192,7 @@ async function issue1VolumeFirstSearch(
         } else if (yearDiff <= 3) {
           confidence += SCORE_YEAR_OFF_2_3;
         } else {
-          confidence += PENALTY_YEAR_OFF_GT_7;
+          confidence += PENALTY_YEAR_OFF_GT_10;
         }
       } else {
         confidence += PENALTY_YEAR_MISSING;
@@ -1138,16 +1340,22 @@ async function searchComicVine(query: string): Promise<{
   }
   
   // Score first-pass results
-  const scored = results.map(result => ({
-    result,
-    score: scoreResult(result, parsedQuery)
-  })).sort((a, b) => b.score - a.score);
+  const scored = results.map(result => {
+    const scoreResult_result = scoreResult(result, parsedQuery);
+    return {
+      result,
+      score: scoreResult_result.score,
+      rejected: scoreResult_result.rejected,
+      rejectReason: scoreResult_result.rejectReason
+    };
+  }).sort((a, b) => b.score - a.score);
   
   console.log('[FIRST-PASS] Top 3 scored:', scored.slice(0, 3).map(s => ({
     title: s.result.volume?.name,
     issue: s.result.issue_number,
     year: s.result.cover_date,
-    score: s.score
+    score: s.score,
+    rejected: s.rejected
   })));
   
   const topScore = scored[0]?.score || 0;
