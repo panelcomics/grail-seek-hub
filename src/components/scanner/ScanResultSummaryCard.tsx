@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw } from "lucide-react";
+import { CheckCircle2, Pencil, RotateCcw, Search, ListChecks, RefreshCw, Flag } from "lucide-react";
 import { ComicVinePick } from "@/types/comicvine";
 import { ScannerState } from "@/types/scannerState";
 import { ValueHintModule } from "./ValueHintModule";
@@ -29,6 +29,7 @@ interface ScanResultSummaryCardProps {
   onEdit: () => void;
   onScanAgain: () => void;
   onManualSearch?: () => void;
+  onReportWrongMatch?: () => void;
   isManualEntry?: boolean;
   variantInfo?: VariantInfo | null;
 }
@@ -123,6 +124,7 @@ export function ScanResultSummaryCard({
   onEdit,
   onScanAgain,
   onManualSearch,
+  onReportWrongMatch,
   isManualEntry = false,
   variantInfo = null
 }: ScanResultSummaryCardProps) {
@@ -316,6 +318,17 @@ export function ScanResultSummaryCard({
                 Scan Again
               </Button>
             </div>
+
+            {/* Wrong match link - shown when we have a match that can be corrected */}
+            {match && match.id && onReportWrongMatch && scannerState !== 'confirm' && scannerState !== 'success' && (
+              <button
+                onClick={onReportWrongMatch}
+                className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              >
+                <Flag className="w-3 h-3 inline mr-1" />
+                Wrong match? Report it
+              </button>
+            )}
           </div>
         </div>
       </CardContent>

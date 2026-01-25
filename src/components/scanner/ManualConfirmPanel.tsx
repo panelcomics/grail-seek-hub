@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Check, Search, Edit3 } from "lucide-react";
+import { AlertCircle, Check, Search, Edit3, X, Flag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -32,9 +32,14 @@ interface ManualConfirmPanelProps {
   inputText: string;
   ocrText?: string;
   originalConfidence: number;
+  /** The ComicVine ID of the match being corrected (for "Wrong match?" flow) */
+  returnedComicVineId?: number;
   onSelect: (candidate: TopCandidate) => void;
   onEnterManually: () => void;
   onSearchAgain: () => void;
+  onCancel?: () => void;
+  /** If true, shows as "Report Wrong Match" mode */
+  isReportMode?: boolean;
 }
 
 /**
@@ -53,15 +58,24 @@ export function ManualConfirmPanel({
   inputText,
   ocrText,
   originalConfidence,
+  returnedComicVineId,
   onSelect,
   onEnterManually,
-  onSearchAgain
+  onSearchAgain,
+  onCancel,
+  isReportMode = false
 }: ManualConfirmPanelProps) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const handleSelectCandidate = async (candidate: TopCandidate) => {
+    // Don't allow selecting the same match they're reporting as wrong
+    if (isReportMode && candidate.comicvine_issue_id === returnedComicVineId) {
+      toast.error("That's the same match - select a different one");
+      return;
+    }
+    
     if (!user) {
       onSelect(candidate);
       return;
@@ -72,22 +86,24 @@ export function ManualConfirmPanel({
 
     try {
       // Store correction for future lookups
+      const correctionPayload = {
+        user_id: user.id,
+        input_text: inputText,
+        normalized_input: normalizeInputText(inputText),
+        selected_comicvine_id: candidate.comicvine_issue_id,
+        selected_volume_id: candidate.comicvine_volume_id,
+        selected_title: candidate.series,
+        selected_issue: candidate.issue,
+        selected_year: candidate.year,
+        selected_publisher: candidate.publisher,
+        selected_cover_url: candidate.coverUrl,
+        ocr_text: ocrText || null,
+        original_confidence: originalConfidence
+      };
+
       const { error } = await supabase
         .from('scan_corrections')
-        .insert({
-          user_id: user.id,
-          input_text: inputText,
-          normalized_input: normalizeInputText(inputText),
-          selected_comicvine_id: candidate.comicvine_issue_id,
-          selected_volume_id: candidate.comicvine_volume_id,
-          selected_title: candidate.series,
-          selected_issue: candidate.issue,
-          selected_year: candidate.year,
-          selected_publisher: candidate.publisher,
-          selected_cover_url: candidate.coverUrl,
-          ocr_text: ocrText || null,
-          original_confidence: originalConfidence
-        });
+        .insert(correctionPayload);
 
       if (error) {
         console.error('Failed to save correction:', error);
@@ -107,14 +123,30 @@ export function ManualConfirmPanel({
   const topCandidates = candidates.slice(0, 5);
 
   return (
-    <Card className="border-amber-500/50 bg-amber-50/5 dark:bg-amber-950/10">
+    <Card className={isReportMode ? "border-orange-500/50 bg-orange-50/5 dark:bg-orange-950/10" : "border-amber-500/50 bg-amber-50/5 dark:bg-amber-950/10"}>
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-amber-500" />
-          <CardTitle className="text-lg">We couldn't confidently match this</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {isReportMode ? (
+              <Flag className="h-5 w-5 text-orange-500" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+            )}
+            <CardTitle className="text-lg">
+              {isReportMode ? "Report Wrong Match" : "We couldn't confidently match this"}
+            </CardTitle>
+          </div>
+          {onCancel && (
+            <Button variant="ghost" size="icon" onClick={onCancel} className="h-8 w-8">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         <CardDescription>
-          Pick the correct issue from the options below, or search manually
+          {isReportMode 
+            ? "Select the correct match below. Your feedback helps improve future scans."
+            : "Pick the correct issue from the options below, or search manually"
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

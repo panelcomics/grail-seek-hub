@@ -126,6 +126,7 @@ export default function Scanner() {
   const [topMatches, setTopMatches] = useState<TopMatch[]>([]); // Top matches from volume-first fallback
   const [needsUserConfirmation, setNeedsUserConfirmation] = useState(false); // Show chooser when low confidence
   const [showManualConfirm, setShowManualConfirm] = useState(false); // Show manual confirm panel
+  const [isReportMode, setIsReportMode] = useState(false); // "Wrong match?" correction mode
   
   // Debug state - enhanced for admin panel
   const [debugData, setDebugData] = useState({
@@ -698,6 +699,7 @@ export default function Scanner() {
     setTopMatches([]);
     setNeedsUserConfirmation(false);
     setShowManualConfirm(false);
+    setIsReportMode(false);
     setDebugData({
       status: "idle",
       raw_ocr: "",
@@ -883,6 +885,13 @@ export default function Scanner() {
     }
   };
 
+  // Handle "Wrong match?" report button
+  const handleReportWrongMatch = () => {
+    // Show the ManualConfirmPanel in report mode
+    setIsReportMode(true);
+    setShowManualConfirm(true);
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
       <div className="text-center space-y-2">
@@ -964,18 +973,21 @@ export default function Scanner() {
           onEdit={() => setScannerState("confirm")}
           onScanAgain={resetScanner}
           onManualSearch={() => setShowManualSearch(true)}
+          onReportWrongMatch={handleReportWrongMatch}
           isManualEntry={isManualEntry}
           variantInfo={variantInfo}
         />
       )}
 
-      {/* Manual Confirm Panel - Show when confidence is low and we have candidates */}
+      {/* Manual Confirm Panel - Show when confidence is low OR when user clicks "Wrong match?" */}
       {showManualConfirm && topMatches.length > 0 && scannerState !== "confirm" && scannerState !== "success" && (
         <ManualConfirmPanel
           candidates={topMatches}
           inputText={manualSearchQuery || debugData.comicvineQuery || debugData.extracted?.title || ""}
           ocrText={debugData.raw_ocr}
           originalConfidence={confidence || 0}
+          returnedComicVineId={isReportMode && selectedPick ? selectedPick.id : undefined}
+          isReportMode={isReportMode}
           onSelect={(candidate) => {
             const pick: ComicVinePick = {
               id: candidate.comicvine_issue_id,
@@ -1002,15 +1014,22 @@ export default function Scanner() {
               comicvineCoverUrl: candidate.coverUrl || undefined
             });
             setShowManualConfirm(false);
+            setIsReportMode(false);
             setScannerState("confirm");
           }}
           onEnterManually={() => {
             setShowManualConfirm(false);
+            setIsReportMode(false);
             handleEnterManually();
           }}
           onSearchAgain={() => {
             setShowManualConfirm(false);
+            setIsReportMode(false);
             setShowManualSearch(true);
+          }}
+          onCancel={() => {
+            setShowManualConfirm(false);
+            setIsReportMode(false);
           }}
         />
       )}
