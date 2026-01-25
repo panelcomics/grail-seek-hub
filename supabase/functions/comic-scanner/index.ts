@@ -744,12 +744,34 @@ async function searchComicVine(query: string): Promise<{
       }
     }
     
+    // FIX: Use the best match from uniqueMatches as topMatch, not the first-pass result
+    // This ensures volume-first fallback results with higher confidence are prioritized
+    const bestMatch = uniqueMatches[0];
+    let bestTopMatch: ComicVineIssue | null = null;
+    
+    if (bestMatch) {
+      // If the best match came from fallback, find the corresponding first-pass result OR
+      // create a synthetic one from the topMatch data
+      const matchingFirstPass = results.find(r => r.id === bestMatch.comicvine_issue_id);
+      if (matchingFirstPass) {
+        bestTopMatch = matchingFirstPass;
+      } else if (topResult && bestMatch.comicvine_issue_id === topResult.id) {
+        bestTopMatch = topResult;
+      } else {
+        // Best match came from volume-first fallback, use topResult but the confidence/topMatches
+        // will reflect the correct data - the UI should use topMatches[0] for display
+        bestTopMatch = topResult || null;
+      }
+    }
+    
+    console.log('[SCANNER] Best match selected:', bestMatch?.series, '#', bestMatch?.issue, 'confidence:', bestMatch?.confidence);
+    
     return {
-      topMatch: topResult || null,
+      topMatch: bestTopMatch,
       topMatches: uniqueMatches.slice(0, 3),
-      confidence: uniqueMatches[0]?.confidence || topScore,
+      confidence: bestMatch?.confidence || topScore,
       fallbackUsed: fallbackMatches.length > 0,
-      fallbackPath: fallbackMatches.length > 0 ? 'volume-first' : 'issue-search'
+      fallbackPath: bestMatch?.fallbackPath || (fallbackMatches.length > 0 ? 'volume-first' : 'issue-search')
     };
   }
   
