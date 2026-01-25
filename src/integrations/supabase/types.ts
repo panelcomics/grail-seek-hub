@@ -3171,6 +3171,7 @@ export type Database = {
           created_at: string
           id: string
           normalized_input: string
+          raw_input: string | null
           rejected_reason: string | null
           source: string | null
           strategy: string | null
@@ -3181,6 +3182,7 @@ export type Database = {
           created_at?: string
           id?: string
           normalized_input: string
+          raw_input?: string | null
           rejected_reason?: string | null
           source?: string | null
           strategy?: string | null
@@ -3191,6 +3193,7 @@ export type Database = {
           created_at?: string
           id?: string
           normalized_input?: string
+          raw_input?: string | null
           rejected_reason?: string | null
           source?: string | null
           strategy?: string | null

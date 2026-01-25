@@ -1667,6 +1667,7 @@ async function searchComicVine(query: string): Promise<{
 // SCAN EVENT LOGGER - Log scan events for health monitoring
 // ============================================================================
 async function logScanEvent(data: {
+  raw_input: string;
   normalized_input: string;
   confidence: number | null;
   strategy: string;
@@ -1692,6 +1693,7 @@ async function logScanEvent(data: {
           'Prefer': 'return=minimal'
         },
         body: JSON.stringify({
+          raw_input: data.raw_input.slice(0, 500),
           normalized_input: data.normalized_input.slice(0, 500),
           confidence: data.confidence,
           strategy: data.strategy,
@@ -1876,6 +1878,7 @@ Deno.serve(async (req) => {
     // Log scan event to database for health monitoring
     const normalizedQuery = query.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
     logScanEvent({
+      raw_input: query,
       normalized_input: normalizedQuery,
       confidence: searchResult.confidence,
       strategy: searchResult.fallbackPath || 'issue-search',

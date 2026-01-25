@@ -270,6 +270,7 @@ export function ManualConfirmPanel({
               try {
                 await supabase.from("scan_events").insert({
                   user_id: user?.id || null,
+                  raw_input: inputText,
                   normalized_input: normalizeInputText(inputText),
                   confidence: originalConfidence,
                   strategy: null,
