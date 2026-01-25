@@ -42,6 +42,8 @@ import { DebugPanel } from "@/components/scanner/DebugPanel";
 import { CoverZoomModal } from "@/components/scanner/CoverZoomModal";
 import { QuickFilterChips } from "@/components/scanner/QuickFilterChips";
 import { ScannerActions } from "@/components/scanner/ScannerActions";
+import { ManualConfirmPanel, checkForStoredCorrection } from "@/components/scanner/ManualConfirmPanel";
+import { AdminScannerDebugPanel } from "@/components/scanner/AdminScannerDebugPanel";
 import { VolumeIssuePicker } from "@/components/scanner/VolumeIssuePicker";
 
 // Utils
@@ -123,15 +125,19 @@ export default function Scanner() {
   const [variantInfo, setVariantInfo] = useState<VariantInfo | null>(null); // Track detected variant
   const [topMatches, setTopMatches] = useState<TopMatch[]>([]); // Top matches from volume-first fallback
   const [needsUserConfirmation, setNeedsUserConfirmation] = useState(false); // Show chooser when low confidence
+  const [showManualConfirm, setShowManualConfirm] = useState(false); // Show manual confirm panel
   
-  // Debug state
+  // Debug state - enhanced for admin panel
   const [debugData, setDebugData] = useState({
     status: "idle",
     raw_ocr: "",
     extracted: null as any,
     confidence: null as number | null,
     queryParams: null as any,
-    comicvineQuery: ""
+    comicvineQuery: "",
+    strategy: "" as string,
+    candidates: [] as any[],
+    timings: {} as { total?: number; vision?: number; comicvine?: number; fallback?: number }
   });
 
   // Scanner assist context (publisher/format filters)
@@ -265,13 +271,35 @@ export default function Scanner() {
         setConfidence(pickConfidence);
         setSearchResults(picks);
         
+        // Store top matches for manual confirm if needed
+        if (data.topMatches) {
+          setTopMatches(data.topMatches);
+        }
+        
+        // Check if manual confirm is needed (low confidence or multiple matches)
+        const needsConfirm = data.needsUserConfirmation || pickConfidence < CONFIDENCE_THRESHOLDS.MEDIUM;
+        setNeedsUserConfirmation(needsConfirm);
+        setShowManualConfirm(needsConfirm && picks.length > 1);
+        
         setDebugData({
           status: "success",
           raw_ocr: data.ocr || "",
           extracted: data.extracted || null,
           confidence: pickConfidence,
           queryParams: null,
-          comicvineQuery: ""
+          comicvineQuery: "",
+          strategy: data.fallbackPath || "issue-search",
+          candidates: picks.map((p: any) => ({
+            series: p.volumeName || p.title,
+            issue: p.issue,
+            year: p.year,
+            publisher: p.publisher,
+            confidence: Math.round((p.score || 0) * 100),
+            fallbackPath: data.fallbackPath,
+            hasExactYear: p._hasExactYear,
+            hasExactIssue: p._hasExactIssue
+          })),
+          timings: data.timings || {}
         });
         
         // Extract variant info from response
@@ -339,6 +367,8 @@ export default function Scanner() {
         // No matches found
         setScannerState("match_low");
         setSearchResults([]);
+        setShowManualConfirm(false);
+        setNeedsUserConfirmation(false);
         
         const searchText = buildPrefilledQuery(data.extracted) || data.extracted?.title || "";
         if (searchText) {
@@ -352,6 +382,9 @@ export default function Scanner() {
           confidence: 0,
           queryParams: null,
           comicvineQuery: searchText,
+          strategy: "none",
+          candidates: [],
+          timings: data.timings || {}
         });
       }
     } catch (err: any) {
@@ -664,6 +697,18 @@ export default function Scanner() {
     setVariantInfo(null);
     setTopMatches([]);
     setNeedsUserConfirmation(false);
+    setShowManualConfirm(false);
+    setDebugData({
+      status: "idle",
+      raw_ocr: "",
+      extracted: null,
+      confidence: null,
+      queryParams: null,
+      comicvineQuery: "",
+      strategy: "",
+      candidates: [],
+      timings: {}
+    });
   };
 
   // Confirm screen save handler
@@ -924,8 +969,54 @@ export default function Scanner() {
         />
       )}
 
+      {/* Manual Confirm Panel - Show when confidence is low and we have candidates */}
+      {showManualConfirm && topMatches.length > 0 && scannerState !== "confirm" && scannerState !== "success" && (
+        <ManualConfirmPanel
+          candidates={topMatches}
+          inputText={manualSearchQuery || debugData.comicvineQuery || debugData.extracted?.title || ""}
+          ocrText={debugData.raw_ocr}
+          originalConfidence={confidence || 0}
+          onSelect={(candidate) => {
+            const pick: ComicVinePick = {
+              id: candidate.comicvine_issue_id,
+              resource: 'issue' as const,
+              title: candidate.series,
+              issue: candidate.issue,
+              year: candidate.year,
+              publisher: candidate.publisher,
+              volumeName: candidate.series,
+              volumeId: candidate.comicvine_volume_id,
+              thumbUrl: candidate.coverUrl || '',
+              coverUrl: candidate.coverUrl || '',
+              score: candidate.confidence / 100,
+              isReprint: false,
+              source: 'comicvine' as const
+            };
+            setSelectedPick(pick);
+            setPrefillData({
+              title: candidate.series,
+              issueNumber: candidate.issue || undefined,
+              publisher: candidate.publisher || undefined,
+              year: candidate.year || undefined,
+              comicvineId: candidate.comicvine_issue_id,
+              comicvineCoverUrl: candidate.coverUrl || undefined
+            });
+            setShowManualConfirm(false);
+            setScannerState("confirm");
+          }}
+          onEnterManually={() => {
+            setShowManualConfirm(false);
+            handleEnterManually();
+          }}
+          onSearchAgain={() => {
+            setShowManualConfirm(false);
+            setShowManualSearch(true);
+          }}
+        />
+      )}
+
       {/* Multi-Match Selection - Shows BELOW Summary Card */}
-      {scannerState === "multi_match" && searchResults.length > 0 && (
+      {scannerState === "multi_match" && searchResults.length > 0 && !showManualConfirm && (
         <ScannerMultiMatchScreen
           matches={searchResults}
           onSelectMatch={handleSelectFromMultiMatch}
@@ -1026,10 +1117,26 @@ export default function Scanner() {
         />
       )}
 
-      {/* Debug Panel */}
+      {/* Debug Panel - User debug mode */}
       {showDebug && (
         <DebugPanel debugData={debugData} />
       )}
+
+      {/* Admin Scanner Debug Panel - Shows detailed diagnostics for admins */}
+      <AdminScannerDebugPanel
+        isVisible={scannerState !== "idle" && scannerState !== "scanning"}
+        parsedQuery={debugData.extracted ? {
+          title: debugData.extracted.title || "",
+          issue: debugData.extracted.issueNumber || null,
+          year: debugData.extracted.year || null,
+          publisher: debugData.extracted.publisher || null
+        } : undefined}
+        strategy={debugData.strategy}
+        candidates={debugData.candidates}
+        rawOcr={debugData.raw_ocr}
+        timings={debugData.timings}
+        confidence={confidence || undefined}
+      />
 
       {/* Cover Zoom Modal */}
       {zoomImage && (

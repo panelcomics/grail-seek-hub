@@ -950,6 +950,55 @@ async function fetchVolumeIssues(volumeId: number): Promise<any[]> {
   return results;
 }
 
+/**
+ * Fetch a SPECIFIC issue from a volume by issue number
+ * This is more efficient than fetching all issues for large volumes
+ */
+async function fetchSpecificIssue(volumeId: number, issueNumber: string): Promise<any | null> {
+  console.log('[VOLUME-FIRST] Fetching specific issue:', issueNumber, 'from volume:', volumeId);
+  
+  // Normalize issue number for filter
+  const normalizedIssue = issueNumber.replace(/^0+/, '');
+  
+  const params = new URLSearchParams({
+    api_key: COMICVINE_API_KEY!,
+    format: 'json',
+    filter: `volume:${volumeId},issue_number:${normalizedIssue}`,
+    limit: '5',
+    field_list: 'id,name,issue_number,cover_date,image,volume'
+  });
+
+  const response = await fetch(
+    `https://comicvine.gamespot.com/api/issues/?${params}`,
+    { headers: { 'User-Agent': 'GrailSeeker/1.0' } }
+  );
+
+  if (!response.ok) {
+    console.error('[VOLUME-FIRST] Specific issue fetch error:', response.status);
+    return null;
+  }
+
+  const data = await response.json();
+  const results = data.results || [];
+  
+  if (results.length === 0) {
+    console.log('[VOLUME-FIRST] No issue found for', issueNumber, 'in volume', volumeId);
+    return null;
+  }
+  
+  // Find exact match
+  const exactMatch = results.find((issue: any) => {
+    const resultIssue = issue.issue_number?.toString().replace(/^0+/, '');
+    return resultIssue === normalizedIssue;
+  });
+  
+  if (exactMatch) {
+    console.log('[VOLUME-FIRST] Found exact issue match:', exactMatch.id);
+  }
+  
+  return exactMatch || results[0];
+}
+
 async function volumeFirstFallback(
   parsedQuery: { title: string; issue: string | null; year: number | null; publisher: string | null }
 ): Promise<TopMatch[]> {
@@ -974,23 +1023,60 @@ async function volumeFirstFallback(
     score: sv.score
   })));
   
-  // Step 3: Take top 3 volumes and fetch their issues
+  // Step 3: Take top 3 volumes and find specific issue in each
   const topVolumes = scoredVolumes.slice(0, 3);
   const matchPromises = topVolumes.map(async ({ volume, score: volumeScore }) => {
     try {
-      const issues = await fetchVolumeIssues(volume.id);
-      
-      // Find exact issue number match
+      // Use targeted issue fetch for efficiency (handles large volumes like Batman)
       if (parsedQuery.issue) {
-        const exactMatch = issues.find(issue => {
-          const issueNum = issue.issue_number?.toString().replace(/^0+/, '');
-          const searchNum = parsedQuery.issue?.replace(/^0+/, '');
-          return issueNum === searchNum;
-        });
+        const exactMatch = await fetchSpecificIssue(volume.id, parsedQuery.issue);
         
         if (exactMatch) {
           const coverDate = exactMatch.cover_date;
           const year = coverDate ? new Date(coverDate).getFullYear() : null;
+          
+          // Calculate confidence
+          let confidence = volumeScore;
+          let hasExactYear = false;
+          
+          confidence += SCORE_ISSUE_EXACT;
+          
+          if (parsedQuery.year) {
+            if (year) {
+              const yearDiff = Math.abs(year - parsedQuery.year);
+              if (yearDiff === 0) { confidence += SCORE_YEAR_EXACT; hasExactYear = true; }
+              else if (yearDiff === 1) { confidence += SCORE_YEAR_OFF_1; }
+              else if (yearDiff <= 3) { confidence += SCORE_YEAR_OFF_2_3; }
+              else if (yearDiff <= 10) { confidence += SCORE_YEAR_OFF_4_10; }
+              else { confidence += PENALTY_YEAR_OFF_GT_10; }
+            } else {
+              confidence += PENALTY_YEAR_MISSING;
+            }
+          }
+          
+          confidence = Math.min(120, Math.max(0, confidence));
+          
+          return {
+            comicvine_issue_id: exactMatch.id,
+            comicvine_volume_id: volume.id,
+            series: volume.name,
+            issue: exactMatch.issue_number,
+            year,
+            publisher: volume.publisher?.name || null,
+            coverUrl: exactMatch.image?.medium_url || volume.image?.medium_url || null,
+            confidence,
+            fallbackPath: 'volume-first',
+            _hasExactYear: hasExactYear,
+            _hasExactIssue: true
+          } as TopMatch;
+        }
+      }
+      return null;
+    } catch (err) {
+      console.error('[VOLUME-FIRST] Error fetching issue for volume', volume.id, err);
+      return null;
+    }
+  });
           
           // Calculate confidence using consistent year scoring
           let confidence = volumeScore;
@@ -1361,16 +1447,40 @@ async function searchComicVine(query: string): Promise<{
   const topScore = scored[0]?.score || 0;
   const topResult = scored[0]?.result;
   
-  // Check if we need fallback
+  // =========================================================================
+  // GENERALIZED VOLUME-FIRST FALLBACK
+  // Trigger when:
+  // (a) No candidates survive sanity filtering (all rejected)
+  // (b) Best score < 60
+  // (c) No candidates have title token overlap  
+  // =========================================================================
+  
+  // Count candidates that survived sanity filtering
+  const nonRejectedCandidates = scored.filter(s => !s.rejected);
+  const candidatesWithTokenOverlap = scored.filter(s => {
+    const volumeName = s.result.volume?.name || '';
+    const tokenCheck = checkTokenOverlap(parsedQuery.title, volumeName);
+    return tokenCheck.passes;
+  });
+  
+  const sanityFallbackNeeded = 
+    nonRejectedCandidates.length === 0 ||
+    topScore < 60 ||
+    candidatesWithTokenOverlap.length === 0;
+  
+  // Original ambiguity check still applies
   const needsFallback = 
+    sanityFallbackNeeded ||
     topScore < CONFIDENCE_THRESHOLD ||
     isAmbiguousQuery(parsedQuery.title, parsedQuery.issue);
   
   if (needsFallback) {
-    console.log('[SCANNER] Low confidence or ambiguous query, trying volume-first fallback');
-    console.log('[SCANNER] Reason: score=', topScore, 'threshold=', CONFIDENCE_THRESHOLD, 'isAmbiguous=', isAmbiguousQuery(parsedQuery.title, parsedQuery.issue));
+    const fallbackReason = sanityFallbackNeeded
+      ? `Sanity fallback: nonRejected=${nonRejectedCandidates.length}, tokenOverlap=${candidatesWithTokenOverlap.length}, topScore=${topScore}`
+      : `Low confidence or ambiguous: score=${topScore}, threshold=${CONFIDENCE_THRESHOLD}`;
+    console.log('[SCANNER] Volume-first fallback triggered:', fallbackReason);
     
-    // Run fallback with timeout
+    // Run generalized volume-first fallback
     const fallbackMatches = await withTimeout(
       volumeFirstFallback(parsedQuery),
       FALLBACK_TIMEOUT_MS,

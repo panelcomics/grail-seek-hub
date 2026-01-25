@@ -3114,6 +3114,57 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_corrections: {
+        Row: {
+          created_at: string
+          id: string
+          input_text: string
+          normalized_input: string
+          ocr_text: string | null
+          original_confidence: number | null
+          selected_comicvine_id: number
+          selected_cover_url: string | null
+          selected_issue: string | null
+          selected_publisher: string | null
+          selected_title: string
+          selected_volume_id: number | null
+          selected_year: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_text: string
+          normalized_input: string
+          ocr_text?: string | null
+          original_confidence?: number | null
+          selected_comicvine_id: number
+          selected_cover_url?: string | null
+          selected_issue?: string | null
+          selected_publisher?: string | null
+          selected_title: string
+          selected_volume_id?: number | null
+          selected_year?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_text?: string
+          normalized_input?: string
+          ocr_text?: string | null
+          original_confidence?: number | null
+          selected_comicvine_id?: number
+          selected_cover_url?: string | null
+          selected_issue?: string | null
+          selected_publisher?: string | null
+          selected_title?: string
+          selected_volume_id?: number | null
+          selected_year?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       scan_rate_limits: {
         Row: {
           created_at: string
