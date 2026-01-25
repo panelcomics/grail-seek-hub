@@ -40,6 +40,8 @@ interface ManualConfirmPanelProps {
   onCancel?: () => void;
   /** If true, shows as "Report Wrong Match" mode */
   isReportMode?: boolean;
+  /** If true, shows as "Low Confidence" mode with softer messaging */
+  isLowConfidenceMode?: boolean;
 }
 
 /**
@@ -63,7 +65,8 @@ export function ManualConfirmPanel({
   onEnterManually,
   onSearchAgain,
   onCancel,
-  isReportMode = false
+  isReportMode = false,
+  isLowConfidenceMode = false
 }: ManualConfirmPanelProps) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -122,18 +125,43 @@ export function ManualConfirmPanel({
   // Show top 5 candidates
   const topCandidates = candidates.slice(0, 5);
 
+  // Determine card style and messaging based on mode
+  const getCardStyle = () => {
+    if (isReportMode) return "border-orange-500/50 bg-orange-50/5 dark:bg-orange-950/10";
+    if (isLowConfidenceMode) return "border-blue-500/50 bg-blue-50/5 dark:bg-blue-950/10";
+    return "border-amber-500/50 bg-amber-50/5 dark:bg-amber-950/10";
+  };
+
+  const getTitle = () => {
+    if (isReportMode) return "Report Wrong Match";
+    if (isLowConfidenceMode) return "We're not sure — help confirm";
+    return "We couldn't confidently match this";
+  };
+
+  const getDescription = () => {
+    if (isReportMode) return "Select the correct match below. Your feedback helps improve future scans.";
+    if (isLowConfidenceMode) return "We found a possible match but need your confirmation. Select the correct issue below.";
+    return "Pick the correct issue from the options below, or search manually";
+  };
+
+  const getIconColor = () => {
+    if (isReportMode) return "text-orange-500";
+    if (isLowConfidenceMode) return "text-blue-500";
+    return "text-amber-500";
+  };
+
   return (
-    <Card className={isReportMode ? "border-orange-500/50 bg-orange-50/5 dark:bg-orange-950/10" : "border-amber-500/50 bg-amber-50/5 dark:bg-amber-950/10"}>
+    <Card className={getCardStyle()}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isReportMode ? (
-              <Flag className="h-5 w-5 text-orange-500" />
+              <Flag className={`h-5 w-5 ${getIconColor()}`} />
             ) : (
-              <AlertCircle className="h-5 w-5 text-amber-500" />
+              <AlertCircle className={`h-5 w-5 ${getIconColor()}`} />
             )}
             <CardTitle className="text-lg">
-              {isReportMode ? "Report Wrong Match" : "We couldn't confidently match this"}
+              {getTitle()}
             </CardTitle>
           </div>
           {onCancel && (
@@ -143,10 +171,7 @@ export function ManualConfirmPanel({
           )}
         </div>
         <CardDescription>
-          {isReportMode 
-            ? "Select the correct match below. Your feedback helps improve future scans."
-            : "Pick the correct issue from the options below, or search manually"
-          }
+          {getDescription()}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

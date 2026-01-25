@@ -127,6 +127,7 @@ export default function Scanner() {
   const [needsUserConfirmation, setNeedsUserConfirmation] = useState(false); // Show chooser when low confidence
   const [showManualConfirm, setShowManualConfirm] = useState(false); // Show manual confirm panel
   const [isReportMode, setIsReportMode] = useState(false); // "Wrong match?" correction mode
+  const [isLowConfidenceMode, setIsLowConfidenceMode] = useState(false); // Auto-triggered low confidence mode
   const [scanSource, setScanSource] = useState<string | undefined>(undefined); // Track if result is from correction_override
   
   // Debug state - enhanced for admin panel
@@ -704,6 +705,7 @@ export default function Scanner() {
     setNeedsUserConfirmation(false);
     setShowManualConfirm(false);
     setIsReportMode(false);
+    setIsLowConfidenceMode(false);
     setScanSource(undefined);
     setDebugData({
       status: "idle",
@@ -801,8 +803,16 @@ export default function Scanner() {
   };
 
   // Transition complete - show result card
+  // If confidence < 70, auto-open ManualConfirmPanel for user confirmation
   const handleTransitionComplete = () => {
     setScannerState("result");
+    
+    // Auto-trigger low confidence confirmation if confidence < 70
+    // Don't trigger if it's a correction override (already user-verified)
+    if (confidence !== null && confidence < 70 && scanSource !== 'correction_override' && topMatches.length > 0) {
+      setIsLowConfidenceMode(true);
+      setShowManualConfirm(true);
+    }
   };
 
   // Result card confirm - go to confirm/edit screen
@@ -994,6 +1004,7 @@ export default function Scanner() {
           originalConfidence={confidence || 0}
           returnedComicVineId={isReportMode && selectedPick ? selectedPick.id : undefined}
           isReportMode={isReportMode}
+          isLowConfidenceMode={isLowConfidenceMode}
           onSelect={(candidate) => {
             const pick: ComicVinePick = {
               id: candidate.comicvine_issue_id,
@@ -1021,21 +1032,25 @@ export default function Scanner() {
             });
             setShowManualConfirm(false);
             setIsReportMode(false);
+            setIsLowConfidenceMode(false);
             setScannerState("confirm");
           }}
           onEnterManually={() => {
             setShowManualConfirm(false);
             setIsReportMode(false);
+            setIsLowConfidenceMode(false);
             handleEnterManually();
           }}
           onSearchAgain={() => {
             setShowManualConfirm(false);
             setIsReportMode(false);
+            setIsLowConfidenceMode(false);
             setShowManualSearch(true);
           }}
           onCancel={() => {
             setShowManualConfirm(false);
             setIsReportMode(false);
+            setIsLowConfidenceMode(false);
           }}
         />
       )}
