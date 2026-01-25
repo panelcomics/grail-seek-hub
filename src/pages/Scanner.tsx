@@ -32,6 +32,7 @@ import { ScannerSuccessScreen } from "@/components/scanner/ScannerSuccessScreen"
 import { ScannerErrorScreen } from "@/components/scanner/ScannerErrorScreen";
 import { ScannerAssistChips, ScanContext, applyPublisherBias } from "@/components/scanner/ScannerAssistChips";
 import { VariantInfo } from "@/components/scanner/VariantBadge";
+import { TopMatchesChooser, TopMatch } from "@/components/scanner/TopMatchesChooser";
 
 // Other Components
 import { ScannerListingForm } from "@/components/ScannerListingForm";
@@ -120,6 +121,8 @@ export default function Scanner() {
   const [showManualSearch, setShowManualSearch] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false); // Track if user entered manually
   const [variantInfo, setVariantInfo] = useState<VariantInfo | null>(null); // Track detected variant
+  const [topMatches, setTopMatches] = useState<TopMatch[]>([]); // Top matches from volume-first fallback
+  const [needsUserConfirmation, setNeedsUserConfirmation] = useState(false); // Show chooser when low confidence
   
   // Debug state
   const [debugData, setDebugData] = useState({
@@ -659,6 +662,8 @@ export default function Scanner() {
     setShowManualSearch(false);
     setIsManualEntry(false);
     setVariantInfo(null);
+    setTopMatches([]);
+    setNeedsUserConfirmation(false);
   };
 
   // Confirm screen save handler
@@ -775,6 +780,62 @@ export default function Scanner() {
       isReprint: false
     });
     setScannerState("confirm");
+  };
+
+  // Handle selection from TopMatchesChooser
+  const handleSelectTopMatch = async (match: TopMatch) => {
+    const pick: ComicVinePick = {
+      id: match.comicvine_issue_id,
+      resource: 'issue' as const,
+      title: match.series,
+      issue: match.issue,
+      year: match.year,
+      publisher: match.publisher,
+      volumeName: match.series,
+      volumeId: match.comicvine_volume_id,
+      thumbUrl: match.coverUrl || '',
+      coverUrl: match.coverUrl || '',
+      score: match.confidence / 100,
+      isReprint: false,
+      source: 'comicvine' as const
+    };
+    
+    setSelectedPick(pick);
+    setPrefillData({
+      title: match.series,
+      issueNumber: match.issue || undefined,
+      publisher: match.publisher || undefined,
+      year: match.year || undefined,
+      comicvineId: match.comicvine_issue_id,
+      comicvineCoverUrl: match.coverUrl || undefined
+    });
+    
+    // Fetch detailed issue info
+    const issueDetails = await fetchIssueDetails(pick);
+    if (issueDetails) {
+      pick.writer = issueDetails.writer;
+      pick.artist = issueDetails.artist;
+      pick.description = issueDetails.description;
+      setSelectedPick({ ...pick });
+      setPrefillData(prev => ({
+        ...prev,
+        description: issueDetails.description
+      }));
+    }
+    
+    setScannerState("confirm");
+    setNeedsUserConfirmation(false);
+    saveToRecentScans(pick);
+    
+    if (user?.id && imageUrl) {
+      await saveScanToHistory(user.id, imageUrl, pick);
+      const dbHistory = await loadScanHistory(user.id, 10);
+      if (dbHistory.length > 0) {
+        setRecentScans(dbHistory);
+      }
+    } else {
+      setRecentScans(loadRecentScans());
+    }
   };
 
   return (
