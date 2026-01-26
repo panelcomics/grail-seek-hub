@@ -52,6 +52,7 @@ const CONDITION_OPTIONS = [
   { value: "GD", label: "Good (GD) - 2.0" },
   { value: "GD-", label: "Good- (GD-) - 1.8" },
   { value: "FR", label: "Fair (FR) - 1.5" },
+  { value: "FR/GD", label: "Fair/Good (FR/GD) - 1.0" },
   { value: "PR", label: "Poor (PR) - 0.5" },
 ];
 
