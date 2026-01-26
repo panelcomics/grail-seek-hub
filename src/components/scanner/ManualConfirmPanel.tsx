@@ -40,9 +40,11 @@ interface ManualConfirmPanelProps {
   originalConfidence: number;
   /** The ComicVine ID of the match being corrected (for "Wrong match?" flow) */
   returnedComicVineId?: number;
+  /** Request ID from scan-item for correlating events */
+  requestId?: string;
   onSelect: (candidate: TopCandidate) => void;
   onEnterManually: () => void;
-  onSearchAgain: () => void;
+  onSearchAgain: (query?: string) => void;
   onCancel?: () => void;
   /** If true, shows as "Report Wrong Match" mode */
   isReportMode?: boolean;
@@ -67,6 +69,7 @@ export function ManualConfirmPanel({
   ocrText,
   originalConfidence,
   returnedComicVineId,
+  requestId,
   onSelect,
   onEnterManually,
   onSearchAgain,
@@ -78,7 +81,8 @@ export function ManualConfirmPanel({
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showNoneOfThese, setShowNoneOfThese] = useState(false);
-  const [manualSearchQuery, setManualSearchQuery] = useState("");
+  // Pre-fill manual search with OCR text if available
+  const [manualSearchQuery, setManualSearchQuery] = useState(ocrText || "");
 
   const handleSelectCandidate = async (candidate: TopCandidate) => {
     // Don't allow selecting the same match they're reporting as wrong
@@ -97,7 +101,7 @@ export function ManualConfirmPanel({
 
     try {
       // Store correction for future lookups
-      const correctionPayload = {
+      const correctionPayload: Record<string, unknown> = {
         user_id: user.id,
         input_text: inputText,
         normalized_input: normalizeInputText(inputText),
@@ -109,12 +113,13 @@ export function ManualConfirmPanel({
         selected_publisher: candidate.publisher,
         selected_cover_url: candidate.coverUrl,
         ocr_text: ocrText || null,
-        original_confidence: originalConfidence
+        original_confidence: originalConfidence,
+        request_id: requestId || null,
       };
 
       const { error } = await supabase
         .from('scan_corrections')
-        .insert(correctionPayload);
+        .insert(correctionPayload as any);
 
       if (error) {
         console.error('Failed to save correction:', error);
@@ -132,8 +137,8 @@ export function ManualConfirmPanel({
 
   const handleManualSearch = () => {
     if (manualSearchQuery.trim()) {
-      // Pass to parent to trigger a new search with this query
-      onSearchAgain();
+      // Pass the search query to parent to trigger a new search
+      onSearchAgain(manualSearchQuery.trim());
     }
   };
 
@@ -262,29 +267,35 @@ export function ManualConfirmPanel({
 
         {/* "None of these" toggle */}
         {!showNoneOfThese ? (
-          <Button
-            variant="ghost"
-            onClick={async () => {
-              setShowNoneOfThese(true);
-              // Log "None of these" click to scan_events for analytics
-              try {
-                await supabase.from("scan_events").insert({
-                  user_id: user?.id || null,
-                  raw_input: inputText,
-                  normalized_input: normalizeInputText(inputText),
-                  confidence: originalConfidence,
-                  strategy: null,
-                  source: "manual_search",
-                  rejected_reason: "none_of_these",
-                  input_source: "typed"
-                });
-                console.log("[SCAN_EVENTS] Logged 'None of these' click");
-              } catch (err) {
-                console.error("[SCAN_EVENTS] Failed to log:", err);
-              }
-            }}
-            className="w-full text-muted-foreground"
-          >
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                setShowNoneOfThese(true);
+                // Pre-fill the search input with OCR text if available and not already set
+                if (ocrText && !manualSearchQuery) {
+                  setManualSearchQuery(ocrText);
+                }
+                // Log "None of these" click to scan_events for analytics
+                try {
+                  const insertPayload: Record<string, unknown> = {
+                    user_id: user?.id || null,
+                    raw_input: inputText,
+                    normalized_input: normalizeInputText(inputText),
+                    confidence: originalConfidence,
+                    strategy: null,
+                    source: "manual_search",
+                    rejected_reason: "none_of_these",
+                    input_source: "typed",
+                    request_id: requestId || null,
+                  };
+                  await supabase.from("scan_events").insert(insertPayload as any);
+                  console.log("[SCAN_EVENTS] Logged 'None of these' click");
+                } catch (err) {
+                  console.error("[SCAN_EVENTS] Failed to log:", err);
+                }
+              }}
+              className="w-full text-muted-foreground"
+            >
             <ChevronDown className="h-4 w-4 mr-2" />
             None of these
           </Button>
@@ -321,7 +332,7 @@ export function ManualConfirmPanel({
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={onSearchAgain}
+                onClick={() => onSearchAgain()}
                 className="flex-1"
               >
                 <Search className="h-4 w-4 mr-2" />

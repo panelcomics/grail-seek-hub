@@ -591,12 +591,14 @@ async function logScanEvent(
   data: {
     rawInput: string | null;
     normalizedInput: string | null;
-    inputSource: 'typed' | 'ocr' | 'image';
+    inputSource: 'typed' | 'image'; // Standardized: 'image' for scan-item, 'typed' for text query
+    usedOcr: boolean; // True if OCR text was extracted and used
     confidence: number | null;
     strategy: string | null;
     source: string | null;
     rejectedReason: string | null;
     candidateCount: number;
+    requestId: string;
   }
 ): Promise<void> {
   try {
@@ -604,11 +606,13 @@ async function logScanEvent(
       raw_input: data.rawInput?.slice(0, 500) || null,
       normalized_input: data.normalizedInput?.slice(0, 500) || null,
       input_source: data.inputSource,
+      used_ocr: data.usedOcr,
       confidence: data.confidence,
       strategy: data.strategy,
       source: data.source,
       rejected_reason: data.rejectedReason,
       candidate_count: data.candidateCount,
+      request_id: data.requestId,
     });
     if (error) {
       console.warn('[SCAN-ITEM] Failed to log scan event:', error.message);
@@ -623,6 +627,10 @@ async function logScanEvent(
 serve(async (req) => {
   const startTime = Date.now();
   console.log('[SCAN-ITEM] Function invoked');
+  
+  // Generate request_id for correlating events
+  const requestId = crypto.randomUUID();
+  console.log('[SCAN-ITEM] Request ID:', requestId);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -656,13 +664,15 @@ serve(async (req) => {
         rawInput: textQuery || '[image]',
         normalizedInput: null,
         inputSource: textQuery ? 'typed' : 'image',
+        usedOcr: false,
         confidence: null,
         strategy: null,
         source: null,
         rejectedReason: 'missing_api_keys',
         candidateCount: 0,
+        requestId,
       });
-      return new Response(JSON.stringify({ ok: false, error: "Server configuration error" }), {
+      return new Response(JSON.stringify({ ok: false, error: "Server configuration error", requestId }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -670,13 +680,16 @@ serve(async (req) => {
 
     let ocrText = "";
     let visionTime = 0;
-    let inputSource: 'typed' | 'ocr' | 'image' = 'image';
+    // Standardized: 'image' for camera/upload flow, 'typed' for text query
+    let inputSource: 'typed' | 'image' = 'image';
+    let usedOcr = false;
     let rawInput: string | null = null;
     
     if (textQuery) {
       ocrText = textQuery;
       rawInput = textQuery;
       inputSource = 'typed';
+      usedOcr = false; // Text query is not OCR
       console.log('[SCAN-ITEM] Using text query:', textQuery);
     } else if (imageBase64) {
       console.log('[SCAN-ITEM] Calling Google Vision API...');
@@ -710,12 +723,13 @@ serve(async (req) => {
           const visionData = await visionRes.json();
           const annotations = visionData.responses?.[0]?.textAnnotations || [];
           ocrText = annotations?.[0]?.description || "";
+          // Store OCR text in raw_input, use '[image]' as fallback
           rawInput = ocrText || '[image]';
-          // If OCR extracted text, change input_source to 'ocr'
+          // input_source stays 'image' but we track OCR usage separately
           if (ocrText) {
-            inputSource = 'ocr';
+            usedOcr = true;
           }
-          console.log('[SCAN-ITEM] OCR extracted (' + visionTime + 'ms):', ocrText.substring(0, 300));
+          console.log('[SCAN-ITEM] OCR extracted (' + visionTime + 'ms, used_ocr=' + usedOcr + '):', ocrText.substring(0, 300));
         } else {
           const errorText = await visionRes.text();
           console.error('[SCAN-ITEM] Vision API error:', visionRes.status, errorText);
@@ -733,18 +747,21 @@ serve(async (req) => {
         rawInput: rawInput || '[image]',
         normalizedInput: null,
         inputSource,
+        usedOcr: false,
         confidence: null,
         strategy: null,
         source: null,
         rejectedReason: 'no_text_extracted',
         candidateCount: 0,
+        requestId,
       });
       return new Response(
         JSON.stringify({
           ok: false,
           error: "No text could be extracted from the image",
           picks: [],
-          extracted: {}
+          extracted: {},
+          requestId
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -799,11 +816,13 @@ serve(async (req) => {
       rawInput: rawInput || ocrText,
       normalizedInput,
       inputSource,
+      usedOcr,
       confidence: topScore,
       strategy: extractionMethod,
       source: topSource,
       rejectedReason,
       candidateCount: results.length,
+      requestId,
     });
 
     const totalTime = Date.now() - startTime;
@@ -829,6 +848,7 @@ serve(async (req) => {
         },
         picks: results.slice(0, 10),
         ocrText,
+        requestId, // Return request_id to frontend for correlation
         timings: {
           vision: visionTime,
           total: totalTime
@@ -852,16 +872,19 @@ serve(async (req) => {
       rawInput: '[error]',
       normalizedInput: null,
       inputSource: 'image',
+      usedOcr: false,
       confidence: null,
       strategy: null,
       source: null,
       rejectedReason: `error: ${error.message?.slice(0, 100)}`,
       candidateCount: 0,
+      requestId,
     });
     return new Response(
       JSON.stringify({
         ok: false,
-        error: error.message || "Internal server error"
+        error: error.message || "Internal server error",
+        requestId
       }),
       {
         status: 500,

@@ -88,6 +88,8 @@ interface RecentScanEvent {
   source: string | null;
   rejected_reason: string | null;
   input_source: string | null;
+  used_ocr: boolean | null;
+  request_id: string | null;
 }
 
 export default function ScannerHealth() {
@@ -273,7 +275,7 @@ export default function ScannerHealth() {
       // === RECENT SCAN EVENTS (last 50) ===
       const { data: recentEventsData, error: recentError } = await (supabase as any)
         .from("scan_events")
-        .select("id, created_at, raw_input, normalized_input, confidence, strategy, source, rejected_reason, input_source")
+        .select("id, created_at, raw_input, normalized_input, confidence, strategy, source, rejected_reason, input_source, used_ocr, request_id")
         .order("created_at", { ascending: false })
         .limit(50);
         
@@ -650,12 +652,14 @@ export default function ScannerHealth() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-36">Time</TableHead>
+                        <TableHead className="w-24">Request ID</TableHead>
                         <TableHead>Raw Input</TableHead>
                         <TableHead>Normalized</TableHead>
-                        <TableHead className="w-20">Conf</TableHead>
+                        <TableHead className="w-16">Conf</TableHead>
                         <TableHead>Strategy</TableHead>
                         <TableHead>Source</TableHead>
-                        <TableHead>Input Type</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="w-16">OCR</TableHead>
                         <TableHead>Rejected</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -664,6 +668,9 @@ export default function ScannerHealth() {
                         <TableRow key={event.id}>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                             {new Date(event.created_at).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs" title={event.request_id || ''}>
+                            {event.request_id ? event.request_id.slice(0, 8) + '...' : '-'}
                           </TableCell>
                           <TableCell className="font-mono text-xs max-w-32 truncate" title={event.raw_input || ''}>
                             {event.raw_input || '-'}
@@ -690,6 +697,15 @@ export default function ScannerHealth() {
                                 {event.input_source}
                               </Badge>
                             ) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {event.used_ocr ? (
+                              <Badge variant="default" className="text-xs bg-blue-500">
+                                OCR
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-xs text-destructive">
                             {event.rejected_reason || '-'}

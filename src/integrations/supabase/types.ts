@@ -3122,6 +3122,7 @@ export type Database = {
           normalized_input: string
           ocr_text: string | null
           original_confidence: number | null
+          request_id: string | null
           selected_comicvine_id: number
           selected_cover_url: string | null
           selected_issue: string | null
@@ -3138,6 +3139,7 @@ export type Database = {
           normalized_input: string
           ocr_text?: string | null
           original_confidence?: number | null
+          request_id?: string | null
           selected_comicvine_id: number
           selected_cover_url?: string | null
           selected_issue?: string | null
@@ -3154,6 +3156,7 @@ export type Database = {
           normalized_input?: string
           ocr_text?: string | null
           original_confidence?: number | null
+          request_id?: string | null
           selected_comicvine_id?: number
           selected_cover_url?: string | null
           selected_issue?: string | null
@@ -3174,8 +3177,10 @@ export type Database = {
           normalized_input: string
           raw_input: string | null
           rejected_reason: string | null
+          request_id: string | null
           source: string | null
           strategy: string | null
+          used_ocr: boolean | null
           user_id: string | null
         }
         Insert: {
@@ -3186,8 +3191,10 @@ export type Database = {
           normalized_input: string
           raw_input?: string | null
           rejected_reason?: string | null
+          request_id?: string | null
           source?: string | null
           strategy?: string | null
+          used_ocr?: boolean | null
           user_id?: string | null
         }
         Update: {
@@ -3198,8 +3205,10 @@ export type Database = {
           normalized_input?: string
           raw_input?: string | null
           rejected_reason?: string | null
+          request_id?: string | null
           source?: string | null
           strategy?: string | null
+          used_ocr?: boolean | null
           user_id?: string | null
         }
         Relationships: []
