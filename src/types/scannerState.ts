@@ -119,16 +119,25 @@ export const SCANNING_MESSAGES = [
 ];
 
 // Confidence thresholds for state determination
+// TUNED: Slightly lower HIGH threshold to reduce "needs review" friction
+// TUNED: Higher MEDIUM threshold to push borderline cases to manual entry
 export const CONFIDENCE_THRESHOLDS = {
-  HIGH: 0.80,
-  MEDIUM: 0.45,
+  HIGH: 0.75,    // Was 0.80 - allows more auto-confirms for solid matches
+  MEDIUM: 0.50,  // Was 0.45 - stricter cutoff for medium confidence
 };
 
 /**
  * Threshold below which ManualConfirmPanel auto-opens
  * to ask user to verify the match. Tunable for UX testing.
+ * TUNED: Lowered from 70 to 65 to reduce friction for decent matches
  */
-export const SCAN_AUTO_CONFIRM_THRESHOLD = 70;
+export const SCAN_AUTO_CONFIRM_THRESHOLD = 65;
+
+/**
+ * Minimum score required to show a result at all
+ * Below this, we show "no match found" instead of bad suggestions
+ */
+export const SCAN_MINIMUM_DISPLAY_THRESHOLD = 35;
 
 /**
  * Determine scanner state based on results and confidence

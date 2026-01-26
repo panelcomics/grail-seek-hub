@@ -19,6 +19,7 @@ import { ValueHintModule } from "./ValueHintModule";
 import { VariantBadge, VariantInfo } from "./VariantBadge";
 import { ScanFeedbackSelector } from "./ScanFeedbackSelector";
 import { ConfidenceTierBadge } from "./ConfidenceTierBadge";
+import { KeyIssueBadge, parseKeyNotes } from "./KeyIssueBadge";
 import { cn } from "@/lib/utils";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { toast } from "sonner";
@@ -57,6 +58,8 @@ interface ScanResultSummaryCardProps {
   topMatches?: TopMatchSummary[];
   /** Callback when user selects a different match from candidates */
   onSelectMatch?: (match: TopMatchSummary) => void;
+  /** Key issue indicator from OCR detection */
+  keyIssueIndicator?: string | null;
 }
 
 type StatusType = 'ready' | 'review' | 'manual' | 'choose' | 'retry';
@@ -156,7 +159,8 @@ export function ScanResultSummaryCard({
   strategy,
   normalizedInput,
   topMatches = [],
-  onSelectMatch
+  onSelectMatch,
+  keyIssueIndicator
 }: ScanResultSummaryCardProps) {
   const { isAdmin } = useAdminCheck();
   const [showContent, setShowContent] = useState(false);
@@ -340,6 +344,22 @@ export function ScanResultSummaryCard({
               {variantInfo && variantInfo.isVariant && (
                 <div className="pt-1">
                   <VariantBadge variant={variantInfo} size="md" />
+                </div>
+              )}
+
+              {/* Key Issue Badge - highlight significant issues */}
+              {keyIssueIndicator && (
+                <div className="pt-1">
+                  <KeyIssueBadge indicator={keyIssueIndicator} size="md" />
+                </div>
+              )}
+              
+              {/* Also check match.keyNotes for DB-sourced key issue data */}
+              {!keyIssueIndicator && match?.keyNotes && parseKeyNotes(match.keyNotes).length > 0 && (
+                <div className="pt-1 flex gap-1 flex-wrap">
+                  {parseKeyNotes(match.keyNotes).map((indicator) => (
+                    <KeyIssueBadge key={indicator} indicator={indicator} size="md" />
+                  ))}
                 </div>
               )}
 
