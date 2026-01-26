@@ -1673,6 +1673,7 @@ async function logScanEvent(data: {
   strategy: string;
   source: string;
   rejected_reason?: string;
+  input_source?: 'typed' | 'ocr' | 'image';
 }): Promise<void> {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -1698,7 +1699,8 @@ async function logScanEvent(data: {
           confidence: data.confidence,
           strategy: data.strategy,
           source: data.source,
-          rejected_reason: data.rejected_reason || null
+          rejected_reason: data.rejected_reason || null,
+          input_source: data.input_source || null
         })
       }
     );
@@ -1799,7 +1801,7 @@ Deno.serve(async (req) => {
       throw new Error('Missing Comic Vine API credentials');
     }
 
-    const { query } = await req.json();
+    const { query, input_source } = await req.json();
 
     if (!query || typeof query !== 'string') {
       return new Response(
@@ -1882,7 +1884,8 @@ Deno.serve(async (req) => {
       normalized_input: normalizedQuery,
       confidence: searchResult.confidence,
       strategy: searchResult.fallbackPath || 'issue-search',
-      source: 'normal'
+      source: 'normal',
+      input_source: input_source || 'typed'
     });
     
     if (!searchResult.topMatch && searchResult.topMatches.length === 0) {
