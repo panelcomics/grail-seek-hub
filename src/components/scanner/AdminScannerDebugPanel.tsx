@@ -50,6 +50,8 @@ interface AdminScannerDebugPanelProps {
     fallback?: number;
   };
   confidence?: number;
+  /** Called when admin clicks a candidate to select it */
+  onSelectCandidate?: (candidate: CandidateScore) => void;
 }
 
 export function AdminScannerDebugPanel({
@@ -59,7 +61,8 @@ export function AdminScannerDebugPanel({
   candidates = [],
   rawOcr,
   timings,
-  confidence
+  confidence,
+  onSelectCandidate
 }: AdminScannerDebugPanelProps) {
   const { isAdmin, loading } = useAdminCheck();
   const [expanded, setExpanded] = useState(false);
@@ -174,19 +177,26 @@ export function AdminScannerDebugPanel({
             </div>
           )}
 
-          {/* Top Candidates */}
+          {/* Top Candidates - Now clickable! */}
           {acceptedCandidates.length > 0 && (
             <div className="space-y-1.5">
               <div className="text-xs font-medium text-muted-foreground">
                 Top Candidates ({acceptedCandidates.length})
+                {onSelectCandidate && (
+                  <span className="text-primary ml-1">(tap to select)</span>
+                )}
               </div>
               <div className="space-y-1">
-                {acceptedCandidates.slice(0, 5).map((c, i) => (
-                  <div 
+                {acceptedCandidates.slice(0, 6).map((c, i) => (
+                  <button
                     key={i}
+                    onClick={() => onSelectCandidate?.(c)}
+                    disabled={!onSelectCandidate}
                     className={`
-                      flex items-center justify-between p-2 rounded text-xs
-                      ${i === 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-background/50'}
+                      w-full flex items-center justify-between p-3 rounded text-xs text-left
+                      transition-all touch-manipulation
+                      ${i === 0 ? 'bg-green-500/10 border border-green-500/30' : 'bg-background/50 border border-transparent'}
+                      ${onSelectCandidate ? 'hover:border-primary hover:bg-primary/5 active:scale-[0.98] cursor-pointer' : 'cursor-default'}
                     `}
                   >
                     <div className="flex-1 min-w-0">
@@ -215,7 +225,7 @@ export function AdminScannerDebugPanel({
                         {c.confidence}
                       </Badge>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
