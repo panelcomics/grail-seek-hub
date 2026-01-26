@@ -7,18 +7,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { debugLog } from "@/lib/debug";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Image as ImageIcon, Info } from "lucide-react";
+import { Loader2, Image as ImageIcon, Info, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ComicVinePicker } from "./ComicVinePicker";
 import { PricingHelper } from "./scanner/PricingHelper";
 import { GRADE_OPTIONS } from "@/types/draftItem";
 import { AIConditionAssistant } from "./elite/AIConditionAssistant";
 import { AdvancedVariantDetector } from "./elite/AdvancedVariantDetector";
+
+// Restoration markers (CGC Purple Label criteria)
+const RESTORATION_OPTIONS = [
+  { value: "color_touch", label: "Color Touch", description: "Color added to cover or interior" },
+  { value: "trimmed", label: "Trimmed", description: "Edges cut to improve appearance" },
+  { value: "tape", label: "Tape", description: "Tape used for repairs" },
+  { value: "tear_sealed", label: "Tear Sealed", description: "Tears sealed with glue or material" },
+  { value: "piece_added", label: "Piece Added", description: "Missing piece replaced" },
+  { value: "staple_replaced", label: "Staple Replaced", description: "Original staples replaced" },
+  { value: "cleaned", label: "Cleaned / Pressed", description: "Professionally cleaned or pressed" },
+  { value: "spine_roll_fix", label: "Spine Roll Fixed", description: "Spine roll corrected" },
+];
 
 // Full condition options with plus/minus grades
 const CONDITION_OPTIONS = [
@@ -145,6 +158,9 @@ export function ScannerListingForm({
   const [selectedCover, setSelectedCover] = useState<string | null>(null);
   const [comicvineId, setComicvineId] = useState<number | null>(null);
   const [volumeId, setVolumeId] = useState<number | null>(null);
+  
+  // Restoration markers (CGC purple label style)
+  const [restorationMarkers, setRestorationMarkers] = useState<string[]>([]);
 
   // Auto-fill from selected ComicVine pick
   useEffect(() => {
@@ -369,6 +385,9 @@ export function ScannerListingForm({
         private_notes: null,
         private_location: null,
         
+        // Restoration markers
+        restoration_markers: restorationMarkers.length > 0 ? restorationMarkers : [],
+        
         // Scanner metadata
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),
@@ -576,6 +595,68 @@ export function ScannerListingForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Restoration / Defects Section */}
+          <div className="space-y-3 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <Label className="text-sm font-medium">Restoration / Defects (if any)</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Check any that apply — affects grading and value (CGC Purple Label criteria)
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {RESTORATION_OPTIONS.map((option) => (
+                <div
+                  key={option.value}
+                  className={`flex items-start space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                    restorationMarkers.includes(option.value)
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'border-border hover:border-muted-foreground/30'
+                  }`}
+                  onClick={() => {
+                    setRestorationMarkers(prev =>
+                      prev.includes(option.value)
+                        ? prev.filter(v => v !== option.value)
+                        : [...prev, option.value]
+                    );
+                  }}
+                >
+                  <Checkbox
+                    id={option.value}
+                    checked={restorationMarkers.includes(option.value)}
+                    onCheckedChange={(checked) => {
+                      setRestorationMarkers(prev =>
+                        checked
+                          ? [...prev, option.value]
+                          : prev.filter(v => v !== option.value)
+                      );
+                    }}
+                    className="mt-0.5"
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <label
+                      htmlFor={option.value}
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      {option.label}
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {option.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {restorationMarkers.length > 0 && (
+              <Alert className="border-amber-500/50 bg-amber-500/10">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <AlertDescription className="text-xs">
+                  This book has restoration markers and may receive a qualified/restored grade label.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           {/* Creator Credits */}
