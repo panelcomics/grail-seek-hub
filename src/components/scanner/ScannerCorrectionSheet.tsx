@@ -12,15 +12,16 @@
  * ==========================================================================
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, Check, X, Edit3, Loader2 } from "lucide-react";
+import { Search, Check, X, Edit3, Loader2, Flag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -72,7 +73,19 @@ export function ScannerCorrectionSheet({
   onSearch
 }: ScannerCorrectionSheetProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const titleInputRef = useRef<HTMLInputElement>(null);
+  
+  // Log when sheet opens for debugging
+  useEffect(() => {
+    if (open) {
+      console.log('[SCANNER_CORRECTION] Sheet opened', {
+        candidates_count: initialCandidates.length,
+        ocrConfidence,
+        inputText
+      });
+    }
+  }, [open, initialCandidates.length, ocrConfidence, inputText]);
   
   // Form state - pre-fill from OCR if confidence > 50%
   const [title, setTitle] = useState("");
@@ -116,15 +129,23 @@ export function ScannerCorrectionSheet({
     }
   }, [open]);
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!title.trim() && !issueNumber.trim()) {
       toast.error("Enter at least a title or issue number");
       return;
     }
 
+    console.log('[SCANNER_CORRECTION] Search executed', {
+      query: title.trim(),
+      issue: issueNumber.trim(),
+      publisher: publisher.trim(),
+      year: year.trim()
+    });
+
     setSearching(true);
     try {
       const results = await onSearch(title.trim(), issueNumber.trim(), publisher.trim(), year.trim());
+      console.log('[SCANNER_CORRECTION] Search results', { count: results.length });
       setCandidates(results);
       setSelectedId(null);
     } catch (error) {
@@ -133,10 +154,27 @@ export function ScannerCorrectionSheet({
     } finally {
       setSearching(false);
     }
-  };
+  }, [title, issueNumber, publisher, year, onSearch]);
 
-  const handleSelectCandidate = async (candidate: CorrectionCandidate) => {
+  const handleSelectCandidate = useCallback(async (candidate: CorrectionCandidate) => {
+    console.log('[SCANNER_CORRECTION] Card tapped', {
+      id: candidate.comicvine_issue_id,
+      title: candidate.series,
+      issue: candidate.issue
+    });
+    
     setSelectedId(candidate.comicvine_issue_id);
+  }, []);
+
+  const handleConfirmSelection = useCallback(async () => {
+    const candidate = candidates.find(c => c.comicvine_issue_id === selectedId);
+    if (!candidate) return;
+    
+    console.log('[SCANNER_CORRECTION] Use this comic clicked', {
+      id: candidate.comicvine_issue_id,
+      title: candidate.series,
+      issue: candidate.issue
+    });
     
     if (!user) {
       onSelect(candidate);
@@ -177,14 +215,9 @@ export function ScannerCorrectionSheet({
       setSaving(false);
       onSelect(candidate);
     }
-  };
+  }, [candidates, selectedId, user, inputText, title, ocrText, ocrConfidence, requestId, onSelect]);
 
-  const handleUseSelected = () => {
-    const selected = candidates.find(c => c.comicvine_issue_id === selectedId);
-    if (selected) {
-      handleSelectCandidate(selected);
-    }
-  };
+  // Removed handleUseSelected - now using handleConfirmSelection
 
   // Sort candidates by confidence
   const sortedCandidates = [...candidates].sort((a, b) => b.confidence - a.confidence);
@@ -193,7 +226,11 @@ export function ScannerCorrectionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="bottom" 
-        className="h-[90vh] sm:h-[85vh] flex flex-col p-0 rounded-t-2xl"
+        hideCloseButton
+        className={cn(
+          "flex flex-col p-0 rounded-t-2xl z-[100]",
+          isMobile ? "h-[95vh]" : "h-[85vh]"
+        )}
       >
         {/* Header */}
         <SheetHeader className="px-4 pt-4 pb-3 border-b bg-background sticky top-0 z-10">
@@ -205,9 +242,10 @@ export function ScannerCorrectionSheet({
               variant="ghost" 
               size="icon" 
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8"
+              className="h-10 w-10 touch-manipulation"
+              type="button"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </Button>
           </div>
         </SheetHeader>
@@ -318,29 +356,42 @@ export function ScannerCorrectionSheet({
                   {sortedCandidates.map((candidate) => (
                     <button
                       key={candidate.comicvine_issue_id}
-                      onClick={() => setSelectedId(candidate.comicvine_issue_id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelectCandidate(candidate);
+                      }}
+                      onTouchEnd={(e) => {
+                        // Explicit touch handling for iOS Safari
+                        e.preventDefault();
+                        handleSelectCandidate(candidate);
+                      }}
                       disabled={saving}
+                      type="button"
                       className={cn(
                         "relative flex flex-col rounded-xl border-2 overflow-hidden transition-all",
                         "hover:border-primary hover:shadow-md active:scale-[0.98]",
-                        "touch-manipulation min-h-[180px]",
+                        "touch-manipulation min-h-[180px] cursor-pointer",
+                        "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                         selectedId === candidate.comicvine_issue_id 
                           ? 'border-primary ring-2 ring-primary/30 bg-primary/5' 
                           : 'border-border bg-background',
                         saving && selectedId === candidate.comicvine_issue_id && 'opacity-70'
                       )}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       {/* Cover Image */}
-                      <div className="aspect-[2/3] bg-muted flex-shrink-0">
+                      <div className="aspect-[2/3] bg-muted flex-shrink-0 pointer-events-none">
                         {candidate.coverUrl ? (
                           <img
                             src={candidate.coverUrl}
                             alt={`${candidate.series} #${candidate.issue}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover pointer-events-none"
                             loading="lazy"
+                            draggable={false}
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground pointer-events-none">
                             <div className="text-center p-2">
                               <div className="w-8 h-12 mx-auto mb-1 border-2 border-dashed border-muted-foreground/30 rounded" />
                               No Cover
@@ -350,7 +401,7 @@ export function ScannerCorrectionSheet({
                       </div>
 
                       {/* Info */}
-                      <div className="p-2 bg-background flex-1">
+                      <div className="p-2 bg-background flex-1 pointer-events-none">
                         <div className="text-sm font-medium truncate leading-tight">
                           {candidate.series}
                         </div>
@@ -367,7 +418,7 @@ export function ScannerCorrectionSheet({
 
                       {/* Selection Checkmark */}
                       {selectedId === candidate.comicvine_issue_id && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center shadow-md">
+                        <div className="absolute top-2 right-2 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-md pointer-events-none">
                           <Check className="h-4 w-4 text-primary-foreground" />
                         </div>
                       )}
@@ -385,12 +436,13 @@ export function ScannerCorrectionSheet({
         </div>
 
         {/* Fixed Bottom Actions */}
-        <div className="sticky bottom-0 p-4 border-t bg-background space-y-2">
+        <div className="sticky bottom-0 p-4 border-t bg-background space-y-2 safe-area-inset-bottom">
           {selectedId && (
             <Button 
-              onClick={handleUseSelected} 
-              className="w-full h-12 text-base font-semibold"
+              onClick={handleConfirmSelection} 
+              className="w-full h-12 text-base font-semibold touch-manipulation"
               disabled={saving}
+              type="button"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -404,7 +456,8 @@ export function ScannerCorrectionSheet({
           <Button 
             variant="outline"
             onClick={onEnterManually}
-            className="w-full h-11"
+            className="w-full h-11 touch-manipulation"
+            type="button"
           >
             <Edit3 className="h-4 w-4 mr-2" />
             Enter Details Manually
