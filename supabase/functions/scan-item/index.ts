@@ -90,6 +90,11 @@ const VINTAGE_VOLUME_MAP: Record<string, { volumeId: number; startYear: number; 
   'justice league': { volumeId: 2689, startYear: 1960, volumeName: 'Justice League of America' },
   'flash': { volumeId: 1807, startYear: 1959, volumeName: 'The Flash' },
   'green lantern': { volumeId: 1806, startYear: 1960, volumeName: 'Green Lantern' },
+  // Atlas/Timely pre-code horror titles
+  'suspense': { volumeId: 7897, startYear: 1950, volumeName: 'Suspense' },
+  'mystic': { volumeId: 7900, startYear: 1951, volumeName: 'Mystic' },
+  'menace': { volumeId: 7901, startYear: 1953, volumeName: 'Menace' },
+  'astonishing': { volumeId: 7902, startYear: 1951, volumeName: 'Astonishing' },
 };
 
 // KEY ISSUE PATTERNS - first appearances and significant events
@@ -131,9 +136,20 @@ const KNOWN_TITLE_PATTERNS = [
   'Swamp Thing', 'Saga of the Swamp Thing', 'Hellblazer', 'Sandman', 'Preacher',
   'Spawn', 'Savage Dragon', 'Invincible', 'Walking Dead', 'Saga',
   'Teenage Mutant Ninja Turtles', 'TMNT', 'Star Wars', 'Transformers', 'G.I. Joe',
-  // Comico and other indie titles
+// Comico and other indie titles
   'Jonny Quest', 'Johnny Quest', 'Robotech', 'Grendel', 'Mage', 'The Maze Agency',
   'Justice Machine', 'Elementals', 'E-Man', 'Nexus', 'Badger', 'Rocketeer',
+  // Atlas/Timely/Pre-code horror and mystery
+  'Suspense', 'Tales of Suspense', 'Journey into Mystery', 'Strange Tales',
+  'Tales to Astonish', 'Marvel Tales', 'Mystery Tales', 'Mystic', 'Menace',
+  'Astonishing', 'Adventures into Terror', 'Adventures into Weird Worlds',
+  'Spellbound', 'Uncanny Tales', 'World of Fantasy', 'World of Mystery',
+  // EC Comics
+  'Tales from the Crypt', 'Vault of Horror', 'Haunt of Fear', 'Weird Science',
+  'Weird Fantasy', 'Crime SuspenStories', 'Shock SuspenStories', 'Two-Fisted Tales',
+  'Frontline Combat', 'Mad', 'Panic',
+  // Other Golden/Silver Age
+  'Captain Marvel Adventures', 'Whiz Comics', 'Master Comics', 'Captain Marvel Jr.',
 ];
 
 // OCR typos for specific known titles - maps common OCR misreads to correct title
@@ -396,30 +412,39 @@ function extractTitleAndIssue(ocrText: string): {
       return { title: giantTitle, issue, confidence: 0.95, method: 'known_title_giant' };
     }
     
-    // Fuzzy match for OCR errors - LOWERED threshold from 0.75 to 0.60
-    // "quore" vs "quest" needs lower threshold
+    // Fuzzy match for OCR errors - RAISED threshold to 0.70 to prevent false positives
+    // "quore" vs "quest" still works at 0.70
+    // But "Suspense" vs "Mutants" (0.36) will NOT match
     const knownWords = lowerKnown.split(/\s+/);
     if (knownWords.length >= 2) {
       const ocrWords = lowerText.split(/\s+/);
       let matchedWords = 0;
       let matchStartIdx = -1;
+      const matchedWordList: string[] = [];
       
       for (let i = 0; i < ocrWords.length; i++) {
         for (const knownWord of knownWords) {
-          // Lower threshold to 0.60 and allow 3-char words
-          if (knownWord.length >= 3 && similarity(ocrWords[i], knownWord) > 0.60) {
+          // RAISED threshold to 0.70 to prevent false matches like "Suspense" → "New Mutants"
+          const sim = similarity(ocrWords[i], knownWord);
+          if (knownWord.length >= 3 && sim > 0.70) {
             if (matchStartIdx === -1) matchStartIdx = i;
             matchedWords++;
+            matchedWordList.push(`${ocrWords[i]}→${knownWord}(${sim.toFixed(2)})`);
             break;
           }
         }
       }
       
-      // If we matched most words, consider it a fuzzy hit
-      if (matchedWords >= Math.ceil(knownWords.length * 0.5) && matchStartIdx !== -1) {
+      // CRITICAL: Require AT LEAST 2/3 of words to match (was 1/2)
+      // For 2-word titles like "New Mutants", need BOTH words to match
+      const requiredMatches = knownWords.length <= 2 
+        ? knownWords.length  // 2-word titles: require ALL words
+        : Math.ceil(knownWords.length * 0.67);  // 3+ word titles: require 2/3
+      
+      if (matchedWords >= requiredMatches && matchStartIdx !== -1) {
         // CRITICAL: Use the smarter extractIssueNumber with price-stripped text
         const issue = extractIssueNumber(textWithoutPrices, knownTitle);
-        console.log('[SCAN-ITEM] Strategy 0b (fuzzy known title):', knownTitle, '#', issue, 'matched', matchedWords, 'of', knownWords.length);
+        console.log('[SCAN-ITEM] Strategy 0b (fuzzy known title):', knownTitle, '#', issue, 'matched', matchedWords, 'of', knownWords.length, matchedWordList.join(', '));
         return { title: knownTitle, issue, confidence: 0.88, method: 'fuzzy_known_title' };
       }
     }
