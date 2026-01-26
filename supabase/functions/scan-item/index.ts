@@ -44,6 +44,18 @@ const NOISE_PATTERNS = [
   /LIMITED SERIES/gi,
 ];
 
+// REPRINT/TPB FILTER: Keywords that indicate this is NOT an original single issue
+// Used to penalize or filter out collected editions from scan results
+const REPRINT_KEYWORDS = [
+  'tpb', 'trade paperback', 'graphic novel', 'omnibus', 'compendium',
+  'collected', 'collection', 'complete', 'ultimate collection',
+  'deluxe edition', 'hardcover', 'hc edition', 'prestige format',
+  'treasury', 'facsimile', 'reprint', 'reprinting', 'magazine',
+  'epic collection', 'masterworks', 'essentials', 'showcase presents',
+  'archives', 'absolute', 'library edition', 'artist edition',
+  'gallery edition', 'artifact edition', 'premiere edition',
+];
+
 // Known title prefixes to help extraction
 // IMPORTANT: More specific patterns (with "Annual", "Giant-Size") MUST come FIRST
 // so they are matched before the base title pattern
@@ -78,15 +90,74 @@ const KNOWN_TITLE_PATTERNS = [
 
 // OCR typos for specific known titles - maps common OCR misreads to correct title
 const OCR_TYPO_MAP: Record<string, string> = {
+  // Jonny Quest variants
   'jonny quore': 'Jonny Quest',
   'jonny quoal': 'Jonny Quest',
   'jonny quost': 'Jonny Quest',
   'jonny quesh': 'Jonny Quest',
   'jonny queat': 'Jonny Quest',
+  'jonny quesf': 'Jonny Quest',
+  'jonny quesl': 'Jonny Quest',
   'johnny quore': 'Jonny Quest',
   'johnny quoal': 'Jonny Quest',
   'johnny quost': 'Jonny Quest',
-  'jade incorporated': 'Jonny Quest', // Story arc from the series, not the title
+  'jade incorporated': 'Jonny Quest',
+  // X-Men variants
+  'x-mer': 'X-Men',
+  'x mer': 'X-Men',
+  'xmen': 'X-Men',
+  'uncanny x-mer': 'Uncanny X-Men',
+  'uncany x-men': 'Uncanny X-Men',
+  // Spider-Man variants
+  'spider-mar': 'Spider-Man',
+  'spiderman': 'Spider-Man',
+  'spider mar': 'Spider-Man',
+  'amazing spider-mar': 'Amazing Spider-Man',
+  'amazing spiderman': 'Amazing Spider-Man',
+  'amaz1ng spider-man': 'Amazing Spider-Man',
+  'amazlng spider-man': 'Amazing Spider-Man',
+  'spectacular spider-mar': 'Spectacular Spider-Man',
+  // Fantastic Four variants
+  'fantast1c four': 'Fantastic Four',
+  'fantaslic four': 'Fantastic Four',
+  'fantastic f0ur': 'Fantastic Four',
+  'fantastic 4': 'Fantastic Four',
+  'ff annual': 'Fantastic Four Annual',
+  // Batman variants
+  'batmar': 'Batman',
+  'batmam': 'Batman',
+  'ba7man': 'Batman',
+  // Superman variants
+  'supermar': 'Superman',
+  'supermam': 'Superman',
+  // Hulk variants
+  'incredible hu1k': 'Incredible Hulk',
+  'incredib1e hulk': 'Incredible Hulk',
+  'incred1ble hulk': 'Incredible Hulk',
+  // Avengers variants
+  'avengcrs': 'Avengers',
+  'avenger5': 'Avengers',
+  // Common OCR issues
+  'detectlve comics': 'Detective Comics',
+  'detect1ve comics': 'Detective Comics',
+  'teen t1tans': 'Teen Titans',
+  'teen tltans': 'Teen Titans',
+  'iron mar': 'Iron Man',
+  'iron mam': 'Iron Man',
+  'daredevll': 'Daredevil',
+  'daredev1l': 'Daredevil',
+  'cap7ain america': 'Captain America',
+  'captain amer1ca': 'Captain America',
+  'green lanlern': 'Green Lantern',
+  'green 1antern': 'Green Lantern',
+  'swamp th1ng': 'Swamp Thing',
+  'saga of the swamp th1ng': 'Saga of the Swamp Thing',
+  'new mut4nts': 'New Mutants',
+  'new mutanls': 'New Mutants',
+  'ghost r1der': 'Ghost Rider',
+  'ghost rlider': 'Ghost Rider',
+  'moon kn1ght': 'Moon Knight',
+  'moonknight': 'Moon Knight',
 };
 
 // Slab-related terms to filter out
@@ -872,13 +943,30 @@ function scoreResults(
       score *= 0.6;
     }
     
+    // REPRINT/TPB PENALTY: Reduce score for collected editions
+    // This ensures single issues rank higher than TPBs, Omnibuses, etc.
+    const resultTitleLower = resultTitle.toLowerCase();
+    const volumeNameLower = (result.volumeName || '').toLowerCase();
+    const combinedTitle = resultTitleLower + ' ' + volumeNameLower;
+    
+    let isReprint = false;
+    for (const keyword of REPRINT_KEYWORDS) {
+      if (combinedTitle.includes(keyword)) {
+        isReprint = true;
+        score = Math.max(0.20, score - 0.25); // Heavy penalty for reprints
+        console.log('[SCAN-ITEM] Reprint penalty applied for:', result.title, 'keyword:', keyword);
+        break;
+      }
+    }
+    
     return {
       ...result,
       score: Math.round(score * 100) / 100,
       scoreBreakdown: breakdown,
       matchMode: 'search',
       _hasExactYear: breakdown.year >= 0.15,
-      _hasExactIssue: breakdown.issue >= 0.25
+      _hasExactIssue: breakdown.issue >= 0.25,
+      isReprint, // Flag for UI to show/hide
     };
   })
   .filter(r => r.score >= 0.30) // Slightly lower threshold since we're more discriminating
@@ -1082,17 +1170,55 @@ serve(async (req) => {
     console.log('[SCAN-ITEM] Extracted:', { title, issue, publisher, year, isSlab, extractionMethod, variantInfo });
 
     let results: any[] = [];
+    let searchStrategy = 'primary';
     
     if (title) {
-      // Search ComicVine with extracted data - NOW PASSES YEAR for vintage mode
+      // PASS 1: Primary search with extracted data (includes year for vintage mode)
       results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher, year);
-      
-      // Score results - NOW INCLUDES YEAR for proper vintage comic matching!
       results = scoreResults(results, title, issue, publisher, year);
       
-      console.log('[SCAN-ITEM] Final results count:', results.length);
+      console.log('[SCAN-ITEM] Pass 1 results count:', results.length);
       if (results.length > 0) {
-        console.log('[SCAN-ITEM] Top result:', results[0].title, '#' + results[0].issue, 'score:', results[0].score);
+        console.log('[SCAN-ITEM] Pass 1 top result:', results[0].title, '#' + results[0].issue, 'score:', results[0].score);
+      }
+      
+      // PASS 2: Multi-pass fallback if confidence < 60% or no results
+      const topScore1 = results.length > 0 ? results[0].score : 0;
+      if (topScore1 < 0.60 || results.length === 0) {
+        console.log('[SCAN-ITEM] Triggering multi-pass fallback (score:', topScore1, ')');
+        searchStrategy = 'multi_pass';
+        
+        // Try alternative queries:
+        // 2a: Title only (no issue, no publisher)
+        const titleOnlyResults = await searchComicVine(COMICVINE_API_KEY, title, null, null, year);
+        const scoredTitleOnly = scoreResults(titleOnlyResults, title, issue, publisher, year);
+        
+        // 2b: If title has multiple words, try main word only
+        const titleWords = title.split(/\s+/);
+        let mainWordResults: any[] = [];
+        if (titleWords.length >= 2) {
+          // Find longest word as main title word
+          const mainWord = titleWords.reduce((a, b) => a.length > b.length ? a : b);
+          if (mainWord.length >= 4 && mainWord.toLowerCase() !== title.toLowerCase()) {
+            console.log('[SCAN-ITEM] Pass 2b: trying main word:', mainWord);
+            mainWordResults = await searchComicVine(COMICVINE_API_KEY, mainWord, issue, null, year);
+            mainWordResults = scoreResults(mainWordResults, title, issue, publisher, year);
+          }
+        }
+        
+        // Merge and dedupe all results
+        const allResults = [...results, ...scoredTitleOnly, ...mainWordResults];
+        const seenIds = new Set<number>();
+        results = allResults.filter(r => {
+          if (seenIds.has(r.id)) return false;
+          seenIds.add(r.id);
+          return true;
+        }).sort((a, b) => b.score - a.score);
+        
+        console.log('[SCAN-ITEM] Multi-pass combined results:', results.length);
+        if (results.length > 0) {
+          console.log('[SCAN-ITEM] Multi-pass top result:', results[0].title, '#' + results[0].issue, 'score:', results[0].score);
+        }
       }
     } else {
       console.log('[SCAN-ITEM] No title extracted, returning empty results');
