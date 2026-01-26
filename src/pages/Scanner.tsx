@@ -1092,6 +1092,55 @@ export default function Scanner() {
           isManualEntry={isManualEntry}
           variantInfo={variantInfo}
           source={scanSource}
+          topMatches={topMatches.length > 0 ? topMatches.map(m => ({
+            id: m.comicvine_issue_id,
+            comicvine_issue_id: m.comicvine_issue_id,
+            comicvine_volume_id: m.comicvine_volume_id,
+            title: m.series,
+            issue: m.issue,
+            year: m.year,
+            publisher: m.publisher,
+            coverUrl: m.coverUrl,
+            confidence: m.confidence
+          })) : (debugData.candidates || []).slice(0, 6).map((c, idx) => ({
+            id: idx,
+            title: c.series,
+            issue: c.issue,
+            year: c.year,
+            publisher: c.publisher,
+            coverUrl: null,
+            confidence: c.confidence
+          }))}
+          onSelectMatch={(match) => {
+            console.log('[SCANNER] Inline candidate selected:', match);
+            const pick: ComicVinePick = {
+              id: match.comicvine_issue_id || match.id,
+              resource: 'issue' as const,
+              title: match.title,
+              issue: match.issue,
+              year: match.year || null,
+              publisher: match.publisher || null,
+              volumeName: match.title,
+              volumeId: match.comicvine_volume_id || 0,
+              thumbUrl: match.coverUrl || '',
+              coverUrl: match.coverUrl || '',
+              score: match.confidence / 100,
+              isReprint: false,
+              source: 'comicvine' as const
+            };
+            
+            setSelectedPick(pick);
+            setPrefillData({
+              title: match.title,
+              issueNumber: match.issue || undefined,
+              publisher: match.publisher || undefined,
+              year: match.year || undefined,
+              comicvineId: match.comicvine_issue_id || match.id,
+              comicvineCoverUrl: match.coverUrl || undefined
+            });
+            
+            setScannerState("confirm");
+          }}
         />
       )}
 
