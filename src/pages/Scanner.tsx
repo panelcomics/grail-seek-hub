@@ -928,7 +928,8 @@ export default function Scanner() {
       
       const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
         body: { 
-          query: searchQuery,
+          searchText: searchQuery,
+          publisher: publisher || undefined,
           issueNumber: issue || null,
           year: year ? parseInt(year) : null
         }
