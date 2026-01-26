@@ -140,6 +140,7 @@ export function ListingsGrid({ filterType, applyFairness = true }: ListingsGridP
             imageRotation={item.primary_image_rotation}
             priority={index < 6}
             sellerId={profile?.user_id}
+            restorationMarkers={(item.inventory_items as any)?.restoration_markers || (item as any)?.restoration_markers}
           />
         );
       })}
