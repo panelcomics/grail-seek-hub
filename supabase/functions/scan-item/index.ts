@@ -551,7 +551,8 @@ async function searchComicVine(
   apiKey: string, 
   title: string, 
   issue: string | null,
-  publisher: string | null
+  publisher: string | null,
+  year: number | null = null // NEW: target year for vintage filtering
 ): Promise<any[]> {
   const results: any[] = [];
   
@@ -564,9 +565,9 @@ async function searchComicVine(
     searchQuery = `${searchQuery} ${publisher}`;
   }
   
-  console.log('[SCAN-ITEM] ComicVine search query:', searchQuery);
+  console.log('[SCAN-ITEM] ComicVine search query:', searchQuery, 'target year:', year);
   
-  // Search for issues directly (better for matching specific issues)
+  // STRATEGY 1: Direct issue search
   const issueSearchUrl = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=issue&query=${encodeURIComponent(searchQuery)}&field_list=id,name,issue_number,volume,cover_date,image&limit=15`;
   
   console.log('[SCAN-ITEM] ComicVine issue search URL:', issueSearchUrl);
@@ -605,8 +606,93 @@ async function searchComicVine(
     console.warn('[SCAN-ITEM] Issue search error:', err.message);
   }
   
-  // If we have a specific issue number, also try volume search + issue filter
-  if (issue && results.length < 5) {
+  // STRATEGY 2: For VINTAGE comics (pre-1980), do volume search with year priority
+  // This helps find Silver/Bronze age comics that may not rank high in general search
+  const isVintage = year && year < 1985;
+  
+  if (isVintage && issue) {
+    console.log('[SCAN-ITEM] VINTAGE MODE: Searching for volumes from', year, '±5 years');
+    
+    // Search for volumes by title only (more likely to find vintage runs)
+    const vintageVolumeUrl = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(title)}&field_list=id,name,publisher,start_year,count_of_issues&limit=15`;
+    
+    try {
+      const volResponse = await withTimeout(
+        fetch(vintageVolumeUrl, {
+          headers: { 'User-Agent': 'GrailSeeker-Scanner/1.0' }
+        }),
+        15000,
+        'ComicVine vintage volume search'
+      );
+      
+      if (volResponse.ok) {
+        const volData = await volResponse.json();
+        const volumes = volData.results || [];
+        console.log('[SCAN-ITEM] Found', volumes.length, 'volumes for vintage search');
+        
+        // PRIORITIZE volumes that started near the target year
+        const sortedVolumes = volumes.sort((a: any, b: any) => {
+          const aYear = a.start_year || 2100;
+          const bYear = b.start_year || 2100;
+          const aDiff = Math.abs(aYear - (year || 1964));
+          const bDiff = Math.abs(bYear - (year || 1964));
+          return aDiff - bDiff; // Sort by closest to target year
+        });
+        
+        console.log('[SCAN-ITEM] Vintage volumes sorted by year proximity:', 
+          sortedVolumes.slice(0, 5).map((v: any) => `${v.name} (${v.start_year})`).join(', '));
+        
+        // Query top 5 volumes (sorted by year proximity) for the specific issue
+        for (const vol of sortedVolumes.slice(0, 5)) {
+          // Skip volumes that started way after our target year
+          if (vol.start_year && vol.start_year > (year + 5)) {
+            console.log('[SCAN-ITEM] Skipping volume', vol.name, 'start_year', vol.start_year, '> target+5');
+            continue;
+          }
+          
+          const issueUrl = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${vol.id},issue_number:${issue}&field_list=id,name,issue_number,volume,cover_date,image&limit=3`;
+          
+          try {
+            const issueResponse = await fetch(issueUrl, {
+              headers: { 'User-Agent': 'GrailSeeker-Scanner/1.0' }
+            });
+            
+            if (issueResponse.ok) {
+              const issueData = await issueResponse.json();
+              console.log('[SCAN-ITEM] Volume', vol.name, 'has', issueData.results?.length || 0, 'matching issues');
+              
+              for (const item of (issueData.results || [])) {
+                const exists = results.some(r => r.id === item.id);
+                if (!exists) {
+                  results.push({
+                    id: item.id,
+                    resource: 'issue',
+                    title: item.volume?.name || vol.name || '',
+                    issue: item.issue_number || '',
+                    year: item.cover_date ? parseInt(item.cover_date.slice(0, 4)) : null,
+                    publisher: vol.publisher?.name || publisher || '',
+                    volumeName: vol.name || '',
+                    volumeId: vol.id,
+                    variantDescription: '',
+                    thumbUrl: item.image?.small_url || '',
+                    coverUrl: item.image?.original_url || '',
+                    source: 'vintage_volume'
+                  });
+                }
+              }
+            }
+          } catch (err: any) {
+            console.warn('[SCAN-ITEM] Vintage issue fetch error for volume', vol.id, ':', err.message);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[SCAN-ITEM] Vintage volume search error:', err.message);
+    }
+  }
+  
+  // STRATEGY 3: Standard volume + issue approach (if we have an issue and need more results)
+  if (issue && results.length < 5 && !isVintage) {
     console.log('[SCAN-ITEM] Trying volume + issue approach...');
     
     const volumeUrl = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(title)}&field_list=id,name,publisher,start_year,count_of_issues&limit=10`;
@@ -998,8 +1084,8 @@ serve(async (req) => {
     let results: any[] = [];
     
     if (title) {
-      // Search ComicVine with extracted data
-      results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher);
+      // Search ComicVine with extracted data - NOW PASSES YEAR for vintage mode
+      results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher, year);
       
       // Score results - NOW INCLUDES YEAR for proper vintage comic matching!
       results = scoreResults(results, title, issue, publisher, year);
