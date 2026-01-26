@@ -98,9 +98,10 @@ const MyCollection = () => {
       if (error) throw error;
 
       // Map inventory_items to have image from unified JSONB structure {primary, others}
+      // Also fallback to 'front' key for older scans saved with previous format
       const comicsWithImages = (data || []).map((item) => ({
         ...item,
-        image_url: (item.images as any)?.primary || null,
+        image_url: (item.images as any)?.primary || (item.images as any)?.front || null,
         // Map fields for compatibility
         added_at: item.created_at,
         condition_notes: item.condition,
