@@ -3,6 +3,9 @@
  * ==========================================================================
  * Uses Lovable AI vision models to compare a scanned comic cover against
  * candidate covers from ComicVine. Cost-controlled with monthly limits.
+ * 
+ * NEW: Identification Mode - When all candidates have very low scores,
+ * the AI will attempt to identify the comic directly from the cover image.
  * ==========================================================================
  */
 
@@ -30,6 +33,7 @@ interface VisionMatchRequest {
   triggeredBy: "auto_low_confidence" | "multiple_candidates" | "user_correction";
   scanEventId?: string;
   userId?: string;
+  forceIdentification?: boolean; // Skip comparison, go straight to identification
 }
 
 interface VisionMatchResult {
@@ -43,6 +47,13 @@ interface VisionMatchResult {
   visionOverrideApplied: boolean;
   limitReached: boolean;
   candidatesCompared: number;
+  // NEW: Identification mode results
+  identificationMode?: boolean;
+  identifiedTitle?: string | null;
+  identifiedIssue?: string | null;
+  identifiedPublisher?: string | null;
+  identifiedCharacter?: string | null;
+  identificationConfidence?: number;
 }
 
 serve(async (req) => {
@@ -101,21 +112,199 @@ serve(async (req) => {
     }
 
     const body: VisionMatchRequest = await req.json();
-    const { scanImageBase64, candidates, triggeredBy, scanEventId, userId } = body;
+    const { scanImageBase64, candidates, triggeredBy, scanEventId, userId, forceIdentification } = body;
 
-    if (!scanImageBase64 || !candidates || candidates.length === 0) {
+    if (!scanImageBase64) {
       return new Response(
-        JSON.stringify({ error: "Missing scanImageBase64 or candidates" }),
+        JSON.stringify({ error: "Missing scanImageBase64" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Limit to top 15 candidates max
-    const topCandidates = candidates.slice(0, 15);
+    // Check if we should use identification mode:
+    // 1. Force identification requested
+    // 2. No candidates provided
+    // 3. All candidates have very low scores (< 0.5)
+    const topCandidates = candidates?.slice(0, 15) || [];
     const candidatesCount = topCandidates.length;
+    const maxCandidateScore = Math.max(...topCandidates.map(c => c.score || 0), 0);
+    const shouldIdentify = forceIdentification || candidatesCount === 0 || maxCandidateScore < 0.5;
 
-    console.log(`[VISION-MATCH] Comparing scan against ${candidatesCount} candidates`);
+    console.log(`[VISION-MATCH] candidates: ${candidatesCount}, maxScore: ${maxCandidateScore.toFixed(2)}, shouldIdentify: ${shouldIdentify}`);
     console.log(`[VISION-MATCH] triggered_by: ${triggeredBy}`);
+
+    // ========================================================================
+    // IDENTIFICATION MODE: Ask AI to identify the comic directly
+    // ========================================================================
+    if (shouldIdentify) {
+      console.log("[VISION-MATCH] Entering IDENTIFICATION MODE - asking AI to identify comic directly");
+
+      const identificationPrompt = `You are an expert comic book collector and dealer. Look at this comic book cover image and identify it.
+
+Analyze the image carefully and look for:
+1. The main character(s) depicted (costume, powers, distinctive features)
+2. Any visible title text (may be stylized or hard to read)
+3. Issue number (often in corners or near title)
+4. Publisher logo (Marvel, DC, Image, etc.)
+5. Artist style and era
+
+Based on what you see, provide your best identification in this JSON format:
+{
+  "identified_title": "The comic series title (e.g., 'Power Girl', 'Batman', 'X-Men')",
+  "identified_issue": "Issue number if visible, or null",
+  "identified_publisher": "Publisher (DC, Marvel, Image, etc.)",
+  "identified_character": "Main character name if recognizable",
+  "confidence": 0.0 to 1.0 score of how confident you are,
+  "reasoning": "Brief explanation of how you identified this"
+}
+
+Common character identifications:
+- White costume with red cape, large chest window = Power Girl (DC)
+- Red/blue with S symbol = Superman (DC)
+- Bat costume, pointed ears = Batman (DC)
+- Red/blue spider web pattern = Spider-Man (Marvel)
+- Yellow/blue or blue/gold with X = X-Men (Marvel)
+- Green with ring = Green Lantern (DC)
+
+If this appears to be a variant cover (artistic rendition with minimal text), still identify the character/series.
+If you cannot identify the comic at all, set confidence to 0.`;
+
+      const identifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: identificationPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Please identify this comic book cover:" },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: scanImageBase64.startsWith("data:") 
+                      ? scanImageBase64 
+                      : `data:image/jpeg;base64,${scanImageBase64}`,
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 500,
+        }),
+      });
+
+      if (!identifyResponse.ok) {
+        const errorText = await identifyResponse.text();
+        console.error("[VISION-MATCH] Identification API error:", identifyResponse.status, errorText);
+        
+        // Log failed attempt
+        await supabase.from("scan_vision_usage").insert({
+          scan_event_id: scanEventId,
+          user_id: userId || null,
+          triggered_by: triggeredBy,
+          candidates_compared: 0,
+          similarity_score: 0,
+          matched_comic_id: null,
+          vision_override_applied: false,
+        });
+
+        return new Response(
+          JSON.stringify({
+            bestMatchComicId: null,
+            bestMatchTitle: null,
+            bestMatchIssue: null,
+            bestMatchPublisher: null,
+            bestMatchYear: null,
+            bestMatchCoverUrl: null,
+            similarityScore: 0,
+            visionOverrideApplied: false,
+            limitReached: false,
+            candidatesCompared: 0,
+            identificationMode: true,
+            error: "Vision API temporarily unavailable",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const aiResponse = await identifyResponse.json();
+      const content = aiResponse.choices?.[0]?.message?.content || "";
+      
+      console.log("[VISION-MATCH] Identification response:", content);
+
+      // Parse identification result
+      let identifiedTitle: string | null = null;
+      let identifiedIssue: string | null = null;
+      let identifiedPublisher: string | null = null;
+      let identifiedCharacter: string | null = null;
+      let identificationConfidence = 0;
+      let reasoning = "";
+
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          identifiedTitle = parsed.identified_title || null;
+          identifiedIssue = parsed.identified_issue || null;
+          identifiedPublisher = parsed.identified_publisher || null;
+          identifiedCharacter = parsed.identified_character || null;
+          identificationConfidence = parsed.confidence || 0;
+          reasoning = parsed.reasoning || "";
+        }
+      } catch (parseError) {
+        console.error("[VISION-MATCH] Failed to parse identification response:", parseError);
+      }
+
+      console.log(`[VISION-MATCH] Identified: "${identifiedTitle}" #${identifiedIssue} by ${identifiedPublisher}, character: ${identifiedCharacter}, confidence: ${identificationConfidence}`);
+      if (reasoning) {
+        console.log(`[VISION-MATCH] Reasoning: ${reasoning}`);
+      }
+
+      // Log usage for identification mode
+      await supabase.from("scan_vision_usage").insert({
+        scan_event_id: scanEventId,
+        user_id: userId || null,
+        triggered_by: triggeredBy,
+        candidates_compared: 0,
+        similarity_score: identificationConfidence,
+        matched_comic_id: null,
+        matched_title: identifiedTitle,
+        vision_override_applied: identificationConfidence >= 0.7,
+      });
+
+      return new Response(
+        JSON.stringify({
+          bestMatchComicId: null,
+          bestMatchTitle: null,
+          bestMatchIssue: null,
+          bestMatchPublisher: null,
+          bestMatchYear: null,
+          bestMatchCoverUrl: null,
+          similarityScore: 0,
+          visionOverrideApplied: false,
+          limitReached: false,
+          candidatesCompared: 0,
+          // Identification results
+          identificationMode: true,
+          identifiedTitle,
+          identifiedIssue,
+          identifiedPublisher,
+          identifiedCharacter,
+          identificationConfidence,
+        } as VisionMatchResult),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ========================================================================
+    // COMPARISON MODE: Compare against candidate covers
+    // ========================================================================
+    console.log(`[VISION-MATCH] COMPARISON MODE - comparing against ${candidatesCount} candidates`);
 
     // Build the prompt for cover comparison
     const candidateDescriptions = topCandidates.map((c, i) => 
