@@ -298,6 +298,7 @@ export default function Scanner() {
           comicvineQuery: "",
           strategy: data.fallbackPath || "issue-search",
           candidates: picks.map((p: any) => ({
+            id: p.id,
             series: p.volumeName || p.title,
             issue: p.issue,
             year: p.year,
@@ -305,7 +306,10 @@ export default function Scanner() {
             confidence: Math.round((p.score || 0) * 100),
             fallbackPath: data.fallbackPath,
             hasExactYear: p._hasExactYear,
-            hasExactIssue: p._hasExactIssue
+            hasExactIssue: p._hasExactIssue,
+            coverUrl: p.coverUrl || p.thumbUrl || null, // Preserve cover URL!
+            comicvine_issue_id: p.id,
+            comicvine_volume_id: p.volumeId
           })),
           timings: data.timings || {}
         });
@@ -1102,13 +1106,15 @@ export default function Scanner() {
             publisher: m.publisher,
             coverUrl: m.coverUrl,
             confidence: m.confidence
-          })) : (debugData.candidates || []).slice(0, 6).map((c, idx) => ({
-            id: idx,
+          })) : (debugData.candidates || []).slice(0, 6).map((c: any) => ({
+            id: c.id || c.comicvine_issue_id,
+            comicvine_issue_id: c.comicvine_issue_id || c.id,
+            comicvine_volume_id: c.comicvine_volume_id,
             title: c.series,
             issue: c.issue,
             year: c.year,
             publisher: c.publisher,
-            coverUrl: null,
+            coverUrl: c.coverUrl || null, // Now correctly mapped!
             confidence: c.confidence
           }))}
           onSelectMatch={(match) => {

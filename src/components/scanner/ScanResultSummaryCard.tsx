@@ -274,21 +274,36 @@ export function ScanResultSummaryCard({
             showContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
           )}
         >
-          {/* Main content: Cover + Info */}
-          <div className="flex gap-6 mb-6">
-            {/* Cover Image - Visually dominant */}
+          {/* Main content: Your Photo + Match Cover + Info */}
+          <div className="flex gap-4 mb-6">
+            {/* YOUR SCANNED PHOTO - Always show if available */}
+            {previewImage && (
+              <div className="flex-shrink-0">
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-center">Your Photo</p>
+                <div className="w-20 h-28 md:w-24 md:h-36 rounded-lg overflow-hidden bg-muted border-2 border-primary/30 shadow-md">
+                  <img
+                    src={previewImage}
+                    alt="Your scanned photo"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Match Cover Image */}
             <div className="flex-shrink-0">
-              <div className="w-28 h-40 md:w-36 md:h-52 rounded-lg overflow-hidden bg-muted border-2 border-border shadow-lg">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-center">Match</p>
+              <div className="w-20 h-28 md:w-24 md:h-36 rounded-lg overflow-hidden bg-muted border-2 border-border shadow-lg">
                 {coverImage ? (
                   <img
                     src={coverImage}
-                    alt="Scanned cover"
+                    alt="Matched cover"
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <div className="text-center text-xs p-2">
-                      <div className="w-12 h-16 mx-auto mb-2 border-2 border-dashed border-muted-foreground/30 rounded" />
+                      <div className="w-10 h-14 mx-auto mb-1 border-2 border-dashed border-muted-foreground/30 rounded" />
                       Cover
                     </div>
                   </div>
