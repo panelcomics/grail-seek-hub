@@ -81,6 +81,7 @@ const VINTAGE_VOLUME_MAP: Record<string, { volumeId: number; startYear: number; 
   'tales to astonish': { volumeId: 7894, startYear: 1959, volumeName: 'Tales to Astonish' }, // Hulk/Ant-Man
   'strange tales': { volumeId: 7899, startYear: 1951, volumeName: 'Strange Tales' }, // Dr. Strange/Nick Fury
   'incredible hulk': { volumeId: 2002, startYear: 1962, volumeName: 'The Incredible Hulk' },
+  'hulk': { volumeId: 18099, startYear: 2008, volumeName: 'Hulk' }, // 2008 Red Hulk series
   'daredevil': { volumeId: 2017, startYear: 1964, volumeName: 'Daredevil' },
   'batman': { volumeId: 796, startYear: 1940, volumeName: 'Batman' },
   'detective comics': { volumeId: 795, startYear: 1937, volumeName: 'Detective Comics' },
@@ -129,8 +130,8 @@ const KNOWN_TITLE_PATTERNS = [
   'Amazing Spider-Man', 'Spectacular Spider-Man', 'Web of Spider-Man', 'Spider-Man',
   'Uncanny X-Men', 'X-Men', 'New Mutants', 'X-Force', 'Wolverine', 'Cable',
   'Avengers', 'New Avengers', 'West Coast Avengers', 'Mighty Avengers',
-  'Fantastic Four', 'Incredible Hulk', 'Iron Man', 'Thor', 'Captain America',
-  'Daredevil', 'Punisher', 'Ghost Rider', 'Moon Knight', 'Blade',
+  'Fantastic Four', 'Incredible Hulk', 'Hulk', 'Iron Man', 'Thor', 'Captain America',
+  'Daredevil', 'Punisher', 'Ghost Rider', 'Moon Knight', 'Blade', 'She-Hulk',
   'Batman', 'Detective Comics', 'Superman', 'Action Comics', 'Wonder Woman',
   'Justice League', 'Green Lantern', 'Flash', 'Aquaman', 'Teen Titans',
   'Swamp Thing', 'Saga of the Swamp Thing', 'Hellblazer', 'Sandman', 'Preacher',
@@ -201,6 +202,10 @@ const OCR_TYPO_MAP: Record<string, string> = {
   'incredible hu1k': 'Incredible Hulk',
   'incredib1e hulk': 'Incredible Hulk',
   'incred1ble hulk': 'Incredible Hulk',
+  // HULK (2008 series) - Red Hulk's first appearance
+  'hulk': 'Hulk',
+  'hu1k': 'Hulk',
+  'hullk': 'Hulk',
   // Avengers variants
   'avengcrs': 'Avengers',
   'avenger5': 'Avengers',
