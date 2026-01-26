@@ -1,11 +1,16 @@
 /**
  * VISION MATCH EDGE FUNCTION
  * ==========================================================================
- * Uses Lovable AI vision models to compare a scanned comic cover against
- * candidate covers from ComicVine. Cost-controlled with monthly limits.
+ * VISION-FIRST MODE: Uses Lovable AI vision models to identify comic covers.
  * 
- * NEW: Identification Mode - When all candidates have very low scores,
- * the AI will attempt to identify the comic directly from the cover image.
+ * This function now runs as the PRIMARY identification method, not just a fallback.
+ * Combined with auto-learning, vision results are cached to reduce future API calls.
+ * 
+ * MODES:
+ * 1. COMPARISON: Compare scanned cover against ComicVine candidates (when candidates exist)
+ * 2. IDENTIFICATION: Directly identify the comic from the cover image (no candidates or low scores)
+ * 
+ * AUTO-LEARNING: Results are cached in scan_corrections table by the client
  * ==========================================================================
  */
 

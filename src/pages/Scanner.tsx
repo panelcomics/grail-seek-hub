@@ -83,13 +83,20 @@ export default function Scanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   
-  // Vision match hook for cover image similarity
-  const { runVisionMatch, shouldTriggerVision, isLoading: visionLoading } = useVisionMatch();
+  // Vision match hook for cover image similarity with auto-learning
+  const { 
+    runVisionMatch, 
+    shouldTriggerVision, 
+    saveVisionResultToCache,
+    isLoading: visionLoading 
+  } = useVisionMatch();
   
   // CRITICAL FIX: Store uploaded URL in ref to avoid React state timing issues
   const uploadedImageUrlRef = useRef<string | null>(null);
   // Store compressed image for vision matching
   const compressedImageRef = useRef<string | null>(null);
+  // Store OCR text for auto-learning cache
+  const ocrTextRef = useRef<string | null>(null);
 
   // New UX state machine
   const [scannerState, setScannerState] = useState<ScannerState>("idle");
@@ -288,18 +295,25 @@ export default function Scanner() {
         let pickConfidence = topPick.score || 0;
         let matchSource = data.source || undefined;
         
-        // VISION MATCHING: Check if we should trigger cover image comparison
-        // Pass OCR extracted title/issue for sanity checks (catches "confidently wrong" OCR)
+        // Store OCR text for auto-learning
+        ocrTextRef.current = data.ocr || null;
+        
+        // Check if we have a cache hit from scan_corrections (already verified match)
+        const hasCacheHit = data.source === 'correction_override';
+        
+        // VISION-FIRST MATCHING: Check if we should trigger cover image comparison
+        // Pass OCR extracted title/issue for sanity checks AND cache hit status
         const visionCheck = shouldTriggerVision(
           pickConfidence, 
           picks, 
           false,
           data.extracted?.title,
-          data.extracted?.issueNumber
+          data.extracted?.issueNumber,
+          hasCacheHit // Skip vision if we have a cached result
         );
         
         if (visionCheck.should && visionCheck.reason && compressedImageRef.current) {
-          console.log(`[SCANNER] Triggering vision match: ${visionCheck.reason}`);
+          console.log(`[SCANNER] VISION-FIRST: Triggering vision match (${visionCheck.reason})`);
           
           try {
             const visionResult = await runVisionMatch(
@@ -313,20 +327,35 @@ export default function Scanner() {
               // Apply vision override - update the selected pick
               const updatedPick = applyVisionOverride(topPick, picks, visionResult);
               
-              if (updatedPick && updatedPick.id !== topPick.id) {
-                console.log(`[SCANNER] Vision override applied: ${updatedPick.title} #${updatedPick.issue}`);
+              if (updatedPick) {
+                console.log(`[SCANNER] Vision matched: ${updatedPick.volumeName || updatedPick.title} #${updatedPick.issue}`);
                 
                 // Move the vision-matched pick to the top
-                picks = [updatedPick, ...picks.filter(p => p.id !== updatedPick.id)];
+                if (updatedPick.id !== topPick.id) {
+                  picks = [updatedPick, ...picks.filter(p => p.id !== updatedPick.id)];
+                }
                 topPick = updatedPick;
                 pickConfidence = visionResult.similarityScore;
                 matchSource = 'vision';
+                
+                // AUTO-LEARN: Save vision result to cache for future scans
+                // This makes future scans of similar covers instant (no vision call needed)
+                if (ocrTextRef.current && visionResult.similarityScore >= 0.70) {
+                  console.log(`[SCANNER] AUTO-LEARNING: Saving vision result to cache`);
+                  saveVisionResultToCache(
+                    ocrTextRef.current,
+                    updatedPick,
+                    visionResult.similarityScore
+                  );
+                }
               }
             }
           } catch (visionError) {
             console.error('[SCANNER] Vision match failed:', visionError);
             // Continue with OCR result
           }
+        } else if (hasCacheHit) {
+          console.log(`[SCANNER] CACHE HIT: Using learned match (skipped vision)`);
         }
         
         setConfidence(pickConfidence);

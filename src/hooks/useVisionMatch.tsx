@@ -1,16 +1,17 @@
 /**
  * VISION MATCH HOOK
  * ==========================================================================
- * Hook for calling the vision-match edge function to compare scanned covers
- * against ComicVine candidates using Lovable AI vision models.
+ * Vision-First Scanner with Auto-Learning
  * 
- * Cost-controlled: Only triggers when:
- * 1. OCR confidence < 0.75
- * 2. Multiple candidates with gap < 0.10
- * 3. User taps "Wrong comic? Fix it"
+ * STRATEGY:
+ * 1. CACHE CHECK: First check scan_corrections for user-verified matches
+ * 2. VISION-FIRST: If no cache hit, ALWAYS use vision matching
+ * 3. AUTO-LEARN: Save vision results to scan_corrections for future cache hits
  * 
- * NEW: Identification Mode - When all candidates have very low scores,
- * the AI will identify the comic directly and search for it.
+ * This creates a learning loop:
+ * - Vision identifies comic → saved to cache
+ * - Next scan of same OCR text → cache hit → no vision call needed
+ * - Over time, popular comics are cached and vision costs decrease
  * ==========================================================================
  */
 
@@ -20,10 +21,13 @@ import { ComicVinePick } from "@/types/comicvine";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Vision matching thresholds
-export const VISION_CONFIDENCE_THRESHOLD = 0.80; // Trigger if OCR confidence below this
+export const VISION_CONFIDENCE_THRESHOLD = 0.80; // Cache hit threshold
 export const VISION_CANDIDATE_GAP_THRESHOLD = 0.10; // Trigger if gap between top 2 candidates < this
 export const VISION_OVERRIDE_THRESHOLD = 0.85; // Override OCR result if vision score >= this
 export const VISION_IDENTIFICATION_THRESHOLD = 0.50; // Candidates below this score trigger identification mode
+
+// VISION-FIRST MODE: Always trigger vision unless we have a cache hit
+export const VISION_FIRST_MODE = true;
 
 // Known publishers - trigger vision if title is ONLY a publisher name
 const PUBLISHER_NAMES = new Set([
@@ -32,7 +36,7 @@ const PUBLISHER_NAMES = new Set([
   'aftershock', 'scout', 'titan', 'vault', 'mad cave', 'ablaze'
 ]);
 
-type VisionTriggerReason = "auto_low_confidence" | "multiple_candidates" | "user_correction" | "sanity_check";
+type VisionTriggerReason = "auto_low_confidence" | "multiple_candidates" | "user_correction" | "sanity_check" | "vision_first";
 
 interface VisionMatchResult {
   bestMatchComicId: number | null;
@@ -72,6 +76,11 @@ interface UseVisionMatchReturn {
     scanImageBase64: string,
     scanEventId?: string
   ) => Promise<IdentificationSearchResult | null>;
+  saveVisionResultToCache: (
+    ocrText: string,
+    pick: ComicVinePick,
+    visionConfidence: number
+  ) => Promise<void>;
   isLoading: boolean;
   lastResult: VisionMatchResult | null;
   shouldTriggerVision: (
@@ -79,7 +88,8 @@ interface UseVisionMatchReturn {
     candidates: ComicVinePick[],
     userTriggered?: boolean,
     ocrExtractedTitle?: string,
-    ocrExtractedIssue?: string | null
+    ocrExtractedIssue?: string | null,
+    hasCacheHit?: boolean
   ) => { should: boolean; reason: VisionTriggerReason | null };
 }
 
@@ -90,6 +100,7 @@ export function useVisionMatch(): UseVisionMatchReturn {
 
   /**
    * Determine if vision matching should be triggered
+   * VISION-FIRST MODE: Always trigger unless we have a cache hit
    */
   const shouldTriggerVision = useCallback(
     (
@@ -97,7 +108,8 @@ export function useVisionMatch(): UseVisionMatchReturn {
       candidates: ComicVinePick[],
       userTriggered = false,
       ocrExtractedTitle?: string,
-      ocrExtractedIssue?: string | null
+      ocrExtractedIssue?: string | null,
+      hasCacheHit = false // NEW: Skip vision if we already have a cached result
     ): { should: boolean; reason: VisionTriggerReason | null } => {
       // User explicitly triggered (Wrong comic? Fix it)
       if (userTriggered) {
@@ -105,6 +117,20 @@ export function useVisionMatch(): UseVisionMatchReturn {
         return { should: true, reason: "user_correction" };
       }
 
+      // CACHE HIT: Skip vision if we have a verified cached result
+      if (hasCacheHit) {
+        console.log("[VISION-MATCH] Cache hit - skipping vision (learned match)");
+        return { should: false, reason: null };
+      }
+
+      // VISION-FIRST MODE: Always trigger vision for new scans
+      if (VISION_FIRST_MODE) {
+        console.log("[VISION-MATCH] VISION-FIRST mode - triggering vision matching");
+        return { should: true, reason: "vision_first" };
+      }
+
+      // ===== LEGACY FALLBACK LOGIC (only used if VISION_FIRST_MODE is false) =====
+      
       // No candidates = trigger identification mode
       if (candidates.length === 0) {
         console.log("[VISION-MATCH] No candidates - will trigger identification mode");
@@ -463,9 +489,78 @@ export function useVisionMatch(): UseVisionMatchReturn {
     [user?.id, runVisionIdentification]
   );
 
+  /**
+   * AUTO-LEARNING: Save vision result to scan_corrections cache
+   * This allows future scans with the same OCR text to skip vision matching
+   */
+  const saveVisionResultToCache = useCallback(
+    async (
+      ocrText: string,
+      pick: ComicVinePick,
+      visionConfidence: number
+    ) => {
+      if (!ocrText || !pick.id) {
+        console.log("[VISION-MATCH] Cannot save to cache - missing ocrText or pick.id");
+        return;
+      }
+
+      // Normalize the OCR text for consistent cache lookups
+      const normalizedInput = ocrText.toLowerCase().trim();
+      
+      // Only cache if vision was confident enough
+      if (visionConfidence < 0.70) {
+        console.log(`[VISION-MATCH] Not caching - vision confidence too low (${visionConfidence.toFixed(2)})`);
+        return;
+      }
+
+      try {
+        // Check if we already have a cached result for this input
+        const { data: existing } = await supabase
+          .from('scan_corrections')
+          .select('id')
+          .eq('normalized_input', normalizedInput)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          console.log(`[VISION-MATCH] Cache already exists for: "${normalizedInput}"`);
+          return;
+        }
+
+        // Save to cache
+        const correctionPayload = {
+          user_id: user?.id || null,
+          input_text: ocrText,
+          normalized_input: normalizedInput,
+          selected_comicvine_id: pick.id,
+          selected_volume_id: pick.volumeId || null,
+          selected_title: pick.volumeName || pick.title,
+          selected_issue: pick.issue || null,
+          selected_year: pick.year || null,
+          selected_publisher: pick.publisher || null,
+          selected_cover_url: pick.coverUrl || pick.thumbUrl || null,
+          original_confidence: Math.round(visionConfidence * 100),
+        };
+
+        const { error } = await supabase
+          .from('scan_corrections')
+          .insert(correctionPayload as any);
+
+        if (error) {
+          console.error('[VISION-MATCH] Failed to save to cache:', error);
+        } else {
+          console.log(`[VISION-MATCH] AUTO-LEARNED: Saved "${pick.volumeName} #${pick.issue}" to cache for OCR: "${normalizedInput.substring(0, 50)}..."`);
+        }
+      } catch (err) {
+        console.error('[VISION-MATCH] Cache save error:', err);
+      }
+    },
+    [user?.id]
+  );
+
   return {
     runVisionMatch,
     runVisionIdentification,
+    saveVisionResultToCache,
     isLoading,
     lastResult,
     shouldTriggerVision,
