@@ -360,59 +360,53 @@ export function ScanResultSummaryCard({
             </div>
           )}
 
-          {/* CTA Buttons - Always same order */}
-          <div className="space-y-2">
+          {/* CTA Buttons - Two large buttons for mobile */}
+          <div className="space-y-3">
+            {/* Primary: Confirm & Continue */}
             <Button 
               onClick={onConfirm} 
               size="lg" 
-              className="w-full font-semibold"
+              className="w-full h-14 text-base font-semibold"
             >
-              <PrimaryIcon className="w-4 h-4 mr-2" />
-              {buttonConfig.primary}
+              <PrimaryIcon className="w-5 h-5 mr-2" />
+              {scannerState === 'success' ? 'Set Price & Condition' : 'Confirm & Continue'}
             </Button>
             
-            <div className="flex gap-2">
-              {isMultiMatch && onManualSearch ? (
-                <Button 
-                  onClick={onManualSearch} 
-                  variant="outline" 
-                  className="flex-1"
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Search Manually
-                </Button>
-              ) : (
-                <Button 
-                  onClick={onEdit} 
-                  variant="outline" 
-                  className="flex-1"
-                >
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit Details
-                </Button>
-              )}
+            {/* Secondary: Wrong comic? Fix it - ALWAYS VISIBLE and ALWAYS WORKS */}
+            {scannerState !== 'confirm' && scannerState !== 'success' && (
+              <Button
+                onClick={onReportWrongMatch}
+                variant="outline"
+                size="lg"
+                className="w-full h-14 text-base font-medium border-2 border-orange-400 text-orange-600 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-500 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/50 dark:hover:border-orange-500"
+              >
+                <Search className="w-5 h-5 mr-2" />
+                Wrong comic? Fix it
+              </Button>
+            )}
+            
+            {/* Tertiary actions - smaller */}
+            <div className="flex gap-2 pt-1">
+              <Button 
+                onClick={onEdit} 
+                variant="ghost" 
+                size="sm"
+                className="flex-1 text-muted-foreground"
+              >
+                <Pencil className="w-4 h-4 mr-1.5" />
+                Edit
+              </Button>
               
               <Button 
                 onClick={onScanAgain} 
                 variant="ghost" 
+                size="sm"
                 className="flex-1 text-muted-foreground"
               >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Scan Again
+                <RotateCcw className="w-4 h-4 mr-1.5" />
+                Re-scan
               </Button>
             </div>
-
-            {/* Not the right comic? - More prominent correction button */}
-            {match && match.id && onReportWrongMatch && scannerState !== 'confirm' && scannerState !== 'success' && (
-              <Button
-                onClick={onReportWrongMatch}
-                variant="outline"
-                className="w-full border-orange-300 text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/50"
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Not right? Find the correct comic
-              </Button>
-            )}
           </div>
         </div>
       </CardContent>
