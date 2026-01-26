@@ -1899,6 +1899,7 @@ export type Database = {
           private_location: string | null
           private_notes: string | null
           publisher: string | null
+          restoration_markers: Json | null
           scanner_confidence: number | null
           scanner_last_scanned_at: string | null
           series: string | null
@@ -1969,6 +1970,7 @@ export type Database = {
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null
+          restoration_markers?: Json | null
           scanner_confidence?: number | null
           scanner_last_scanned_at?: string | null
           series?: string | null
@@ -2039,6 +2041,7 @@ export type Database = {
           private_location?: string | null
           private_notes?: string | null
           publisher?: string | null
+          restoration_markers?: Json | null
           scanner_confidence?: number | null
           scanner_last_scanned_at?: string | null
           series?: string | null
