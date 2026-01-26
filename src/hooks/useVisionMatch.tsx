@@ -25,7 +25,14 @@ export const VISION_CANDIDATE_GAP_THRESHOLD = 0.10; // Trigger if gap between to
 export const VISION_OVERRIDE_THRESHOLD = 0.85; // Override OCR result if vision score >= this
 export const VISION_IDENTIFICATION_THRESHOLD = 0.50; // Candidates below this score trigger identification mode
 
-type VisionTriggerReason = "auto_low_confidence" | "multiple_candidates" | "user_correction";
+// Known publishers - trigger vision if title is ONLY a publisher name
+const PUBLISHER_NAMES = new Set([
+  'marvel', 'dc', 'image', 'dark horse', 'idw', 'boom', 'valiant',
+  'dynamite', 'archie', 'vertigo', 'wildstorm', 'top cow', 'oni',
+  'aftershock', 'scout', 'titan', 'vault', 'mad cave', 'ablaze'
+]);
+
+type VisionTriggerReason = "auto_low_confidence" | "multiple_candidates" | "user_correction" | "sanity_check";
 
 interface VisionMatchResult {
   bestMatchComicId: number | null;
@@ -70,7 +77,9 @@ interface UseVisionMatchReturn {
   shouldTriggerVision: (
     ocrConfidence: number,
     candidates: ComicVinePick[],
-    userTriggered?: boolean
+    userTriggered?: boolean,
+    ocrExtractedTitle?: string,
+    ocrExtractedIssue?: string | null
   ) => { should: boolean; reason: VisionTriggerReason | null };
 }
 
@@ -86,7 +95,9 @@ export function useVisionMatch(): UseVisionMatchReturn {
     (
       ocrConfidence: number,
       candidates: ComicVinePick[],
-      userTriggered = false
+      userTriggered = false,
+      ocrExtractedTitle?: string,
+      ocrExtractedIssue?: string | null
     ): { should: boolean; reason: VisionTriggerReason | null } => {
       // User explicitly triggered (Wrong comic? Fix it)
       if (userTriggered) {
@@ -98,6 +109,46 @@ export function useVisionMatch(): UseVisionMatchReturn {
       if (candidates.length === 0) {
         console.log("[VISION-MATCH] No candidates - will trigger identification mode");
         return { should: true, reason: "auto_low_confidence" };
+      }
+
+      // ===== SANITY CHECKS =====
+      // These catch cases where OCR is "confidently wrong"
+      
+      if (ocrExtractedTitle) {
+        const titleLower = ocrExtractedTitle.toLowerCase().trim();
+        const titleWords = titleLower.split(/\s+/).filter(w => w.length > 0);
+        
+        // Check 1: Title is ONLY a publisher name (e.g., "MARVEL" instead of "Hulk")
+        if (PUBLISHER_NAMES.has(titleLower) || 
+            (titleWords.length === 1 && PUBLISHER_NAMES.has(titleWords[0]))) {
+          console.log(`[VISION-MATCH] SANITY CHECK: Title is publisher-only: "${ocrExtractedTitle}"`);
+          return { should: true, reason: "sanity_check" };
+        }
+        
+        // Check 2: Title is suspiciously short (1-2 chars) - likely misread
+        if (titleLower.length <= 2) {
+          console.log(`[VISION-MATCH] SANITY CHECK: Title too short: "${ocrExtractedTitle}"`);
+          return { should: true, reason: "sanity_check" };
+        }
+        
+        // Check 3: Title is all uppercase AND single word AND no issue number
+        // (Stylized titles like "HULK" often get misread)
+        if (titleWords.length === 1 && 
+            ocrExtractedTitle === ocrExtractedTitle.toUpperCase() && 
+            !ocrExtractedIssue) {
+          console.log(`[VISION-MATCH] SANITY CHECK: Single uppercase word with no issue: "${ocrExtractedTitle}"`);
+          return { should: true, reason: "sanity_check" };
+        }
+      }
+      
+      // Check 4: No issue number extracted at all
+      if (!ocrExtractedIssue && candidates.length > 0) {
+        const topCandidate = candidates[0];
+        // If top candidate has an issue but OCR didn't find one, be suspicious
+        if (topCandidate.issue && topCandidate.issue.trim() !== '') {
+          console.log(`[VISION-MATCH] SANITY CHECK: No issue extracted but candidate has issue #${topCandidate.issue}`);
+          return { should: true, reason: "sanity_check" };
+        }
       }
 
       // Check low confidence

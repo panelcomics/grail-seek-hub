@@ -289,7 +289,14 @@ export default function Scanner() {
         let matchSource = data.source || undefined;
         
         // VISION MATCHING: Check if we should trigger cover image comparison
-        const visionCheck = shouldTriggerVision(pickConfidence, picks, false);
+        // Pass OCR extracted title/issue for sanity checks (catches "confidently wrong" OCR)
+        const visionCheck = shouldTriggerVision(
+          pickConfidence, 
+          picks, 
+          false,
+          data.extracted?.title,
+          data.extracted?.issueNumber
+        );
         
         if (visionCheck.should && visionCheck.reason && compressedImageRef.current) {
           console.log(`[SCANNER] Triggering vision match: ${visionCheck.reason}`);
