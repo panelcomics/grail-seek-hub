@@ -346,6 +346,9 @@ export default function Scanner() {
         // Go to transition state for magic feel
         setScannerState("transition");
         
+        // CRITICAL: Scroll to top after scan completes so user sees results
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
         // Fetch detailed issue info in background
         const issueDetails = await fetchIssueDetails(topPick);
         if (issueDetails) {
@@ -384,6 +387,9 @@ export default function Scanner() {
         setSearchResults([]);
         setShowManualConfirm(false);
         setNeedsUserConfirmation(false);
+        
+        // Scroll to top for low confidence too
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         
         const searchText = buildPrefilledQuery(data.extracted) || data.extracted?.title || "";
         if (searchText) {

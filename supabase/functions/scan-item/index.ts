@@ -749,18 +749,22 @@ function scoreResults(
       
       if (yearDiff === 0) {
         // Exact year match - strong bonus!
-        breakdown.year = 0.20;
+        breakdown.year = 0.25;
         console.log('[SCAN-ITEM] Exact year match:', resultYear, 'for', result.title);
       } else if (yearDiff <= 1) {
         // Off by one year (OCR misread)
-        breakdown.year = 0.15;
+        breakdown.year = 0.18;
       } else if (yearDiff <= 3) {
         // Close enough
         breakdown.year = 0.08;
-      } else {
-        // Wrong decade - penalize, don't just ignore
-        breakdown.year = -0.10;
+      } else if (yearDiff <= 10) {
+        // Wrong era - significant penalty
+        breakdown.year = -0.15;
         console.log('[SCAN-ITEM] Year mismatch:', resultYear, 'vs OCR', searchYear, 'for', result.title);
+      } else {
+        // Wrong decade entirely (e.g. 2008 vs 1964) - HEAVY penalty
+        breakdown.year = -0.30;
+        console.log('[SCAN-ITEM] Major year mismatch:', resultYear, 'vs OCR', searchYear, 'for', result.title);
       }
     }
     
