@@ -7,6 +7,29 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Full condition options for raw comics (matches ScannerListingForm)
+const CONDITION_OPTIONS = [
+  { value: "MT", label: "Mint (MT) - 10.0" },
+  { value: "NM+", label: "Near Mint+ (NM+) - 9.6" },
+  { value: "NM", label: "Near Mint (NM) - 9.4" },
+  { value: "NM-", label: "Near Mint- (NM-) - 9.2" },
+  { value: "VF+", label: "Very Fine+ (VF+) - 8.5" },
+  { value: "VF", label: "Very Fine (VF) - 8.0" },
+  { value: "VF-", label: "Very Fine- (VF-) - 7.5" },
+  { value: "FN+", label: "Fine+ (FN+) - 6.5" },
+  { value: "FN", label: "Fine (FN) - 6.0" },
+  { value: "FN-", label: "Fine- (FN-) - 5.5" },
+  { value: "VG+", label: "Very Good+ (VG+) - 5.0" },
+  { value: "VG", label: "Very Good (VG) - 4.0" },
+  { value: "VG-", label: "Very Good- (VG-) - 3.5" },
+  { value: "GD+", label: "Good+ (GD+) - 2.5" },
+  { value: "GD", label: "Good (GD) - 2.0" },
+  { value: "GD-", label: "Good- (GD-) - 1.8" },
+  { value: "FR", label: "Fair (FR) - 1.5" },
+  { value: "PR", label: "Poor (PR) - 0.5" },
+];
 import { ArrowLeft, Loader2, ExternalLink } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { debugLog } from "@/lib/debug";
@@ -555,12 +578,23 @@ export default function ManageBook() {
 
                   <div className="col-span-2">
                     <Label htmlFor="condition">Condition</Label>
-                    <Input
-                      id="condition"
+                    <Select
                       value={formData.condition}
-                      onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                      placeholder="VG, FN, NM, etc."
-                    />
+                      onValueChange={(value) => setFormData({ ...formData, condition: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select condition" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <ScrollArea className="h-[280px]">
+                          {CONDITION_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value} className="py-3">
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="col-span-2">
