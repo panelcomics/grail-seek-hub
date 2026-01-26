@@ -100,9 +100,13 @@ serve(async (req) => {
     }
 
     const issueData = await issueResponse.json();
+    
+    console.log('[FETCH-CV-ISSUE] ComicVine API response status:', issueData.error);
+    console.log('[FETCH-CV-ISSUE] Has results:', !!issueData.results);
 
     if (issueData.error !== 'OK' || !issueData.results) {
-      throw new Error('Invalid response from ComicVine API');
+      console.error('[FETCH-CV-ISSUE] Invalid response:', JSON.stringify(issueData).substring(0, 500));
+      throw new Error(`Invalid response from ComicVine API: ${issueData.error || 'no results'}`);
     }
 
     const issue = issueData.results as IssueDetails;

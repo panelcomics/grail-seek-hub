@@ -486,9 +486,12 @@ export default function Scanner() {
   // Fetch detailed issue info from ComicVine
   const fetchIssueDetails = async (pick: any) => {
     try {
+      // Pass issue_id only if it's a valid ID (not 0 or null)
+      const issueId = pick.id && pick.id !== 0 ? pick.id : null;
+      
       const { data, error } = await supabase.functions.invoke('fetch-comicvine-issue', {
         body: {
-          issue_id: pick.id,
+          issue_id: issueId,
           volume_id: pick.volumeId,
           issue_number: pick.issue
         }
@@ -1035,18 +1038,23 @@ export default function Scanner() {
       // The edge function returns "results", not "volumes"
       if (data?.ok && data.results && data.results.length > 0) {
         // Convert to CorrectionCandidate format
-        const candidates: CorrectionCandidate[] = data.results.slice(0, 20).map((result: any) => ({
-          comicvine_issue_id: result.id,
-          comicvine_volume_id: result.volumeId || result.id,
-          series: result.volumeName || result.title,
-          issue: result.issue || issue || '',
-          year: result.year || null,
-          publisher: result.publisher || null,
-          coverUrl: result.coverUrl || result.thumbUrl || null,
-          confidence: Math.round((result.score || 0.7) * 100)
-        }));
+        // IMPORTANT: Check if result is a volume or issue - only set issue_id if it's an issue
+        const candidates: CorrectionCandidate[] = data.results.slice(0, 20).map((result: any) => {
+          const isIssue = result.resource === 'issue';
+          return {
+            // Only set issue_id if this is actually an issue, not a volume
+            comicvine_issue_id: isIssue ? result.id : null,
+            comicvine_volume_id: result.volumeId || result.id,
+            series: result.volumeName || result.title,
+            issue: result.issue || issue || '',
+            year: result.year || null,
+            publisher: result.publisher || null,
+            coverUrl: result.coverUrl || result.thumbUrl || null,
+            confidence: Math.round((result.score || 0.7) * 100)
+          };
+        });
         
-        console.log('[CORRECTION_SEARCH] Returning candidates:', candidates.length);
+        console.log('[CORRECTION_SEARCH] Returning candidates:', candidates.length, 'first is issue:', candidates[0]?.comicvine_issue_id != null);
         return candidates;
       }
       
@@ -1060,9 +1068,14 @@ export default function Scanner() {
 
   // Handle selection from correction sheet
   const handleCorrectionSelect = async (candidate: CorrectionCandidate) => {
+    // When comicvine_issue_id is null, this is a volume-level selection
+    // We'll need to fetch the actual issue using volume_id + issue_number
+    const hasIssueId = candidate.comicvine_issue_id != null;
+    
     const pick: ComicVinePick = {
-      id: candidate.comicvine_issue_id,
-      resource: 'issue' as const,
+      // Use 0 as placeholder when we don't have an issue ID yet
+      id: hasIssueId ? candidate.comicvine_issue_id : 0,
+      resource: hasIssueId ? 'issue' as const : 'volume' as const,
       title: candidate.series,
       issue: candidate.issue,
       year: candidate.year,
@@ -1082,9 +1095,39 @@ export default function Scanner() {
       issueNumber: candidate.issue || undefined,
       publisher: candidate.publisher || undefined,
       year: candidate.year || undefined,
-      comicvineId: candidate.comicvine_issue_id,
+      comicvineId: candidate.comicvine_issue_id || undefined,
       comicvineCoverUrl: candidate.coverUrl || undefined
     });
+    
+    // If we have volume_id + issue but no issue_id, fetch the actual issue details
+    // This will use the fallback path in fetch-comicvine-issue
+    if (candidate.issue && (candidate.comicvine_volume_id || candidate.comicvine_issue_id)) {
+      const issueDetails = await fetchIssueDetails({
+        id: candidate.comicvine_issue_id || null,
+        volumeId: candidate.comicvine_volume_id,
+        issue: candidate.issue
+      });
+      
+      if (issueDetails) {
+        // Update pick with the actual issue ID and details
+        pick.id = issueDetails.id || pick.id;
+        pick.writer = issueDetails.writer;
+        pick.artist = issueDetails.artist;
+        pick.coverArtist = issueDetails.coverArtist;
+        pick.description = issueDetails.description;
+        pick.deck = issueDetails.deck;
+        pick.keyNotes = issueDetails.keyNotes;
+        pick.coverUrl = issueDetails.cover_url || pick.coverUrl;
+        
+        setSelectedPick({ ...pick });
+        setPrefillData(prev => ({
+          ...prev,
+          comicvineId: issueDetails.id || candidate.comicvine_issue_id,
+          comicvineCoverUrl: issueDetails.cover_url || candidate.coverUrl,
+          description: issueDetails.description
+        }));
+      }
+    }
     
     setShowCorrectionSheet(false);
     setIsReportMode(false);
