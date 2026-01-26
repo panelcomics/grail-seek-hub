@@ -23,10 +23,15 @@ import { cn } from "@/lib/utils";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { toast } from "sonner";
 
-interface TopMatchSummary {
+export interface TopMatchSummary {
   id: number;
+  comicvine_issue_id?: number;
+  comicvine_volume_id?: number;
   title: string;
   issue: string;
+  year?: number | null;
+  publisher?: string | null;
+  coverUrl?: string | null;
   confidence: number;
 }
 
@@ -48,8 +53,10 @@ interface ScanResultSummaryCardProps {
   strategy?: string;
   /** Normalized input text (for debug) */
   normalizedInput?: string;
-  /** Top matches summary for debug copy */
+  /** Top matches summary for quick selection */
   topMatches?: TopMatchSummary[];
+  /** Callback when user selects a different match from candidates */
+  onSelectMatch?: (match: TopMatchSummary) => void;
 }
 
 type StatusType = 'ready' | 'review' | 'manual' | 'choose' | 'retry';
@@ -148,7 +155,8 @@ export function ScanResultSummaryCard({
   source,
   strategy,
   normalizedInput,
-  topMatches
+  topMatches = [],
+  onSelectMatch
 }: ScanResultSummaryCardProps) {
   const { isAdmin } = useAdminCheck();
   const [showContent, setShowContent] = useState(false);
@@ -357,6 +365,94 @@ export function ScanResultSummaryCard({
                 match={match} 
                 confidence={confidence}
               />
+            </div>
+          )}
+
+          {/* INLINE CANDIDATES - Show other matches for quick one-tap fix */}
+          {topMatches && topMatches.length > 1 && scannerState !== 'confirm' && scannerState !== 'success' && onSelectMatch && (
+            <div className="mb-6">
+              <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center justify-between">
+                <span>Other possible matches</span>
+                <span className="text-xs text-primary">(tap to select)</span>
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {topMatches.slice(0, 6).map((candidate, idx) => {
+                  const isCurrentMatch = match?.id === candidate.id || 
+                    (candidate.comicvine_issue_id && match?.id === candidate.comicvine_issue_id);
+                  
+                  return (
+                    <button
+                      key={candidate.id || idx}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('[SCANNER_CORRECTION] inline_candidate_selected:', {
+                          id: candidate.id,
+                          title: candidate.title,
+                          issue: candidate.issue
+                        });
+                        onSelectMatch(candidate);
+                      }}
+                      type="button"
+                      disabled={isCurrentMatch}
+                      className={cn(
+                        "relative flex flex-col rounded-lg border-2 overflow-hidden transition-all touch-manipulation",
+                        "min-h-[100px] text-left",
+                        isCurrentMatch 
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30" 
+                          : "border-border hover:border-primary/50 active:scale-[0.98]"
+                      )}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      {/* Cover thumbnail */}
+                      <div className="aspect-[2/3] bg-muted">
+                        {candidate.coverUrl ? (
+                          <img
+                            src={candidate.coverUrl}
+                            alt={`${candidate.title} #${candidate.issue}`}
+                            className="w-full h-full object-cover pointer-events-none"
+                            loading="lazy"
+                            draggable={false}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground pointer-events-none">
+                            No Cover
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Info */}
+                      <div className="p-1.5 bg-background pointer-events-none">
+                        <div className="text-xs font-medium truncate leading-tight">
+                          {candidate.title}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground flex items-center justify-between">
+                          <span>#{candidate.issue}</span>
+                          {candidate.year && <span>{candidate.year}</span>}
+                        </div>
+                        {candidate.publisher && (
+                          <div className="text-[10px] text-muted-foreground/70 truncate">
+                            {candidate.publisher}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Current selection indicator */}
+                      {isCurrentMatch && (
+                        <div className="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                          <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {topMatches.length > 6 && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  +{topMatches.length - 6} more options in "Wrong comic? Fix it"
+                </p>
+              )}
             </div>
           )}
 
