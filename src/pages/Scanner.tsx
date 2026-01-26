@@ -46,6 +46,8 @@ import { ScannerActions } from "@/components/scanner/ScannerActions";
 import { ManualConfirmPanel, checkForStoredCorrection } from "@/components/scanner/ManualConfirmPanel";
 import { AdminScannerDebugPanel } from "@/components/scanner/AdminScannerDebugPanel";
 import { VolumeIssuePicker } from "@/components/scanner/VolumeIssuePicker";
+import { ScannerCorrectionSheet, CorrectionCandidate } from "@/components/scanner/ScannerCorrectionSheet";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 // Utils
 import { compressImageDataUrl, createThumbnail } from "@/lib/imageCompression";
@@ -72,6 +74,7 @@ interface PrefillData {
 
 export default function Scanner() {
   const { user } = useAuth();
+  const { isAdmin } = useAdminCheck();
   const { toast } = useToast();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -127,6 +130,7 @@ export default function Scanner() {
   const [topMatches, setTopMatches] = useState<TopMatch[]>([]); // Top matches from volume-first fallback
   const [needsUserConfirmation, setNeedsUserConfirmation] = useState(false); // Show chooser when low confidence
   const [showManualConfirm, setShowManualConfirm] = useState(false); // Show manual confirm panel
+  const [showCorrectionSheet, setShowCorrectionSheet] = useState(false); // New mobile-first correction sheet
   const [isReportMode, setIsReportMode] = useState(false); // "Wrong match?" correction mode
   const [isLowConfidenceMode, setIsLowConfidenceMode] = useState(false); // Auto-triggered low confidence mode
   const [scanSource, setScanSource] = useState<string | undefined>(undefined); // Track if result is from correction_override
@@ -705,6 +709,7 @@ export default function Scanner() {
     setTopMatches([]);
     setNeedsUserConfirmation(false);
     setShowManualConfirm(false);
+    setShowCorrectionSheet(false);
     setIsReportMode(false);
     setIsLowConfidenceMode(false);
     setScanSource(undefined);
@@ -901,11 +906,105 @@ export default function Scanner() {
     }
   };
 
-  // Handle "Wrong match?" report button
+  // Handle "Wrong match?" report button - Opens the new correction sheet
   const handleReportWrongMatch = () => {
-    // Show the ManualConfirmPanel in report mode
     setIsReportMode(true);
-    setShowManualConfirm(true);
+    setShowCorrectionSheet(true);
+  };
+
+  // Search handler for correction sheet
+  const handleCorrectionSearch = async (
+    title: string,
+    issue?: string,
+    publisher?: string,
+    year?: string
+  ): Promise<CorrectionCandidate[]> => {
+    try {
+      const searchQuery = title + (issue ? ` #${issue}` : '') + (year ? ` ${year}` : '');
+      
+      const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
+        body: { 
+          query: searchQuery,
+          issueNumber: issue || null,
+          year: year ? parseInt(year) : null
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data.volumes && data.volumes.length > 0) {
+        // Convert to CorrectionCandidate format
+        const candidates: CorrectionCandidate[] = [];
+        
+        for (const volume of data.volumes.slice(0, 10)) {
+          if (volume.issues && volume.issues.length > 0) {
+            for (const iss of volume.issues.slice(0, 5)) {
+              candidates.push({
+                comicvine_issue_id: iss.id,
+                comicvine_volume_id: volume.id,
+                series: volume.name,
+                issue: iss.issue_number || '',
+                year: volume.start_year || null,
+                publisher: volume.publisher?.name || null,
+                coverUrl: iss.image?.small_url || volume.image?.small_url || null,
+                confidence: 80
+              });
+            }
+          } else {
+            candidates.push({
+              comicvine_issue_id: volume.id,
+              comicvine_volume_id: volume.id,
+              series: volume.name,
+              issue: issue || '1',
+              year: volume.start_year || null,
+              publisher: volume.publisher?.name || null,
+              coverUrl: volume.image?.small_url || null,
+              confidence: 60
+            });
+          }
+        }
+        
+        return candidates;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Correction search error:', error);
+      return [];
+    }
+  };
+
+  // Handle selection from correction sheet
+  const handleCorrectionSelect = async (candidate: CorrectionCandidate) => {
+    const pick: ComicVinePick = {
+      id: candidate.comicvine_issue_id,
+      resource: 'issue' as const,
+      title: candidate.series,
+      issue: candidate.issue,
+      year: candidate.year,
+      publisher: candidate.publisher,
+      volumeName: candidate.series,
+      volumeId: candidate.comicvine_volume_id,
+      thumbUrl: candidate.coverUrl || '',
+      coverUrl: candidate.coverUrl || '',
+      score: candidate.confidence / 100,
+      isReprint: false,
+      source: 'comicvine' as const
+    };
+    
+    setSelectedPick(pick);
+    setPrefillData({
+      title: candidate.series,
+      issueNumber: candidate.issue || undefined,
+      publisher: candidate.publisher || undefined,
+      year: candidate.year || undefined,
+      comicvineId: candidate.comicvine_issue_id,
+      comicvineCoverUrl: candidate.coverUrl || undefined
+    });
+    
+    setShowCorrectionSheet(false);
+    setIsReportMode(false);
+    setScannerState("confirm");
   };
 
   return (
@@ -1179,47 +1278,89 @@ export default function Scanner() {
         <DebugPanel debugData={debugData} />
       )}
 
-      {/* Admin Scanner Debug Panel - Shows detailed diagnostics for admins */}
-      <AdminScannerDebugPanel
-        isVisible={scannerState !== "idle" && scannerState !== "scanning"}
-        parsedQuery={debugData.extracted ? {
-          title: debugData.extracted.title || "",
-          issue: debugData.extracted.issueNumber || null,
-          year: debugData.extracted.year || null,
-          publisher: debugData.extracted.publisher || null
-        } : undefined}
-        strategy={debugData.strategy}
-        candidates={debugData.candidates}
-        rawOcr={debugData.raw_ocr}
-        timings={debugData.timings}
-        confidence={confidence || undefined}
-        onSelectCandidate={(candidate) => {
-          // Create a ComicVinePick from the debug candidate data
-          // This allows admins to tap a candidate directly from the debug panel
-          const pick: ComicVinePick = {
-            id: 0, // Will be looked up or not critical for this flow
-            resource: 'issue' as const,
-            title: candidate.series,
-            issue: candidate.issue,
-            year: candidate.year,
-            publisher: candidate.publisher,
-            volumeName: candidate.series,
-            volumeId: 0,
-            thumbUrl: '',
-            coverUrl: '',
-            score: candidate.confidence / 100,
-            isReprint: false,
-            source: 'comicvine' as const
-          };
-          setSelectedPick(pick);
-          setPrefillData({
-            title: candidate.series,
-            issueNumber: candidate.issue || undefined,
-            publisher: candidate.publisher || undefined,
-            year: candidate.year || undefined,
-          });
-          setScannerState("confirm");
+      {/* Admin Scanner Debug Panel - Shows detailed diagnostics for admins OR when ?debug=1 */}
+      {(isAdmin || showDebug) && (
+        <AdminScannerDebugPanel
+          isVisible={scannerState !== "idle" && scannerState !== "scanning"}
+          parsedQuery={debugData.extracted ? {
+            title: debugData.extracted.title || "",
+            issue: debugData.extracted.issueNumber || null,
+            year: debugData.extracted.year || null,
+            publisher: debugData.extracted.publisher || null
+          } : undefined}
+          strategy={debugData.strategy}
+          candidates={debugData.candidates}
+          rawOcr={debugData.raw_ocr}
+          timings={debugData.timings}
+          confidence={confidence || undefined}
+          onSelectCandidate={(candidate) => {
+            // Create a ComicVinePick from the debug candidate data
+            // This allows admins to tap a candidate directly from the debug panel
+            const pick: ComicVinePick = {
+              id: 0, // Will be looked up or not critical for this flow
+              resource: 'issue' as const,
+              title: candidate.series,
+              issue: candidate.issue,
+              year: candidate.year,
+              publisher: candidate.publisher,
+              volumeName: candidate.series,
+              volumeId: 0,
+              thumbUrl: '',
+              coverUrl: '',
+              score: candidate.confidence / 100,
+              isReprint: false,
+              source: 'comicvine' as const
+            };
+            setSelectedPick(pick);
+            setPrefillData({
+              title: candidate.series,
+              issueNumber: candidate.issue || undefined,
+              publisher: candidate.publisher || undefined,
+              year: candidate.year || undefined,
+            });
+            setScannerState("confirm");
+          }}
+        />
+      )}
+
+      {/* New Mobile-First Correction Sheet */}
+      <ScannerCorrectionSheet
+        open={showCorrectionSheet}
+        onOpenChange={(open) => {
+          setShowCorrectionSheet(open);
+          if (!open) {
+            setIsReportMode(false);
+          }
         }}
+        candidates={topMatches.length > 0 ? topMatches.map(m => ({
+          comicvine_issue_id: m.comicvine_issue_id,
+          comicvine_volume_id: m.comicvine_volume_id,
+          series: m.series,
+          issue: m.issue,
+          year: m.year,
+          publisher: m.publisher,
+          coverUrl: m.coverUrl,
+          confidence: m.confidence
+        })) : (debugData.candidates || []).map((c, idx) => ({
+          comicvine_issue_id: idx,
+          comicvine_volume_id: 0,
+          series: c.series,
+          issue: c.issue,
+          year: c.year,
+          publisher: c.publisher,
+          coverUrl: null,
+          confidence: c.confidence
+        }))}
+        ocrText={debugData.raw_ocr || debugData.extracted?.title || ""}
+        ocrConfidence={(confidence || 0) * 100}
+        inputText={manualSearchQuery || debugData.comicvineQuery || ""}
+        onSelect={handleCorrectionSelect}
+        onEnterManually={() => {
+          setShowCorrectionSheet(false);
+          setIsReportMode(false);
+          handleEnterManually();
+        }}
+        onSearch={handleCorrectionSearch}
       />
 
       {/* Cover Zoom Modal */}
