@@ -838,14 +838,21 @@ async function searchComicVine(
   // This is the most reliable method as it bypasses ComicVine's search ranking
   const isVintage = year && year < 1985;
   
-  if (isVintage && issue) {
-    console.log('[SCAN-ITEM] VINTAGE MODE: Searching for volumes from', year, '±5 years');
+  // NEW: Also trigger vintage lookup if title is a known classic with low issue number
+  // This handles cases where OCR doesn't detect the price (12¢) but the comic is clearly vintage
+  const titleLower = title.toLowerCase().trim();
+  const knownVintage = VINTAGE_VOLUME_MAP[titleLower];
+  const issueNum = issue ? parseInt(issue) : 0;
+  
+  // Low issue numbers (≤50) on classic titles are very likely to be original vintage runs
+  const suspectedVintage = knownVintage && issueNum > 0 && issueNum <= 50;
+  
+  if ((isVintage || suspectedVintage) && issue) {
+    const vintageReason = isVintage ? `year ${year}` : `low issue #${issue} on classic title`;
+    console.log('[SCAN-ITEM] VINTAGE MODE TRIGGERED:', vintageReason);
     
     // STRATEGY 2A: DIRECT KNOWN VOLUME LOOKUP (most reliable for major titles)
     // If we know the exact ComicVine volume ID for the original run, fetch directly
-    const titleLower = title.toLowerCase().trim();
-    const knownVintage = VINTAGE_VOLUME_MAP[titleLower];
-    
     if (knownVintage) {
       console.log('[SCAN-ITEM] VINTAGE DIRECT LOOKUP: Using known volume', knownVintage.volumeName, 'ID:', knownVintage.volumeId);
       
@@ -903,12 +910,13 @@ async function searchComicVine(
         const volumes = volData.results || [];
         console.log('[SCAN-ITEM] Found', volumes.length, 'volumes for vintage search');
         
-        // PRIORITIZE volumes that started near the target year
+        // PRIORITIZE volumes that started near the target year (or earliest for suspected vintage)
+        const targetYear = year || 1964; // Default to Silver Age if no year
         const sortedVolumes = volumes.sort((a: any, b: any) => {
           const aYear = a.start_year || 2100;
           const bYear = b.start_year || 2100;
-          const aDiff = Math.abs(aYear - (year || 1964));
-          const bDiff = Math.abs(bYear - (year || 1964));
+          const aDiff = Math.abs(aYear - targetYear);
+          const bDiff = Math.abs(bYear - targetYear);
           return aDiff - bDiff; // Sort by closest to target year
         });
         
@@ -918,7 +926,7 @@ async function searchComicVine(
         // Query top 5 volumes (sorted by year proximity) for the specific issue
         for (const vol of sortedVolumes.slice(0, 5)) {
           // Skip volumes that started way after our target year
-          if (vol.start_year && vol.start_year > (year + 5)) {
+          if (vol.start_year && vol.start_year > (targetYear + 5)) {
             console.log('[SCAN-ITEM] Skipping volume', vol.name, 'start_year', vol.start_year, '> target+5');
             continue;
           }
@@ -965,7 +973,8 @@ async function searchComicVine(
   }
   
   // STRATEGY 3: Standard volume + issue approach (if we have an issue and need more results)
-  if (issue && results.length < 5 && !isVintage) {
+  // Skip if vintage mode already ran (either from year or suspected vintage)
+  if (issue && results.length < 5 && !isVintage && !suspectedVintage) {
     console.log('[SCAN-ITEM] Trying volume + issue approach...');
     
     const volumeUrl = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(title)}&field_list=id,name,publisher,start_year,count_of_issues&limit=10`;
