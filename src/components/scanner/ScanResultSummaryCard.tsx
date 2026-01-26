@@ -372,13 +372,21 @@ export function ScanResultSummaryCard({
               {scannerState === 'success' ? 'Set Price & Condition' : 'Confirm & Continue'}
             </Button>
             
-            {/* Secondary: Wrong comic? Fix it - ALWAYS VISIBLE and ALWAYS WORKS */}
+          {/* Secondary: Wrong comic? Fix it - ALWAYS VISIBLE and ALWAYS WORKS */}
             {scannerState !== 'confirm' && scannerState !== 'success' && (
               <Button
-                onClick={onReportWrongMatch}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[SCANNER_CORRECTION] correction_sheet_opened: true');
+                  if (onReportWrongMatch) {
+                    onReportWrongMatch();
+                  }
+                }}
+                type="button"
                 variant="outline"
                 size="lg"
-                className="w-full h-14 text-base font-medium border-2 border-orange-400 text-orange-600 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-500 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/50 dark:hover:border-orange-500"
+                className="w-full h-14 text-base font-medium border-2 border-orange-400 text-orange-600 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-500 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-950/50 dark:hover:border-orange-500 touch-manipulation"
               >
                 <Search className="w-5 h-5 mr-2" />
                 Wrong comic? Fix it
