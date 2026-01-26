@@ -216,7 +216,11 @@ export function ScanResultSummaryCard({
   const secondaryLine = secondaryParts.join(' · ');
 
   // Determine best cover image
-  const coverImage = match?.coverUrl || match?.thumbUrl || previewImage || null;
+  // For variants, ComicVine only has the main cover - use user's photo as the match reference
+  const isVariantCover = variantInfo?.isVariant;
+  const coverImage = isVariantCover 
+    ? (previewImage || match?.coverUrl || match?.thumbUrl || null) // Prefer user's photo for variants
+    : (match?.coverUrl || match?.thumbUrl || previewImage || null);
 
   // Show different secondary button for multi_match
   const isMultiMatch = scannerState === 'multi_match';
@@ -297,12 +301,17 @@ export function ScanResultSummaryCard({
             
             {/* Match Cover Image */}
             <div className="flex-shrink-0">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-center">Match</p>
-              <div className="w-20 h-28 md:w-24 md:h-36 rounded-lg overflow-hidden bg-muted border-2 border-border shadow-lg">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-center">
+                {isVariantCover ? 'Your Variant' : 'Match'}
+              </p>
+              <div className={cn(
+                "w-20 h-28 md:w-24 md:h-36 rounded-lg overflow-hidden bg-muted shadow-lg",
+                isVariantCover ? "border-2 border-purple-500/50 ring-2 ring-purple-500/20" : "border-2 border-border"
+              )}>
                 {coverImage ? (
                   <img
                     src={coverImage}
-                    alt="Matched cover"
+                    alt={isVariantCover ? "Your variant cover" : "Matched cover"}
                     className="w-full h-full object-cover"
                   />
                 ) : (
