@@ -301,14 +301,19 @@ function similarity(a: string, b: string): number {
 // This function uses prioritized patterns to find the actual issue number
 function extractIssueNumber(text: string, title?: string): string | null {
   // Already price-stripped text should be passed in
-  const cleanText = text;
+  let cleanText = text;
+  
+  // CRITICAL: Remove LGY (Legacy) numbering BEFORE issue extraction
+  // LGY#900 should NOT be confused with issue #900
+  // Pattern matches: "LGY#900", "LGY #900", "LGY900"
+  cleanText = cleanText.replace(/\bLGY\s*#?\s*\d+\b/gi, '');
   
   // Prioritized issue patterns (in order of reliability for vintage comics)
   const issuePatterns = [
     // Most reliable: explicit "No." or "NO." patterns (vintage style) - "NO. 159"
     /\bNO\.?\s*(\d{1,4})\b/i,
-    // Explicit # marker - "#7", "# 159"
-    /\b#\s*(\d{1,4})\b/,
+    // Explicit # marker - "#7", "# 159" - but NOT preceded by LGY
+    /(?<!LGY\s*)#\s*(\d{1,4})\b/,
     // "Issue X" or "Vol X" patterns
     /\b(?:issue|vol\.?)\s*#?\s*(\d{1,4})\b/i,
     // Month + Year patterns (vintage) - extract issue before month: "7 SEPT." means issue 7
@@ -363,13 +368,47 @@ function extractTitleAndIssue(ocrText: string): {
   
   // Strategy 0-CGC: Parse CGC/CBCS label format FIRST (most reliable for slabs)
   // CGC labels have format: "Title #Issue" on a dedicated line after grade
-  // Example: "CGC UNIVERSAL GRADE\nSuspense #15\nAtlas Comics, 3/52"
-  const cgcLabelMatch = cleanedText.match(/(?:CGC|CBCS)[^\n]*\n+([A-Z][A-Za-z\s\-']+)\s*#\s*(\d{1,4})/i);
+  // Example: "CGC UNIVERSAL GRADE\nAmazing Spider-Man #6\nMarvel Comics, 9/22\n...LGY#900"
+  // CRITICAL: Must grab the FIRST #number (real issue), NOT LGY#number (legacy numbering)
+  const cgcLabelMatch = cleanedText.match(/(?:CGC|CBCS)[^\n]*GRADE[^\n]*\n+([A-Z][A-Za-z\s\-']+?)\s*#(\d{1,4})\b/i);
   if (cgcLabelMatch) {
     const labelTitle = cgcLabelMatch[1].trim();
     const labelIssue = cgcLabelMatch[2];
-    console.log('[SCAN-ITEM] Strategy 0-CGC (label parse):', labelTitle, '#', labelIssue);
-    return { title: labelTitle, issue: labelIssue, confidence: 0.98, method: 'cgc_label' };
+    // Verify this isn't an LGY number by checking what comes before
+    const beforeMatch = cleanedText.substring(0, cleanedText.indexOf(`#${labelIssue}`));
+    const isLGY = /LGY\s*$/i.test(beforeMatch);
+    if (!isLGY) {
+      console.log('[SCAN-ITEM] Strategy 0-CGC (label parse):', labelTitle, '#', labelIssue);
+      return { title: labelTitle, issue: labelIssue, confidence: 0.98, method: 'cgc_label' };
+    }
+  }
+  
+  // Enhanced CGC parsing: Look for the pattern "Title #X" where X is NOT preceded by LGY
+  // This handles cases where the label has both "#6" and "LGY#900"
+  const cgcTitleIssueMatches = cleanedText.matchAll(/\b([A-Z][A-Za-z\-'\s]+?)\s*#(\d{1,4})\b/g);
+  for (const match of cgcTitleIssueMatches) {
+    const potentialTitle = match[1].trim();
+    const potentialIssue = match[2];
+    const matchIdx = match.index || 0;
+    
+    // Skip if this is an LGY number
+    const textBefore = cleanedText.substring(Math.max(0, matchIdx - 10), matchIdx);
+    if (/LGY\s*$/i.test(textBefore)) {
+      console.log('[SCAN-ITEM] Skipping LGY number:', potentialIssue);
+      continue;
+    }
+    
+    // Check if this looks like a real comic title (at least 2 words or 8+ chars)
+    const wordCount = potentialTitle.split(/\s+/).filter(w => w.length >= 2).length;
+    if (wordCount >= 2 || potentialTitle.length >= 8) {
+      // Verify it's not just noise like "VARIANT EDITION"
+      const noisePhrases = ['variant edition', 'virgin cover', 'exclusive', 'limited', 'newsstand'];
+      const isNoise = noisePhrases.some(np => potentialTitle.toLowerCase().includes(np));
+      if (!isNoise) {
+        console.log('[SCAN-ITEM] Strategy 0-CGC+ (first valid title#issue):', potentialTitle, '#', potentialIssue);
+        return { title: potentialTitle, issue: potentialIssue, confidence: 0.96, method: 'cgc_label_enhanced' };
+      }
+    }
   }
   
   // Strategy 0-PRE: Check explicit OCR typo map first (handles known OCR errors)
@@ -430,17 +469,22 @@ function extractTitleAndIssue(ocrText: string): {
     const knownWords = lowerKnown.split(/\s+/).filter(w => !STOPWORDS.has(w) && w.length >= 3);
     if (knownWords.length >= 2) {
       const ocrWords = lowerText.split(/\s+/);
-      let matchedWords = 0;
+      // CRITICAL FIX: Track which KNOWN words have been matched (not just count)
+      // This prevents "Amazing Spider-Man" appearing twice from matching "Amazing Spider-Man Annual"
+      const matchedKnownWords = new Set<string>();
       let matchStartIdx = -1;
       const matchedWordList: string[] = [];
       
       for (let i = 0; i < ocrWords.length; i++) {
         for (const knownWord of knownWords) {
+          // Skip if we've already matched this known word
+          if (matchedKnownWords.has(knownWord)) continue;
+          
           // RAISED threshold to 0.75 to prevent false matches
           const sim = similarity(ocrWords[i], knownWord);
           if (knownWord.length >= 3 && sim > 0.75) {
             if (matchStartIdx === -1) matchStartIdx = i;
-            matchedWords++;
+            matchedKnownWords.add(knownWord);
             matchedWordList.push(`${ocrWords[i]}→${knownWord}(${sim.toFixed(2)})`);
             break;
           }
@@ -450,12 +494,13 @@ function extractTitleAndIssue(ocrText: string): {
       // CRITICAL: For multi-word titles, require ALL significant words to match
       // "Saga of the Swamp Thing" → ["saga", "swamp", "thing"] (3 words after stopword removal)
       // Must match ALL 3, not just 2/3
+      // Now using Set size to ensure we matched each UNIQUE known word
       const requiredMatches = knownWords.length;
       
-      if (matchedWords >= requiredMatches && matchStartIdx !== -1) {
+      if (matchedKnownWords.size >= requiredMatches && matchStartIdx !== -1) {
         // CRITICAL: Use the smarter extractIssueNumber with price-stripped text
         const issue = extractIssueNumber(textWithoutPrices, knownTitle);
-        console.log('[SCAN-ITEM] Strategy 0b (fuzzy known title):', knownTitle, '#', issue, 'matched', matchedWords, 'of', knownWords.length, matchedWordList.join(', '));
+        console.log('[SCAN-ITEM] Strategy 0b (fuzzy known title):', knownTitle, '#', issue, 'matched', matchedKnownWords.size, 'of', knownWords.length, matchedWordList.join(', '));
         return { title: knownTitle, issue, confidence: 0.88, method: 'fuzzy_known_title' };
       }
     }
