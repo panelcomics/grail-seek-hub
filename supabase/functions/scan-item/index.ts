@@ -585,6 +585,41 @@ function scoreResults(
   .sort((a, b) => b.score - a.score);
 }
 
+// Helper to log scan events
+async function logScanEvent(
+  supabase: any,
+  data: {
+    rawInput: string | null;
+    normalizedInput: string | null;
+    inputSource: 'typed' | 'ocr' | 'image';
+    confidence: number | null;
+    strategy: string | null;
+    source: string | null;
+    rejectedReason: string | null;
+    candidateCount: number;
+  }
+): Promise<void> {
+  try {
+    const { error } = await supabase.from('scan_events').insert({
+      raw_input: data.rawInput?.slice(0, 500) || null,
+      normalized_input: data.normalizedInput?.slice(0, 500) || null,
+      input_source: data.inputSource,
+      confidence: data.confidence,
+      strategy: data.strategy,
+      source: data.source,
+      rejected_reason: data.rejectedReason,
+      candidate_count: data.candidateCount,
+    });
+    if (error) {
+      console.warn('[SCAN-ITEM] Failed to log scan event:', error.message);
+    } else {
+      console.log('[SCAN-ITEM] Scan event logged successfully');
+    }
+  } catch (err: any) {
+    console.warn('[SCAN-ITEM] Error logging scan event:', err.message);
+  }
+}
+
 serve(async (req) => {
   const startTime = Date.now();
   console.log('[SCAN-ITEM] Function invoked');
@@ -593,6 +628,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Initialize supabase client early for logging
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
   try {
     if (req.method !== "POST") {
       return new Response(JSON.stringify({ ok: false, error: "Method not allowed" }), {
@@ -600,10 +640,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
     // Support both imageBase64 and imageData for compatibility
@@ -615,6 +651,17 @@ serve(async (req) => {
     
     if (!COMICVINE_API_KEY || !GOOGLE_VISION_API_KEY) {
       console.error('[SCAN-ITEM] Missing API keys');
+      // Log the error event
+      await logScanEvent(supabase, {
+        rawInput: textQuery || '[image]',
+        normalizedInput: null,
+        inputSource: textQuery ? 'typed' : 'image',
+        confidence: null,
+        strategy: null,
+        source: null,
+        rejectedReason: 'missing_api_keys',
+        candidateCount: 0,
+      });
       return new Response(JSON.stringify({ ok: false, error: "Server configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -623,9 +670,13 @@ serve(async (req) => {
 
     let ocrText = "";
     let visionTime = 0;
+    let inputSource: 'typed' | 'ocr' | 'image' = 'image';
+    let rawInput: string | null = null;
     
     if (textQuery) {
       ocrText = textQuery;
+      rawInput = textQuery;
+      inputSource = 'typed';
       console.log('[SCAN-ITEM] Using text query:', textQuery);
     } else if (imageBase64) {
       console.log('[SCAN-ITEM] Calling Google Vision API...');
@@ -659,17 +710,35 @@ serve(async (req) => {
           const visionData = await visionRes.json();
           const annotations = visionData.responses?.[0]?.textAnnotations || [];
           ocrText = annotations?.[0]?.description || "";
+          rawInput = ocrText || '[image]';
+          // If OCR extracted text, change input_source to 'ocr'
+          if (ocrText) {
+            inputSource = 'ocr';
+          }
           console.log('[SCAN-ITEM] OCR extracted (' + visionTime + 'ms):', ocrText.substring(0, 300));
         } else {
           const errorText = await visionRes.text();
           console.error('[SCAN-ITEM] Vision API error:', visionRes.status, errorText);
+          rawInput = '[image]';
         }
       } catch (err: any) {
         console.error('[SCAN-ITEM] Vision error:', err.message);
+        rawInput = '[image]';
       }
     }
 
     if (!ocrText) {
+      // Log the no-text event
+      await logScanEvent(supabase, {
+        rawInput: rawInput || '[image]',
+        normalizedInput: null,
+        inputSource,
+        confidence: null,
+        strategy: null,
+        source: null,
+        rejectedReason: 'no_text_extracted',
+        candidateCount: 0,
+      });
       return new Response(
         JSON.stringify({
           ok: false,
@@ -687,6 +756,11 @@ serve(async (req) => {
     const publisher = extractPublisher(ocrText);
     const year = extractYear(ocrText);
     const variantInfo = detectVariantCover(ocrText);
+    
+    // Build normalized input (the query used for matching)
+    const normalizedInput = title 
+      ? (issue ? `${title} #${issue}` : title) + (publisher ? ` (${publisher})` : '')
+      : null;
     
     console.log('[SCAN-ITEM] Extracted:', { title, issue, publisher, year, isSlab, extractionMethod, variantInfo });
 
@@ -706,6 +780,31 @@ serve(async (req) => {
     } else {
       console.log('[SCAN-ITEM] No title extracted, returning empty results');
     }
+
+    const topScore = results.length > 0 ? results[0].score : null;
+    const topSource = results.length > 0 ? results[0].source : null;
+
+    // Determine rejected_reason if no good matches
+    let rejectedReason: string | null = null;
+    if (!title) {
+      rejectedReason = 'no_title_extracted';
+    } else if (results.length === 0) {
+      rejectedReason = 'no_matches_found';
+    } else if (topScore !== null && topScore < 0.5) {
+      rejectedReason = 'low_confidence';
+    }
+
+    // Log the scan event
+    await logScanEvent(supabase, {
+      rawInput: rawInput || ocrText,
+      normalizedInput,
+      inputSource,
+      confidence: topScore,
+      strategy: extractionMethod,
+      source: topSource,
+      rejectedReason,
+      candidateCount: results.length,
+    });
 
     const totalTime = Date.now() - startTime;
 
@@ -748,6 +847,17 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('[SCAN-ITEM] Fatal error:', error);
+    // Log the error event
+    await logScanEvent(supabase, {
+      rawInput: '[error]',
+      normalizedInput: null,
+      inputSource: 'image',
+      confidence: null,
+      strategy: null,
+      source: null,
+      rejectedReason: `error: ${error.message?.slice(0, 100)}`,
+      candidateCount: 0,
+    });
     return new Response(
       JSON.stringify({
         ok: false,
