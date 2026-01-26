@@ -61,9 +61,36 @@ const REPRINT_KEYWORDS = [
 const REBOOT_SERIES_PATTERNS = [
   'marvel universe:', 'marvel universe x-men', 'marvel universe avengers',
   'marvel universe spider-man', 'marvel universe ultimate',
-  'all-new x-men', 'all-new, all-different',
-  'x-men: blue', 'x-men: gold', 'x-men: red',
+  'all-new x-men', 'all-new, all-different', 'all new x-men',
+  'x-men: blue', 'x-men: gold', 'x-men: red', 'x-men: legacy',
+  'ultimate x-men', 'astonishing x-men', 'extraordinary x-men',
+  'exceptional x-men', 'x-men noir', 'x-men forever', 'x-men: first class',
+  'biblioteca marvel', 'marvel now!', 'marvel now all-new',
 ];
+
+// VINTAGE VOLUME IDS - Known ComicVine volume IDs for original runs
+// This ensures we can directly fetch the original series when vintage mode is active
+const VINTAGE_VOLUME_MAP: Record<string, { volumeId: number; startYear: number; volumeName: string }> = {
+  'x-men': { volumeId: 2133, startYear: 1963, volumeName: 'X-Men' }, // Original 1963 run
+  'the x-men': { volumeId: 2133, startYear: 1963, volumeName: 'X-Men' },
+  'amazing spider-man': { volumeId: 2120, startYear: 1963, volumeName: 'The Amazing Spider-Man' },
+  'fantastic four': { volumeId: 2047, startYear: 1961, volumeName: 'Fantastic Four' },
+  'avengers': { volumeId: 1678, startYear: 1963, volumeName: 'Avengers' },
+  'journey into mystery': { volumeId: 7891, startYear: 1952, volumeName: 'Journey into Mystery' }, // Thor's first appearance
+  'tales of suspense': { volumeId: 7893, startYear: 1959, volumeName: 'Tales of Suspense' }, // Iron Man/Cap
+  'tales to astonish': { volumeId: 7894, startYear: 1959, volumeName: 'Tales to Astonish' }, // Hulk/Ant-Man
+  'strange tales': { volumeId: 7899, startYear: 1951, volumeName: 'Strange Tales' }, // Dr. Strange/Nick Fury
+  'incredible hulk': { volumeId: 2002, startYear: 1962, volumeName: 'The Incredible Hulk' },
+  'daredevil': { volumeId: 2017, startYear: 1964, volumeName: 'Daredevil' },
+  'batman': { volumeId: 796, startYear: 1940, volumeName: 'Batman' },
+  'detective comics': { volumeId: 795, startYear: 1937, volumeName: 'Detective Comics' },
+  'action comics': { volumeId: 794, startYear: 1938, volumeName: 'Action Comics' },
+  'superman': { volumeId: 797, startYear: 1939, volumeName: 'Superman' },
+  'wonder woman': { volumeId: 798, startYear: 1942, volumeName: 'Wonder Woman' },
+  'justice league': { volumeId: 2689, startYear: 1960, volumeName: 'Justice League of America' },
+  'flash': { volumeId: 1807, startYear: 1959, volumeName: 'The Flash' },
+  'green lantern': { volumeId: 1806, startYear: 1960, volumeName: 'Green Lantern' },
+};
 
 // KEY ISSUE PATTERNS - first appearances and significant events
 const KEY_ISSUE_PATTERNS = [
@@ -558,40 +585,43 @@ function extractYear(text: string): number | null {
   // - 40¢-60¢: 1979-1985
   const lower = text.toLowerCase();
   
-  // Check for cent symbol patterns
-  if (/\b10[¢c]\b/i.test(lower) || /ten\s*cents/i.test(lower)) {
+  // CRITICAL FIX: Use flexible patterns that handle ¢ symbol variations
+  // OCR may output "12¢", "12c", "12 ¢", or even just "12" near "cents"
+  // Don't require word boundary after cent symbol as ¢ is not alphanumeric
+  
+  if (/\b10\s*[¢c]/i.test(lower) || /\b10\s*cent/i.test(lower) || /ten\s*cents/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 10¢ price: ~1955');
     return 1955; // Mid-point of 10¢ era
   }
-  if (/\b12[¢c]\b/i.test(lower) || /twelve\s*cents/i.test(lower)) {
+  if (/\b12\s*[¢c]/i.test(lower) || /\b12\s*cent/i.test(lower) || /twelve\s*cents/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 12¢ price: ~1964');
     return 1964; // Peak Silver Age
   }
-  if (/\b15[¢c]\b/i.test(lower) || /fifteen\s*cents/i.test(lower)) {
+  if (/\b15\s*[¢c]/i.test(lower) || /\b15\s*cent/i.test(lower) || /fifteen\s*cents/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 15¢ price: ~1970');
     return 1970;
   }
-  if (/\b20[¢c]\b/i.test(lower) || /twenty\s*cents/i.test(lower)) {
+  if (/\b20\s*[¢c]/i.test(lower) || /\b20\s*cent/i.test(lower) || /twenty\s*cents/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 20¢ price: ~1973');
     return 1973;
   }
-  if (/\b25[¢c]\b/i.test(lower) || /twenty[\s-]?five\s*cents/i.test(lower)) {
+  if (/\b25\s*[¢c]/i.test(lower) || /\b25\s*cent/i.test(lower) || /twenty[\s-]?five\s*cents/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 25¢ price: ~1975');
     return 1975;
   }
-  if (/\b30[¢c]\b/i.test(lower) || /thirty\s*cents/i.test(lower)) {
+  if (/\b30\s*[¢c]/i.test(lower) || /\b30\s*cent/i.test(lower) || /thirty\s*cents/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 30¢ price: ~1977');
     return 1977;
   }
-  if (/\b(35|40)[¢c]\b/i.test(lower)) {
+  if (/\b(35|40)\s*[¢c]/i.test(lower) || /\b(35|40)\s*cent/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 35-40¢ price: ~1979');
     return 1979;
   }
-  if (/\b(50|60)[¢c]\b/i.test(lower)) {
+  if (/\b(50|60)\s*[¢c]/i.test(lower) || /\b(50|60)\s*cent/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 50-60¢ price: ~1982');
     return 1982;
   }
-  if (/\b75[¢c]\b/i.test(lower)) {
+  if (/\b75\s*[¢c]/i.test(lower) || /\b75\s*cent/i.test(lower)) {
     console.log('[SCAN-ITEM] Inferred era from 75¢ price: ~1985');
     return 1985;
   }
@@ -804,14 +834,59 @@ async function searchComicVine(
     console.warn('[SCAN-ITEM] Issue search error:', err.message);
   }
   
-  // STRATEGY 2: For VINTAGE comics (pre-1980), do volume search with year priority
-  // This helps find Silver/Bronze age comics that may not rank high in general search
+  // STRATEGY 2: For VINTAGE comics (pre-1985), directly fetch from known vintage volumes
+  // This is the most reliable method as it bypasses ComicVine's search ranking
   const isVintage = year && year < 1985;
   
   if (isVintage && issue) {
     console.log('[SCAN-ITEM] VINTAGE MODE: Searching for volumes from', year, '±5 years');
     
-    // Search for volumes by title only (more likely to find vintage runs)
+    // STRATEGY 2A: DIRECT KNOWN VOLUME LOOKUP (most reliable for major titles)
+    // If we know the exact ComicVine volume ID for the original run, fetch directly
+    const titleLower = title.toLowerCase().trim();
+    const knownVintage = VINTAGE_VOLUME_MAP[titleLower];
+    
+    if (knownVintage) {
+      console.log('[SCAN-ITEM] VINTAGE DIRECT LOOKUP: Using known volume', knownVintage.volumeName, 'ID:', knownVintage.volumeId);
+      
+      const directIssueUrl = `https://comicvine.gamespot.com/api/issues/?api_key=${apiKey}&format=json&filter=volume:${knownVintage.volumeId},issue_number:${issue}&field_list=id,name,issue_number,volume,cover_date,image&limit=3`;
+      
+      try {
+        const directResponse = await fetch(directIssueUrl, {
+          headers: { 'User-Agent': 'GrailSeeker-Scanner/1.0' }
+        });
+        
+        if (directResponse.ok) {
+          const directData = await directResponse.json();
+          console.log('[SCAN-ITEM] VINTAGE DIRECT: Found', directData.results?.length || 0, 'issues from known volume');
+          
+          for (const item of (directData.results || [])) {
+            const exists = results.some(r => r.id === item.id);
+            if (!exists) {
+              // Add at the START of results with high priority source marker
+              results.unshift({
+                id: item.id,
+                resource: 'issue',
+                title: item.volume?.name || knownVintage.volumeName || '',
+                issue: item.issue_number || '',
+                year: item.cover_date ? parseInt(item.cover_date.slice(0, 4)) : null,
+                publisher: publisher || 'Marvel', // Default for known vintage
+                volumeName: knownVintage.volumeName,
+                volumeId: knownVintage.volumeId,
+                variantDescription: '',
+                thumbUrl: item.image?.small_url || '',
+                coverUrl: item.image?.original_url || '',
+                source: 'vintage_direct' // High priority source
+              });
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn('[SCAN-ITEM] Vintage direct lookup error:', err.message);
+      }
+    }
+    
+    // STRATEGY 2B: Search for volumes by title (fallback for titles not in our map)
     const vintageVolumeUrl = `https://comicvine.gamespot.com/api/search/?api_key=${apiKey}&format=json&resources=volume&query=${encodeURIComponent(title)}&field_list=id,name,publisher,start_year,count_of_issues&limit=15`;
     
     try {
