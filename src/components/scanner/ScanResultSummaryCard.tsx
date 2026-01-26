@@ -402,15 +402,16 @@ export function ScanResultSummaryCard({
               </Button>
             </div>
 
-            {/* Wrong match link - shown when we have a match that can be corrected */}
+            {/* Not the right comic? - More prominent correction button */}
             {match && match.id && onReportWrongMatch && scannerState !== 'confirm' && scannerState !== 'success' && (
-              <button
+              <Button
                 onClick={onReportWrongMatch}
-                className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                variant="outline"
+                className="w-full border-orange-300 text-orange-600 hover:bg-orange-50 hover:text-orange-700 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/50"
               >
-                <Flag className="w-3 h-3 inline mr-1" />
-                Wrong match? Report it
-              </button>
+                <Search className="w-4 h-4 mr-2" />
+                Not right? Find the correct comic
+              </Button>
             )}
           </div>
         </div>
