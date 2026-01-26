@@ -203,7 +203,7 @@ export function useVisionMatch(): UseVisionMatchReturn {
     }
     
     const searchText = searchTerms.join(" ");
-    console.log(`[VISION-MATCH] Searching ComicVine for identified: "${searchText}"`);
+    console.log(`[VISION-MATCH] Searching ComicVine for identified: "${searchText}" issue: "${identifiedIssue}"`);
     
     try {
       const { data, error } = await supabase.functions.invoke("manual-comicvine-search", {
@@ -223,7 +223,7 @@ export function useVisionMatch(): UseVisionMatchReturn {
         console.log(`[VISION-MATCH] Identification search found ${data.results.length} results`);
         
         // Convert to ComicVinePick format
-        return data.results.slice(0, 20).map((result: any) => ({
+        let picks: ComicVinePick[] = data.results.slice(0, 20).map((result: any) => ({
           id: result.id,
           resource: "issue" as const,
           title: result.volumeName || result.title,
@@ -238,6 +238,38 @@ export function useVisionMatch(): UseVisionMatchReturn {
           score: result.score || 0.8,
           isReprint: false,
         }));
+        
+        // CRITICAL: Re-rank to prioritize EXACT title matches
+        // This fixes cases like "Hulk" returning "Incredible Hulk" first
+        if (identifiedTitle) {
+          const titleLower = identifiedTitle.toLowerCase().trim();
+          
+          picks = picks.map(pick => {
+            const pickTitleLower = (pick.volumeName || pick.title || "").toLowerCase().trim();
+            
+            // Exact match gets huge bonus
+            if (pickTitleLower === titleLower) {
+              console.log(`[VISION-MATCH] Exact title match boost: "${pick.volumeName}"`);
+              return { ...pick, score: (pick.score || 0) + 0.5 };
+            }
+            
+            // Penalty for title that CONTAINS our title but isn't exact
+            // e.g., "Incredible Hulk" when we want "Hulk"
+            if (pickTitleLower.includes(titleLower) && pickTitleLower !== titleLower) {
+              console.log(`[VISION-MATCH] Partial match penalty: "${pick.volumeName}" (wanted "${identifiedTitle}")`);
+              return { ...pick, score: (pick.score || 0) - 0.3 };
+            }
+            
+            return pick;
+          });
+          
+          // Re-sort by adjusted score
+          picks.sort((a, b) => (b.score || 0) - (a.score || 0));
+          
+          console.log(`[VISION-MATCH] Re-ranked top result: "${picks[0]?.volumeName}" #${picks[0]?.issue}`);
+        }
+        
+        return picks;
       }
       
       return [];
