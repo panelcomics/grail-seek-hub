@@ -53,7 +53,7 @@ export interface ComicVinePick {
   coverArtist?: string | null;
   score: number;
   isReprint: boolean;
-  source?: 'comicvine' | 'cache' | 'gcd';
+  source?: 'comicvine' | 'cache' | 'gcd' | 'vision';
   description?: string | null;
   deck?: string | null;
   characters?: string | null;

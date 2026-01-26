@@ -3246,6 +3246,45 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_vision_usage: {
+        Row: {
+          candidates_compared: number
+          created_at: string
+          id: string
+          matched_comic_id: number | null
+          matched_title: string | null
+          scan_event_id: string | null
+          similarity_score: number | null
+          triggered_by: string
+          user_id: string | null
+          vision_override_applied: boolean
+        }
+        Insert: {
+          candidates_compared?: number
+          created_at?: string
+          id?: string
+          matched_comic_id?: number | null
+          matched_title?: string | null
+          scan_event_id?: string | null
+          similarity_score?: number | null
+          triggered_by: string
+          user_id?: string | null
+          vision_override_applied?: boolean
+        }
+        Update: {
+          candidates_compared?: number
+          created_at?: string
+          id?: string
+          matched_comic_id?: number | null
+          matched_title?: string | null
+          scan_event_id?: string | null
+          similarity_score?: number | null
+          triggered_by?: string
+          user_id?: string | null
+          vision_override_applied?: boolean
+        }
+        Relationships: []
+      }
       scanned_items: {
         Row: {
           category: string
@@ -4414,6 +4453,27 @@ export type Database = {
         }
         Relationships: []
       }
+      vision_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       waitlist_handles: {
         Row: {
           created_at: string
@@ -4661,6 +4721,7 @@ export type Database = {
       }
       get_founding_seller_count: { Args: never; Returns: number }
       get_monthly_savings: { Args: { target_user_id: string }; Returns: number }
+      get_monthly_vision_usage: { Args: never; Returns: number }
       get_seller_follower_count: {
         Args: { seller_user_id: string }
         Returns: number
@@ -4701,6 +4762,7 @@ export type Database = {
         Args: { seller_user_id: string }
         Returns: undefined
       }
+      is_vision_available: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       update_offer_status: {
