@@ -114,10 +114,12 @@ const OCR_TYPO_MAP: Record<string, string> = {
   'johnny quoal': 'Jonny Quest',
   'johnny quost': 'Jonny Quest',
   'jade incorporated': 'Jonny Quest',
-  // X-Men variants
+  // X-Men variants - CRITICAL: vintage comics show "THE X-MEN" or "XMEN"
   'x-mer': 'X-Men',
   'x mer': 'X-Men',
   'xmen': 'X-Men',
+  'the x-men': 'X-Men',
+  'the xmen': 'X-Men',
   'uncanny x-mer': 'Uncanny X-Men',
   'uncany x-men': 'Uncanny X-Men',
   // Spider-Man variants
@@ -129,17 +131,18 @@ const OCR_TYPO_MAP: Record<string, string> = {
   'amaz1ng spider-man': 'Amazing Spider-Man',
   'amazlng spider-man': 'Amazing Spider-Man',
   'spectacular spider-mar': 'Spectacular Spider-Man',
-  // Fantastic Four variants
+  // Fantastic Four variants - including ANNUAL detection
   'fantast1c four': 'Fantastic Four',
   'fantaslic four': 'Fantastic Four',
   'fantastic f0ur': 'Fantastic Four',
   'fantastic 4': 'Fantastic Four',
   'ff annual': 'Fantastic Four Annual',
-  // Batman variants
+  // Batman variants - CRITICAL: vintage comics show "BAT MAN" with space
+  'bat man': 'Batman',
   'batmar': 'Batman',
   'batmam': 'Batman',
   'ba7man': 'Batman',
-  // Superman variants
+  // Superman variants - CRITICAL: avoid "PERMAL" → "Superman" false matches
   'supermar': 'Superman',
   'supermam': 'Superman',
   // Hulk variants
@@ -206,6 +209,20 @@ function cleanOcrText(text: string): string {
   return cleaned;
 }
 
+// CRITICAL: Strip prices from text BEFORE issue extraction to prevent "25¢" → "#25" errors
+function stripPricesFromText(text: string): string {
+  let stripped = text;
+  
+  // Remove price patterns FIRST - this is critical for vintage comics
+  // Patterns: 25¢, 12¢, $0.25, $1.00, 60¢, 75¢, etc.
+  stripped = stripped.replace(/\b\d{1,2}[¢€£]/g, '');           // 25¢, 12¢
+  stripped = stripped.replace(/\$\d+(?:\.\d{2})?/g, '');        // $0.25, $1.00
+  stripped = stripped.replace(/\b\d{1,2}\s*(?:cents?|¢)\b/gi, ''); // 25 cents
+  stripped = stripped.replace(/\bprice[:\s]*\d+[¢€$]/gi, '');   // price: 25¢
+  
+  return stripped.replace(/\s+/g, ' ').trim();
+}
+
 // Levenshtein distance for fuzzy matching
 function levenshtein(a: string, b: string): number {
   const matrix: number[][] = [];
@@ -228,6 +245,53 @@ function similarity(a: string, b: string): number {
   return 1 - levenshtein(a, b) / maxLen;
 }
 
+// CRITICAL: Smart issue number extraction that avoids price confusion
+// This function uses prioritized patterns to find the actual issue number
+function extractIssueNumber(text: string, title?: string): string | null {
+  // Already price-stripped text should be passed in
+  const cleanText = text;
+  
+  // Prioritized issue patterns (in order of reliability for vintage comics)
+  const issuePatterns = [
+    // Most reliable: explicit "No." or "NO." patterns (vintage style) - "NO. 159"
+    /\bNO\.?\s*(\d{1,4})\b/i,
+    // Explicit # marker - "#7", "# 159"
+    /\b#\s*(\d{1,4})\b/,
+    // "Issue X" or "Vol X" patterns
+    /\b(?:issue|vol\.?)\s*#?\s*(\d{1,4})\b/i,
+    // Month + Year patterns (vintage) - extract issue before month: "7 SEPT." means issue 7
+    /\b(\d{1,3})\s*(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\.?\b/i,
+    // Issue before year: "2 1964" - the number before a year
+    /\b(\d{1,2})\s+(?:19[3-9]\d|20[0-3]\d)\b/,
+    // ANNUAL + number: "ANNUAL 2"
+    /\bANNUAL\s*#?\s*(\d{1,3})\b/i,
+    // For vintage comics: standalone single/double digit after title words (fallback)
+  ];
+  
+  for (const pattern of issuePatterns) {
+    const match = cleanText.match(pattern);
+    if (match && match[1]) {
+      const num = parseInt(match[1]);
+      // Sanity check: issue numbers are typically 1-999 for regular issues
+      if (num >= 1 && num <= 999) {
+        return match[1];
+      }
+    }
+  }
+  
+  // Fallback: first standalone 1-3 digit number (but NOT 4 digits which could be years)
+  const fallbackMatch = cleanText.match(/\b(\d{1,3})\b/);
+  if (fallbackMatch) {
+    const num = parseInt(fallbackMatch[1]);
+    // Avoid year-like numbers (1930-2039) as issue numbers
+    if (num < 1930 || num > 2039 || num <= 999) {
+      return fallbackMatch[1];
+    }
+  }
+  
+  return null;
+}
+
 // Extract title and issue from OCR text using multiple strategies
 function extractTitleAndIssue(ocrText: string): { 
   title: string | null; 
@@ -236,16 +300,20 @@ function extractTitleAndIssue(ocrText: string): {
   method: string;
 } {
   const cleanedText = cleanOcrText(ocrText);
+  // CRITICAL: Strip prices FIRST before any issue extraction
+  const textWithoutPrices = stripPricesFromText(cleanedText);
+  
   console.log('[SCAN-ITEM] Cleaned OCR text:', cleanedText.substring(0, 300));
+  console.log('[SCAN-ITEM] Text without prices:', textWithoutPrices.substring(0, 200));
   
   const lowerText = cleanedText.toLowerCase();
+  const lowerTextNoPrice = textWithoutPrices.toLowerCase();
   
   // Strategy 0-PRE: Check explicit OCR typo map first (handles known OCR errors)
   for (const [typo, correctTitle] of Object.entries(OCR_TYPO_MAP)) {
     if (lowerText.includes(typo)) {
-      // Find issue number anywhere in the text
-      const issueMatch = cleanedText.match(/\b(\d{1,4})\b/);
-      const issue = issueMatch ? issueMatch[1] : null;
+      // CRITICAL: Use textWithoutPrices for issue extraction to avoid "25¢" → "#25"
+      const issue = extractIssueNumber(textWithoutPrices, correctTitle);
       console.log('[SCAN-ITEM] Strategy 0-PRE (OCR typo map):', typo, '->', correctTitle, '#', issue);
       return { title: correctTitle, issue, confidence: 0.92, method: 'ocr_typo_map' };
     }
@@ -261,10 +329,8 @@ function extractTitleAndIssue(ocrText: string): {
     const lowerKnown = knownTitle.toLowerCase();
     // Direct match
     if (lowerText.includes(lowerKnown)) {
-      const idx = lowerText.indexOf(lowerKnown);
-      const afterTitle = cleanedText.substring(idx + knownTitle.length, idx + knownTitle.length + 30);
-      const issueMatch = afterTitle.match(/\s*#?\s*(\d{1,4})\b/);
-      const issue = issueMatch ? issueMatch[1] : null;
+      // CRITICAL: Use textWithoutPrices for issue extraction
+      const issue = extractIssueNumber(textWithoutPrices, knownTitle);
       console.log('[SCAN-ITEM] Strategy 0a (known title):', knownTitle, '#', issue);
       return { title: knownTitle, issue, confidence: 0.95, method: 'known_title' };
     }
@@ -280,20 +346,8 @@ function extractTitleAndIssue(ocrText: string): {
       // Found base title (e.g., "Fantastic Four") and "Annual" appears elsewhere in OCR
       // Upgrade to Annual edition
       const annualTitle = `${baseTitle} Annual`;
-      // Look for issue number - check for "#X" pattern or standalone digits after year
-      const issuePatterns = [
-        /\b#\s*(\d{1,3})\b/,       // #2
-        /\bannual\b[^0-9]*(\d{1,3})\b/i,  // ANNUAL 2
-        /\b(\d{1,2})\s*(?:19|20)\d{2}\b/  // Issue before year like "2 1964"
-      ];
-      let issue: string | null = null;
-      for (const pattern of issuePatterns) {
-        const match = cleanedText.match(pattern);
-        if (match) {
-          issue = match[1];
-          break;
-        }
-      }
+      // CRITICAL: Use the smarter extractIssueNumber with price-stripped text
+      const issue = extractIssueNumber(textWithoutPrices, annualTitle);
       console.log('[SCAN-ITEM] Strategy 0a+ (base + Annual detected):', annualTitle, '#', issue);
       return { title: annualTitle, issue, confidence: 0.95, method: 'known_title_annual' };
     }
@@ -301,8 +355,7 @@ function extractTitleAndIssue(ocrText: string): {
     if (!isGiantSizeTitle && hasGiantSizeInText && lowerText.includes(lowerBase)) {
       // Found base title and "Giant-Size" in text
       const giantTitle = `Giant-Size ${baseTitle}`;
-      const issueMatch = cleanedText.match(/\b#?\s*(\d{1,3})\b/);
-      const issue = issueMatch ? issueMatch[1] : null;
+      const issue = extractIssueNumber(textWithoutPrices, giantTitle);
       console.log('[SCAN-ITEM] Strategy 0a+ (Giant-Size + base detected):', giantTitle, '#', issue);
       return { title: giantTitle, issue, confidence: 0.95, method: 'known_title_giant' };
     }
@@ -328,32 +381,8 @@ function extractTitleAndIssue(ocrText: string): {
       
       // If we matched most words, consider it a fuzzy hit
       if (matchedWords >= Math.ceil(knownWords.length * 0.5) && matchStartIdx !== -1) {
-        // For Annual editions, use smarter issue extraction to avoid price confusion
-        // IMPORTANT: Filter out prices (25¢, $0.25) before extracting issue
-        const textWithoutPrices = cleanedText.replace(/\d+[¢€$]/g, '').replace(/\$\d+(\.\d+)?/g, '');
-        
-        // Prioritized issue extraction patterns (in order of reliability)
-        const fuzzyIssuePatterns = [
-          /\b#\s*(\d{1,3})\b/,              // #2 (most reliable - explicit issue marker)
-          /\b(\d{1,2})\s+(?:19|20)\d{2}\b/, // 2 1964 (issue before year)
-          /\bannual\b[^0-9]*#?\s*(\d{1,3})\b/i, // ANNUAL #2 or ANNUAL 2
-        ];
-        
-        let issue: string | null = null;
-        for (const pattern of fuzzyIssuePatterns) {
-          const match = textWithoutPrices.match(pattern);
-          if (match) {
-            issue = match[1];
-            break;
-          }
-        }
-        
-        // Fallback: only if no pattern matched, use first standalone number (but NOT prices)
-        if (!issue) {
-          const fallbackMatch = textWithoutPrices.match(/\b(\d{1,4})\b/);
-          issue = fallbackMatch ? fallbackMatch[1] : null;
-        }
-        
+        // CRITICAL: Use the smarter extractIssueNumber with price-stripped text
+        const issue = extractIssueNumber(textWithoutPrices, knownTitle);
         console.log('[SCAN-ITEM] Strategy 0b (fuzzy known title):', knownTitle, '#', issue, 'matched', matchedWords, 'of', knownWords.length);
         return { title: knownTitle, issue, confidence: 0.88, method: 'fuzzy_known_title' };
       }
