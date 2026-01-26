@@ -401,13 +401,15 @@ export function ScannerCorrectionSheet({
                       </div>
 
                       {/* Info */}
-                      <div className="p-2 bg-background flex-1 pointer-events-none">
+                      <div className="p-2 bg-background flex-1 pointer-events-none min-w-0">
                         <div className="text-sm font-medium truncate leading-tight">
                           {candidate.series}
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center justify-between mt-0.5">
-                          <span className="font-medium">#{candidate.issue}</span>
-                          <span>{candidate.year || ''}</span>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <span className="font-medium shrink-0">#{candidate.issue}</span>
+                          {candidate.year && (
+                            <span className="shrink-0">{candidate.year}</span>
+                          )}
                         </div>
                         {candidate.publisher && (
                           <div className="text-xs text-muted-foreground truncate mt-0.5">
