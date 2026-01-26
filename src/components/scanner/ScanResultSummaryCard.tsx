@@ -225,18 +225,38 @@ export function ScanResultSummaryCard({
   // Show different secondary button for multi_match
   const isMultiMatch = scannerState === 'multi_match';
 
+  // Determine if this is a no-match (virgin cover / minimal text) scenario
+  const isNoMatch = !match && !displayTitle;
+  
   return (
     <Card className="overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-success/10 to-success/5 px-6 py-4 border-b border-success/20">
+      {/* Header - Different style for no-match vs found match */}
+      <div className={cn(
+        "px-6 py-4 border-b",
+        isNoMatch 
+          ? "bg-gradient-to-r from-blue-500/10 to-blue-500/5 border-blue-500/20"
+          : "bg-gradient-to-r from-success/10 to-success/5 border-success/20"
+      )}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5 text-success" />
+          <div className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center",
+            isNoMatch ? "bg-blue-500/20" : "bg-success/20"
+          )}>
+            {isNoMatch ? (
+              <Search className="w-5 h-5 text-blue-500" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            )}
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-foreground">Scan Complete</h2>
+            <h2 className="text-xl font-bold text-foreground">
+              {isNoMatch ? "Manual Search Needed" : "Scan Complete"}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              We found the closest match — quick review before listing.
+              {isNoMatch 
+                ? "This cover couldn't be read — use Edit to search manually."
+                : "We found the closest match — quick review before listing."
+              }
             </p>
           </div>
           {/* Admin-only Copy Debug button */}
@@ -329,7 +349,7 @@ export function ScanResultSummaryCard({
             <div className="flex-1 space-y-3">
               {/* Closest Match Label */}
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Closest Match
+                {isNoMatch ? "Your Comic" : "Closest Match"}
               </p>
               
               {/* Title */}
@@ -339,7 +359,9 @@ export function ScanResultSummaryCard({
                     {displayTitle} {displayIssue}
                   </>
                 ) : (
-                  <span className="text-muted-foreground italic">Add details to continue</span>
+                  <span className="text-blue-600 dark:text-blue-400">
+                    Tap Edit to search
+                  </span>
                 )}
               </h3>
               
