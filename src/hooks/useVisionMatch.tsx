@@ -205,6 +205,32 @@ export function useVisionMatch(): UseVisionMatchReturn {
   );
 
   /**
+   * Fetch specific issue from a volume to get cover URL
+   */
+  const fetchIssueFromVolume = async (
+    volumeId: number,
+    issueNumber: string | null
+  ): Promise<{ coverUrl: string; issueId: number } | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-comicvine-issue", {
+        body: {
+          volume_id: volumeId,
+          issue_number: issueNumber || "1", // Default to #1 if no issue specified
+        },
+      });
+      
+      if (error || !data) return null;
+      
+      return {
+        coverUrl: data.cover_url || "",
+        issueId: data.id || volumeId,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  /**
    * Search ComicVine using identified title/character
    */
   const searchFromIdentification = async (
@@ -251,7 +277,7 @@ export function useVisionMatch(): UseVisionMatchReturn {
         // Convert to ComicVinePick format
         let picks: ComicVinePick[] = data.results.slice(0, 20).map((result: any) => ({
           id: result.id,
-          resource: "issue" as const,
+          resource: result.resource || "issue",
           title: result.volumeName || result.title,
           volumeName: result.volumeName || result.title,
           volumeId: result.volumeId || result.id,
@@ -293,6 +319,28 @@ export function useVisionMatch(): UseVisionMatchReturn {
           picks.sort((a, b) => (b.score || 0) - (a.score || 0));
           
           console.log(`[VISION-MATCH] Re-ranked top result: "${picks[0]?.volumeName}" #${picks[0]?.issue}`);
+        }
+        
+        // FIX: If top result has no cover URL (volume-level result), fetch the specific issue
+        const topPick = picks[0];
+        if (topPick && (!topPick.coverUrl || topPick.coverUrl === "")) {
+          console.log(`[VISION-MATCH] Top pick has no cover URL, fetching issue from volume ${topPick.volumeId}`);
+          
+          const issueData = await fetchIssueFromVolume(
+            topPick.volumeId || topPick.id,
+            identifiedIssue || topPick.issue || "1"
+          );
+          
+          if (issueData) {
+            console.log(`[VISION-MATCH] Fetched issue cover: ${issueData.coverUrl?.substring(0, 50)}...`);
+            picks[0] = {
+              ...topPick,
+              id: issueData.issueId,
+              coverUrl: issueData.coverUrl,
+              thumbUrl: issueData.coverUrl,
+              resource: "issue",
+            };
+          }
         }
         
         return picks;
