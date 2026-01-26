@@ -20,7 +20,7 @@ import { ComicVinePick } from "@/types/comicvine";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Vision matching thresholds
-export const VISION_CONFIDENCE_THRESHOLD = 0.75; // Trigger if OCR confidence below this
+export const VISION_CONFIDENCE_THRESHOLD = 0.80; // Trigger if OCR confidence below this
 export const VISION_CANDIDATE_GAP_THRESHOLD = 0.10; // Trigger if gap between top 2 candidates < this
 export const VISION_OVERRIDE_THRESHOLD = 0.85; // Override OCR result if vision score >= this
 export const VISION_IDENTIFICATION_THRESHOLD = 0.50; // Candidates below this score trigger identification mode
