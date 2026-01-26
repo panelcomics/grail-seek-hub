@@ -45,7 +45,22 @@ const NOISE_PATTERNS = [
 ];
 
 // Known title prefixes to help extraction
+// IMPORTANT: More specific patterns (with "Annual", "Giant-Size") MUST come FIRST
+// so they are matched before the base title pattern
 const KNOWN_TITLE_PATTERNS = [
+  // Annual editions (must be before base titles!)
+  'Fantastic Four Annual', 'Amazing Spider-Man Annual', 'Avengers Annual',
+  'Uncanny X-Men Annual', 'X-Men Annual', 'Thor Annual', 'Iron Man Annual',
+  'Captain America Annual', 'Incredible Hulk Annual', 'Daredevil Annual',
+  'Justice League Annual', 'Batman Annual', 'Superman Annual', 'Action Comics Annual',
+  'Detective Comics Annual', 'Wonder Woman Annual', 'Green Lantern Annual',
+  'Teen Titans Annual', 'New Mutants Annual', 'Wolverine Annual',
+  // Giant-Size editions
+  'Giant-Size X-Men', 'Giant-Size Fantastic Four', 'Giant-Size Spider-Man',
+  'Giant-Size Avengers', 'Giant-Size Hulk', 'Giant-Size Defenders',
+  // King-Size editions
+  'King-Size Special',
+  // Base titles (after specific editions)
   'Amazing Spider-Man', 'Spectacular Spider-Man', 'Web of Spider-Man', 'Spider-Man',
   'Uncanny X-Men', 'X-Men', 'New Mutants', 'X-Force', 'Wolverine', 'Cable',
   'Avengers', 'New Avengers', 'West Coast Avengers', 'Mighty Avengers',
@@ -155,6 +170,10 @@ function extractTitleAndIssue(ocrText: string): {
   
   // Strategy 0a: Check for known title patterns first (most reliable)
   // Use fuzzy matching to catch OCR errors like "JONNY QUOH" → "Jonny Quest"
+  // IMPORTANT: Check for "Annual" suffix enhancement - OCR may have words scattered
+  const hasAnnualInText = /\bannual\b/i.test(lowerText);
+  const hasGiantSizeInText = /\bgiant[\s-]?size\b/i.test(lowerText);
+  
   for (const knownTitle of KNOWN_TITLE_PATTERNS) {
     const lowerKnown = knownTitle.toLowerCase();
     // Direct match
@@ -165,6 +184,44 @@ function extractTitleAndIssue(ocrText: string): {
       const issue = issueMatch ? issueMatch[1] : null;
       console.log('[SCAN-ITEM] Strategy 0a (known title):', knownTitle, '#', issue);
       return { title: knownTitle, issue, confidence: 0.95, method: 'known_title' };
+    }
+    
+    // Check for base title match with "Annual" in text (words may be scattered in OCR)
+    // e.g., "ANNUAL ... Fantastic FOUR" should become "Fantastic Four Annual"
+    const isAnnualTitle = lowerKnown.includes('annual');
+    const isGiantSizeTitle = lowerKnown.includes('giant-size');
+    const baseTitle = knownTitle.replace(/ Annual$/i, '').replace(/^Giant-Size /i, '');
+    const lowerBase = baseTitle.toLowerCase();
+    
+    if (!isAnnualTitle && hasAnnualInText && lowerText.includes(lowerBase)) {
+      // Found base title (e.g., "Fantastic Four") and "Annual" appears elsewhere in OCR
+      // Upgrade to Annual edition
+      const annualTitle = `${baseTitle} Annual`;
+      // Look for issue number - check for "#X" pattern or standalone digits after year
+      const issuePatterns = [
+        /\b#\s*(\d{1,3})\b/,       // #2
+        /\bannual\b[^0-9]*(\d{1,3})\b/i,  // ANNUAL 2
+        /\b(\d{1,2})\s*(?:19|20)\d{2}\b/  // Issue before year like "2 1964"
+      ];
+      let issue: string | null = null;
+      for (const pattern of issuePatterns) {
+        const match = cleanedText.match(pattern);
+        if (match) {
+          issue = match[1];
+          break;
+        }
+      }
+      console.log('[SCAN-ITEM] Strategy 0a+ (base + Annual detected):', annualTitle, '#', issue);
+      return { title: annualTitle, issue, confidence: 0.95, method: 'known_title_annual' };
+    }
+    
+    if (!isGiantSizeTitle && hasGiantSizeInText && lowerText.includes(lowerBase)) {
+      // Found base title and "Giant-Size" in text
+      const giantTitle = `Giant-Size ${baseTitle}`;
+      const issueMatch = cleanedText.match(/\b#?\s*(\d{1,3})\b/);
+      const issue = issueMatch ? issueMatch[1] : null;
+      console.log('[SCAN-ITEM] Strategy 0a+ (Giant-Size + base detected):', giantTitle, '#', issue);
+      return { title: giantTitle, issue, confidence: 0.95, method: 'known_title_giant' };
     }
     
     // Fuzzy match for OCR errors - LOWERED threshold from 0.75 to 0.60
