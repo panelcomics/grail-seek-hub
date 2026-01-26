@@ -28,12 +28,21 @@ import {
   ShieldAlert,
   ArrowLeft,
   XCircle,
-  TrendingUp
+  TrendingUp,
+  List
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { SCAN_AUTO_CONFIRM_THRESHOLD } from "@/types/scannerState";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface ScanMetrics {
   total: number;
@@ -69,6 +78,18 @@ interface CorrectedInputDetail {
   selected_publisher: string | null;
 }
 
+interface RecentScanEvent {
+  id: string;
+  created_at: string;
+  raw_input: string | null;
+  normalized_input: string;
+  confidence: number | null;
+  strategy: string | null;
+  source: string | null;
+  rejected_reason: string | null;
+  input_source: string | null;
+}
+
 export default function ScannerHealth() {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useAdminCheck();
@@ -89,6 +110,9 @@ export default function ScannerHealth() {
   // Pain Points state
   const [lowConfidenceInputs, setLowConfidenceInputs] = useState<LowConfidenceInput[]>([]);
   const [correctedInputDetails, setCorrectedInputDetails] = useState<CorrectedInputDetail[]>([]);
+  
+  // Recent scan events
+  const [recentEvents, setRecentEvents] = useState<RecentScanEvent[]>([]);
 
   useEffect(() => {
     if (!adminLoading && isAdmin) {
@@ -245,6 +269,19 @@ export default function ScannerHealth() {
         .slice(0, 20);
         
       setCorrectedInputDetails(sortedCorrDetails);
+      
+      // === RECENT SCAN EVENTS (last 50) ===
+      const { data: recentEventsData, error: recentError } = await (supabase as any)
+        .from("scan_events")
+        .select("id, created_at, raw_input, normalized_input, confidence, strategy, source, rejected_reason, input_source")
+        .order("created_at", { ascending: false })
+        .limit(50);
+        
+      if (recentError) {
+        console.error("[SCANNER_HEALTH] Recent events error:", recentError);
+      }
+      
+      setRecentEvents(recentEventsData || []);
       
     } catch (err) {
       console.error("[SCANNER_HEALTH] Fetch error:", err);
@@ -592,6 +629,81 @@ export default function ScannerHealth() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Recent Scan Events Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <List className="h-4 w-4" />
+                Recent Scan Events (last 50)
+              </CardTitle>
+              <CardDescription>
+                Most recent scanner activity for debugging
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : recentEvents.length > 0 ? (
+                <div className="overflow-x-auto max-h-96">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-36">Time</TableHead>
+                        <TableHead>Raw Input</TableHead>
+                        <TableHead>Normalized</TableHead>
+                        <TableHead className="w-20">Conf</TableHead>
+                        <TableHead>Strategy</TableHead>
+                        <TableHead>Source</TableHead>
+                        <TableHead>Input Type</TableHead>
+                        <TableHead>Rejected</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentEvents.map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(event.created_at).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs max-w-32 truncate" title={event.raw_input || ''}>
+                            {event.raw_input || '-'}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs max-w-32 truncate" title={event.normalized_input}>
+                            {event.normalized_input}
+                          </TableCell>
+                          <TableCell>
+                            {event.confidence !== null ? (
+                              <Badge variant={event.confidence >= 70 ? "default" : "secondary"}>
+                                {event.confidence}%
+                              </Badge>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {event.strategy || '-'}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {event.source || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {event.input_source ? (
+                              <Badge variant="outline" className="text-xs">
+                                {event.input_source}
+                              </Badge>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell className="text-xs text-destructive">
+                            {event.rejected_reason || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No scan events recorded yet</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Info Note */}
           <Alert>

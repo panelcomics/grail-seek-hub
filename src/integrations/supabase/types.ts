@@ -3170,6 +3170,7 @@ export type Database = {
           confidence: number | null
           created_at: string
           id: string
+          input_source: string | null
           normalized_input: string
           raw_input: string | null
           rejected_reason: string | null
@@ -3181,6 +3182,7 @@ export type Database = {
           confidence?: number | null
           created_at?: string
           id?: string
+          input_source?: string | null
           normalized_input: string
           raw_input?: string | null
           rejected_reason?: string | null
@@ -3192,6 +3194,7 @@ export type Database = {
           confidence?: number | null
           created_at?: string
           id?: string
+          input_source?: string | null
           normalized_input?: string
           raw_input?: string | null
           rejected_reason?: string | null

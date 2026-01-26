@@ -275,7 +275,8 @@ export function ManualConfirmPanel({
                   confidence: originalConfidence,
                   strategy: null,
                   source: "manual_search",
-                  rejected_reason: "none_of_these"
+                  rejected_reason: "none_of_these",
+                  input_source: "typed"
                 });
                 console.log("[SCAN_EVENTS] Logged 'None of these' click");
               } catch (err) {

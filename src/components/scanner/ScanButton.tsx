@@ -188,7 +188,7 @@ export function ScanButton({ onScanResult, className }: ScanButtonProps) {
   const searchComic = async (searchText: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("comic-scanner", {
-        body: { query: searchText },
+        body: { query: searchText, input_source: 'typed' },
       });
 
       if (error) throw error;
