@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { debugLog } from "@/lib/debug";
@@ -18,6 +19,28 @@ import { PricingHelper } from "./scanner/PricingHelper";
 import { GRADE_OPTIONS } from "@/types/draftItem";
 import { AIConditionAssistant } from "./elite/AIConditionAssistant";
 import { AdvancedVariantDetector } from "./elite/AdvancedVariantDetector";
+
+// Full condition options with plus/minus grades
+const CONDITION_OPTIONS = [
+  { value: "MT", label: "Mint (MT) - 10.0" },
+  { value: "NM+", label: "Near Mint+ (NM+) - 9.6" },
+  { value: "NM", label: "Near Mint (NM) - 9.4" },
+  { value: "NM-", label: "Near Mint- (NM-) - 9.2" },
+  { value: "VF+", label: "Very Fine+ (VF+) - 8.5" },
+  { value: "VF", label: "Very Fine (VF) - 8.0" },
+  { value: "VF-", label: "Very Fine- (VF-) - 7.5" },
+  { value: "FN+", label: "Fine+ (FN+) - 6.5" },
+  { value: "FN", label: "Fine (FN) - 6.0" },
+  { value: "FN-", label: "Fine- (FN-) - 5.5" },
+  { value: "VG+", label: "Very Good+ (VG+) - 5.0" },
+  { value: "VG", label: "Very Good (VG) - 4.0" },
+  { value: "VG-", label: "Very Good- (VG-) - 3.5" },
+  { value: "GD+", label: "Good+ (GD+) - 2.5" },
+  { value: "GD", label: "Good (GD) - 2.0" },
+  { value: "GD-", label: "Good- (GD-) - 1.8" },
+  { value: "FR", label: "Fair (FR) - 1.5" },
+  { value: "PR", label: "Poor (PR) - 0.5" },
+];
 
 interface ComicVinePick {
   id: number;
@@ -540,17 +563,16 @@ export function ScannerListingForm({
               <Label htmlFor="condition">Condition</Label>
               <Select value={condition} onValueChange={setCondition}>
                 <SelectTrigger id="condition">
-                  <SelectValue />
+                  <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MT">Mint (MT)</SelectItem>
-                  <SelectItem value="NM">Near Mint (NM)</SelectItem>
-                  <SelectItem value="VF">Very Fine (VF)</SelectItem>
-                  <SelectItem value="FN">Fine (FN)</SelectItem>
-                  <SelectItem value="VG">Very Good (VG)</SelectItem>
-                  <SelectItem value="GD">Good (GD)</SelectItem>
-                  <SelectItem value="FR">Fair (FR)</SelectItem>
-                  <SelectItem value="PR">Poor (PR)</SelectItem>
+                <SelectContent className="max-h-[300px]">
+                  <ScrollArea className="h-[280px]">
+                    {CONDITION_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="py-3">
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
