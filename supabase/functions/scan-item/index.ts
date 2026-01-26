@@ -361,6 +361,17 @@ function extractTitleAndIssue(ocrText: string): {
   const lowerText = cleanedText.toLowerCase();
   const lowerTextNoPrice = textWithoutPrices.toLowerCase();
   
+  // Strategy 0-CGC: Parse CGC/CBCS label format FIRST (most reliable for slabs)
+  // CGC labels have format: "Title #Issue" on a dedicated line after grade
+  // Example: "CGC UNIVERSAL GRADE\nSuspense #15\nAtlas Comics, 3/52"
+  const cgcLabelMatch = cleanedText.match(/(?:CGC|CBCS)[^\n]*\n+([A-Z][A-Za-z\s\-']+)\s*#\s*(\d{1,4})/i);
+  if (cgcLabelMatch) {
+    const labelTitle = cgcLabelMatch[1].trim();
+    const labelIssue = cgcLabelMatch[2];
+    console.log('[SCAN-ITEM] Strategy 0-CGC (label parse):', labelTitle, '#', labelIssue);
+    return { title: labelTitle, issue: labelIssue, confidence: 0.98, method: 'cgc_label' };
+  }
+  
   // Strategy 0-PRE: Check explicit OCR typo map first (handles known OCR errors)
   for (const [typo, correctTitle] of Object.entries(OCR_TYPO_MAP)) {
     if (lowerText.includes(typo)) {
@@ -413,9 +424,10 @@ function extractTitleAndIssue(ocrText: string): {
     }
     
     // Fuzzy match for OCR errors - RAISED threshold to 0.70 to prevent false positives
-    // "quore" vs "quest" still works at 0.70
-    // But "Suspense" vs "Mutants" (0.36) will NOT match
-    const knownWords = lowerKnown.split(/\s+/);
+    // CRITICAL: Exclude common stopwords that appear everywhere in OCR text
+    const STOPWORDS = new Set(['the', 'of', 'a', 'an', 'and', 'or', 'to', 'in', 'on', 'at', 'by', 'for', 'with', 'is', 'it', 'as', 'be', 'are', 'was', 'were', 'from']);
+    
+    const knownWords = lowerKnown.split(/\s+/).filter(w => !STOPWORDS.has(w) && w.length >= 3);
     if (knownWords.length >= 2) {
       const ocrWords = lowerText.split(/\s+/);
       let matchedWords = 0;
@@ -424,9 +436,9 @@ function extractTitleAndIssue(ocrText: string): {
       
       for (let i = 0; i < ocrWords.length; i++) {
         for (const knownWord of knownWords) {
-          // RAISED threshold to 0.70 to prevent false matches like "Suspense" → "New Mutants"
+          // RAISED threshold to 0.75 to prevent false matches
           const sim = similarity(ocrWords[i], knownWord);
-          if (knownWord.length >= 3 && sim > 0.70) {
+          if (knownWord.length >= 3 && sim > 0.75) {
             if (matchStartIdx === -1) matchStartIdx = i;
             matchedWords++;
             matchedWordList.push(`${ocrWords[i]}→${knownWord}(${sim.toFixed(2)})`);
@@ -435,11 +447,10 @@ function extractTitleAndIssue(ocrText: string): {
         }
       }
       
-      // CRITICAL: Require AT LEAST 2/3 of words to match (was 1/2)
-      // For 2-word titles like "New Mutants", need BOTH words to match
-      const requiredMatches = knownWords.length <= 2 
-        ? knownWords.length  // 2-word titles: require ALL words
-        : Math.ceil(knownWords.length * 0.67);  // 3+ word titles: require 2/3
+      // CRITICAL: For multi-word titles, require ALL significant words to match
+      // "Saga of the Swamp Thing" → ["saga", "swamp", "thing"] (3 words after stopword removal)
+      // Must match ALL 3, not just 2/3
+      const requiredMatches = knownWords.length;
       
       if (matchedWords >= requiredMatches && matchStartIdx !== -1) {
         // CRITICAL: Use the smarter extractIssueNumber with price-stripped text
