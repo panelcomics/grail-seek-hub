@@ -794,13 +794,20 @@ export function ScannerListingForm({
                     <SelectTrigger id="keyType">
                       <SelectValue placeholder="Select type..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-50">
                       <SelectItem value="First Appearance">First Appearance</SelectItem>
-                      <SelectItem value="Origin">Origin</SelectItem>
-                      <SelectItem value="Death">Death</SelectItem>
+                      <SelectItem value="Cameo Appearance">Cameo Appearance</SelectItem>
+                      <SelectItem value="Origin Story">Origin Story</SelectItem>
+                      <SelectItem value="Death">Death of Character</SelectItem>
+                      <SelectItem value="First Cover">First Cover Appearance</SelectItem>
+                      <SelectItem value="First Team">First Team Appearance</SelectItem>
+                      <SelectItem value="First Solo">First Solo Title</SelectItem>
                       <SelectItem value="Major Key">Major Key</SelectItem>
                       <SelectItem value="Minor Key">Minor Key</SelectItem>
-                      <SelectItem value="Cameo">Cameo</SelectItem>
+                      <SelectItem value="Low Print Run">Low Print Run</SelectItem>
+                      <SelectItem value="Newsstand">Newsstand Edition</SelectItem>
+                      <SelectItem value="Wedding">Wedding Issue</SelectItem>
+                      <SelectItem value="Crossover">Major Crossover</SelectItem>
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
