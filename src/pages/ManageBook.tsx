@@ -57,6 +57,8 @@ const DEFECT_OPTIONS = [
   { value: "ink_on_cover", label: "Ink/Writing on Cover", description: "Ink marks, writing, or stamps" },
   { value: "moisture_stain", label: "Moisture Stain", description: "Water damage or staining" },
   { value: "spine_split", label: "Spine Split", description: "Split along spine" },
+  { value: "spine_roll", label: "Spine Roll", description: "Spine has rolled or curved" },
+  { value: "cover_tics", label: "Cover Tics", description: "Small creases/tics on cover" },
   { value: "torn_pages", label: "Torn Pages", description: "Interior page tears" },
   { value: "missing_pages", label: "Missing Pages", description: "Pages missing from interior" },
   { value: "rusty_staples", label: "Rusty Staples", description: "Staples showing rust/migration" },
