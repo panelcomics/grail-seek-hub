@@ -245,9 +245,32 @@ function extractTitleAndIssue(ocrText: string): {
       
       // If we matched most words, consider it a fuzzy hit
       if (matchedWords >= Math.ceil(knownWords.length * 0.5) && matchStartIdx !== -1) {
-        // Look for issue number in the ENTIRE text, not just after title
-        const issueMatch = cleanedText.match(/\b(\d{1,4})\b/);
-        const issue = issueMatch ? issueMatch[1] : null;
+        // For Annual editions, use smarter issue extraction to avoid price confusion
+        // IMPORTANT: Filter out prices (25¢, $0.25) before extracting issue
+        const textWithoutPrices = cleanedText.replace(/\d+[¢€$]/g, '').replace(/\$\d+(\.\d+)?/g, '');
+        
+        // Prioritized issue extraction patterns (in order of reliability)
+        const fuzzyIssuePatterns = [
+          /\b#\s*(\d{1,3})\b/,              // #2 (most reliable - explicit issue marker)
+          /\b(\d{1,2})\s+(?:19|20)\d{2}\b/, // 2 1964 (issue before year)
+          /\bannual\b[^0-9]*#?\s*(\d{1,3})\b/i, // ANNUAL #2 or ANNUAL 2
+        ];
+        
+        let issue: string | null = null;
+        for (const pattern of fuzzyIssuePatterns) {
+          const match = textWithoutPrices.match(pattern);
+          if (match) {
+            issue = match[1];
+            break;
+          }
+        }
+        
+        // Fallback: only if no pattern matched, use first standalone number (but NOT prices)
+        if (!issue) {
+          const fallbackMatch = textWithoutPrices.match(/\b(\d{1,4})\b/);
+          issue = fallbackMatch ? fallbackMatch[1] : null;
+        }
+        
         console.log('[SCAN-ITEM] Strategy 0b (fuzzy known title):', knownTitle, '#', issue, 'matched', matchedWords, 'of', knownWords.length);
         return { title: knownTitle, issue, confidence: 0.88, method: 'fuzzy_known_title' };
       }
