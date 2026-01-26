@@ -1010,7 +1010,10 @@ export default function Scanner() {
     year?: string
   ): Promise<CorrectionCandidate[]> => {
     try {
-      const searchQuery = title + (issue ? ` #${issue}` : '') + (year ? ` ${year}` : '');
+      // Don't include year in searchText - pass it separately to avoid parsing confusion
+      const searchQuery = title + (issue ? ` #${issue}` : '');
+      
+      console.log('[CORRECTION_SEARCH] Searching:', { searchQuery, publisher, issue, year });
       
       const { data, error } = await supabase.functions.invoke('manual-comicvine-search', {
         body: { 
@@ -1023,41 +1026,31 @@ export default function Scanner() {
 
       if (error) throw error;
       
-      if (data.volumes && data.volumes.length > 0) {
+      console.log('[CORRECTION_SEARCH] Response:', { 
+        ok: data?.ok, 
+        resultsCount: data?.results?.length,
+        hasVolumes: !!data?.volumes
+      });
+      
+      // The edge function returns "results", not "volumes"
+      if (data?.ok && data.results && data.results.length > 0) {
         // Convert to CorrectionCandidate format
-        const candidates: CorrectionCandidate[] = [];
+        const candidates: CorrectionCandidate[] = data.results.slice(0, 20).map((result: any) => ({
+          comicvine_issue_id: result.id,
+          comicvine_volume_id: result.volumeId || result.id,
+          series: result.volumeName || result.title,
+          issue: result.issue || issue || '',
+          year: result.year || null,
+          publisher: result.publisher || null,
+          coverUrl: result.coverUrl || result.thumbUrl || null,
+          confidence: Math.round((result.score || 0.7) * 100)
+        }));
         
-        for (const volume of data.volumes.slice(0, 10)) {
-          if (volume.issues && volume.issues.length > 0) {
-            for (const iss of volume.issues.slice(0, 5)) {
-              candidates.push({
-                comicvine_issue_id: iss.id,
-                comicvine_volume_id: volume.id,
-                series: volume.name,
-                issue: iss.issue_number || '',
-                year: volume.start_year || null,
-                publisher: volume.publisher?.name || null,
-                coverUrl: iss.image?.small_url || volume.image?.small_url || null,
-                confidence: 80
-              });
-            }
-          } else {
-            candidates.push({
-              comicvine_issue_id: volume.id,
-              comicvine_volume_id: volume.id,
-              series: volume.name,
-              issue: issue || '1',
-              year: volume.start_year || null,
-              publisher: volume.publisher?.name || null,
-              coverUrl: volume.image?.small_url || null,
-              confidence: 60
-            });
-          }
-        }
-        
+        console.log('[CORRECTION_SEARCH] Returning candidates:', candidates.length);
         return candidates;
       }
       
+      console.log('[CORRECTION_SEARCH] No results found');
       return [];
     } catch (error) {
       console.error('Correction search error:', error);
