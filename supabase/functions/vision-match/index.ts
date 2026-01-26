@@ -434,6 +434,131 @@ Look at the scanned cover image and determine which candidate (if any) best matc
       console.log(`[VISION-MATCH] Reasoning: ${reasoning}`);
     }
 
+    // CRITICAL FIX: If comparison mode found NO good match (score < 0.3), 
+    // fallback to identification mode to let AI identify the comic directly
+    if (similarityScore < 0.3) {
+      console.log(`[VISION-MATCH] Comparison failed (score: ${similarityScore}), falling back to IDENTIFICATION MODE`);
+      
+      // Run identification
+      const identificationPrompt = `You are an expert comic book collector. Look at this comic cover and identify it.
+
+Analyze:
+1. Main character(s) depicted (costume, features)
+2. Title text (may be stylized)
+3. Issue number
+4. Publisher logo
+5. Art style and era
+
+Provide identification as JSON:
+{
+  "identified_title": "Series title",
+  "identified_issue": "Issue number or null",
+  "identified_publisher": "Publisher",
+  "identified_character": "Main character",
+  "confidence": 0.0-1.0,
+  "reasoning": "Brief explanation"
+}
+
+Character hints:
+- Red muscular monster = Red Hulk (Marvel Hulk series 2008)
+- Green muscular monster = Hulk (Marvel)
+- Red/blue spider suit = Spider-Man
+- Bat costume = Batman`;
+
+      const identifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: identificationPrompt },
+            {
+              role: "user",
+              content: [
+                { type: "text", text: "Identify this comic:" },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: scanImageBase64.startsWith("data:") 
+                      ? scanImageBase64 
+                      : `data:image/jpeg;base64,${scanImageBase64}`,
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 500,
+        }),
+      });
+
+      if (identifyResponse.ok) {
+        const idResponse = await identifyResponse.json();
+        const idContent = idResponse.choices?.[0]?.message?.content || "";
+        console.log("[VISION-MATCH] Fallback identification response:", idContent);
+
+        let identifiedTitle: string | null = null;
+        let identifiedIssue: string | null = null;
+        let identifiedPublisher: string | null = null;
+        let identifiedCharacter: string | null = null;
+        let identificationConfidence = 0;
+
+        try {
+          const jsonMatch = idContent.match(/\{[\s\S]*?\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            identifiedTitle = parsed.identified_title || null;
+            identifiedIssue = parsed.identified_issue || null;
+            identifiedPublisher = parsed.identified_publisher || null;
+            identifiedCharacter = parsed.identified_character || null;
+            identificationConfidence = parsed.confidence || 0;
+          }
+        } catch (e) {
+          console.error("[VISION-MATCH] Failed to parse identification:", e);
+        }
+
+        if (identifiedTitle && identificationConfidence >= 0.5) {
+          console.log(`[VISION-MATCH] Fallback identified: "${identifiedTitle}" #${identifiedIssue} confidence: ${identificationConfidence}`);
+          
+          // Log usage with identification
+          await supabase.from("scan_vision_usage").insert({
+            scan_event_id: scanEventId,
+            user_id: userId || null,
+            triggered_by: triggeredBy,
+            candidates_compared: candidatesCount,
+            similarity_score: identificationConfidence,
+            matched_comic_id: null,
+            matched_title: identifiedTitle,
+            vision_override_applied: true,
+          });
+
+          return new Response(
+            JSON.stringify({
+              bestMatchComicId: null,
+              bestMatchTitle: null,
+              bestMatchIssue: null,
+              bestMatchPublisher: null,
+              bestMatchYear: null,
+              bestMatchCoverUrl: null,
+              similarityScore: 0,
+              visionOverrideApplied: false,
+              limitReached: false,
+              candidatesCompared: candidatesCount,
+              identificationMode: true,
+              identifiedTitle,
+              identifiedIssue,
+              identifiedPublisher,
+              identifiedCharacter,
+              identificationConfidence,
+            } as VisionMatchResult),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     // Log usage
     await supabase.from("scan_vision_usage").insert({
       scan_event_id: scanEventId,
