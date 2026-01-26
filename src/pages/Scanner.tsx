@@ -851,7 +851,8 @@ export default function Scanner() {
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),
         images: {
-          front: finalImageUrl,
+          primary: finalImageUrl,
+          others: [],
           comicvine_reference: selectedPick.coverUrl || null,
         },
         listing_status: "not_listed",
