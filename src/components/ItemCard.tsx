@@ -15,6 +15,7 @@ import { SoldOffPlatformBadge } from "@/components/SoldOffPlatformBadge";
 import { getRotationTransform } from "@/lib/imageRotation";
 import { HeatScoreBadge } from "@/components/HeatScoreBadge";
 import { HoverImagePreview, useSupportsHover } from "@/components/HoverImagePreview";
+import { RestorationBadge, hasRestoration } from "@/components/RestorationBadge";
 import {
   Tooltip,
   TooltipContent,
@@ -74,6 +75,8 @@ interface ItemCardProps {
   isApprovedCreator?: boolean;
   // Heat score (optional, 0-100)
   heatScore?: number | null;
+  // Restoration markers
+  restorationMarkers?: string[] | null;
 }
 
 const ItemCard = ({ 
@@ -125,6 +128,7 @@ const ItemCard = ({
   signedBy = null,
   isApprovedCreator = false,
   heatScore = null,
+  restorationMarkers = null,
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -377,6 +381,11 @@ const ItemCard = ({
                 <Badge className="text-[10px] font-bold px-1.5 py-0.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0">
                   Key
                 </Badge>
+              )}
+              
+              {/* Restoration badge - prominent purple */}
+              {hasRestoration(restorationMarkers) && (
+                <RestorationBadge markers={restorationMarkers} size="sm" showDetails={true} />
               )}
               
               {/* Heat Score badge (if provided) */}

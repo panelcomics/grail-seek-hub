@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { getRotationTransform } from "@/lib/imageRotation";
 import { HeatScoreBadge } from "@/components/HeatScoreBadge";
+import { RestorationBadge, hasRestoration } from "@/components/RestorationBadge";
 
 interface CompactItemCardProps {
   id: string;
@@ -31,6 +32,7 @@ interface CompactItemCardProps {
   priority?: boolean;
   sellerId?: string; // For fairness tracking
   heatScore?: number | null; // Optional heat score (0-100)
+  restorationMarkers?: string[] | null; // Restoration/defect markers
 }
 
 export function CompactItemCard({
@@ -48,6 +50,7 @@ export function CompactItemCard({
   imageRotation = null,
   priority = false,
   heatScore = null,
+  restorationMarkers = null,
 }: CompactItemCardProps) {
   
   // Get grade display text
@@ -111,6 +114,10 @@ export function CompactItemCard({
               <Badge className="text-[9px] font-bold px-1 py-0 leading-tight bg-destructive text-destructive-foreground border-0">
                 Key
               </Badge>
+            )}
+            {/* Restoration badge - prominent purple warning */}
+            {hasRestoration(restorationMarkers) && (
+              <RestorationBadge markers={restorationMarkers} size="sm" showDetails={false} />
             )}
           </div>
         </div>

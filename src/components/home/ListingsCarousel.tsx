@@ -156,6 +156,7 @@ export function ListingsCarousel({
                     isSigned={listing.is_signed}
                     signatureType={listing.signature_type}
                     signedBy={listing.signed_by}
+                    restorationMarkers={(listing.inventory_items as any)?.restoration_markers || (listing as any)?.restoration_markers}
                   />
                 </div>
               );
