@@ -446,9 +446,23 @@ export default function Scanner() {
           setManualSearchQuery(searchText);
         }
         
+        // Check if OCR returned empty or nearly empty text (virgin cover / no text)
+        const ocrText = data.ocr || "";
+        const hasMinimalText = ocrText.trim().length < 10;
+        
+        if (hasMinimalText) {
+          // Auto-open correction sheet for covers that couldn't be read
+          setIsLowConfidenceMode(true);
+          setShowCorrectionSheet(true);
+          sonnerToast.info("This cover has minimal text", {
+            description: "Use manual search to find your comic.",
+            duration: 4000
+          });
+        }
+        
         setDebugData({
           status: "no_match",
-          raw_ocr: data.ocr || "",
+          raw_ocr: ocrText,
           extracted: data.extracted || null,
           confidence: 0,
           queryParams: null,
