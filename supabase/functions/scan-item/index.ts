@@ -56,6 +56,18 @@ const REPRINT_KEYWORDS = [
   'gallery edition', 'artifact edition', 'premiere edition',
 ];
 
+// KEY ISSUE PATTERNS - first appearances and significant events
+const KEY_ISSUE_PATTERNS = [
+  { pattern: /first\s*appearance/i, tag: '1st Appearance' },
+  { pattern: /1st\s*app(?:earance)?/i, tag: '1st Appearance' },
+  { pattern: /origin\s*(?:of|story)/i, tag: 'Origin Story' },
+  { pattern: /death\s*of/i, tag: 'Death Issue' },
+  { pattern: /wedding/i, tag: 'Wedding Issue' },
+  { pattern: /1st\s*print/i, tag: '1st Print' },
+  { pattern: /key\s*issue/i, tag: 'Key Issue' },
+  { pattern: /newsstand/i, tag: 'Newsstand Edition' },
+];
+
 // Known title prefixes to help extraction
 // IMPORTANT: More specific patterns (with "Annual", "Giant-Size") MUST come FIRST
 // so they are matched before the base title pattern
@@ -585,11 +597,33 @@ function detectVariantCover(ocrText: string): VariantInfo {
     result.variantDetails = result.variantDetails || `${printingMatch[1]} Printing`;
   }
   
-  // Newsstand variant
-  if (/\bNewsstand\b/i.test(ocrText)) {
+// Newsstand vs Direct Edition detection (crucial for Bronze/Modern age comics)
+  // Newsstand editions typically have UPC barcode, Direct editions have Spider-Man/DC bullet
+  if (/\bNewsstand\b/i.test(ocrText) || /\bUPC\b/i.test(ocrText)) {
     result.isVariant = true;
     result.variantType = result.variantType || 'newsstand';
-    result.variantDetails = result.variantDetails || 'Newsstand Edition';
+    result.variantDetails = result.variantDetails || 'Newsstand Edition (UPC)';
+  }
+  
+  // Direct Edition detection
+  if (/\bDirect\s*Edition\b/i.test(ocrText) || /\bDirect\s*Sales\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'direct';
+    result.variantDetails = result.variantDetails || 'Direct Edition';
+  }
+  
+  // Canadian Price Variant detection (important for collectors)
+  if (/\b\d+\s*¢?\s*(?:CAN|CDN|CANADA)\b/i.test(ocrText) || /\bprice\s*variant\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'price_variant';
+    result.variantDetails = result.variantDetails || 'Canadian Price Variant';
+  }
+  
+  // UK Price Variant detection
+  if (/\b\d+\s*(?:p|pence)\b/i.test(ocrText)) {
+    result.isVariant = true;
+    result.variantType = result.variantType || 'price_variant';
+    result.variantDetails = result.variantDetails || 'UK Pence Variant';
   }
   
   // Try to extract artist name for variant covers
@@ -1072,6 +1106,7 @@ serve(async (req) => {
     let inputSource: 'typed' | 'image' = 'image';
     let usedOcr = false;
     let rawInput: string | null = null;
+    let correctionOverride: any = null;
     
     if (textQuery) {
       ocrText = textQuery;
@@ -1162,20 +1197,131 @@ serve(async (req) => {
     const year = extractYear(ocrText);
     const variantInfo = detectVariantCover(ocrText);
     
+    // KEY ISSUE DETECTION: Check for significant issue indicators in OCR text
+    let keyIssueIndicator: string | null = null;
+    for (const { pattern, tag } of KEY_ISSUE_PATTERNS) {
+      if (pattern.test(ocrText)) {
+        keyIssueIndicator = tag;
+        console.log('[SCAN-ITEM] KEY ISSUE detected:', tag);
+        break;
+      }
+    }
+    
     // Build normalized input (the query used for matching)
     const normalizedInput = title 
       ? (issue ? `${title} #${issue}` : title) + (publisher ? ` (${publisher})` : '')
       : null;
     
-    console.log('[SCAN-ITEM] Extracted:', { title, issue, publisher, year, isSlab, extractionMethod, variantInfo });
+    console.log('[SCAN-ITEM] Extracted:', { title, issue, publisher, year, isSlab, extractionMethod, variantInfo, keyIssueIndicator });
 
     let results: any[] = [];
     let searchStrategy = 'primary';
     
     if (title) {
+      // SELF-LEARNING CORRECTION CACHE: Check scan_corrections table first
+      // This returns user-verified matches instantly without API calls
+      const correctionNormalized = (issue ? `${title.toLowerCase()} #${issue}` : title.toLowerCase()).trim();
+      console.log('[SCAN-ITEM] Checking correction cache for:', correctionNormalized);
+      
+      try {
+        const { data: correction, error: corrError } = await supabase
+          .from('scan_corrections')
+          .select('*')
+          .eq('normalized_input', correctionNormalized)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (!corrError && correction && correction.length > 0) {
+          const cached = correction[0];
+          console.log('[SCAN-ITEM] CORRECTION CACHE HIT:', cached.selected_title, '#', cached.selected_issue);
+          
+          // Return cached correction as top result with high confidence
+          correctionOverride = {
+            id: cached.selected_comicvine_id,
+            resource: 'issue',
+            title: cached.selected_title,
+            issue: cached.selected_issue || '',
+            year: cached.selected_year,
+            publisher: cached.selected_publisher || '',
+            volumeName: cached.selected_title,
+            volumeId: cached.selected_volume_id,
+            thumbUrl: cached.selected_cover_url || '',
+            coverUrl: cached.selected_cover_url || '',
+            score: 0.98, // High confidence for correction override
+            source: 'correction_override',
+            matchMode: 'correction_cache',
+          };
+          
+          results = [correctionOverride];
+          searchStrategy = 'correction_cache';
+        }
+      } catch (err: any) {
+        console.warn('[SCAN-ITEM] Correction cache lookup failed:', err.message);
+      }
+      
+      // LOCAL HOT CACHE: Check comicvine_volumes table before API calls
+      // Only if correction cache didn't hit
+      if (results.length === 0) {
+        console.log('[SCAN-ITEM] Checking local volume cache for:', title);
+        
+        try {
+          const { data: cachedVolumes, error: volError } = await supabase
+            .from('comicvine_volumes')
+            .select('id, name, publisher, start_year')
+            .ilike('name', `%${title}%`)
+            .limit(5);
+          
+          if (!volError && cachedVolumes && cachedVolumes.length > 0) {
+            console.log('[SCAN-ITEM] LOCAL CACHE: Found', cachedVolumes.length, 'cached volumes');
+            
+            // If we have an issue number, check comicvine_issues
+            if (issue) {
+              for (const vol of cachedVolumes) {
+                const { data: cachedIssues } = await supabase
+                  .from('comicvine_issues')
+                  .select('id, name, issue_number, image_url, cover_date, writer, artist, key_notes')
+                  .eq('volume_id', vol.id)
+                  .eq('issue_number', issue)
+                  .limit(1);
+                
+                if (cachedIssues && cachedIssues.length > 0) {
+                  const cachedIssue = cachedIssues[0];
+                  console.log('[SCAN-ITEM] LOCAL CACHE HIT:', vol.name, '#', cachedIssue.issue_number);
+                  
+                  results.push({
+                    id: cachedIssue.id,
+                    resource: 'issue',
+                    title: vol.name,
+                    issue: cachedIssue.issue_number || '',
+                    year: cachedIssue.cover_date ? parseInt(cachedIssue.cover_date.slice(0, 4)) : vol.start_year,
+                    publisher: vol.publisher || '',
+                    volumeName: vol.name,
+                    volumeId: vol.id,
+                    thumbUrl: cachedIssue.image_url || '',
+                    coverUrl: cachedIssue.image_url || '',
+                    writer: cachedIssue.writer,
+                    artist: cachedIssue.artist,
+                    keyNotes: cachedIssue.key_notes,
+                    score: 0.90, // High score for local cache hit
+                    source: 'local_cache',
+                    matchMode: 'local_cache',
+                  });
+                  searchStrategy = 'local_cache';
+                }
+              }
+            }
+          }
+        } catch (err: any) {
+          console.warn('[SCAN-ITEM] Local cache lookup failed:', err.message);
+        }
+      }
+      
       // PASS 1: Primary search with extracted data (includes year for vintage mode)
-      results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher, year);
-      results = scoreResults(results, title, issue, publisher, year);
+      // Only if correction cache and local cache didn't produce results
+      if (results.length === 0) {
+        results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher, year);
+        results = scoreResults(results, title, issue, publisher, year);
+      }
       
       console.log('[SCAN-ITEM] Pass 1 results count:', results.length);
       if (results.length > 0) {
@@ -1270,19 +1416,23 @@ serve(async (req) => {
           variantType: variantInfo.variantType,
           variantDetails: variantInfo.variantDetails,
           ratioVariant: variantInfo.ratioVariant,
-          variantArtist: variantInfo.artistName
+          variantArtist: variantInfo.artistName,
+          // Key issue detection
+          keyIssueIndicator,
         },
         picks: results.slice(0, 10),
         ocrText,
         requestId, // Return request_id to frontend for correlation
+        searchStrategy, // Include strategy used (correction_cache, local_cache, primary, multi_pass)
         timings: {
           vision: visionTime,
           total: totalTime
         },
         debug: {
-          queryMode: 'search',
+          queryMode: searchStrategy,
           resultCount: results.length,
-          extractionMethod
+          extractionMethod,
+          correctionOverride: !!correctionOverride,
         }
       }),
       {

@@ -3,6 +3,9 @@
  * ======================
  * Allows users to confirm if the scanner got the match right.
  * Saves corrections locally for future accuracy improvements.
+ * 
+ * ENHANCED: Positive feedback now also saves to scan_corrections table
+ * for the self-learning correction cache to use.
  */
 
 import { useState } from "react";
@@ -12,11 +15,14 @@ import { cn } from "@/lib/utils";
 import { markScanCorrect, markScanIncorrect } from "@/lib/scanFeedback";
 import { ComicVinePick } from "@/types/comicvine";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ScanFeedbackSelectorProps {
   match: ComicVinePick | null;
   confidence: number | null;
   className?: string;
+  /** Normalized input text used for matching (for correction cache) */
+  normalizedInput?: string | null;
 }
 
 type FeedbackState = 'idle' | 'correct' | 'incorrect';
@@ -24,16 +30,18 @@ type FeedbackState = 'idle' | 'correct' | 'incorrect';
 export function ScanFeedbackSelector({
   match,
   confidence,
-  className
+  className,
+  normalizedInput
 }: ScanFeedbackSelectorProps) {
   const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const handleCorrect = () => {
+  const handleCorrect = async () => {
     if (feedbackState !== 'idle') return;
     
     setIsAnimating(true);
     
+    // Save to local storage (existing behavior)
     markScanCorrect(
       match?.volumeName || match?.title || null,
       match?.issue || null,
@@ -42,6 +50,34 @@ export function ScanFeedbackSelector({
       match?.id || null,
       confidence
     );
+    
+    // ENHANCED: Also save confirmed matches to scan_corrections table
+    // This feeds the self-learning correction cache
+    if (match?.id && normalizedInput) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const correctionPayload = {
+          user_id: user?.id || null,
+          input_text: normalizedInput,
+          normalized_input: normalizedInput.toLowerCase().trim(),
+          selected_comicvine_id: match.id,
+          selected_volume_id: match.volumeId || null,
+          selected_title: match.volumeName || match.title,
+          selected_issue: match.issue || null,
+          selected_year: match.year || null,
+          selected_publisher: match.publisher || null,
+          selected_cover_url: match.coverUrl || match.thumbUrl || null,
+          original_confidence: confidence ? Math.round(confidence * 100) : null,
+        };
+        
+        await supabase.from('scan_corrections').insert(correctionPayload as any);
+        console.log('[FEEDBACK] Saved confirmed match to correction cache:', normalizedInput);
+      } catch (err) {
+        console.warn('[FEEDBACK] Failed to save to correction cache:', err);
+        // Don't block user feedback on DB errors
+      }
+    }
     
     setTimeout(() => {
       setFeedbackState('correct');
