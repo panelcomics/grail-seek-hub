@@ -997,9 +997,22 @@ export default function Scanner() {
       )}
 
       {/* Manual Confirm Panel - Show when confidence is low OR when user clicks "Wrong match?" */}
-      {showManualConfirm && topMatches.length > 0 && scannerState !== "confirm" && scannerState !== "success" && (
+      {/* Allow showing even with empty topMatches - user can search manually */}
+      {showManualConfirm && scannerState !== "confirm" && scannerState !== "success" && (
         <ManualConfirmPanel
-          candidates={topMatches}
+          candidates={topMatches.length > 0 ? topMatches : (
+            // Fallback: convert debugData.candidates to TopCandidate format
+            (debugData.candidates || []).map((c, idx) => ({
+              comicvine_issue_id: idx, // Placeholder - won't have real ID
+              comicvine_volume_id: 0,
+              series: c.series,
+              issue: c.issue,
+              year: c.year,
+              publisher: c.publisher,
+              coverUrl: null,
+              confidence: c.confidence
+            }))
+          )}
           inputText={manualSearchQuery || debugData.comicvineQuery || debugData.extracted?.title || ""}
           ocrText={debugData.raw_ocr}
           originalConfidence={confidence || 0}
@@ -1042,10 +1055,13 @@ export default function Scanner() {
             setIsLowConfidenceMode(false);
             handleEnterManually();
           }}
-          onSearchAgain={() => {
+          onSearchAgain={(query) => {
             setShowManualConfirm(false);
             setIsReportMode(false);
             setIsLowConfidenceMode(false);
+            if (query) {
+              setManualSearchQuery(query);
+            }
             setShowManualSearch(true);
           }}
           onCancel={() => {
@@ -1177,6 +1193,33 @@ export default function Scanner() {
         rawOcr={debugData.raw_ocr}
         timings={debugData.timings}
         confidence={confidence || undefined}
+        onSelectCandidate={(candidate) => {
+          // Create a ComicVinePick from the debug candidate data
+          // This allows admins to tap a candidate directly from the debug panel
+          const pick: ComicVinePick = {
+            id: 0, // Will be looked up or not critical for this flow
+            resource: 'issue' as const,
+            title: candidate.series,
+            issue: candidate.issue,
+            year: candidate.year,
+            publisher: candidate.publisher,
+            volumeName: candidate.series,
+            volumeId: 0,
+            thumbUrl: '',
+            coverUrl: '',
+            score: candidate.confidence / 100,
+            isReprint: false,
+            source: 'comicvine' as const
+          };
+          setSelectedPick(pick);
+          setPrefillData({
+            title: candidate.series,
+            issueNumber: candidate.issue || undefined,
+            publisher: candidate.publisher || undefined,
+            year: candidate.year || undefined,
+          });
+          setScannerState("confirm");
+        }}
       />
 
       {/* Cover Zoom Modal */}

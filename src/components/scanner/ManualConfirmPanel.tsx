@@ -220,8 +220,8 @@ export function ManualConfirmPanel({
         </div>
 
         {/* Large Cover Grid - Visual-first selection */}
-        {!showNoneOfThese && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        {!showNoneOfThese && topCandidates.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {topCandidates.map((candidate) => (
               <button
                 key={candidate.comicvine_issue_id}
@@ -229,7 +229,8 @@ export function ManualConfirmPanel({
                 disabled={saving}
                 className={`
                   relative group flex flex-col rounded-lg border-2 overflow-hidden transition-all
-                  hover:border-primary hover:shadow-lg hover:scale-[1.02]
+                  hover:border-primary hover:shadow-lg active:scale-[0.98]
+                  touch-manipulation
                   ${selectedId === candidate.comicvine_issue_id 
                     ? 'border-primary ring-2 ring-primary/30' 
                     : 'border-border'
@@ -260,8 +261,8 @@ export function ManualConfirmPanel({
                 </div>
 
                 {/* Info Overlay */}
-                <div className="p-1.5 bg-background">
-                  <div className="text-xs font-medium truncate">
+                <div className="p-2 bg-background">
+                  <div className="text-sm font-medium truncate">
                     {candidate.series}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center justify-between">
@@ -272,12 +273,19 @@ export function ManualConfirmPanel({
 
                 {/* Selection checkmark */}
                 {selectedId === candidate.comicvine_issue_id && (
-                  <div className="absolute top-1 left-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                    <Check className="h-3 w-3 text-primary-foreground" />
+                  <div className="absolute top-2 left-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                    <Check className="h-4 w-4 text-primary-foreground" />
                   </div>
                 )}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* No candidates message */}
+        {topCandidates.length === 0 && (
+          <div className="text-center py-4 text-muted-foreground">
+            <p className="text-sm">Use the search above to find the correct comic</p>
           </div>
         )}
 
