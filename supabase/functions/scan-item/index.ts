@@ -592,20 +592,24 @@ async function searchComicVine(
 }
 
 // Score results based on match quality with fuzzy matching
+// NOW INCLUDES YEAR MATCHING for proper vintage comic selection
 function scoreResults(
   results: any[], 
   searchTitle: string, 
   searchIssue: string | null,
-  searchPublisher: string | null
+  searchPublisher: string | null,
+  searchYear: number | null = null // NEW: year from OCR
 ): any[] {
   const normalizedTitle = searchTitle.toLowerCase().replace(/[^a-z0-9\s]/g, '');
   const titleWords = normalizedTitle.split(/\s+/).filter(w => w.length > 2);
   
+  console.log('[SCAN-ITEM] Scoring with year:', searchYear);
+  
   return results.map(result => {
     let score = 0.30; // Base score
-    const breakdown = { title: 0, issue: 0, publisher: 0, fuzzy: 0 };
+    const breakdown = { title: 0, issue: 0, publisher: 0, year: 0, fuzzy: 0 };
     
-    // Title matching (40% weight)
+    // Title matching (35% weight - reduced from 40% to make room for year)
     const resultTitle = (result.title || '').toLowerCase().replace(/[^a-z0-9\s]/g, '');
     const resultWords = resultTitle.split(/\s+/).filter((w: string) => w.length > 2);
     
@@ -631,21 +635,21 @@ function scoreResults(
     // Overall title similarity
     const titleSim = similarity(normalizedTitle, resultTitle);
     
-    breakdown.title = titleContains ? 0.40 : Math.max(wordMatchRatio * 0.35, titleSim * 0.30);
-    breakdown.fuzzy = fuzzyRatio > wordMatchRatio ? (fuzzyRatio - wordMatchRatio) * 0.10 : 0;
+    breakdown.title = titleContains ? 0.35 : Math.max(wordMatchRatio * 0.30, titleSim * 0.25);
+    breakdown.fuzzy = fuzzyRatio > wordMatchRatio ? (fuzzyRatio - wordMatchRatio) * 0.08 : 0;
     
-    // Issue number matching (35% weight)
+    // Issue number matching (30% weight - reduced slightly)
     if (searchIssue && result.issue) {
       const searchNum = parseInt(searchIssue);
       const resultNum = parseInt(result.issue);
       if (result.issue === searchIssue || resultNum === searchNum) {
-        breakdown.issue = 0.35;
+        breakdown.issue = 0.30;
       } else if (Math.abs(resultNum - searchNum) <= 1) {
         // Off by one (OCR error)
-        breakdown.issue = 0.20;
+        breakdown.issue = 0.18;
       }
     } else if (!searchIssue) {
-      breakdown.issue = 0.10;
+      breakdown.issue = 0.08;
     }
     
     // Publisher matching (15% weight)
@@ -654,18 +658,47 @@ function scoreResults(
         breakdown.publisher = 0.15;
       }
     } else if (!searchPublisher) {
-      breakdown.publisher = 0.05;
+      breakdown.publisher = 0.04;
     }
     
-    score = breakdown.title + breakdown.issue + breakdown.publisher + breakdown.fuzzy;
+    // YEAR MATCHING (20% weight - CRITICAL for vintage comics!)
+    // If year is visible on cover, strongly prefer matching year
+    if (searchYear && result.year) {
+      const resultYear = typeof result.year === 'number' ? result.year : parseInt(result.year);
+      const yearDiff = Math.abs(resultYear - searchYear);
+      
+      if (yearDiff === 0) {
+        // Exact year match - strong bonus!
+        breakdown.year = 0.20;
+        console.log('[SCAN-ITEM] Exact year match:', resultYear, 'for', result.title);
+      } else if (yearDiff <= 1) {
+        // Off by one year (OCR misread)
+        breakdown.year = 0.15;
+      } else if (yearDiff <= 3) {
+        // Close enough
+        breakdown.year = 0.08;
+      } else {
+        // Wrong decade - penalize, don't just ignore
+        breakdown.year = -0.10;
+        console.log('[SCAN-ITEM] Year mismatch:', resultYear, 'vs OCR', searchYear, 'for', result.title);
+      }
+    }
+    
+    score = breakdown.title + breakdown.issue + breakdown.publisher + breakdown.year + breakdown.fuzzy;
     
     // Boost for strong multi-factor match
-    if (breakdown.title >= 0.30 && breakdown.issue >= 0.30) {
-      score = Math.min(0.98, score + 0.12);
+    if (breakdown.title >= 0.25 && breakdown.issue >= 0.25) {
+      score = Math.min(0.98, score + 0.10);
+    }
+    
+    // Extra boost for triple match (title + issue + year)
+    if (breakdown.title >= 0.25 && breakdown.issue >= 0.25 && breakdown.year >= 0.15) {
+      score = Math.min(0.99, score + 0.08);
+      console.log('[SCAN-ITEM] Triple match bonus for:', result.title, '#', result.issue, result.year);
     }
     
     // Penalty for very low title match
-    if (breakdown.title < 0.15) {
+    if (breakdown.title < 0.12) {
       score *= 0.6;
     }
     
@@ -673,10 +706,12 @@ function scoreResults(
       ...result,
       score: Math.round(score * 100) / 100,
       scoreBreakdown: breakdown,
-      matchMode: 'search'
+      matchMode: 'search',
+      _hasExactYear: breakdown.year >= 0.15,
+      _hasExactIssue: breakdown.issue >= 0.25
     };
   })
-  .filter(r => r.score >= 0.35) // Filter out poor matches
+  .filter(r => r.score >= 0.30) // Slightly lower threshold since we're more discriminating
   .sort((a, b) => b.score - a.score);
 }
 
@@ -882,8 +917,8 @@ serve(async (req) => {
       // Search ComicVine with extracted data
       results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher);
       
-      // Score results
-      results = scoreResults(results, title, issue, publisher);
+      // Score results - NOW INCLUDES YEAR for proper vintage comic matching!
+      results = scoreResults(results, title, issue, publisher, year);
       
       console.log('[SCAN-ITEM] Final results count:', results.length);
       if (results.length > 0) {
