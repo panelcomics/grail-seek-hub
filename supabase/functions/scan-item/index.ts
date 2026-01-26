@@ -56,6 +56,9 @@ const KNOWN_TITLE_PATTERNS = [
   'Swamp Thing', 'Saga of the Swamp Thing', 'Hellblazer', 'Sandman', 'Preacher',
   'Spawn', 'Savage Dragon', 'Invincible', 'Walking Dead', 'Saga',
   'Teenage Mutant Ninja Turtles', 'TMNT', 'Star Wars', 'Transformers', 'G.I. Joe',
+  // Comico and other indie titles
+  'Jonny Quest', 'Johnny Quest', 'Robotech', 'Grendel', 'Mage', 'The Maze Agency',
+  'Justice Machine', 'Elementals', 'E-Man', 'Nexus', 'Badger', 'Rocketeer',
 ];
 
 // Slab-related terms to filter out
@@ -124,18 +127,74 @@ function extractTitleAndIssue(ocrText: string): {
   const cleanedText = cleanOcrText(ocrText);
   console.log('[SCAN-ITEM] Cleaned OCR text:', cleanedText.substring(0, 300));
   
-  // Strategy 0: Check for known title patterns first (most reliable)
   const lowerText = cleanedText.toLowerCase();
+  
+  // Strategy 0a: Check for known title patterns first (most reliable)
+  // Use fuzzy matching to catch OCR errors like "JONNY QUOH" → "Jonny Quest"
   for (const knownTitle of KNOWN_TITLE_PATTERNS) {
     const lowerKnown = knownTitle.toLowerCase();
+    // Direct match
     if (lowerText.includes(lowerKnown)) {
-      // Found known title, now look for issue number nearby
       const idx = lowerText.indexOf(lowerKnown);
       const afterTitle = cleanedText.substring(idx + knownTitle.length, idx + knownTitle.length + 30);
       const issueMatch = afterTitle.match(/\s*#?\s*(\d{1,4})\b/);
       const issue = issueMatch ? issueMatch[1] : null;
-      console.log('[SCAN-ITEM] Strategy 0 (known title):', knownTitle, '#', issue);
+      console.log('[SCAN-ITEM] Strategy 0a (known title):', knownTitle, '#', issue);
       return { title: knownTitle, issue, confidence: 0.95, method: 'known_title' };
+    }
+    
+    // Fuzzy match for OCR errors (e.g., "JONNY QUOH" vs "Jonny Quest")
+    // Check for words that are close matches
+    const knownWords = lowerKnown.split(/\s+/);
+    if (knownWords.length >= 2) {
+      const ocrWords = lowerText.split(/\s+/);
+      let matchedWords = 0;
+      let matchStartIdx = -1;
+      
+      for (let i = 0; i < ocrWords.length; i++) {
+        for (const knownWord of knownWords) {
+          if (knownWord.length >= 4 && similarity(ocrWords[i], knownWord) > 0.75) {
+            if (matchStartIdx === -1) matchStartIdx = i;
+            matchedWords++;
+            break;
+          }
+        }
+      }
+      
+      // If we matched most words, consider it a fuzzy hit
+      if (matchedWords >= Math.ceil(knownWords.length * 0.6) && matchStartIdx !== -1) {
+        // Look for issue number in the surrounding text
+        const afterIdx = lowerText.indexOf(ocrWords[matchStartIdx]) + ocrWords[matchStartIdx].length;
+        const afterText = cleanedText.substring(afterIdx, afterIdx + 50);
+        const issueMatch = afterText.match(/\s*#?\s*(\d{1,4})\b/);
+        const issue = issueMatch ? issueMatch[1] : null;
+        console.log('[SCAN-ITEM] Strategy 0b (fuzzy known title):', knownTitle, '#', issue);
+        return { title: knownTitle, issue, confidence: 0.88, method: 'fuzzy_known_title' };
+      }
+    }
+  }
+  
+  // Strategy 0c: Look for title immediately after publisher
+  const publisherPatterns = ['comico', 'marvel', 'dc', 'image', 'dark horse', 'idw', 'boom', 'vertigo', 'valiant'];
+  for (const pubPat of publisherPatterns) {
+    const pubIdx = lowerText.indexOf(pubPat);
+    if (pubIdx !== -1) {
+      // Extract the text after publisher
+      const afterPub = cleanedText.substring(pubIdx + pubPat.length).trim();
+      // Look for capitalized title words after publisher (common pattern: "COMICO JONNY QUEST")
+      const titleMatch = afterPub.match(/^([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,4})/);
+      if (titleMatch) {
+        const potentialTitle = titleMatch[1].trim();
+        // Make sure it's not just noise (at least 5 chars, not a single word like "THE")
+        if (potentialTitle.length >= 5 && !/^(the|and|of|to|in|for|on|at|by)$/i.test(potentialTitle)) {
+          // Look for issue number
+          const afterTitle = afterPub.substring(potentialTitle.length);
+          const issueMatch = afterTitle.match(/\s*#?\s*(\d{1,4})\b/);
+          const issue = issueMatch ? issueMatch[1] : null;
+          console.log('[SCAN-ITEM] Strategy 0c (after publisher):', potentialTitle, '#', issue);
+          return { title: potentialTitle, issue, confidence: 0.85, method: 'after_publisher' };
+        }
+      }
     }
   }
   
@@ -229,6 +288,14 @@ function extractPublisher(text: string): string | null {
     { name: 'Wildstorm', patterns: ['Wildstorm'] },
     { name: 'Valiant', patterns: ['Valiant'] },
     { name: 'Dynamite', patterns: ['Dynamite'] },
+    { name: 'Comico', patterns: ['Comico', 'Comico Comics'] },
+    { name: 'First Comics', patterns: ['First', 'First Comics'] },
+    { name: 'Eclipse', patterns: ['Eclipse', 'Eclipse Comics'] },
+    { name: 'Pacific', patterns: ['Pacific', 'Pacific Comics'] },
+    { name: 'Now Comics', patterns: ['Now Comics', 'Now'] },
+    { name: 'Malibu', patterns: ['Malibu', 'Malibu Comics'] },
+    { name: 'Archie', patterns: ['Archie', 'Archie Comics'] },
+    { name: 'Charlton', patterns: ['Charlton', 'Charlton Comics'] },
   ];
   
   const lower = text.toLowerCase();

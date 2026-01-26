@@ -195,9 +195,33 @@ export function ManualConfirmPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Quick Search - Always visible at top for easy correction */}
+        <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+          <p className="text-sm font-medium">Quick search:</p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="e.g., Jonny Quest 5 1986"
+              value={manualSearchQuery}
+              onChange={(e) => setManualSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
+              className="flex-1 bg-background"
+            />
+            <Button onClick={handleManualSearch} disabled={!manualSearchQuery.trim()}>
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Divider with "or tap a match" */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 border-t border-border" />
+          <span className="text-xs text-muted-foreground">or tap the correct match</span>
+          <div className="flex-1 border-t border-border" />
+        </div>
+
         {/* Large Cover Grid - Visual-first selection */}
         {!showNoneOfThese && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
             {topCandidates.map((candidate) => (
               <button
                 key={candidate.comicvine_issue_id}
@@ -236,7 +260,7 @@ export function ManualConfirmPanel({
                 </div>
 
                 {/* Info Overlay */}
-                <div className="p-2 bg-background">
+                <div className="p-1.5 bg-background">
                   <div className="text-xs font-medium truncate">
                     {candidate.series}
                   </div>
@@ -246,18 +270,10 @@ export function ManualConfirmPanel({
                   </div>
                 </div>
 
-                {/* Confidence Badge */}
-                <Badge 
-                  variant={candidate.confidence >= 60 ? "default" : "secondary"}
-                  className="absolute top-2 right-2 text-xs px-1.5 py-0.5"
-                >
-                  {candidate.confidence}%
-                </Badge>
-
                 {/* Selection checkmark */}
                 {selectedId === candidate.comicvine_issue_id && (
-                  <div className="absolute top-2 left-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                    <Check className="h-4 w-4 text-primary-foreground" />
+                  <div className="absolute top-1 left-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                    <Check className="h-3 w-3 text-primary-foreground" />
                   </div>
                 )}
               </button>
@@ -265,94 +281,31 @@ export function ManualConfirmPanel({
           </div>
         )}
 
-        {/* "None of these" toggle */}
-        {!showNoneOfThese ? (
-            <Button
-              variant="ghost"
-              onClick={async () => {
-                setShowNoneOfThese(true);
-                // Pre-fill the search input with OCR text if available and not already set
-                if (ocrText && !manualSearchQuery) {
-                  setManualSearchQuery(ocrText);
-                }
-                // Log "None of these" click to scan_events for analytics
-                try {
-                  const insertPayload: Record<string, unknown> = {
-                    user_id: user?.id || null,
-                    raw_input: inputText,
-                    normalized_input: normalizeInputText(inputText),
-                    confidence: originalConfidence,
-                    strategy: null,
-                    source: "manual_search",
-                    rejected_reason: "none_of_these",
-                    input_source: "typed",
-                    request_id: requestId || null,
-                  };
-                  await supabase.from("scan_events").insert(insertPayload as any);
-                  console.log("[SCAN_EVENTS] Logged 'None of these' click");
-                } catch (err) {
-                  console.error("[SCAN_EVENTS] Failed to log:", err);
-                }
-              }}
-              className="w-full text-muted-foreground"
-            >
-            <ChevronDown className="h-4 w-4 mr-2" />
-            None of these
+        {/* Bottom actions */}
+        <div className="flex gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={() => onSearchAgain()}
+            size="sm"
+            className="flex-1"
+          >
+            <Search className="h-3 w-3 mr-1.5" />
+            Re-scan
           </Button>
-        ) : (
-          <div className="space-y-3 pt-2 border-t">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowNoneOfThese(false)}
-              className="text-muted-foreground"
-            >
-              <ChevronUp className="h-4 w-4 mr-2" />
-              Show matches again
-            </Button>
-
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Search for a different comic:
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="e.g., Amazing Spider-Man 300 1988"
-                  value={manualSearchQuery}
-                  onChange={(e) => setManualSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleManualSearch()}
-                  className="flex-1"
-                />
-                <Button onClick={handleManualSearch} disabled={!manualSearchQuery.trim()}>
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => onSearchAgain()}
-                className="flex-1"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Re-scan
-              </Button>
-              <Button
-                variant="outline"
-                onClick={onEnterManually}
-                className="flex-1"
-              >
-                <Edit3 className="h-4 w-4 mr-2" />
-                Enter Manually
-              </Button>
-            </div>
-          </div>
-        )}
+          <Button
+            variant="outline"
+            onClick={onEnterManually}
+            size="sm"
+            className="flex-1"
+          >
+            <Edit3 className="h-3 w-3 mr-1.5" />
+            Enter Manually
+          </Button>
+        </div>
 
         {/* Help text */}
         <p className="text-xs text-muted-foreground text-center">
-          Your selection helps improve future scans for everyone
+          Your selection helps improve future scans
         </p>
       </CardContent>
     </Card>
