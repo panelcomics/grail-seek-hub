@@ -1865,6 +1865,7 @@ export type Database = {
           cover_artist: string | null
           cover_date: string | null
           created_at: string
+          defect_notes: string | null
           details: string | null
           for_auction: boolean | null
           for_sale: boolean | null
@@ -1936,6 +1937,7 @@ export type Database = {
           cover_artist?: string | null
           cover_date?: string | null
           created_at?: string
+          defect_notes?: string | null
           details?: string | null
           for_auction?: boolean | null
           for_sale?: boolean | null
@@ -2007,6 +2009,7 @@ export type Database = {
           cover_artist?: string | null
           cover_date?: string | null
           created_at?: string
+          defect_notes?: string | null
           details?: string | null
           for_auction?: boolean | null
           for_sale?: boolean | null

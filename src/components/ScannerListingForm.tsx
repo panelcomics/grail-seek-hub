@@ -33,6 +33,63 @@ const RESTORATION_OPTIONS = [
   { value: "spine_roll_fix", label: "Spine Roll Fixed", description: "Spine roll corrected" },
 ];
 
+// Common defects that buyers should know about
+const DEFECT_OPTIONS = [
+  { value: "cover_detached", label: "Cover Detached", description: "Cover is separated from staples" },
+  { value: "cover_loose", label: "Cover Loose", description: "Cover detached but stable" },
+  { value: "staple_detached", label: "Detached Staple", description: "One or more staples missing/loose" },
+  { value: "tape_on_spine", label: "Tape on Spine", description: "Tape visible on spine" },
+  { value: "tape_on_cover", label: "Tape on Cover", description: "Tape visible on cover" },
+  { value: "ink_on_cover", label: "Ink/Writing on Cover", description: "Ink marks, writing, or stamps" },
+  { value: "moisture_stain", label: "Moisture Stain", description: "Water damage or staining" },
+  { value: "spine_split", label: "Spine Split", description: "Split along spine" },
+  { value: "torn_pages", label: "Torn Pages", description: "Interior page tears" },
+  { value: "missing_pages", label: "Missing Pages", description: "Pages missing from interior" },
+  { value: "rusty_staples", label: "Rusty Staples", description: "Staples showing rust/migration" },
+  { value: "foxing", label: "Foxing/Age Spots", description: "Brown spots from age/humidity" },
+];
+
+// Helper to build defect notes string for database storage
+function buildDefectNotes(selectedDefects: string[], additionalNotes: string): string | null {
+  const defectLabels = selectedDefects.map(value => {
+    const option = DEFECT_OPTIONS.find(o => o.value === value);
+    return option ? option.label : value;
+  });
+  
+  const parts: string[] = [];
+  if (defectLabels.length > 0) {
+    parts.push(`Defects: ${defectLabels.join(', ')}`);
+  }
+  if (additionalNotes.trim()) {
+    parts.push(additionalNotes.trim());
+  }
+  
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+// Helper to parse defect notes back into components
+function parseDefectNotes(defectNotes: string | null): { selectedDefects: string[]; additionalNotes: string } {
+  if (!defectNotes) return { selectedDefects: [], additionalNotes: '' };
+  
+  const lines = defectNotes.split('\n');
+  const selectedDefects: string[] = [];
+  const otherNotes: string[] = [];
+  
+  for (const line of lines) {
+    if (line.startsWith('Defects: ')) {
+      const defectLabels = line.replace('Defects: ', '').split(', ');
+      for (const label of defectLabels) {
+        const option = DEFECT_OPTIONS.find(o => o.label === label);
+        if (option) selectedDefects.push(option.value);
+      }
+    } else {
+      otherNotes.push(line);
+    }
+  }
+  
+  return { selectedDefects, additionalNotes: otherNotes.join('\n') };
+}
+
 // Full condition options with plus/minus grades
 const CONDITION_OPTIONS = [
   { value: "MT", label: "Mint (MT) - 10.0" },
@@ -162,6 +219,10 @@ export function ScannerListingForm({
   
   // Restoration markers (CGC purple label style)
   const [restorationMarkers, setRestorationMarkers] = useState<string[]>([]);
+  
+  // Defect notes for buyer awareness
+  const [selectedDefects, setSelectedDefects] = useState<string[]>([]);
+  const [defectNotes, setDefectNotes] = useState("");
 
   // Auto-fill from selected ComicVine pick
   useEffect(() => {
@@ -388,6 +449,9 @@ export function ScannerListingForm({
         
         // Restoration markers
         restoration_markers: restorationMarkers.length > 0 ? restorationMarkers : [],
+        
+        // Defects - build comprehensive defect_notes string
+        defect_notes: buildDefectNotes(selectedDefects, defectNotes),
         
         // Scanner metadata
         scanner_confidence: confidence || null,
@@ -655,6 +719,82 @@ export function ScannerListingForm({
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 <AlertDescription className="text-xs">
                   This book has restoration markers and may receive a qualified/restored grade label.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          {/* Defects Section - Important for buyers */}
+          <div className="space-y-3 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <Label className="text-sm font-medium">Known Defects (if any)</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select any visible defects — these will be prominently displayed to buyers
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {DEFECT_OPTIONS.map((option) => (
+                <div
+                  key={option.value}
+                  className={`flex items-start space-x-3 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                    selectedDefects.includes(option.value)
+                      ? 'border-destructive bg-destructive/10'
+                      : 'border-border hover:border-muted-foreground/30'
+                  }`}
+                  onClick={() => {
+                    setSelectedDefects(prev =>
+                      prev.includes(option.value)
+                        ? prev.filter(v => v !== option.value)
+                        : [...prev, option.value]
+                    );
+                  }}
+                >
+                  <Checkbox
+                    id={`defect-${option.value}`}
+                    checked={selectedDefects.includes(option.value)}
+                    onCheckedChange={(checked) => {
+                      setSelectedDefects(prev =>
+                        checked
+                          ? [...prev, option.value]
+                          : prev.filter(v => v !== option.value)
+                      );
+                    }}
+                    className="mt-0.5"
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <label
+                      htmlFor={`defect-${option.value}`}
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      {option.label}
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {option.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Additional defect notes */}
+            <div className="pt-2">
+              <Label htmlFor="defectNotes" className="text-sm">Additional Defect Details</Label>
+              <Textarea
+                id="defectNotes"
+                value={defectNotes}
+                onChange={(e) => setDefectNotes(e.target.value)}
+                placeholder="Describe any additional defects not listed above..."
+                rows={2}
+                className="mt-1"
+              />
+            </div>
+            
+            {selectedDefects.length > 0 && (
+              <Alert variant="destructive" className="border-destructive/50">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  ⚠️ Defects will be prominently displayed on your listing to protect buyers.
                 </AlertDescription>
               </Alert>
             )}
