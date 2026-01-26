@@ -402,7 +402,11 @@ export default function Scanner() {
           topPick.coverUrl = issueDetails.cover_url || topPick.coverUrl;
           topPick.writer = issueDetails.writer;
           topPick.artist = issueDetails.artist;
+          topPick.coverArtist = issueDetails.coverArtist;
           topPick.description = issueDetails.description;
+          topPick.deck = issueDetails.deck;
+          topPick.keyNotes = issueDetails.keyNotes;
+          topPick.characters = issueDetails.characters;
           
           setSelectedPick({ ...topPick });
           setPrefillData({
@@ -666,6 +670,11 @@ export default function Scanner() {
       pick.coverUrl = issueDetails.cover_url || pick.coverUrl;
       pick.writer = issueDetails.writer;
       pick.artist = issueDetails.artist;
+      pick.coverArtist = issueDetails.coverArtist;
+      pick.description = issueDetails.description;
+      pick.deck = issueDetails.deck;
+      pick.keyNotes = issueDetails.keyNotes;
+      pick.characters = issueDetails.characters;
       setSelectedPick({ ...pick });
     }
     
@@ -699,6 +708,11 @@ export default function Scanner() {
     if (issueDetails) {
       pick.writer = issueDetails.writer;
       pick.artist = issueDetails.artist;
+      pick.coverArtist = issueDetails.coverArtist;
+      pick.description = issueDetails.description;
+      pick.deck = issueDetails.deck;
+      pick.keyNotes = issueDetails.keyNotes;
+      pick.characters = issueDetails.characters;
       setSelectedPick({ ...pick });
     }
     
@@ -735,6 +749,11 @@ export default function Scanner() {
     if (issueDetails) {
       scan.writer = issueDetails.writer;
       scan.artist = issueDetails.artist;
+      scan.coverArtist = issueDetails.coverArtist;
+      scan.description = issueDetails.description;
+      scan.deck = issueDetails.deck;
+      scan.keyNotes = issueDetails.keyNotes;
+      scan.characters = issueDetails.characters;
       setSelectedPick({ ...scan });
     }
     
