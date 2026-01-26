@@ -56,6 +56,15 @@ const REPRINT_KEYWORDS = [
   'gallery edition', 'artifact edition', 'premiere edition',
 ];
 
+// REBOOT SERIES PATTERNS - modern series that share names with classic runs
+// These should be heavily penalized when vintage indicators are present
+const REBOOT_SERIES_PATTERNS = [
+  'marvel universe:', 'marvel universe x-men', 'marvel universe avengers',
+  'marvel universe spider-man', 'marvel universe ultimate',
+  'all-new x-men', 'all-new, all-different',
+  'x-men: blue', 'x-men: gold', 'x-men: red',
+];
+
 // KEY ISSUE PATTERNS - first appearances and significant events
 const KEY_ISSUE_PATTERNS = [
   { pattern: /first\s*appearance/i, tag: '1st Appearance' },
@@ -530,9 +539,64 @@ function extractPublisher(text: string): string | null {
 }
 
 // Extract year from OCR text
+// ENHANCED: Also infer era from cover price patterns
 function extractYear(text: string): number | null {
+  // First, try to find explicit 4-digit year
   const yearMatch = text.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
-  return yearMatch ? parseInt(yearMatch[1]) : null;
+  if (yearMatch) {
+    return parseInt(yearMatch[1]);
+  }
+  
+  // If no explicit year, infer from cover price (CRITICAL for vintage comics!)
+  // Historical US comic cover prices by era:
+  // - 10¢: 1938-1961 (Golden Age to early Silver Age)
+  // - 12¢: 1962-1969 (Silver Age peak)
+  // - 15¢: 1969-1971
+  // - 20¢: 1971-1974
+  // - 25¢: 1974-1976
+  // - 30¢-35¢: 1976-1979
+  // - 40¢-60¢: 1979-1985
+  const lower = text.toLowerCase();
+  
+  // Check for cent symbol patterns
+  if (/\b10[¢c]\b/i.test(lower) || /ten\s*cents/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 10¢ price: ~1955');
+    return 1955; // Mid-point of 10¢ era
+  }
+  if (/\b12[¢c]\b/i.test(lower) || /twelve\s*cents/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 12¢ price: ~1964');
+    return 1964; // Peak Silver Age
+  }
+  if (/\b15[¢c]\b/i.test(lower) || /fifteen\s*cents/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 15¢ price: ~1970');
+    return 1970;
+  }
+  if (/\b20[¢c]\b/i.test(lower) || /twenty\s*cents/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 20¢ price: ~1973');
+    return 1973;
+  }
+  if (/\b25[¢c]\b/i.test(lower) || /twenty[\s-]?five\s*cents/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 25¢ price: ~1975');
+    return 1975;
+  }
+  if (/\b30[¢c]\b/i.test(lower) || /thirty\s*cents/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 30¢ price: ~1977');
+    return 1977;
+  }
+  if (/\b(35|40)[¢c]\b/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 35-40¢ price: ~1979');
+    return 1979;
+  }
+  if (/\b(50|60)[¢c]\b/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 50-60¢ price: ~1982');
+    return 1982;
+  }
+  if (/\b75[¢c]\b/i.test(lower)) {
+    console.log('[SCAN-ITEM] Inferred era from 75¢ price: ~1985');
+    return 1985;
+  }
+  
+  return null;
 }
 
 // Variant cover detection patterns
@@ -1019,6 +1083,24 @@ function scoreResults(
         score = Math.max(0.20, score - 0.25); // Heavy penalty for reprints
         console.log('[SCAN-ITEM] Reprint penalty applied for:', result.title, 'keyword:', keyword);
         break;
+      }
+    }
+    
+    // REBOOT SERIES PENALTY: When vintage indicators are present, heavily penalize modern reboots
+    // This prevents "Marvel Universe: X-Men" (2021) from outranking "X-Men" (1963)
+    if (searchYear && searchYear < 1990) {
+      for (const rebootPattern of REBOOT_SERIES_PATTERNS) {
+        if (combinedTitle.includes(rebootPattern)) {
+          score = Math.max(0.15, score - 0.40); // Very heavy penalty for reboots when searching vintage
+          console.log('[SCAN-ITEM] Reboot series penalty for vintage search:', result.title, 'pattern:', rebootPattern);
+          break;
+        }
+      }
+      
+      // Additional penalty for results from 2000+ when searching for pre-1990 comics
+      if (result.year && typeof result.year === 'number' && result.year >= 2000 && searchYear < 1985) {
+        score = Math.max(0.10, score - 0.35);
+        console.log('[SCAN-ITEM] Modern reboot penalty:', result.title, result.year, 'vs vintage', searchYear);
       }
     }
     
