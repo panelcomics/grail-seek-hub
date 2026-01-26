@@ -168,3 +168,6 @@ verify_jwt = true
 
 [functions.collector-signal-refresh]
 verify_jwt = true
+
+[functions.vision-match]
+verify_jwt = false

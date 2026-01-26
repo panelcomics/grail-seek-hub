@@ -49,6 +49,9 @@ import { VolumeIssuePicker } from "@/components/scanner/VolumeIssuePicker";
 import { ScannerCorrectionSheet, CorrectionCandidate } from "@/components/scanner/ScannerCorrectionSheet";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 
+// Vision Match Hook
+import { useVisionMatch, applyVisionOverride } from "@/hooks/useVisionMatch";
+
 // Utils
 import { compressImageDataUrl, createThumbnail } from "@/lib/imageCompression";
 import { 
@@ -80,8 +83,13 @@ export default function Scanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   
+  // Vision match hook for cover image similarity
+  const { runVisionMatch, shouldTriggerVision, isLoading: visionLoading } = useVisionMatch();
+  
   // CRITICAL FIX: Store uploaded URL in ref to avoid React state timing issues
   const uploadedImageUrlRef = useRef<string | null>(null);
+  // Store compressed image for vision matching
+  const compressedImageRef = useRef<string | null>(null);
 
   // New UX state machine
   const [scannerState, setScannerState] = useState<ScannerState>("idle");
@@ -251,6 +259,9 @@ export default function Scanner() {
     try {
       const compressed = await compressImageDataUrl(imageData, 1200, 0.85);
       
+      // Store compressed image for potential vision matching
+      compressedImageRef.current = compressed;
+      
       // Upload to storage
       const blob = await fetch(compressed).then(r => r.blob());
       const file = new File([blob], `scan-${Date.now()}.jpg`, { type: 'image/jpeg' });
@@ -272,9 +283,44 @@ export default function Scanner() {
       if (data.ok && data.picks && data.picks.length > 0) {
         // Apply publisher bias if filter is set
         const rawPicks = data.picks as ComicVinePick[];
-        const picks = applyPublisherBias(rawPicks, scanContext.publisherFilter) as ComicVinePick[];
-        const topPick = picks[0];
-        const pickConfidence = topPick.score || 0;
+        let picks = applyPublisherBias(rawPicks, scanContext.publisherFilter) as ComicVinePick[];
+        let topPick = picks[0];
+        let pickConfidence = topPick.score || 0;
+        let matchSource = data.source || undefined;
+        
+        // VISION MATCHING: Check if we should trigger cover image comparison
+        const visionCheck = shouldTriggerVision(pickConfidence, picks, false);
+        
+        if (visionCheck.should && visionCheck.reason && compressedImageRef.current) {
+          console.log(`[SCANNER] Triggering vision match: ${visionCheck.reason}`);
+          
+          try {
+            const visionResult = await runVisionMatch(
+              compressedImageRef.current,
+              picks,
+              visionCheck.reason,
+              data.requestId
+            );
+            
+            if (visionResult && visionResult.visionOverrideApplied && visionResult.bestMatchComicId) {
+              // Apply vision override - update the selected pick
+              const updatedPick = applyVisionOverride(topPick, picks, visionResult);
+              
+              if (updatedPick && updatedPick.id !== topPick.id) {
+                console.log(`[SCANNER] Vision override applied: ${updatedPick.title} #${updatedPick.issue}`);
+                
+                // Move the vision-matched pick to the top
+                picks = [updatedPick, ...picks.filter(p => p.id !== updatedPick.id)];
+                topPick = updatedPick;
+                pickConfidence = visionResult.similarityScore;
+                matchSource = 'vision';
+              }
+            }
+          } catch (visionError) {
+            console.error('[SCANNER] Vision match failed:', visionError);
+            // Continue with OCR result
+          }
+        }
         
         setConfidence(pickConfidence);
         setSearchResults(picks);
@@ -296,7 +342,7 @@ export default function Scanner() {
           confidence: pickConfidence,
           queryParams: null,
           comicvineQuery: "",
-          strategy: data.fallbackPath || "issue-search",
+          strategy: matchSource === 'vision' ? 'vision-match' : (data.fallbackPath || "issue-search"),
           candidates: picks.map((p: any) => ({
             id: p.id,
             series: p.volumeName || p.title,
@@ -314,8 +360,8 @@ export default function Scanner() {
           timings: data.timings || {}
         });
         
-        // Track source (e.g. 'correction_override')
-        setScanSource(data.source || undefined);
+        // Track source (e.g. 'correction_override', 'vision')
+        setScanSource(matchSource);
         
         // Extract variant info from response
         if (data.extracted?.isVariant) {

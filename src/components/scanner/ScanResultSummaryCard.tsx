@@ -20,6 +20,7 @@ import { VariantBadge, VariantInfo } from "./VariantBadge";
 import { ScanFeedbackSelector } from "./ScanFeedbackSelector";
 import { ConfidenceTierBadge } from "./ConfidenceTierBadge";
 import { KeyIssueBadge, parseKeyNotes } from "./KeyIssueBadge";
+import { VisionMatchBadge } from "./VisionMatchBadge";
 import { cn } from "@/lib/utils";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { toast } from "sonner";
@@ -338,6 +339,13 @@ export function ScanResultSummaryCard({
                 <p className="text-sm text-muted-foreground">
                   {secondaryLine}
                 </p>
+              )}
+
+              {/* Vision Match Badge - show when matched by cover image */}
+              {source === 'vision' && match?.score && (
+                <div className="pt-1">
+                  <VisionMatchBadge score={match.score} />
+                </div>
               )}
 
               {/* Variant Badge - show prominently if variant detected */}
