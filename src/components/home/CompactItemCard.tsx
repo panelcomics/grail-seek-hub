@@ -27,6 +27,7 @@ interface CompactItemCardProps {
   keyInfo?: string | null;
   isSigned?: boolean;
   signatureType?: string | null;
+  signedBy?: string | null; // Who signed the item
   isAuction?: boolean;
   imageRotation?: number | null;
   priority?: boolean;
@@ -46,6 +47,7 @@ export function CompactItemCard({
   keyInfo = null,
   isSigned = false,
   signatureType = null,
+  signedBy = null,
   isAuction = false,
   imageRotation = null,
   priority = false,
@@ -62,9 +64,18 @@ export function CompactItemCard({
     return null;
   };
   
-  // Get signature badge
+  // Get signature badge - show signer name if available
   const getSignatureBadge = () => {
     if (!isSigned) return null;
+    
+    // If we have a signer name, show it with the signature type prefix
+    if (signedBy) {
+      const prefix = signatureType === 'CGC Signature Series' ? 'SS: ' : 
+                     signatureType === 'CBCS Signature Verified' ? 'CBCS: ' : '';
+      return `${prefix}${signedBy}`;
+    }
+    
+    // Fallback to just the type if no signer name
     if (signatureType === 'CGC Signature Series') return 'SS';
     if (signatureType === 'CBCS Signature Verified') return 'CBCS';
     return 'Signed';

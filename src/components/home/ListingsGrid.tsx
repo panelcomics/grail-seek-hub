@@ -136,6 +136,7 @@ export function ListingsGrid({ filterType, applyFairness = true }: ListingsGridP
             keyInfo={item.variant_description || item.details}
             isSigned={item.is_signed}
             signatureType={item.signature_type}
+            signedBy={item.signed_by}
             isAuction={item.for_auction}
             imageRotation={item.primary_image_rotation}
             priority={index < 6}
