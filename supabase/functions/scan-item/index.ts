@@ -652,11 +652,29 @@ function extractPublisher(text: string): string | null {
 }
 
 // Extract year from OCR text
-// ENHANCED: Also infer era from cover price patterns
+// ENHANCED: Prioritize cover date formats (MM/YY) before 4-digit years
+// This prevents anniversary text like "1961-1991" from overriding actual cover dates
 function extractYear(text: string): number | null {
-  // First, try to find explicit 4-digit year
-  const yearMatch = text.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
+  // PRIORITY 1: Cover date format from CGC labels like "1/92" or "01/92" (month/year)
+  // This is the MOST reliable indicator as it's explicitly the cover date
+  const coverDateMatch = text.match(/\b(\d{1,2})\/(\d{2})\b/);
+  if (coverDateMatch) {
+    const shortYear = parseInt(coverDateMatch[2]);
+    // Convert 2-digit year: 00-30 = 2000s, 31-99 = 1900s
+    const fullYear = shortYear <= 30 ? 2000 + shortYear : 1900 + shortYear;
+    console.log('[SCAN-ITEM] Cover date format detected:', coverDateMatch[0], '-> year', fullYear);
+    return fullYear;
+  }
+  
+  // PRIORITY 2: Look for standalone 4-digit year, but EXCLUDE year ranges (anniversary text)
+  // "1961-1991" should NOT match - this is anniversary text, not the comic's year
+  // First, remove year ranges from consideration
+  const textWithoutRanges = text.replace(/\b(19[3-9]\d|20[0-3]\d)\s*[-–—]\s*(19[3-9]\d|20[0-3]\d)\b/g, '');
+  
+  // Now find standalone years
+  const yearMatch = textWithoutRanges.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
   if (yearMatch) {
+    console.log('[SCAN-ITEM] Standalone year detected:', yearMatch[1]);
     return parseInt(yearMatch[1]);
   }
   
