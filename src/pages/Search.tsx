@@ -152,6 +152,11 @@ export default function SearchPage() {
         if (textTerm) {
           orParts.push(`title.ilike.%${textTerm}%`);
           orParts.push(`series.ilike.%${textTerm}%`);
+          // Search artists, writers, and signers
+          orParts.push(`writer.ilike.%${textTerm}%`);
+          orParts.push(`artist.ilike.%${textTerm}%`);
+          orParts.push(`cover_artist.ilike.%${textTerm}%`);
+          orParts.push(`signed_by.ilike.%${textTerm}%`);
         }
         if (issueTerm) {
           orParts.push(`issue_number.ilike.%${issueTerm}%`);
