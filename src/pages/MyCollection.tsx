@@ -254,7 +254,9 @@ const MyCollection = () => {
                           )}
                           {comic.is_signed && (
                             <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500 text-white">
-                              {comic.signature_type === 'CGC Signature Series' ? 'CGC SS' : 'Signed'}
+                              {comic.signature_type === 'CGC Signature Series' ? 'CGC SS' : 
+                               comic.signature_type === 'CGC JSA Authentic' ? 'CGC JSA' :
+                               comic.signature_type === 'CBCS Signature Verified' ? 'CBCS Verified' : 'Signed'}
                             </span>
                           )}
                           {(comic.is_key || comic.key_details) && (

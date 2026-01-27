@@ -967,6 +967,7 @@ export default function ManageBook() {
                           </SelectTrigger>
                           <SelectContent className="bg-popover z-50">
                             <SelectItem value="CGC Signature Series">CGC Signature Series</SelectItem>
+                            <SelectItem value="CGC JSA Authentic">CGC JSA Authentic</SelectItem>
                             <SelectItem value="CBCS Signature Verified">CBCS Signature Verified</SelectItem>
                             <SelectItem value="Witnessed Signature">Witnessed Signature</SelectItem>
                             <SelectItem value="Unwitnessed / Raw Signature">Unwitnessed / Raw Signature</SelectItem>
