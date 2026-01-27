@@ -251,17 +251,23 @@ export function ScannerListingForm({
       setArtist(selectedPick.artist || "");
       setCoverArtist(selectedPick.coverArtist || "");
       
-      // Extract key notes from all available text
-      const fullText = [
-        selectedPick.deck || '',
-        selectedPick.description || '',
-        selectedPick.characters || '',
-        selectedPick.keyNotes || ''
-      ].join(' ');
+      // PRIORITY 1: Use pre-extracted keyNotes from ComicVine API (already cleaned)
+      // PRIORITY 2: Fall back to local regex extraction from description/deck
+      let keyNotesValue = selectedPick.keyNotes?.trim() || null;
       
-      const extracted = extractKeyNotes(fullText);
-      if (extracted) {
-        setKeyDetails(extracted);
+      if (!keyNotesValue) {
+        // Only run local extraction if edge function didn't provide keyNotes
+        const fullText = [
+          selectedPick.deck || '',
+          selectedPick.description || '',
+          selectedPick.characters || ''
+        ].join(' ');
+        keyNotesValue = extractKeyNotes(fullText);
+      }
+      
+      if (keyNotesValue) {
+        console.log('[KEY-NOTES] Auto-populated key details:', keyNotesValue);
+        setKeyDetails(keyNotesValue);
         setIsKey(true);
         setKeyType("Key issue");
       }
