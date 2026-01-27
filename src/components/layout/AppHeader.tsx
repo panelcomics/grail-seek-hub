@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck, Crown, Zap } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck, Crown, Zap, ShoppingCart } from "lucide-react";
+import { CartIconButton } from "@/components/cart/CartIconButton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { SubscriptionStatusIndicator } from "@/components/subscription/SubscriptionStatusIndicator";
@@ -201,7 +202,10 @@ export function AppHeader() {
             </Link>
           </Button>
 
-          <Button 
+          {/* Cart Icon with Badge */}
+          <CartIconButton className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0" />
+
+          <Button
             variant="ghost" 
             className="hidden md:inline-flex" 
             aria-label="Sell"
