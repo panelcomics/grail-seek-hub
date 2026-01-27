@@ -948,6 +948,9 @@ export default function Scanner() {
     try {
       const finalImageUrl = uploadedImageUrlRef.current || imageUrl;
       
+      // CRITICAL: Include key issue info that was extracted during scanning
+      const hasKeyNotes = selectedPick.keyNotes && selectedPick.keyNotes.trim().length > 0;
+      
       const inventoryData: any = {
         user_id: user.id,
         title: selectedPick.volumeName || selectedPick.title,
@@ -961,6 +964,7 @@ export default function Scanner() {
         variant_description: selectedPick.variantDescription || null,
         writer: selectedPick.writer || null,
         artist: selectedPick.artist || null,
+        cover_artist: selectedPick.coverArtist || null,
         scanner_confidence: confidence || null,
         scanner_last_scanned_at: new Date().toISOString(),
         images: {
@@ -969,7 +973,12 @@ export default function Scanner() {
           comicvine_reference: selectedPick.coverUrl || null,
         },
         listing_status: "not_listed",
+        // KEY ISSUE FIELDS - preserve the extracted key notes through the flow
+        key_issue: hasKeyNotes,
+        key_details: hasKeyNotes ? selectedPick.keyNotes : null,
       };
+      
+      console.log('[SCANNER] Saving inventory with keyNotes:', selectedPick.keyNotes);
 
       const { data: inventoryItem, error } = await supabase
         .from("inventory_items")
