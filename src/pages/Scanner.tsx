@@ -958,7 +958,7 @@ export default function Scanner() {
         issue_number: selectedPick.issue || null,
         publisher: selectedPick.publisher || null,
         year: selectedPick.year || null,
-        condition: "NM",
+        condition: null, // No default - encourage manual grading
         comicvine_issue_id: selectedPick.id ? selectedPick.id.toString() : null,
         comicvine_volume_id: selectedPick.volumeId ? selectedPick.volumeId.toString() : null,
         variant_description: selectedPick.variantDescription || null,
@@ -992,6 +992,68 @@ export default function Scanner() {
     } catch (error: any) {
       console.error("Error saving comic:", error);
       sonnerToast.error("Failed to save comic");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Quick List handler - saves with price/shipping and immediately lists
+  const handleQuickList = async (price: string, shipping: string) => {
+    if (!selectedPick || !user) {
+      sonnerToast.error("Please select a comic and sign in");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const finalImageUrl = uploadedImageUrlRef.current || imageUrl;
+      const hasKeyNotes = selectedPick.keyNotes && selectedPick.keyNotes.trim().length > 0;
+      
+      const inventoryData: any = {
+        user_id: user.id,
+        title: selectedPick.volumeName || selectedPick.title,
+        series: selectedPick.volumeName || null,
+        issue_number: selectedPick.issue || null,
+        publisher: selectedPick.publisher || null,
+        year: selectedPick.year || null,
+        condition: null, // No default - encourage manual grading
+        comicvine_issue_id: selectedPick.id ? selectedPick.id.toString() : null,
+        comicvine_volume_id: selectedPick.volumeId ? selectedPick.volumeId.toString() : null,
+        variant_description: selectedPick.variantDescription || null,
+        writer: selectedPick.writer || null,
+        artist: selectedPick.artist || null,
+        cover_artist: selectedPick.coverArtist || null,
+        scanner_confidence: confidence || null,
+        scanner_last_scanned_at: new Date().toISOString(),
+        images: {
+          primary: finalImageUrl,
+          others: [],
+          comicvine_reference: selectedPick.coverUrl || null,
+        },
+        listing_status: "not_listed",
+        key_issue: hasKeyNotes,
+        key_details: hasKeyNotes ? selectedPick.keyNotes : null,
+        // Quick list pricing
+        listed_price: parseFloat(price),
+        shipping_price: parseFloat(shipping),
+        for_sale: true,
+      };
+
+      const { data: inventoryItem, error } = await supabase
+        .from("inventory_items")
+        .insert(inventoryData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      sonnerToast.success(`Listed for $${price} + $${shipping} shipping!`);
+      
+      // Reset for next scan instead of navigating away
+      resetScanner();
+    } catch (error: any) {
+      console.error("Error quick listing comic:", error);
+      sonnerToast.error("Failed to list comic");
     } finally {
       setLoading(false);
     }
@@ -1479,6 +1541,7 @@ export default function Scanner() {
           match={selectedPick}
           previewImage={previewImage}
           onSetPrice={handleSetPrice}
+          onQuickList={handleQuickList}
           onScanAnother={resetScanner}
           onGoToListings={handleGoToListings}
         />

@@ -208,7 +208,7 @@ export function ScannerListingForm({
   const [writer, setWriter] = useState("");
   const [artist, setArtist] = useState("");
   const [coverArtist, setCoverArtist] = useState("");
-  const [condition, setCondition] = useState("NM");
+  const [condition, setCondition] = useState(""); // No default - encourage manual grading
   const [isSlab, setIsSlab] = useState(false);
   const [gradingCompany, setGradingCompany] = useState("CGC");
   const [grade, setGrade] = useState("");
