@@ -215,6 +215,7 @@ const ItemCard = ({
   const getSignatureBadgeText = () => {
     if (!isSigned) return null;
     if (signatureType === 'CGC Signature Series') return 'CGC SS';
+    if (signatureType === 'CGC JSA Authentic') return 'CGC JSA';
     if (signatureType === 'CBCS Signature Verified') return 'CBCS Verified';
     return 'Signed';
   };

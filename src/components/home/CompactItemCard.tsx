@@ -71,12 +71,14 @@ export function CompactItemCard({
     // If we have a signer name, show it with the signature type prefix
     if (signedBy) {
       const prefix = signatureType === 'CGC Signature Series' ? 'SS: ' : 
+                     signatureType === 'CGC JSA Authentic' ? 'JSA: ' :
                      signatureType === 'CBCS Signature Verified' ? 'CBCS: ' : '';
       return `${prefix}${signedBy}`;
     }
     
     // Fallback to just the type if no signer name
     if (signatureType === 'CGC Signature Series') return 'SS';
+    if (signatureType === 'CGC JSA Authentic') return 'JSA';
     if (signatureType === 'CBCS Signature Verified') return 'CBCS';
     return 'Signed';
   };
