@@ -261,6 +261,34 @@ export default function ManageBook() {
     }
   };
 
+  /**
+   * CRITICAL FIX: Update only images state without resetting form fields
+   * This prevents losing user's unsaved form data when adding photos
+   */
+  const handleImagesChange = async () => {
+    if (!id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("inventory_items")
+        .select("images")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      
+      // Only update the images field in item state, preserve everything else
+      setItem((prev: any) => ({
+        ...prev,
+        images: data.images
+      }));
+      
+      console.log('[MANAGE-BOOK] Images updated without form reset:', data.images);
+    } catch (error) {
+      console.error("[MANAGE-BOOK] Error refreshing images:", error);
+    }
+  };
+
   const fetchActiveListing = async (itemId: string) => {
     try {
       const { data, error } = await supabase
@@ -579,7 +607,7 @@ export default function ManageBook() {
                 <InventoryImageManager
                   inventoryItemId={id!}
                   images={item.images || { primary: null, others: [] }}
-                  onImagesChange={() => fetchItem()}
+                  onImagesChange={handleImagesChange}
                   maxImages={8}
                 />
               </CardContent>
