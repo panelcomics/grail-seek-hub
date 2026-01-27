@@ -11,6 +11,19 @@ import { supabase } from "@/integrations/supabase/client";
 // Real iconic comics with accurate cover colors for visual authenticity
 const SAMPLE_SIGNALS = [
   { 
+    title: "Absolute Batman", 
+    issue: "#1",
+    series: "Absolute Batman",
+    issueNumber: "1",
+    publisher: "DC",
+    year: 2024,
+    heatScore: 95,
+    bgGradient: "from-orange-900 via-amber-800 to-zinc-900",
+    accentColor: "text-orange-400",
+    note: "Snyder/Dragotta",
+    activity: { scans: 89, searches: 215, watches: 142 }
+  },
+  { 
     title: "Amazing Spider-Man", 
     issue: "#300",
     series: "Amazing Spider-Man",
