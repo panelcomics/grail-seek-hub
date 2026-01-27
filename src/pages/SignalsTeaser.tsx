@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,12 +6,15 @@ import { Link } from "react-router-dom";
 import { Lock, Flame, TrendingUp, Eye, Search, Camera, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionTier } from "@/hooks/useSubscriptionTier";
+import { supabase } from "@/integrations/supabase/client";
 
 // Real iconic comics with accurate cover colors for visual authenticity
 const SAMPLE_SIGNALS = [
   { 
     title: "Amazing Spider-Man", 
-    issue: "#300", 
+    issue: "#300",
+    series: "Amazing Spider-Man",
+    issueNumber: "300",
     publisher: "Marvel",
     year: 1988,
     heatScore: 92,
@@ -21,7 +25,9 @@ const SAMPLE_SIGNALS = [
   },
   { 
     title: "Uncanny X-Men", 
-    issue: "#266", 
+    issue: "#266",
+    series: "Uncanny X-Men",
+    issueNumber: "266",
     publisher: "Marvel",
     year: 1990,
     heatScore: 87,
@@ -32,7 +38,9 @@ const SAMPLE_SIGNALS = [
   },
   { 
     title: "Batman", 
-    issue: "#423", 
+    issue: "#423",
+    series: "Batman",
+    issueNumber: "423",
     publisher: "DC",
     year: 1988,
     heatScore: 81,
@@ -41,9 +49,11 @@ const SAMPLE_SIGNALS = [
     note: "McFarlane Cover",
     activity: { scans: 28, searches: 76, watches: 54 }
   },
-  { 
+  {
     title: "Incredible Hulk", 
-    issue: "#181", 
+    issue: "#181",
+    series: "Incredible Hulk",
+    issueNumber: "181",
     publisher: "Marvel",
     year: 1974,
     heatScore: 78,
@@ -52,9 +62,11 @@ const SAMPLE_SIGNALS = [
     note: "1st Wolverine (full)",
     activity: { scans: 22, searches: 89, watches: 71 }
   },
-  { 
+  {
     title: "New Mutants", 
-    issue: "#98", 
+    issue: "#98",
+    series: "New Mutants",
+    issueNumber: "98",
     publisher: "Marvel",
     year: 1991,
     heatScore: 74,
@@ -63,9 +75,11 @@ const SAMPLE_SIGNALS = [
     note: "1st Deadpool",
     activity: { scans: 31, searches: 67, watches: 48 }
   },
-  { 
+  {
     title: "Spawn", 
-    issue: "#1", 
+    issue: "#1",
+    series: "Spawn",
+    issueNumber: "1",
     publisher: "Image",
     year: 1992,
     heatScore: 69,
@@ -74,9 +88,11 @@ const SAMPLE_SIGNALS = [
     note: "McFarlane",
     activity: { scans: 19, searches: 52, watches: 38 }
   },
-  { 
+  {
     title: "Teenage Mutant Ninja Turtles", 
-    issue: "#1", 
+    issue: "#1",
+    series: "Teenage Mutant Ninja Turtles",
+    issueNumber: "1",
     publisher: "Mirage",
     year: 1984,
     heatScore: 65,
@@ -85,9 +101,11 @@ const SAMPLE_SIGNALS = [
     note: "1st Print",
     activity: { scans: 15, searches: 44, watches: 29 }
   },
-  { 
+  {
     title: "Walking Dead", 
-    issue: "#1", 
+    issue: "#1",
+    series: "Walking Dead",
+    issueNumber: "1",
     publisher: "Image",
     year: 2003,
     heatScore: 58,
@@ -96,9 +114,11 @@ const SAMPLE_SIGNALS = [
     note: "1st Rick Grimes",
     activity: { scans: 12, searches: 38, watches: 25 }
   },
-  { 
+  {
     title: "Fantastic Four", 
-    issue: "#52", 
+    issue: "#52",
+    series: "Fantastic Four",
+    issueNumber: "52",
     publisher: "Marvel",
     year: 1966,
     heatScore: 52,
@@ -107,9 +127,11 @@ const SAMPLE_SIGNALS = [
     note: "1st Black Panther",
     activity: { scans: 8, searches: 31, watches: 19 }
   },
-  { 
+  {
     title: "Saga", 
-    issue: "#1", 
+    issue: "#1",
+    series: "Saga",
+    issueNumber: "1",
     publisher: "Image",
     year: 2012,
     heatScore: 45,
@@ -118,9 +140,11 @@ const SAMPLE_SIGNALS = [
     note: "BKV/Staples",
     activity: { scans: 9, searches: 27, watches: 18 }
   },
-  { 
+  {
     title: "Detective Comics", 
-    issue: "#880", 
+    issue: "#880",
+    series: "Detective Comics",
+    issueNumber: "880",
     publisher: "DC",
     year: 2011,
     heatScore: 41,
@@ -129,9 +153,11 @@ const SAMPLE_SIGNALS = [
     note: "Jock Cover",
     activity: { scans: 6, searches: 22, watches: 14 }
   },
-  { 
+  {
     title: "Wolverine", 
-    issue: "#1", 
+    issue: "#1",
+    series: "Wolverine",
+    issueNumber: "1",
     publisher: "Marvel",
     year: 1988,
     heatScore: 36,
@@ -152,6 +178,8 @@ function getHeatLabel(score: number): { label: string; color: string; bgColor: s
 interface SignalData {
   title: string;
   issue: string;
+  series: string;
+  issueNumber: string;
   publisher: string;
   year: number;
   heatScore: number;
@@ -159,6 +187,7 @@ interface SignalData {
   accentColor: string;
   note: string;
   activity: { scans: number; searches: number; watches: number };
+  coverUrl?: string;
 }
 
 function HeatCard({ signal, rank, isSample = false }: { 
@@ -167,11 +196,23 @@ function HeatCard({ signal, rank, isSample = false }: {
   isSample?: boolean;
 }) {
   const { label, color, bgColor } = getHeatLabel(signal.heatScore);
+  const [imgError, setImgError] = useState(false);
+  const hasCover = signal.coverUrl && !imgError;
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-300 relative group">
-      {/* Stylized Cover Area */}
-      <div className={`aspect-[2/3] relative overflow-hidden bg-gradient-to-br ${signal.bgGradient}`}>
+      {/* Cover Area */}
+      <div className={`aspect-[2/3] relative overflow-hidden ${!hasCover ? `bg-gradient-to-br ${signal.bgGradient}` : 'bg-muted'}`}>
+        {/* Real Cover Image */}
+        {hasCover && (
+          <img
+            src={signal.coverUrl}
+            alt={`${signal.title} ${signal.issue}`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImgError(true)}
+          />
+        )}
+        
         {/* Rank Badge */}
         <div className="absolute top-2 left-2 z-10">
           <div className="h-7 w-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20">
@@ -188,40 +229,51 @@ function HeatCard({ signal, rank, isSample = false }: {
           </div>
         )}
 
-        {/* Comic Info Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-          {/* Publisher Logo Area */}
-          <div className={`text-[10px] font-bold tracking-widest uppercase ${signal.accentColor} mb-2 opacity-80`}>
-            {signal.publisher}
+        {/* Fallback: Comic Info Overlay (when no cover) */}
+        {!hasCover && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+            {/* Publisher Logo Area */}
+            <div className={`text-[10px] font-bold tracking-widest uppercase ${signal.accentColor} mb-2 opacity-80`}>
+              {signal.publisher}
+            </div>
+            
+            {/* Title */}
+            <h3 className="text-white font-bold text-lg leading-tight drop-shadow-lg mb-1">
+              {signal.title}
+            </h3>
+            
+            {/* Issue */}
+            <div className="text-white/90 text-2xl font-black tracking-tight mb-2">
+              {signal.issue}
+            </div>
+            
+            {/* Year */}
+            <div className="text-white/60 text-xs font-medium">
+              {signal.year}
+            </div>
+            
+            {/* Key Note */}
+            <div className="mt-3 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
+              <span className="text-[10px] text-white/80 font-medium">{signal.note}</span>
+            </div>
           </div>
-          
-          {/* Title */}
-          <h3 className="text-white font-bold text-lg leading-tight drop-shadow-lg mb-1">
-            {signal.title}
-          </h3>
-          
-          {/* Issue */}
-          <div className="text-white/90 text-2xl font-black tracking-tight mb-2">
-            {signal.issue}
+        )}
+
+        {/* Key note badge overlay for real covers */}
+        {hasCover && (
+          <div className="absolute bottom-2 left-2 right-2">
+            <div className="px-2 py-1 rounded bg-black/70 backdrop-blur-sm border border-white/10">
+              <span className="text-[10px] text-white font-medium">{signal.note}</span>
+            </div>
           </div>
-          
-          {/* Year */}
-          <div className="text-white/60 text-xs font-medium">
-            {signal.year}
-          </div>
-          
-          {/* Key Note */}
-          <div className={`mt-3 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10`}>
-            <span className="text-[10px] text-white/80 font-medium">{signal.note}</span>
-          </div>
-        </div>
+        )}
 
         {/* Subtle texture overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)] pointer-events-none" />
         
         {/* Heat glow effect for high scores */}
         {signal.heatScore >= 80 && (
-          <div className="absolute inset-0 bg-gradient-to-t from-red-500/20 via-transparent to-transparent animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-t from-red-500/20 via-transparent to-transparent animate-pulse pointer-events-none" />
         )}
       </div>
 
@@ -333,20 +385,61 @@ function ExplanationStrip() {
 export default function SignalsTeaser() {
   const { user } = useAuth();
   const { isElite } = useSubscriptionTier();
+  const [signalsWithCovers, setSignalsWithCovers] = useState<SignalData[]>(SAMPLE_SIGNALS);
+  const [loading, setLoading] = useState(true);
   
   // Hide sample data for logged-in Elite users - they see real data on /elite/signals
   const showSampleData = !user || !isElite;
+
+  useEffect(() => {
+    fetchComicCovers();
+  }, []);
+
+  const fetchComicCovers = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-comic-covers', {
+        body: {
+          comics: SAMPLE_SIGNALS.map(item => ({
+            series: item.series,
+            issue: item.issueNumber,
+          })),
+        },
+      });
+
+      if (error) {
+        if (error.message?.includes('404') || error.message?.includes('NOT_FOUND')) {
+          console.log('Comic covers function not deployed yet, using stylized fallback');
+        } else {
+          console.error('Error fetching comic covers:', error);
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (data?.results) {
+        const itemsWithCovers = SAMPLE_SIGNALS.map((item, index) => ({
+          ...item,
+          coverUrl: data.results[index]?.coverUrl || undefined,
+        }));
+        setSignalsWithCovers(itemsWithCovers);
+      }
+    } catch (error) {
+      console.log('Comic covers service unavailable, using stylized fallback:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Build grid with locked cards interspersed
   const gridItems: React.ReactNode[] = [];
   let visibleCount = 0;
   
-  for (let i = 0; i < SAMPLE_SIGNALS.length && visibleCount < 12; i++) {
+  for (let i = 0; i < signalsWithCovers.length && visibleCount < 12; i++) {
     // Add locked card after every 4 visible cards
     if (visibleCount > 0 && visibleCount % 4 === 0) {
       gridItems.push(<LockedTeaserCard key={`locked-${visibleCount}`} />);
     }
-    const signal = SAMPLE_SIGNALS[i];
+    const signal = signalsWithCovers[i];
     gridItems.push(
       <HeatCard 
         key={signal.title + signal.issue}
