@@ -75,6 +75,49 @@ interface PrefillData {
   description?: string;
 }
 
+/**
+ * Extract key issue notes from raw OCR text (especially CGC/CBCS labels)
+ * This is more reliable than ComicVine API for slabbed books
+ */
+function extractKeyNotesFromOCR(ocrText: string): string | null {
+  if (!ocrText) return null;
+  
+  const keyPatterns = [
+    // "1st appearance of [character]" - most common format on CGC labels
+    /1st\s+appearance\s+of\s+([^.,;!\n]+)/gi,
+    /first\s+appearance\s+of\s+([^.,;!\n]+)/gi,
+    // "Origin of [character]"
+    /origin\s+of\s+([^.,;!\n]+)/gi,
+    // "Death of [character]"
+    /death\s+of\s+([^.,;!\n]+)/gi,
+    // "1st [character]" - shorter format
+    /1st\s+([A-Z][a-zA-Z\s]+?)(?:\s+appearance|\.|,|;|$)/g,
+  ];
+  
+  const keyNotes: string[] = [];
+  
+  for (const pattern of keyPatterns) {
+    let match;
+    while ((match = pattern.exec(ocrText)) !== null) {
+      if (match[0] && match[0].trim().length > 3) {
+        // Clean up the match - remove HTML, extra spaces
+        const note = match[0]
+          .trim()
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .substring(0, 100);
+        
+        // Avoid duplicates (case-insensitive)
+        if (note && !keyNotes.some(n => n.toLowerCase() === note.toLowerCase())) {
+          keyNotes.push(note);
+        }
+      }
+    }
+  }
+  
+  return keyNotes.length > 0 ? keyNotes.join('; ') : null;
+}
+
 export default function Scanner() {
   const { user } = useAuth();
   const { isAdmin } = useAdminCheck();
@@ -431,6 +474,11 @@ export default function Scanner() {
         // CRITICAL: Scroll to top after scan completes so user sees results
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
+        // CRITICAL: Preserve OCR-extracted key issue info BEFORE fetching API details
+        // CGC/CBCS labels often contain accurate "1st appearance of..." text that ComicVine API may miss
+        const ocrKeyNotes = extractKeyNotesFromOCR(data.ocr || '');
+        const extractedKeyIndicator = data.extracted?.keyIssueIndicator;
+        
         // Fetch detailed issue info in background
         const issueDetails = await fetchIssueDetails(topPick);
         if (issueDetails) {
@@ -441,8 +489,20 @@ export default function Scanner() {
           topPick.coverArtist = issueDetails.coverArtist;
           topPick.description = issueDetails.description;
           topPick.deck = issueDetails.deck;
-          topPick.keyNotes = issueDetails.keyNotes;
           topPick.characters = issueDetails.characters;
+          
+          // PRIORITY for keyNotes: OCR-extracted > API-extracted > fallback
+          // OCR is more reliable for slabbed books since CGC labels have accurate key info
+          if (ocrKeyNotes) {
+            topPick.keyNotes = ocrKeyNotes;
+            console.log('[SCANNER] Using OCR-extracted keyNotes:', ocrKeyNotes);
+          } else if (issueDetails.keyNotes && !issueDetails.keyNotes.includes('changes to the character')) {
+            // Only use API keyNotes if it's actually meaningful
+            topPick.keyNotes = issueDetails.keyNotes;
+          } else if (extractedKeyIndicator) {
+            // Fallback to the indicator type (e.g., "1st Appearance")
+            topPick.keyNotes = extractedKeyIndicator;
+          }
           
           setSelectedPick({ ...topPick });
           setPrefillData({
