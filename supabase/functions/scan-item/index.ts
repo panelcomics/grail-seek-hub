@@ -866,7 +866,8 @@ async function searchComicVine(
   title: string, 
   issue: string | null,
   publisher: string | null,
-  year: number | null = null // NEW: target year for vintage filtering
+  year: number | null = null, // target year for vintage filtering
+  ocrText: string = '' // Full OCR text to check for vintage price patterns
 ): Promise<any[]> {
   const results: any[] = [];
   
@@ -924,17 +925,26 @@ async function searchComicVine(
   // This is the most reliable method as it bypasses ComicVine's search ranking
   const isVintage = year && year < 1985;
   
-  // NEW: Also trigger vintage lookup if title is a known classic with low issue number
-  // This handles cases where OCR doesn't detect the price (12¢) but the comic is clearly vintage
+  // Check if title is in vintage map
   const titleLower = title.toLowerCase().trim();
   const knownVintage = VINTAGE_VOLUME_MAP[titleLower];
   const issueNum = issue ? parseInt(issue) : 0;
   
-  // Low issue numbers (≤50) on classic titles are very likely to be original vintage runs
-  const suspectedVintage = knownVintage && issueNum > 0 && issueNum <= 50;
+  // CRITICAL FIX: Only trigger suspected vintage for low issue numbers IF we also have 
+  // strong vintage indicators (price pattern like 12¢, or year < 1985 detected)
+  // This prevents X-Men #4 (1992 - Omega Red) from being matched to X-Men #4 (1964)
+  // NOTE: If year is explicitly modern (≥1985), never trigger vintage mode
+  const hasVintagePrice = /\b(10|12|15|20|25)\s*[¢c]/i.test(ocrText) || (year && year < 1985);
+  const suspectedVintage = knownVintage && issueNum > 0 && issueNum <= 50 && hasVintagePrice;
   
-  if ((isVintage || suspectedVintage) && issue) {
-    const vintageReason = isVintage ? `year ${year}` : `low issue #${issue} on classic title`;
+  // Additional check: If no year detected but issue <= 10 on a classic title,
+  // ONLY use vintage mode if it's a VERY early issue (<=3) which is almost always vintage
+  const definitelyVintage = knownVintage && issueNum > 0 && issueNum <= 3 && !year;
+  
+  if ((isVintage || suspectedVintage || definitelyVintage) && issue) {
+    const vintageReason = isVintage 
+      ? `year ${year}` 
+      : (definitelyVintage ? `very low issue #${issue} (<=3)` : `low issue #${issue} + vintage price indicator`);
     console.log('[SCAN-ITEM] VINTAGE MODE TRIGGERED:', vintageReason);
     
     // STRATEGY 2A: DIRECT KNOWN VOLUME LOOKUP (most reliable for major titles)
@@ -1600,7 +1610,7 @@ serve(async (req) => {
       // PASS 1: Primary search with extracted data (includes year for vintage mode)
       // Only if correction cache and local cache didn't produce results
       if (results.length === 0) {
-        results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher, year);
+        results = await searchComicVine(COMICVINE_API_KEY, title, issue, publisher, year, ocrText);
         results = scoreResults(results, title, issue, publisher, year);
       }
       
@@ -1617,7 +1627,7 @@ serve(async (req) => {
         
         // Try alternative queries:
         // 2a: Title only (no issue, no publisher)
-        const titleOnlyResults = await searchComicVine(COMICVINE_API_KEY, title, null, null, year);
+        const titleOnlyResults = await searchComicVine(COMICVINE_API_KEY, title, null, null, year, ocrText);
         const scoredTitleOnly = scoreResults(titleOnlyResults, title, issue, publisher, year);
         
         // 2b: If title has multiple words, try main word only
@@ -1628,7 +1638,7 @@ serve(async (req) => {
           const mainWord = titleWords.reduce((a, b) => a.length > b.length ? a : b);
           if (mainWord.length >= 4 && mainWord.toLowerCase() !== title.toLowerCase()) {
             console.log('[SCAN-ITEM] Pass 2b: trying main word:', mainWord);
-            mainWordResults = await searchComicVine(COMICVINE_API_KEY, mainWord, issue, null, year);
+            mainWordResults = await searchComicVine(COMICVINE_API_KEY, mainWord, issue, null, year, ocrText);
             mainWordResults = scoreResults(mainWordResults, title, issue, publisher, year);
           }
         }
