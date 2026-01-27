@@ -662,6 +662,41 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          added_at: string
+          bundle_group_id: string | null
+          id: string
+          listing_id: string
+          seller_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          bundle_group_id?: string | null
+          id?: string
+          listing_id: string
+          seller_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          bundle_group_id?: string | null
+          id?: string
+          listing_id?: string
+          seller_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_sale_items: {
         Row: {
           authenticity_flagged: boolean | null

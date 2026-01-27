@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import Footer from "./components/Footer";
 import Index from "./pages/Index";
@@ -97,6 +99,7 @@ import HelpTrading from "./pages/help/Trading";
 import HelpReturns from "./pages/help/Returns";
 import HelpBuyerProtection from "./pages/help/BuyerProtection";
 import SettingsNotifications from "./pages/SettingsNotifications";
+import Cart from "./pages/Cart";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -169,6 +172,7 @@ const AppContent = () => {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/fees" element={<FeesPolicy />} />
+            <Route path="/cart" element={<Cart />} />
             <Route path="/help" element={<Help />} />
             <Route path="/about" element={<About />} />
             <Route path="/sell" element={<Sell />} />
@@ -229,7 +233,11 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppContent />
+          <AuthProvider>
+            <CartProvider>
+              <AppContent />
+            </CartProvider>
+          </AuthProvider>
         </BrowserRouter>
       </ModalProvider>
     </TooltipProvider>
