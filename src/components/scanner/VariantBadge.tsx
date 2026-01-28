@@ -90,6 +90,12 @@ const variantConfig: Record<string, {
     label: 'Newsstand',
     bgColor: 'bg-emerald-500/10 border-emerald-500/30'
   },
+  uk_price_variant: { 
+    icon: Newspaper, 
+    color: 'text-sky-600', 
+    label: 'U.K. Price Variant',
+    bgColor: 'bg-sky-500/10 border-sky-500/30'
+  },
 };
 
 export function VariantBadge({ 
