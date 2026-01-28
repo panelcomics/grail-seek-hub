@@ -41,19 +41,40 @@ export default function Admin() {
 
   const loadApplications = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch applications first
+      const { data: apps, error: appsError } = await supabase
         .from("creator_applications")
-        .select(`
-          *,
-          profiles:user_id (
-            username,
-            email
-          )
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setApplications(data || []);
+      if (appsError) throw appsError;
+
+      if (!apps || apps.length === 0) {
+        setApplications([]);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(apps.map(app => app.user_id))];
+
+      // Fetch profiles for these users
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, username")
+        .in("user_id", userIds);
+
+      if (profilesError) {
+        console.error("Error loading profiles:", profilesError);
+      }
+
+      // Map profiles to applications
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const applicationsWithProfiles = apps.map(app => ({
+        ...app,
+        profiles: profileMap.get(app.user_id) || null
+      }));
+
+      setApplications(applicationsWithProfiles);
     } catch (error) {
       console.error("Error loading applications:", error);
     } finally {
