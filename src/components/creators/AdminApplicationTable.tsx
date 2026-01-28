@@ -56,7 +56,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [reviewScore, setReviewScore] = useState<number>(0);
-  const [tier, setTier] = useState<string>("");
+  const [tier, setTier] = useState<string>("auto");
   const [processing, setProcessing] = useState(false);
   const [creatingProfile, setCreatingProfile] = useState(false);
 
@@ -66,7 +66,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
     setProcessing(true);
     try {
       // Auto-assign tier based on review score
-      let autoTier = tier;
+      let autoTier = tier === "auto" ? "" : tier;
       if (!autoTier && reviewScore > 0) {
         if (reviewScore >= 80) autoTier = "gold";
         else if (reviewScore >= 60) autoTier = "silver";
@@ -124,7 +124,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
       setSelectedApp(null);
       setAdminNotes("");
       setReviewScore(0);
-      setTier("");
+      setTier("auto");
       onUpdate();
     } catch (error: any) {
       console.error("Error approving application:", error);
@@ -167,7 +167,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
       setSelectedApp(null);
       setAdminNotes("");
       setReviewScore(0);
-      setTier("");
+      setTier("auto");
       onUpdate();
     } catch (error: any) {
       console.error("Error rejecting application:", error);
@@ -291,13 +291,14 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
               </TableCell>
               <TableCell>
                 <Button 
-                  variant="outline" 
+                  variant="default"
                   size="sm"
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
                   onClick={() => {
                     setSelectedApp(app);
                     setAdminNotes(app.admin_notes || "");
                     setReviewScore((app as any).review_score || 0);
-                    setTier((app as any).tier || "");
+                    setTier((app as any).tier || "auto");
                   }}
                 >
                   Review
@@ -434,7 +435,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
                       <SelectValue placeholder="Auto-assign based on score" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (Auto-assign)</SelectItem>
+                      <SelectItem value="auto">None (Auto-assign)</SelectItem>
                       <SelectItem value="bronze">Bronze</SelectItem>
                       <SelectItem value="silver">Silver</SelectItem>
                       <SelectItem value="gold">Gold</SelectItem>
