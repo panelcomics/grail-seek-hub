@@ -883,6 +883,7 @@ export function ScannerListingForm({
                     </SelectTrigger>
                     <SelectContent className="bg-popover z-50">
                       <SelectItem value="CGC">CGC</SelectItem>
+                      <SelectItem value="CGC JSA">CGC JSA</SelectItem>
                       <SelectItem value="CBCS">CBCS</SelectItem>
                       <SelectItem value="PSA">PSA</SelectItem>
                       <SelectItem value="PGX">PGX</SelectItem>
