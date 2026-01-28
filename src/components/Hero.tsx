@@ -38,10 +38,10 @@ const Hero = () => {
                   <Palette className="h-5 w-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">Now Accepting Verified Artist Applications — Showcase and sell your original art!</p>
+                  <p className="text-sm font-semibold">Now Accepting Creator Applications — Artists & Writers Welcome!</p>
                 </div>
               </div>
-              <Link to="/settings/artist-verification">
+              <Link to="/creators/apply">
                 <Button size="sm" variant="outline" className="border-purple-500/30 hover:bg-purple-500/10 gap-2 flex-shrink-0">
                   Apply Now
                   <ArrowRight className="h-4 w-4" />
