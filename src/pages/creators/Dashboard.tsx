@@ -143,23 +143,37 @@ export default function Dashboard() {
     }
   };
 
-  const handleImageUploaded = (url: string) => {
+  const handleImageUploaded = async (url: string) => {
     setFormData({ ...formData, avatar_url: url });
-    // Also update creator_applications and public profile immediately
-    if (application) {
-      supabase
-        .from("creator_applications")
-        .update({ avatar_url: url })
-        .eq("user_id", user?.id)
-        .then(() => {
-          if (publicProfile) {
-            supabase
-              .from("creator_public_profiles")
-              .update({ avatar_url: url })
-              .eq("id", publicProfile.id);
-          }
-          loadData();
-        });
+    
+    // Update all profile tables to sync avatar
+    if (application && user) {
+      try {
+        // Update creator_applications
+        await supabase
+          .from("creator_applications")
+          .update({ avatar_url: url })
+          .eq("user_id", user.id);
+
+        // Update public profile if exists
+        if (publicProfile) {
+          await supabase
+            .from("creator_public_profiles")
+            .update({ avatar_url: url })
+            .eq("id", publicProfile.id);
+        }
+
+        // ALSO sync to main profiles table
+        await supabase
+          .from("profiles")
+          .update({ avatar_url: url })
+          .eq("user_id", user.id);
+
+        loadData();
+        toast.success("Profile image updated across all profiles!");
+      } catch (error) {
+        console.error("Error syncing avatar:", error);
+      }
     }
   };
 
