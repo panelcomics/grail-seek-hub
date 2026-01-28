@@ -296,7 +296,11 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
                   className="bg-orange-500 hover:bg-orange-600 text-white"
                   onClick={() => {
                     setSelectedApp(app);
-                    setAdminNotes(app.admin_notes || "");
+                    const applicantName = app.full_name || app.profiles?.username || "Creator";
+                    const defaultMessage = app.status === "pending" && !app.admin_notes
+                      ? `Welcome to Grailseeker ${applicantName}. If you have any issues or recommendations please reach out to creators@grailseeker.app\n\nMark Bagnetto\nPresident`
+                      : (app.admin_notes || "");
+                    setAdminNotes(defaultMessage);
                     setReviewScore((app as any).review_score || 0);
                     setTier((app as any).tier || "auto");
                   }}
