@@ -108,25 +108,32 @@ serve(async (req) => {
     }
 
     // Send email to applicant
+    console.log(`Sending ${type} email to: ${userEmail}`);
+    
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${resendApiKey}`,
       },
-        body: JSON.stringify({
-          from: "GrailSeeker Creators <creators@grailseeker.app>",
-          to: [userEmail],
-          subject: emailSubject,
-          html: emailHtml,
-        }),
+      body: JSON.stringify({
+        from: "GrailSeeker Creators <creators@grailseeker.app>",
+        to: [userEmail],
+        subject: emailSubject,
+        html: emailHtml,
+      }),
     });
 
+    const emailResult = await emailResponse.json();
+    console.log(`Email API response status: ${emailResponse.status}`);
+    console.log(`Email API response:`, JSON.stringify(emailResult));
+
     if (!emailResponse.ok) {
-      throw new Error("Failed to send email");
+      console.error(`Failed to send email: ${JSON.stringify(emailResult)}`);
+      throw new Error(`Failed to send email: ${JSON.stringify(emailResult)}`);
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, emailSent: true, result: emailResult }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
