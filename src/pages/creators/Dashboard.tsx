@@ -42,7 +42,8 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
-      const [appResult, rolesResult, profileResult] = await Promise.all([
+      // First get application and roles
+      const [appResult, rolesResult] = await Promise.all([
         supabase
           .from("creator_applications")
           .select("*")
@@ -52,11 +53,6 @@ export default function Dashboard() {
           .from("creator_roles")
           .select("*")
           .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("creator_public_profiles")
-          .select("*")
-          .eq("creator_application_id", user.id)
           .maybeSingle()
       ]);
 
@@ -65,7 +61,19 @@ export default function Dashboard() {
 
       setApplication(appResult.data);
       setRoles(rolesResult.data);
-      setPublicProfile(profileResult.data);
+
+      // Then get public profile using the application ID (not user ID)
+      if (appResult.data?.id) {
+        const { data: profileData } = await supabase
+          .from("creator_public_profiles")
+          .select("*")
+          .eq("creator_application_id", appResult.data.id)
+          .maybeSingle();
+        
+        setPublicProfile(profileData);
+      } else {
+        setPublicProfile(null);
+      }
       
       if (appResult.data) {
         setFormData({
