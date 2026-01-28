@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { RoleBadge } from "@/components/creators/RoleBadge";
 import { ApplicationStatusCard } from "@/components/creators/ApplicationStatusCard";
+import { ProfileImageUpload } from "@/components/ProfileImageUpload";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,18 @@ export default function Dashboard() {
         if (profileError) throw profileError;
       }
 
+      // Also sync bio to main profiles table so there's only ONE bio
+      const { error: mainProfileError } = await supabase
+        .from("profiles")
+        .update({
+          bio: formData.short_bio
+        })
+        .eq("user_id", user.id);
+
+      if (mainProfileError) {
+        console.warn("Could not sync bio to main profile:", mainProfileError);
+      }
+
       toast.success("Profile updated successfully!");
       setEditing(false);
       loadData();
@@ -119,6 +132,26 @@ export default function Dashboard() {
       toast.error("Failed to update profile");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageUploaded = (url: string) => {
+    setFormData({ ...formData, avatar_url: url });
+    // Also update creator_applications and public profile immediately
+    if (application) {
+      supabase
+        .from("creator_applications")
+        .update({ avatar_url: url })
+        .eq("user_id", user?.id)
+        .then(() => {
+          if (publicProfile) {
+            supabase
+              .from("creator_public_profiles")
+              .update({ avatar_url: url })
+              .eq("id", publicProfile.id);
+          }
+          loadData();
+        });
     }
   };
 
@@ -353,11 +386,11 @@ export default function Dashboard() {
             ) : (
               <>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Avatar URL</label>
-                  <Input
-                    placeholder="https://..."
-                    value={formData.avatar_url}
-                    onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                  <label className="text-sm font-medium mb-2 block">Profile Image</label>
+                  <ProfileImageUpload
+                    currentImageUrl={formData.avatar_url || null}
+                    userId={user?.id || ""}
+                    onImageUploaded={handleImageUploaded}
                   />
                 </div>
 

@@ -86,7 +86,7 @@ serve(async (req) => {
         
         <h2>Next Steps:</h2>
         <ul>
-          <li>Visit your <a href="${Deno.env.get("SUPABASE_URL")}/creators/dashboard">Creator Dashboard</a></li>
+          <li>Visit your <a href="https://grail-seek-hub.lovable.app/creators/dashboard">Creator Dashboard</a></li>
           <li>Complete your seller profile setup</li>
           <li>Start listing your work or launch crowdfunding campaigns</li>
         </ul>
