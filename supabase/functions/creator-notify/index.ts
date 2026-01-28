@@ -19,14 +19,6 @@ serve(async (req) => {
 
     const { type, userId, fullName, email, creatorType, roleRequested, adminNotes } = await req.json();
 
-    // Get user email
-    const { data: userData } = await supabaseClient.auth.admin.getUserById(userId);
-    if (!userData.user?.email) {
-      throw new Error("User email not found");
-    }
-
-    const userEmail = userData.user.email;
-
     // Check if Resend is configured
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -36,24 +28,20 @@ serve(async (req) => {
       });
     }
 
-    // Send email based on type
-    let emailSubject = "";
-    let emailHtml = "";
-
+    // For admin notifications (submitted), we don't need the user's auth email
     if (type === "submitted") {
-      // Notify admin
-      emailSubject = "New Creator Application Received";
-      emailHtml = `
+      const emailSubject = "New Creator Application Received";
+      const emailHtml = `
         <h1>New Creator Application</h1>
         <p><strong>Full Name:</strong> ${fullName || 'Not provided'}</p>
         <p><strong>Creator Type:</strong> ${creatorType || roleRequested}</p>
-        <p><strong>Email:</strong> ${email || userEmail}</p>
+        <p><strong>Email:</strong> ${email || 'Not provided'}</p>
         <p><strong>User ID:</strong> ${userId}</p>
-        <p><a href="${Deno.env.get("SUPABASE_URL")}/creators/admin">Review Application in Dashboard</a></p>
+        <p><a href="https://grail-seek-hub.lovable.app/creators/admin">Review Application in Dashboard</a></p>
       `;
 
       // Send to admin email
-      await fetch("https://api.resend.com/emails", {
+      const adminResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,16 +49,32 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           from: "GrailSeeker Creators <creators@grailseeker.app>",
-          to: ["creators@grailseeker.com"],
+          to: ["creators@grailseeker.app"],
           subject: emailSubject,
           html: emailHtml,
         }),
       });
 
-      return new Response(JSON.stringify({ ok: true }), {
+      console.log("Admin notification sent, status:", adminResponse.status);
+      const adminResult = await adminResponse.json();
+      console.log("Admin notification result:", JSON.stringify(adminResult));
+
+      return new Response(JSON.stringify({ ok: true, result: adminResult }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // For user notifications (approved/rejected), we need the user's email from auth
+    const { data: userData } = await supabaseClient.auth.admin.getUserById(userId);
+    if (!userData.user?.email) {
+      throw new Error("User email not found");
+    }
+
+    const userEmail = userData.user.email;
+
+    // Send email based on type
+    let emailSubject = "";
+    let emailHtml = "";
 
     if (type === "approved") {
       const creatorRole = creatorType || roleRequested || 'creator';
