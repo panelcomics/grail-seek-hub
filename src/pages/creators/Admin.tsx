@@ -8,20 +8,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Admin() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking
+    if (authLoading) return;
+    
     if (!user) {
       navigate("/auth");
       return;
     }
 
     checkAdminAndLoad();
-  }, [user]);
+  }, [user, authLoading]);
 
   const checkAdminAndLoad = async () => {
     if (!user) return;
