@@ -998,6 +998,7 @@ export function ScannerListingForm({
                     <SelectItem value="newsstand">Newsstand</SelectItem>
                     <SelectItem value="direct">Direct</SelectItem>
                     <SelectItem value="price_variant">Price Variant</SelectItem>
+                    <SelectItem value="uk_price_variant">U.K. Price Variant</SelectItem>
                     <SelectItem value="2nd_print">2nd Print</SelectItem>
                     <SelectItem value="3rd_print">3rd Print</SelectItem>
                     <SelectItem value="incentive">Incentive</SelectItem>
