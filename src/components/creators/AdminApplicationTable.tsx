@@ -109,6 +109,48 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
 
       if (roleError) throw roleError;
 
+      // AUTO-CREATE PUBLIC PROFILE on approval
+      const slug = (app.full_name || app.profiles?.username || 'creator')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from("creator_public_profiles")
+        .select("id")
+        .eq("creator_application_id", app.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        const { error: profileError } = await supabase
+          .from("creator_public_profiles")
+          .insert({
+            creator_application_id: app.id,
+            public_slug: slug,
+            display_name: app.full_name || app.profiles?.username || 'Creator',
+            avatar_url: (app as any).avatar_url || null,
+            short_bio: app.bio || null,
+            social_links: app.social_links || {},
+            featured_links: [],
+            is_visible: true
+          });
+
+        if (profileError) {
+          console.error("Error creating public profile:", profileError);
+          // Don't fail the whole approval, just log
+        }
+
+        // Update the application to mark it as public
+        await supabase
+          .from("creator_applications")
+          .update({ 
+            is_profile_public: true,
+            public_slug: slug
+          })
+          .eq("id", app.id);
+      }
+
       // Trigger email notification
       await supabase.functions.invoke("creator-notify", {
         body: {
@@ -120,7 +162,7 @@ export function AdminApplicationTable({ applications, onUpdate }: AdminApplicati
         }
       });
 
-      toast.success("Application approved! They'll receive a welcome email.");
+      toast.success("Application approved! Public profile created automatically.");
       setSelectedApp(null);
       setAdminNotes("");
       setReviewScore(0);
