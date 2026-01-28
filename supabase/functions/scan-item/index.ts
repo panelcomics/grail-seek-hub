@@ -167,6 +167,20 @@ const OCR_TYPO_MAP: Record<string, string> = {
   'johnny quoal': 'Jonny Quest',
   'johnny quost': 'Jonny Quest',
   'jade incorporated': 'Jonny Quest',
+  // Punisher variants - CRITICAL: OCR often misreads P as F
+  'funisher': 'Punisher',
+  'the funisher': 'The Punisher',
+  'punisher': 'Punisher',
+  'the punisher': 'The Punisher',
+  'pun1sher': 'Punisher',
+  'punlsher': 'Punisher',
+  // Justice League variants
+  'justice league': 'Justice League',
+  'justlce league': 'Justice League',
+  'justice ieague': 'Justice League',
+  'just1ce league': 'Justice League',
+  'justic league': 'Justice League',
+  'justice leaque': 'Justice League',
   // X-Men variants - CRITICAL: vintage comics show "THE X-MEN" or "XMEN"
   'x-mer': 'X-Men',
   'x mer': 'X-Men',
@@ -231,6 +245,14 @@ const OCR_TYPO_MAP: Record<string, string> = {
   'moon kn1ght': 'Moon Knight',
   'moonknight': 'Moon Knight',
 };
+
+// Publisher names that should NOT be treated as comic titles
+const PUBLISHER_NAMES = [
+  'marvel', 'dc', 'image', 'dark horse', 'idw', 'boom', 'vertigo', 
+  'valiant', 'eclipse', 'comico', 'malibu', 'dynamite', 'oni', 
+  'archie', 'harvey', 'fawcett', 'charlton', 'dell', 'gold key',
+  'marvel comics', 'dc comics', 'marvel comics group'
+];
 
 // Slab-related terms to filter out
 const SLAB_TERMS = ['cgc', 'cbcs', 'universal grade', 'signature series', 'white pages', 
@@ -545,13 +567,21 @@ function extractTitleAndIssue(ocrText: string): {
   for (const pattern of hashPatterns) {
     const matches = [...cleanedText.matchAll(pattern)];
     if (matches.length > 0) {
-      const best = matches.reduce((a, b) => (a[1].length > b[1].length) ? a : b);
-      const title = best[1].trim();
-      const issue = best[2];
+      // CRITICAL: Filter out matches where the "title" is actually a publisher name
+      const validMatches = matches.filter(m => {
+        const potentialTitle = m[1].trim().toLowerCase();
+        return !PUBLISHER_NAMES.includes(potentialTitle);
+      });
       
-      if (title.split(/\s+/).length >= 2 || title.length >= 6) {
-        console.log('[SCAN-ITEM] Strategy 1 (hash pattern):', title, '#', issue);
-        return { title, issue, confidence: 0.9, method: 'hash_pattern' };
+      if (validMatches.length > 0) {
+        const best = validMatches.reduce((a, b) => (a[1].length > b[1].length) ? a : b);
+        const title = best[1].trim();
+        const issue = best[2];
+        
+        if (title.split(/\s+/).length >= 2 || title.length >= 6) {
+          console.log('[SCAN-ITEM] Strategy 1 (hash pattern):', title, '#', issue);
+          return { title, issue, confidence: 0.9, method: 'hash_pattern' };
+        }
       }
     }
   }
@@ -561,8 +591,11 @@ function extractTitleAndIssue(ocrText: string): {
   if (noMatch) {
     const title = noMatch[1].trim();
     const issue = noMatch[2];
-    console.log('[SCAN-ITEM] Strategy 2 (No/Issue pattern):', title, '#', issue);
-    return { title, issue, confidence: 0.85, method: 'no_pattern' };
+    // Skip if title is actually a publisher name
+    if (!PUBLISHER_NAMES.includes(title.toLowerCase())) {
+      console.log('[SCAN-ITEM] Strategy 2 (No/Issue pattern):', title, '#', issue);
+      return { title, issue, confidence: 0.85, method: 'no_pattern' };
+    }
   }
   
   // Strategy 3: Look for standalone issue number and find nearby title-like text
