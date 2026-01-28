@@ -2695,6 +2695,7 @@ export type Database = {
         Row: {
           amount: number
           amount_cents: number | null
+          bundle_group_id: string | null
           buyer_id: string
           buyer_protection_fee: number | null
           carrier: string | null
@@ -2738,6 +2739,7 @@ export type Database = {
         Insert: {
           amount?: number
           amount_cents?: number | null
+          bundle_group_id?: string | null
           buyer_id: string
           buyer_protection_fee?: number | null
           carrier?: string | null
@@ -2781,6 +2783,7 @@ export type Database = {
         Update: {
           amount?: number
           amount_cents?: number | null
+          bundle_group_id?: string | null
           buyer_id?: string
           buyer_protection_fee?: number | null
           carrier?: string | null

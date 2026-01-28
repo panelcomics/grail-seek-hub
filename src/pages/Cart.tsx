@@ -3,14 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Trash2, Loader2, AlertCircle, ArrowLeft, Store } from "lucide-react";
+import { ShoppingCart, Loader2, AlertCircle, ArrowLeft, Package } from "lucide-react";
 import { toast } from "sonner";
-import { CartItemCard } from "@/components/cart/CartItemCard";
-
+import { SellerBundleCard } from "@/components/cart/SellerBundleCard";
 interface CartListingDetails {
   id: string;
   title: string;
@@ -184,11 +181,11 @@ const Cart = () => {
         <Card className="mb-6 border-primary/20 bg-primary/5">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <Package className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-primary">Each item checks out separately</p>
+                <p className="font-medium text-primary">Bundle items from the same seller to save on shipping!</p>
                 <p className="text-muted-foreground">
-                  Shipping is calculated per listing. Each purchase creates its own order.
+                  Multiple items from one seller can be checked out together with combined shipping.
                 </p>
               </div>
             </div>
@@ -210,42 +207,22 @@ const Cart = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Listings grouped by seller */}
             {Object.values(listingsBySeller).map((sellerGroup) => (
-              <div key={sellerGroup.seller_id} className="space-y-4">
-                {/* Seller Header */}
-                <div className="flex items-center gap-2">
-                  <Store className="h-4 w-4 text-muted-foreground" />
-                  <Link 
-                    to={`/seller/${sellerGroup.seller_username}`}
-                    className="text-sm font-medium hover:underline"
-                  >
-                    {sellerGroup.seller_username || "Seller"}
-                  </Link>
-                  <Badge variant="outline" className="text-xs">
-                    {sellerGroup.listings.length} {sellerGroup.listings.length === 1 ? "item" : "items"}
-                  </Badge>
-                </div>
-
-                {/* Seller's Listings */}
-                <div className="space-y-4">
-                  {sellerGroup.listings.map((listing) => (
-                    <CartItemCard
-                      key={listing.id}
-                      listing={listing}
-                      onRemove={() => removeFromCart(listing.id)}
-                    />
-                  ))}
-                </div>
-
-                <Separator />
-              </div>
+              <SellerBundleCard
+                key={sellerGroup.seller_id}
+                sellerId={sellerGroup.seller_id}
+                sellerUsername={sellerGroup.seller_username}
+                sellerAvatar={sellerGroup.seller_avatar}
+                listings={sellerGroup.listings}
+                onRemoveItem={removeFromCart}
+              />
             ))}
 
             {/* Footer Note */}
             <div className="text-center text-sm text-muted-foreground py-4">
-              <p>Click "Buy Now" on any item to proceed to checkout for that listing</p>
+              <p>Click "Buy Now" on any item for individual checkout, or use "Checkout All" to bundle items from the same seller</p>
             </div>
           </div>
         )}
