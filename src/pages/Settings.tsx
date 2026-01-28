@@ -31,16 +31,16 @@ const Settings = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Paintbrush className="h-5 w-5" />
-                Artist Verification
+                Creator Account
               </CardTitle>
               <CardDescription>
-                Apply to become a verified artist and showcase your original artwork
+                Apply to become a verified creator — artists and writers welcome
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/settings/artist-verification">
+              <Link to="/creators/apply">
                 <Button variant="outline" className="w-full">
-                  Apply for Verified Artist Status
+                  Apply to Become a Creator
                 </Button>
               </Link>
             </CardContent>
