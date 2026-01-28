@@ -997,8 +997,15 @@ export default function Scanner() {
     }
   };
 
-  // Quick List handler - saves with price/shipping and immediately lists
-  const handleQuickList = async (price: string, shipping: string) => {
+  // Quick List handler - saves with price/shipping/condition and immediately lists
+  const handleQuickList = async (data: { 
+    price: string; 
+    shipping: string; 
+    condition: string | null;
+    isSlab: boolean;
+    gradingCompany: string | null;
+    grade: string | null;
+  }) => {
     if (!selectedPick || !user) {
       sonnerToast.error("Please select a comic and sign in");
       return;
@@ -1016,7 +1023,12 @@ export default function Scanner() {
         issue_number: selectedPick.issue || null,
         publisher: selectedPick.publisher || null,
         year: selectedPick.year || null,
-        condition: null, // No default - encourage manual grading
+        // Condition/Grading from Quick List
+        condition: data.isSlab ? null : data.condition,
+        is_slab: data.isSlab,
+        grading_company: data.isSlab ? data.gradingCompany : null,
+        cgc_grade: data.isSlab ? data.grade : null,
+        grade: data.isSlab ? data.grade : null,
         comicvine_issue_id: selectedPick.id ? selectedPick.id.toString() : null,
         comicvine_volume_id: selectedPick.volumeId ? selectedPick.volumeId.toString() : null,
         variant_description: selectedPick.variantDescription || null,
@@ -1034,8 +1046,8 @@ export default function Scanner() {
         key_issue: hasKeyNotes,
         key_details: hasKeyNotes ? selectedPick.keyNotes : null,
         // Quick list pricing
-        listed_price: parseFloat(price),
-        shipping_price: parseFloat(shipping),
+        listed_price: parseFloat(data.price),
+        shipping_price: parseFloat(data.shipping),
         for_sale: true,
       };
 
@@ -1047,7 +1059,13 @@ export default function Scanner() {
 
       if (error) throw error;
 
-      sonnerToast.success(`Listed for $${price} + $${shipping} shipping!`);
+      // Build success message with grade info
+      const gradeInfo = data.isSlab && data.grade 
+        ? ` (${data.gradingCompany} ${data.grade})` 
+        : data.condition 
+          ? ` (${data.condition})` 
+          : '';
+      sonnerToast.success(`Listed for $${data.price} + $${data.shipping} shipping${gradeInfo}!`);
       
       // Reset for next scan instead of navigating away
       resetScanner();
