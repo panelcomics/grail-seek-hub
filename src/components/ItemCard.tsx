@@ -77,6 +77,8 @@ interface ItemCardProps {
   heatScore?: number | null;
   // Restoration markers
   restorationMarkers?: string[] | null;
+  // Item type for routing - defaults to listing
+  itemType?: 'listing' | 'original_art';
 }
 
 const ItemCard = ({ 
@@ -129,6 +131,7 @@ const ItemCard = ({
   isApprovedCreator = false,
   heatScore = null,
   restorationMarkers = null,
+  itemType = 'listing',
 }: ItemCardProps) => {
   const [countdown, setCountdown] = useState(timeRemaining);
   const { isWatching, toggleWatch } = useWatchAuction(isAuction ? id : undefined);
@@ -234,8 +237,11 @@ const ItemCard = ({
     return null;
   };
 
+  // Determine the correct route based on item type
+  const detailRoute = itemType === 'original_art' ? `/original-art/${id}` : `/listing/${id}`;
+
   return (
-    <Link to={`/listing/${id}`}>
+    <Link to={detailRoute}>
       <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-card border rounded-lg h-full flex flex-col">
         {/* Image container with hover-to-enlarge on desktop */}
         <HoverImagePreview

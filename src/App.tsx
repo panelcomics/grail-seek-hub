@@ -58,6 +58,7 @@ import DevScanTest from "./pages/DevScanTest";
 import SellComic from "./pages/SellComic";
 import Marketplace from "./pages/Marketplace";
 import ListingDetail from "./pages/ListingDetail";
+import OriginalArtDetail from "./pages/OriginalArtDetail";
 import Orders from "./pages/Orders";
 import Search from "./pages/Search";
 import EbaySearch from "./pages/EbaySearch";
@@ -182,6 +183,7 @@ const AppContent = () => {
             <Route path="/marketplace" element={<Marketplace />} /> {/* redirect old route */}
             <Route path="/l/:id" element={<ListingDetail />} />
             <Route path="/listing/:id" element={<ListingDetail />} /> {/* redirect old route */}
+            <Route path="/original-art/:id" element={<OriginalArtDetail />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
             <Route path="/ebay-search" element={<EbaySearch />} />
