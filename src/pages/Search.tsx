@@ -749,6 +749,7 @@ export default function SearchPage() {
                   signatureType={item.signature_type}
                   signedBy={item.signed_by}
                   showFavorite={true}
+                  itemType={item._type === 'original_art' ? 'original_art' : 'listing'}
                 />
               ))}
             </div>
