@@ -133,7 +133,8 @@ export default function SearchPage() {
     try {
       const currentOffset = loadMore ? offset : 0;
       
-      let queryBuilder = supabase
+      // Query inventory_items
+      let inventoryQuery = supabase
         .from("inventory_items")
         .select(`
           *,
@@ -162,20 +163,68 @@ export default function SearchPage() {
           orParts.push(`issue_number.ilike.%${issueTerm}%`);
         }
         const orFilter = orParts.join(",");
-        queryBuilder = queryBuilder.or(orFilter);
+        inventoryQuery = inventoryQuery.or(orFilter);
       }
 
-      const { data, error } = await queryBuilder;
+      // Query original_art (public, for sale)
+      let artQuery = supabase
+        .from("original_art")
+        .select(`
+          *,
+          profiles:owner_user_id (
+            username,
+            is_verified_seller,
+            completed_sales_count
+          )
+        `)
+        .eq("visibility", "public")
+        .eq("for_sale", true)
+        .range(currentOffset, currentOffset + ITEMS_PER_PAGE - 1);
 
-      if (error) throw error;
+      if (textTerm) {
+        artQuery = artQuery.or(`title.ilike.%${textTerm}%,artist_name.ilike.%${textTerm}%,description.ilike.%${textTerm}%`);
+      }
+
+      // Execute both queries in parallel
+      const [inventoryResult, artResult] = await Promise.all([
+        inventoryQuery,
+        artQuery
+      ]);
+
+      if (inventoryResult.error) throw inventoryResult.error;
+
+      // Transform original_art results to match inventory_items shape
+      const transformedArt = (artResult.data || []).map((art: any) => ({
+        id: art.id,
+        title: art.title,
+        listed_price: art.price,
+        images: { primary: art.image_url, others: [] },
+        artist: art.artist_name,
+        condition: art.condition || 'Original Art',
+        created_at: art.created_at,
+        for_sale: art.for_sale,
+        is_slab: false,
+        listing_status: 'listed',
+        profiles: art.profiles,
+        owner_id: art.owner_user_id,
+        user_id: art.owner_user_id,
+        _type: 'original_art', // Tag to identify art items
+        description: art.description,
+        medium: art.medium,
+        dimensions: art.dimensions,
+      }));
+
+      // Merge and dedupe results
+      const inventoryData = inventoryResult.data || [];
+      const mergedResults = [...inventoryData, ...transformedArt];
 
       if (loadMore) {
-        setResults(prev => [...prev, ...(data || [])]);
+        setResults(prev => [...prev, ...mergedResults]);
       } else {
-        setResults(data || []);
+        setResults(mergedResults);
       }
       
-      setHasMore((data?.length || 0) === ITEMS_PER_PAGE);
+      setHasMore(mergedResults.length === ITEMS_PER_PAGE * 2 || inventoryData.length === ITEMS_PER_PAGE);
       setOffset(currentOffset + ITEMS_PER_PAGE);
     } catch (error: any) {
       toast({
