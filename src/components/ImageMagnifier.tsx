@@ -1,41 +1,27 @@
 import { useState, useRef, MouseEvent, TouchEvent } from "react";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
-import { Button } from "./ui/button";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getRotationTransform } from "@/lib/imageRotation";
 
-interface ImageCarouselProps {
-  images: Array<{ url: string; thumbnail_url?: string }>;
+interface ImageMagnifierProps {
+  src: string;
+  alt: string;
   className?: string;
-  rotation?: number | null;
+  magnifierSize?: number;
+  zoomLevel?: number;
 }
 
-export function ImageCarousel({ images, className, rotation }: ImageCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+export function ImageMagnifier({
+  src,
+  alt,
+  className,
+  magnifierSize = 150,
+  zoomLevel = 2.5,
+}: ImageMagnifierProps) {
   const [showMagnifier, setShowMagnifier] = useState(false);
-  const [isZoomEnabled, setIsZoomEnabled] = useState(false);
   const [magnifierPosition, setMagnifierPosition] = useState({ x: 0, y: 0 });
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [isZoomEnabled, setIsZoomEnabled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const magnifierSize = 150;
-  const zoomLevel = 2.5;
-
-  if (!images || images.length === 0) {
-    return (
-      <div className="w-full aspect-square bg-muted flex items-center justify-center rounded-lg">
-        <p className="text-muted-foreground">No image available</p>
-      </div>
-    );
-  }
-
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
 
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!isZoomEnabled || !containerRef.current) return;
@@ -44,6 +30,7 @@ export function ImageCarousel({ images, className, rotation }: ImageCarouselProp
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    // Calculate position as percentage
     const xPercent = (x / rect.width) * 100;
     const yPercent = (y / rect.height) * 100;
 
@@ -59,6 +46,7 @@ export function ImageCarousel({ images, className, rotation }: ImageCarouselProp
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
 
+    // Keep within bounds
     const boundedX = Math.max(0, Math.min(x, rect.width));
     const boundedY = Math.max(0, Math.min(y, rect.height));
 
@@ -78,15 +66,21 @@ export function ImageCarousel({ images, className, rotation }: ImageCarouselProp
     setShowMagnifier(false);
   };
 
+  const handleTouchStart = () => {
+    if (isZoomEnabled) setShowMagnifier(true);
+  };
+
+  const handleTouchEnd = () => {
+    setShowMagnifier(false);
+  };
+
   const toggleZoom = () => {
     setIsZoomEnabled(!isZoomEnabled);
     if (isZoomEnabled) setShowMagnifier(false);
   };
 
-  const currentImageUrl = images[currentIndex].url;
-
   return (
-    <div className={cn("relative group", className)}>
+    <div className="relative">
       {/* Zoom Toggle Button */}
       <button
         onClick={toggleZoom}
@@ -107,31 +101,30 @@ export function ImageCarousel({ images, className, rotation }: ImageCarouselProp
 
       {/* Zoom hint */}
       {isZoomEnabled && !showMagnifier && (
-        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border text-xs text-muted-foreground">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border text-xs text-muted-foreground">
           Hover or touch to magnify
         </div>
       )}
 
+      {/* Image Container */}
       <div
         ref={containerRef}
         className={cn(
-          "relative w-full aspect-square overflow-hidden rounded-lg bg-muted",
-          isZoomEnabled && "cursor-zoom-in"
+          "relative overflow-hidden",
+          isZoomEnabled && "cursor-zoom-in",
+          className
         )}
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onTouchMove={handleTouchMove}
-        onTouchStart={() => isZoomEnabled && setShowMagnifier(true)}
-        onTouchEnd={() => setShowMagnifier(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <img
-          src={currentImageUrl}
-          alt={`Image ${currentIndex + 1}`}
-          className="w-full h-full object-contain transition-transform duration-200"
-          style={{
-            transform: getRotationTransform(rotation)
-          }}
+          src={src}
+          alt={alt}
+          className="w-full h-full object-contain"
           draggable={false}
         />
 
@@ -144,58 +137,14 @@ export function ImageCarousel({ images, className, rotation }: ImageCarouselProp
               height: `${magnifierSize}px`,
               left: `${cursorPosition.x - magnifierSize / 2}px`,
               top: `${cursorPosition.y - magnifierSize / 2}px`,
-              backgroundImage: `url(${currentImageUrl})`,
+              backgroundImage: `url(${src})`,
               backgroundRepeat: "no-repeat",
               backgroundSize: `${zoomLevel * 100}% ${zoomLevel * 100}%`,
               backgroundPosition: `${magnifierPosition.x}% ${magnifierPosition.y}%`,
             }}
           />
         )}
-        
-        {images.length > 1 && (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={handlePrevious}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={handleNext}
-            >
-              <ChevronRight className="h-6 w-6" />
-            </Button>
-
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-              {images.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={cn(
-                    "w-1 h-1 rounded-full transition-all",
-                    index === currentIndex
-                      ? "bg-primary w-3"
-                      : "bg-white/50 hover:bg-white/75"
-                  )}
-                  aria-label={`Go to image ${index + 1}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
       </div>
-
-      {images.length > 1 && (
-        <p className="text-center text-sm text-muted-foreground mt-2">
-          {currentIndex + 1} / {images.length}
-        </p>
-      )}
     </div>
   );
 }
