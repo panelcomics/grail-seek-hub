@@ -684,12 +684,20 @@ export default function SearchPage() {
               <p className="text-muted-foreground mb-4">
                 We couldn't find any comics matching "{searchQuery}". Try different keywords or check out what's trending!
               </p>
-              <Button 
-                onClick={() => window.location.href = '/marketplace'} 
-                className="bg-accent text-accent-foreground hover:bg-accent/90"
-              >
-                Browse All Comics
-              </Button>
+              <div className="flex flex-wrap gap-3 justify-center">
+                <Button 
+                  onClick={() => window.location.href = '/marketplace'} 
+                  className="bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  Browse All Comics
+                </Button>
+                <Button 
+                  onClick={() => window.location.href = '/original-art'} 
+                  className="bg-accent text-accent-foreground hover:bg-accent/90"
+                >
+                  Browse Original Art
+                </Button>
+              </div>
             </div>
           </div>
         )}
