@@ -34,12 +34,7 @@ const POPULAR_SEARCHES = [
   "X-Men keys",
 ];
 
-const POPULAR_KEYS = [
-  { id: "1", title: "Amazing Spider-Man #300", price: 450, condition: "CGC 9.8", image: "/covers/sample-asm.jpg", category: "comic" as const },
-  { id: "2", title: "Incredible Hulk #181", price: 2800, condition: "CGC 9.0", image: "/covers/sample-hulk.jpg", category: "comic" as const },
-  { id: "3", title: "Ultimate Fallout #4", price: 180, condition: "Raw NM", image: "/covers/sample-ff.jpg", category: "comic" as const },
-  { id: "4", title: "Batman #423", price: 95, condition: "CGC 9.6", image: "/covers/sample-batman.jpg", category: "comic" as const },
-];
+// Popular keys will be fetched from database
 
 const TRENDING_SERIES = [
   "Spider-Man",
@@ -63,6 +58,7 @@ export default function SearchPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [popularKeys, setPopularKeys] = useState<any[]>([]);
   const ITEMS_PER_PAGE = 24;
   
   // Filter states
@@ -85,6 +81,26 @@ export default function SearchPage() {
       handleSearch(queryParam);
     }
   }, [searchParams]);
+
+  // Fetch real popular keys from database
+  useEffect(() => {
+    const fetchPopularKeys = async () => {
+      const { data } = await supabase
+        .from("inventory_items")
+        .select("id, title, series, issue_number, listed_price, cgc_grade, condition, images, is_slab")
+        .eq("listing_status", "listed")
+        .eq("for_sale", true)
+        .eq("is_key", true)
+        .not("listed_price", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(4);
+      
+      if (data && data.length > 0) {
+        setPopularKeys(data);
+      }
+    };
+    fetchPopularKeys();
+  }, []);
 
   // Remove auto-close on mobile - only close on explicit action
   useEffect(() => {
@@ -166,17 +182,10 @@ export default function SearchPage() {
         inventoryQuery = inventoryQuery.or(orFilter);
       }
 
-      // Query original_art (public, for sale)
+      // Query original_art (public, for sale) - no FK join needed
       let artQuery = supabase
         .from("original_art")
-        .select(`
-          *,
-          profiles:owner_user_id (
-            username,
-            is_verified_seller,
-            completed_sales_count
-          )
-        `)
+        .select("*")
         .eq("visibility", "public")
         .eq("for_sale", true)
         .range(currentOffset, currentOffset + ITEMS_PER_PAGE - 1);
@@ -205,7 +214,7 @@ export default function SearchPage() {
         for_sale: art.for_sale,
         is_slab: false,
         listing_status: 'listed',
-        profiles: art.profiles,
+        profiles: null, // No FK join available
         owner_id: art.owner_user_id,
         user_id: art.owner_user_id,
         _type: 'original_art', // Tag to identify art items
@@ -675,7 +684,10 @@ export default function SearchPage() {
               <p className="text-muted-foreground mb-4">
                 We couldn't find any comics matching "{searchQuery}". Try different keywords or check out what's trending!
               </p>
-              <Button onClick={() => window.location.href = '/marketplace'} variant="outline">
+              <Button 
+                onClick={() => window.location.href = '/marketplace'} 
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+              >
                 Browse All Comics
               </Button>
             </div>
@@ -765,23 +777,27 @@ export default function SearchPage() {
               No grails found. Try searching for a different issue or title.
             </p>
 
-            {/* Popular Keys */}
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold mb-6">Popular Keys</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-                {POPULAR_KEYS.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    id={item.id}
-                    title={item.title}
-                    price={item.price}
-                    condition={item.condition}
-                    image={item.image}
-                    category={item.category}
-                  />
-                ))}
+            {/* Popular Keys - Real listings from database */}
+            {popularKeys.length > 0 && (
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold mb-6">Popular Keys</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+                  {popularKeys.map((item) => (
+                    <ItemCard
+                      key={item.id}
+                      id={item.id}
+                      title={item.title || `${item.series} #${item.issue_number}`}
+                      price={item.listed_price}
+                      condition={item.cgc_grade || item.condition || "Raw"}
+                      image={(item.images as any)?.front || (item.images as any)?.primary || "/placeholder.svg"}
+                      category="comic"
+                      isSlab={item.is_slab}
+                      grade={item.cgc_grade}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Trending Series */}
             <div>
