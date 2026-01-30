@@ -14,9 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, User, Palette, ExternalLink, Share2, Copy } from "lucide-react";
+import { Loader2, User, Palette, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { FavoriteButton } from "@/components/FavoriteButton";
+import { ImageMagnifier } from "@/components/ImageMagnifier";
 
 interface OriginalArt {
   id: string;
@@ -179,15 +180,15 @@ export default function OriginalArtDetail() {
         </Breadcrumb>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Image */}
+          {/* Image with Magnifier */}
           <div className="relative">
-            <div className="aspect-square bg-muted rounded-lg overflow-hidden border-2 border-border">
-              <img
-                src={art.image_url || "/placeholder.svg"}
-                alt={art.title}
-                className="w-full h-full object-contain"
-              />
-            </div>
+            <ImageMagnifier
+              src={art.image_url || "/placeholder.svg"}
+              alt={art.title}
+              className="aspect-square bg-muted rounded-lg border-2 border-border"
+              magnifierSize={180}
+              zoomLevel={3}
+            />
             
             {/* Actions */}
             <div className="flex gap-2 mt-4">
