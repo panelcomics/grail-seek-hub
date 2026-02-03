@@ -324,6 +324,10 @@ export function AppHeader() {
                        {isAdmin && (
                         <>
                           <div className="my-1 border-t" />
+                          <DropdownLink href="/admin/settings" onClick={() => setIsOpen(false)}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            Admin Settings
+                          </DropdownLink>
                           <DropdownLink href="/creators/admin" onClick={() => setIsOpen(false)}>
                             <PenTool className="mr-2 h-4 w-4" />
                             Creator Applications (Admin)
