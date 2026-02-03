@@ -263,6 +263,33 @@ export type Database = {
           },
         ]
       }
+      baselane_feature_flags: {
+        Row: {
+          description: string | null
+          enabled: boolean
+          flag_key: string
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean
+          flag_key: string
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean
+          flag_key?: string
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bids: {
         Row: {
           bid_amount: number
@@ -2634,7 +2661,9 @@ export type Database = {
           id: string
           link: string | null
           message: string
+          metadata: Json | null
           read: boolean
+          title: string | null
           type: string
           user_id: string
         }
@@ -2643,7 +2672,9 @@ export type Database = {
           id?: string
           link?: string | null
           message: string
+          metadata?: Json | null
           read?: boolean
+          title?: string | null
           type: string
           user_id: string
         }
@@ -2652,7 +2683,9 @@ export type Database = {
           id?: string
           link?: string | null
           message?: string
+          metadata?: Json | null
           read?: boolean
+          title?: string | null
           type?: string
           user_id?: string
         }
