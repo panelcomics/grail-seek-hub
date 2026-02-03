@@ -10,6 +10,7 @@ export interface FeatureFlags {
   bulkScanEnabled: boolean;
   scannerAssistEnabled: boolean;
   analyticsEnabled: boolean;
+  marketplaceRailsEnabled: boolean;
 }
 
 // Default flags - can be overridden by admin settings in database
@@ -17,6 +18,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   bulkScanEnabled: true,
   scannerAssistEnabled: true,
   analyticsEnabled: true,
+  marketplaceRailsEnabled: false, // Default OFF - Baselane-inspired transaction rails
 };
 
 // In-memory cache for flags loaded from database
