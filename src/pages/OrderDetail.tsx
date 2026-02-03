@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Package, User, MapPin, CreditCard, Loader2 } from "lucide-react";
+import { OrderTimeline } from "@/components/marketplace-rails/OrderTimeline";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
 
 interface OrderDetailRecord {
   id: string;
@@ -38,6 +40,7 @@ const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { shouldShowTimeline } = useMarketplaceRails();
   const [order, setOrder] = useState<OrderDetailRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -281,6 +284,16 @@ const OrderDetail = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Order Timeline (Marketplace Rails) */}
+      {shouldShowTimeline && order && (
+        <OrderTimeline
+          orderId={order.id}
+          orderStatus={order.status}
+          paymentStatus={order.payment_status}
+          paidAt={order.paid_at}
+        />
+      )}
     </main>
   );
 };

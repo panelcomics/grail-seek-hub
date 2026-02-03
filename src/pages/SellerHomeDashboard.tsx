@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Camera, ArrowRight, CheckCircle2, BookOpen, Tag } from "lucide-react";
+import { Camera, ArrowRight, CheckCircle2, BookOpen, Tag, Wallet, TrendingUp } from "lucide-react";
 import { FoundingSellerBadge } from "@/components/FoundingSellerBadge";
 import { useFoundingSeller } from "@/hooks/useFoundingSeller";
 import { SellerMomentumIndicator, SellerMomentumEmpty } from "@/components/seller/SellerMomentumIndicator";
 import { useSellerMomentum } from "@/hooks/useSellerMomentum";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
 
 interface InventoryItem {
   id: string;
@@ -39,6 +40,7 @@ const SellerHomeDashboard = () => {
   const { user } = useAuth();
   const { isFoundingSeller } = useFoundingSeller();
   const { streakDays, isLoading: momentumLoading, hasActivity } = useSellerMomentum();
+  const { isEnabled: railsEnabled } = useMarketplaceRails();
   const [isLoading, setIsLoading] = useState(true);
   const [todayProgress, setTodayProgress] = useState<TodayProgress>({
     booksScanned: 0,
@@ -347,6 +349,27 @@ const SellerHomeDashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Marketplace Rails Quick Links (when enabled) */}
+      {railsEnabled && (
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold">Financial Tools</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" size="sm" onClick={() => navigate("/seller/wallet")}>
+                <Wallet className="h-4 w-4 mr-2" />
+                Wallet
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate("/seller/earnings")}>
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Earnings
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Section 5: Seller Status Micro-Card */}
       <Card>

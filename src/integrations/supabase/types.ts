@@ -2691,6 +2691,79 @@ export type Database = {
         }
         Relationships: []
       }
+      order_risk_assessments: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          payout_hold: boolean
+          reasons: Json | null
+          risk_level: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          payout_hold?: boolean
+          reasons?: Json | null
+          risk_level?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          payout_hold?: boolean
+          reasons?: Json | null
+          risk_level?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_risk_assessments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_events: {
+        Row: {
+          actor_role: string
+          actor_user_id: string | null
+          created_at: string
+          event_note: string | null
+          event_type: string
+          id: string
+          order_id: string
+        }
+        Insert: {
+          actor_role: string
+          actor_user_id?: string | null
+          created_at?: string
+          event_note?: string | null
+          event_type: string
+          id?: string
+          order_id: string
+        }
+        Update: {
+          actor_role?: string
+          actor_user_id?: string | null
+          created_at?: string
+          event_note?: string | null
+          event_type?: string
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           amount: number
@@ -2902,6 +2975,39 @@ export type Database = {
           title?: string
           updated_at?: string
           visibility?: string
+        }
+        Relationships: []
+      }
+      payout_requests: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id?: string
+          status?: string
         }
         Relationships: []
       }
@@ -3467,6 +3573,47 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_balance_ledger: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          description: string | null
+          entry_type: string
+          id: string
+          order_id: string | null
+          seller_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          entry_type: string
+          id?: string
+          order_id?: string | null
+          seller_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          entry_type?: string
+          id?: string
+          order_id?: string | null
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_balance_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_featured: {
         Row: {
           active: boolean
@@ -3552,6 +3699,30 @@ export type Database = {
           created_at?: string
           id?: string
           min_offer_percentage?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seller_wallet_summary: {
+        Row: {
+          available_cents: number
+          on_hold_cents: number
+          pending_cents: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_cents?: number
+          on_hold_cents?: number
+          pending_cents?: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_cents?: number
+          on_hold_cents?: number
+          pending_cents?: number
           seller_id?: string
           updated_at?: string
         }

@@ -101,6 +101,8 @@ import HelpReturns from "./pages/help/Returns";
 import HelpBuyerProtection from "./pages/help/BuyerProtection";
 import SettingsNotifications from "./pages/SettingsNotifications";
 import Cart from "./pages/Cart";
+import SellerWallet from "./pages/SellerWallet";
+import SellerEarnings from "./pages/SellerEarnings";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -143,6 +145,8 @@ const AppContent = () => {
             <Route path="/messages" element={<Messages />} />
             <Route path="/seller/dashboard" element={<SellerDashboard />} />
             <Route path="/seller/home" element={<SellerHomeDashboard />} />
+            <Route path="/seller/wallet" element={<SellerWallet />} />
+            <Route path="/seller/earnings" element={<SellerEarnings />} />
             <Route path="/seller" element={<SellerHomeDashboard />} />
             <Route path="/checkout/:orderId" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
