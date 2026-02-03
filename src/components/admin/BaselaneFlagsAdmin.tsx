@@ -222,11 +222,15 @@ export function BaselaneFlagsAdmin() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={fetchFlags}
+            onClick={() => {
+              clearBaselaneFlagsCache();
+              fetchFlags();
+              toast.success("Flags cache cleared");
+            }}
             disabled={loading}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            Refresh (clears cache)
           </Button>
         </div>
 
