@@ -237,7 +237,7 @@ export function AppHeader() {
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 rounded-lg border bg-card shadow-lg z-50">
+                  <div className="absolute right-0 mt-2 w-64 rounded-lg border bg-card shadow-lg z-50 max-h-[80vh] overflow-y-auto">
                     <div className="p-3 border-b space-y-2">
                       <p className="text-sm font-medium truncate">{displayName}</p>
                       <SubscriptionStatusIndicator />
