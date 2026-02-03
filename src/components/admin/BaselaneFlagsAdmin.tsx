@@ -200,6 +200,16 @@ export function BaselaneFlagsAdmin() {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Admin Testing Guidance */}
+        <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
+          <Info className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <strong>Rollout Order:</strong> Timeline → Notifications → Wallet → Earnings → Risk Holds
+            <br />
+            <span className="text-sm">Enable for admin testing first. Roll out to sellers after backfill.</span>
+          </AlertDescription>
+        </Alert>
+
         {/* Quick Actions */}
         <div className="flex gap-2">
           <Button
