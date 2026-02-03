@@ -1,8 +1,9 @@
 /**
  * BASELANE FEATURE FLAGS HOOK
  * ==========================================================================
- * React hook for accessing Baselane Pack v1 feature flags from database.
- * Reads from baselane_feature_flags table with caching and real-time updates.
+ * React hook for accessing Baselane Pack v1 feature flags from app_settings.
+ * Unified database-driven flags with caching and safe fallback.
+ * Supports future per-role or per-user overrides.
  * ==========================================================================
  */
 
@@ -17,6 +18,16 @@ export interface BaselaneFlags {
   ENABLE_RISK_HOLDS: boolean;
   ENABLE_NOTIFICATIONS: boolean;
 }
+
+// Map app_settings keys to BaselaneFlags keys
+const FLAG_KEY_MAP: Record<string, keyof BaselaneFlags> = {
+  enable_baselane_pack_v1: "ENABLE_BASELANE_PACK_V1",
+  enable_order_timeline: "ENABLE_ORDER_TIMELINE",
+  enable_seller_wallet: "ENABLE_SELLER_WALLET",
+  enable_earnings_dashboard: "ENABLE_EARNINGS_DASHBOARD",
+  enable_risk_holds: "ENABLE_RISK_HOLDS",
+  enable_notifications: "ENABLE_NOTIFICATIONS",
+};
 
 const DEFAULT_FLAGS: BaselaneFlags = {
   ENABLE_BASELANE_PACK_V1: false,
@@ -58,13 +69,17 @@ export function useBaselaneFlags(): UseBaselaneFlagsResult {
       setLoading(true);
       setError(null);
 
+      // Read from unified app_settings table
       const { data, error: fetchError } = await supabase
-        .from("baselane_feature_flags")
-        .select("flag_key, enabled");
+        .from("app_settings")
+        .select("key, value")
+        .in("key", Object.keys(FLAG_KEY_MAP));
 
       if (fetchError) {
         console.warn("[BASELANE_FLAGS] Failed to fetch flags:", fetchError);
         setError("Failed to load feature flags");
+        // Use defaults on error - safe fallback
+        setFlags(DEFAULT_FLAGS);
         return;
       }
 
@@ -72,17 +87,11 @@ export function useBaselaneFlags(): UseBaselaneFlagsResult {
       const parsedFlags: BaselaneFlags = { ...DEFAULT_FLAGS };
       
       data?.forEach((row) => {
-        const key = row.flag_key as keyof BaselaneFlags;
-        if (key in parsedFlags) {
-          parsedFlags[key] = row.enabled;
+        const flagKey = FLAG_KEY_MAP[row.key];
+        if (flagKey) {
+          parsedFlags[flagKey] = row.value === "true";
         }
       });
-
-      // Check if master toggle enables all
-      if (parsedFlags.ENABLE_BASELANE_PACK_V1) {
-        // Master toggle can enable all features
-        // But individual toggles still respect their own setting
-      }
 
       // Update cache
       cachedFlags = parsedFlags;
@@ -91,6 +100,8 @@ export function useBaselaneFlags(): UseBaselaneFlagsResult {
     } catch (err) {
       console.error("[BASELANE_FLAGS] Error:", err);
       setError("Failed to load feature flags");
+      // Safe fallback to defaults
+      setFlags(DEFAULT_FLAGS);
     } finally {
       setLoading(false);
     }

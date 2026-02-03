@@ -2,6 +2,7 @@
  * BASELANE FEATURE FLAGS ADMIN PANEL
  * ==========================================================================
  * Admin-only UI for toggling Baselane Pack v1 feature flags at runtime.
+ * Reads/writes from unified app_settings table.
  * Changes take effect immediately without code deployment.
  * ==========================================================================
  */
@@ -21,35 +22,44 @@ import { ToggleLeft, RefreshCw, Info, Zap } from "lucide-react";
 import { clearBaselaneFlagsCache } from "@/hooks/useBaselaneFlags";
 
 interface FlagRow {
-  id: string;
-  flag_key: string;
-  enabled: boolean;
+  key: string;
+  value: string;
   description: string | null;
   updated_at: string;
 }
 
+// Keys in app_settings for Baselane flags
+const BASELANE_FLAG_KEYS = [
+  "enable_baselane_pack_v1",
+  "enable_order_timeline",
+  "enable_seller_wallet",
+  "enable_earnings_dashboard",
+  "enable_risk_holds",
+  "enable_notifications",
+];
+
 const FLAG_LABELS: Record<string, { label: string; description: string }> = {
-  ENABLE_BASELANE_PACK_V1: {
+  enable_baselane_pack_v1: {
     label: "Master Toggle",
     description: "When ON, enables all Baselane features regardless of individual settings",
   },
-  ENABLE_ORDER_TIMELINE: {
+  enable_order_timeline: {
     label: "Order Timeline",
     description: "Shows timeline on order detail pages (Paid → Shipped → Delivered → Completed)",
   },
-  ENABLE_SELLER_WALLET: {
+  enable_seller_wallet: {
     label: "Seller Wallet",
     description: "Wallet with Pending/Available/On-Hold balances and payout requests",
   },
-  ENABLE_EARNINGS_DASHBOARD: {
+  enable_earnings_dashboard: {
     label: "Earnings Dashboard",
     description: "Monthly earnings breakdown with CSV export",
   },
-  ENABLE_RISK_HOLDS: {
+  enable_risk_holds: {
     label: "Risk Holds",
     description: "Non-blocking risk assessment for high-value orders",
   },
-  ENABLE_NOTIFICATIONS: {
+  enable_notifications: {
     label: "Notifications Center",
     description: "Bell icon with unread count and notification history",
   },
@@ -69,9 +79,10 @@ export function BaselaneFlagsAdmin() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("baselane_feature_flags")
-        .select("*")
-        .order("flag_key");
+        .from("app_settings")
+        .select("key, value, description, updated_at")
+        .in("key", BASELANE_FLAG_KEYS)
+        .order("key");
 
       if (error) throw error;
       setFlags(data || []);
@@ -83,17 +94,19 @@ export function BaselaneFlagsAdmin() {
     }
   };
 
-  const toggleFlag = async (flagKey: string, currentValue: boolean) => {
+  const toggleFlag = async (flagKey: string, currentValue: string) => {
     setSaving(flagKey);
+    const newValue = currentValue === "true" ? "false" : "true";
+    
     try {
       const { error } = await supabase
-        .from("baselane_feature_flags")
+        .from("app_settings")
         .update({
-          enabled: !currentValue,
+          value: newValue,
           updated_by: user?.id,
           updated_at: new Date().toISOString(),
         })
-        .eq("flag_key", flagKey);
+        .eq("key", flagKey);
 
       if (error) throw error;
 
@@ -103,11 +116,12 @@ export function BaselaneFlagsAdmin() {
       // Update local state
       setFlags((prev) =>
         prev.map((f) =>
-          f.flag_key === flagKey ? { ...f, enabled: !currentValue } : f
+          f.key === flagKey ? { ...f, value: newValue } : f
         )
       );
 
-      toast.success(`${FLAG_LABELS[flagKey]?.label || flagKey} ${!currentValue ? "enabled" : "disabled"}`);
+      const isEnabled = newValue === "true";
+      toast.success(`${FLAG_LABELS[flagKey]?.label || flagKey} ${isEnabled ? "enabled" : "disabled"}`);
     } catch (error: any) {
       console.error("[BASELANE_FLAGS_ADMIN] Error toggling flag:", error);
       toast.error(error.message || "Failed to update flag");
@@ -116,59 +130,38 @@ export function BaselaneFlagsAdmin() {
     }
   };
 
-  const enableAll = async () => {
+  const setAllFlags = async (enabled: boolean) => {
     setSaving("all");
     try {
-      const { error } = await supabase
-        .from("baselane_feature_flags")
-        .update({
-          enabled: true,
-          updated_by: user?.id,
-          updated_at: new Date().toISOString(),
-        })
-        .neq("flag_key", ""); // Update all
+      // Update each flag individually since we can't do bulk update easily
+      for (const key of BASELANE_FLAG_KEYS) {
+        const { error } = await supabase
+          .from("app_settings")
+          .update({
+            value: enabled ? "true" : "false",
+            updated_by: user?.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("key", key);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
       clearBaselaneFlagsCache();
       await fetchFlags();
-      toast.success("All Baselane features enabled");
+      toast.success(`All Baselane features ${enabled ? "enabled" : "disabled"}`);
     } catch (error: any) {
-      console.error("[BASELANE_FLAGS_ADMIN] Error enabling all:", error);
-      toast.error(error.message || "Failed to enable all flags");
+      console.error("[BASELANE_FLAGS_ADMIN] Error setting all flags:", error);
+      toast.error(error.message || "Failed to update flags");
     } finally {
       setSaving(null);
     }
   };
 
-  const disableAll = async () => {
-    setSaving("all");
-    try {
-      const { error } = await supabase
-        .from("baselane_feature_flags")
-        .update({
-          enabled: false,
-          updated_by: user?.id,
-          updated_at: new Date().toISOString(),
-        })
-        .neq("flag_key", "");
-
-      if (error) throw error;
-
-      clearBaselaneFlagsCache();
-      await fetchFlags();
-      toast.success("All Baselane features disabled");
-    } catch (error: any) {
-      console.error("[BASELANE_FLAGS_ADMIN] Error disabling all:", error);
-      toast.error(error.message || "Failed to disable all flags");
-    } finally {
-      setSaving(null);
-    }
-  };
-
-  const masterFlag = flags.find((f) => f.flag_key === "ENABLE_BASELANE_PACK_V1");
-  const otherFlags = flags.filter((f) => f.flag_key !== "ENABLE_BASELANE_PACK_V1");
-  const enabledCount = flags.filter((f) => f.enabled).length;
+  const masterFlag = flags.find((f) => f.key === "enable_baselane_pack_v1");
+  const otherFlags = flags.filter((f) => f.key !== "enable_baselane_pack_v1");
+  const enabledCount = flags.filter((f) => f.value === "true").length;
+  const isMasterEnabled = masterFlag?.value === "true";
 
   if (loading) {
     return (
@@ -198,7 +191,7 @@ export function BaselaneFlagsAdmin() {
               Baselane Pack v1 Feature Flags
             </CardTitle>
             <CardDescription>
-              Control marketplace rails features at runtime
+              Control marketplace rails features at runtime (stored in app_settings)
             </CardDescription>
           </div>
           <Badge variant={enabledCount > 0 ? "default" : "secondary"}>
@@ -212,7 +205,7 @@ export function BaselaneFlagsAdmin() {
           <Button
             variant="outline"
             size="sm"
-            onClick={enableAll}
+            onClick={() => setAllFlags(true)}
             disabled={saving === "all"}
           >
             <Zap className="h-4 w-4 mr-2" />
@@ -221,7 +214,7 @@ export function BaselaneFlagsAdmin() {
           <Button
             variant="outline"
             size="sm"
-            onClick={disableAll}
+            onClick={() => setAllFlags(false)}
             disabled={saving === "all"}
           >
             Disable All
@@ -244,22 +237,22 @@ export function BaselaneFlagsAdmin() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <Label className="text-base font-semibold flex items-center gap-2">
-                    {FLAG_LABELS[masterFlag.flag_key]?.label || masterFlag.flag_key}
+                    {FLAG_LABELS[masterFlag.key]?.label || masterFlag.key}
                     <Badge variant="outline">Master</Badge>
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    {FLAG_LABELS[masterFlag.flag_key]?.description || masterFlag.description}
+                    {FLAG_LABELS[masterFlag.key]?.description || masterFlag.description}
                   </p>
                 </div>
                 <Switch
-                  checked={masterFlag.enabled}
-                  onCheckedChange={() => toggleFlag(masterFlag.flag_key, masterFlag.enabled)}
-                  disabled={saving === masterFlag.flag_key}
+                  checked={isMasterEnabled}
+                  onCheckedChange={() => toggleFlag(masterFlag.key, masterFlag.value)}
+                  disabled={saving === masterFlag.key}
                 />
               </div>
             </div>
 
-            {masterFlag.enabled && (
+            {isMasterEnabled && (
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
@@ -275,31 +268,34 @@ export function BaselaneFlagsAdmin() {
         {/* Individual Flags */}
         <div className="space-y-4">
           <h3 className="text-sm font-medium text-muted-foreground">Individual Features</h3>
-          {otherFlags.map((flag) => (
-            <div
-              key={flag.id}
-              className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors"
-            >
-              <div className="space-y-0.5">
-                <Label className="text-sm font-medium">
-                  {FLAG_LABELS[flag.flag_key]?.label || flag.flag_key}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {FLAG_LABELS[flag.flag_key]?.description || flag.description}
-                </p>
+          {otherFlags.map((flag) => {
+            const isEnabled = flag.value === "true";
+            return (
+              <div
+                key={flag.key}
+                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors"
+              >
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">
+                    {FLAG_LABELS[flag.key]?.label || flag.key}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {FLAG_LABELS[flag.key]?.description || flag.description}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {isEnabled && !isMasterEnabled && (
+                    <Badge variant="default" className="text-xs">ON</Badge>
+                  )}
+                  <Switch
+                    checked={isMasterEnabled || isEnabled}
+                    onCheckedChange={() => toggleFlag(flag.key, flag.value)}
+                    disabled={saving === flag.key || isMasterEnabled}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                {flag.enabled && !masterFlag?.enabled && (
-                  <Badge variant="default" className="text-xs">ON</Badge>
-                )}
-                <Switch
-                  checked={masterFlag?.enabled || flag.enabled}
-                  onCheckedChange={() => toggleFlag(flag.flag_key, flag.enabled)}
-                  disabled={saving === flag.flag_key || masterFlag?.enabled}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
