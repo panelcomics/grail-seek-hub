@@ -61,14 +61,19 @@ export function AppHeader() {
 
   const checkRoles = async (userId: string) => {
     try {
-      const { data: roles } = await supabase
+      const { data: roles, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
       
-      if (roles) {
-        setIsAdmin(roles.some(r => r.role === 'admin'));
-        setIsArtist(roles.some(r => r.role === 'artist'));
+      console.log('[AppHeader] checkRoles for userId:', userId, 'roles:', roles, 'error:', error);
+      
+      if (roles && roles.length > 0) {
+        const hasAdmin = roles.some(r => r.role === 'admin');
+        const hasArtist = roles.some(r => r.role === 'artist');
+        console.log('[AppHeader] isAdmin:', hasAdmin, 'isArtist:', hasArtist);
+        setIsAdmin(hasAdmin);
+        setIsArtist(hasArtist);
       }
 
       // Check creator roles
