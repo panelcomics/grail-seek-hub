@@ -18,7 +18,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   bulkScanEnabled: true,
   scannerAssistEnabled: true,
   analyticsEnabled: true,
-  marketplaceRailsEnabled: false, // Default OFF - Baselane-inspired transaction rails
+  marketplaceRailsEnabled: true, // ENABLED - Baselane-inspired transaction rails
 };
 
 // In-memory cache for flags loaded from database
