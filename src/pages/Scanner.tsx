@@ -49,6 +49,11 @@ import { VolumeIssuePicker } from "@/components/scanner/VolumeIssuePicker";
 import { ScannerCorrectionSheet, CorrectionCandidate } from "@/components/scanner/ScannerCorrectionSheet";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 
+// Grail Scan Components (additive wrapper)
+import { GrailScanModeSelector } from "@/components/scanner/GrailScanModeSelector";
+import { GrailScanRecapCard } from "@/components/scanner/GrailScanRecapCard";
+import { useGrailScan } from "@/hooks/useGrailScan";
+
 // Vision Match Hook
 import { useVisionMatch, applyVisionOverride } from "@/hooks/useVisionMatch";
 
@@ -133,6 +138,18 @@ export default function Scanner() {
     saveVisionResultToCache,
     isLoading: visionLoading 
   } = useVisionMatch();
+  
+  // Grail Scan wrapper hook (additive layer)
+  const {
+    scanMode: grailScanMode,
+    setScanMode: setGrailScanMode,
+    showModeSelector: showGrailModeSelector,
+    showRecapCard: showGrailRecapCard,
+    setShowRecapCard: setShowGrailRecapCard,
+    dismissModeSelector: dismissGrailModeSelector,
+    dismissRecapCard: dismissGrailRecapCard,
+    resetGrailScan,
+  } = useGrailScan();
   
   // CRITICAL FIX: Store uploaded URL in ref to avoid React state timing issues
   const uploadedImageUrlRef = useRef<string | null>(null);
@@ -935,6 +952,8 @@ export default function Scanner() {
     }
     
     setScannerState("success");
+    // Trigger Grail Scan recap overlay
+    setShowGrailRecapCard(true);
   };
 
   // Success screen handlers
@@ -1321,12 +1340,24 @@ export default function Scanner() {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Comic Scanner</h1>
-        <p className="text-muted-foreground mb-1">
-          Snap a photo or upload an image to identify your comic
-        </p>
-      </div>
+      {/* Grail Scan Mode Selector - Pre-scan overlay */}
+      {showGrailModeSelector && scannerState === "idle" && (
+        <GrailScanModeSelector
+          selectedMode={grailScanMode}
+          onModeChange={setGrailScanMode}
+          onContinue={dismissGrailModeSelector}
+        />
+      )}
+
+      {/* Main Scanner UI - Hidden while mode selector is visible */}
+      {(!showGrailModeSelector || scannerState !== "idle") && (
+        <>
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold">Comic Scanner</h1>
+            <p className="text-muted-foreground mb-1">
+              Snap a photo or upload an image to identify your comic
+            </p>
+          </div>
 
       {/* Recent Scans - only on idle */}
       {recentScans.length > 0 && scannerState === "idle" && (
@@ -1734,6 +1765,36 @@ export default function Scanner() {
           onClose={() => setZoomImage(null)}
           imageUrl={zoomImage.url}
           title={zoomImage.title}
+        />
+      )}
+        </>
+      )}
+
+      {/* Grail Scan Recap Card - Post-scan success overlay */}
+      {showGrailRecapCard && scannerState === "success" && (
+        <GrailScanRecapCard
+          match={selectedPick}
+          previewImage={previewImage}
+          scanMode={grailScanMode}
+          confidence={confidence}
+          onContinue={dismissGrailRecapCard}
+          onScanAnother={() => {
+            dismissGrailRecapCard();
+            resetGrailScan();
+            resetScanner();
+          }}
+          onQuickAction={(action) => {
+            if (action === "list") {
+              dismissGrailRecapCard();
+              handleSetPrice();
+            } else if (action === "save") {
+              dismissGrailRecapCard();
+              // Item is already saved, just dismiss
+            } else if (action === "share") {
+              // Could implement share functionality
+              sonnerToast.info("Share feature coming soon!");
+            }
+          }}
         />
       )}
     </div>
