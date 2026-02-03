@@ -6,13 +6,15 @@ import { AdminArtListings } from "@/components/AdminArtListings";
 import { AdminArtistApplications } from "@/components/AdminArtistApplications";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PayoutManagement } from "./PayoutManagement";
+import { BaselaneFlagsAdmin } from "./admin/BaselaneFlagsAdmin";
+import { BaselaneAdminTools } from "./admin/BaselaneAdminTools";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Shield, Plus, Trash2, User, ShieldCheck } from "lucide-react";
+import { Shield, Plus, Trash2, User, ShieldCheck, ToggleLeft, Wrench } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface InfluencerCode {
@@ -138,8 +140,16 @@ export const AdminPanel = () => {
   }
 
   return (
-    <Tabs defaultValue="discount-codes" className="space-y-6">
-      <TabsList>
+    <Tabs defaultValue="baselane-flags" className="space-y-6">
+      <TabsList className="flex-wrap">
+        <TabsTrigger value="baselane-flags" className="flex items-center gap-1">
+          <ToggleLeft className="h-3 w-3" />
+          Feature Flags
+        </TabsTrigger>
+        <TabsTrigger value="baselane-tools" className="flex items-center gap-1">
+          <Wrench className="h-3 w-3" />
+          Admin Tools
+        </TabsTrigger>
         <TabsTrigger value="discount-codes">Discount Codes</TabsTrigger>
         <TabsTrigger value="trade-overrides">Trade Overrides</TabsTrigger>
         <TabsTrigger value="art-listings">Art Listings</TabsTrigger>
@@ -147,6 +157,14 @@ export const AdminPanel = () => {
         <TabsTrigger value="payouts">Payout Management</TabsTrigger>
         <TabsTrigger value="notifications">Test Notifications</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="baselane-flags">
+        <BaselaneFlagsAdmin />
+      </TabsContent>
+
+      <TabsContent value="baselane-tools">
+        <BaselaneAdminTools />
+      </TabsContent>
 
       <TabsContent value="discount-codes">
         <Card>

@@ -15,12 +15,13 @@ import {
   Percent,
   Download,
   Calendar,
-  ChevronLeft
+  ChevronLeft,
+  Loader2
 } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getFeatureFlag } from "@/config/featureFlags";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
 
 interface EarningsSummary {
   grossSalesCents: number;
@@ -35,8 +36,8 @@ export default function SellerEarnings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Check feature flag
-  const isEnabled = getFeatureFlag("marketplaceRailsEnabled");
+  // Check feature flag from database
+  const { shouldShowEarnings, loading: flagsLoading } = useMarketplaceRails();
   
   const [startDate, setStartDate] = useState(() => 
     format(startOfMonth(subMonths(new Date(), 2)), "yyyy-MM-dd")
@@ -63,7 +64,7 @@ export default function SellerEarnings() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!user && isEnabled,
+    enabled: !!user && shouldShowEarnings && !flagsLoading,
   });
 
   // Calculate summary
@@ -148,7 +149,15 @@ export default function SellerEarnings() {
     URL.revokeObjectURL(url);
   };
 
-  if (!isEnabled) {
+  if (flagsLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8 max-w-4xl flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    );
+  }
+
+  if (!shouldShowEarnings) {
     return (
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Card className="text-center py-12">

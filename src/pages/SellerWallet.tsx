@@ -1,12 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Wallet as WalletIcon } from "lucide-react";
+import { ChevronLeft, Wallet as WalletIcon, Loader2 } from "lucide-react";
 import { SellerWalletCard } from "@/components/marketplace-rails/SellerWalletCard";
 import { WalletLedger } from "@/components/marketplace-rails/WalletLedger";
 import { PayoutRequestsList } from "@/components/marketplace-rails/PayoutRequestsList";
 import { useSellerWallet } from "@/hooks/useSellerWallet";
-import { getFeatureFlag } from "@/config/featureFlags";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function SellerWallet() {
@@ -14,10 +14,18 @@ export default function SellerWallet() {
   const navigate = useNavigate();
   const { ledger, payoutRequests, loading } = useSellerWallet();
   
-  // Check feature flag
-  const isEnabled = getFeatureFlag("marketplaceRailsEnabled");
+  // Check feature flag from database
+  const { shouldShowWallet, loading: flagsLoading } = useMarketplaceRails();
 
-  if (!isEnabled) {
+  if (flagsLoading) {
+    return (
+      <main className="container mx-auto px-4 py-8 max-w-4xl flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </main>
+    );
+  }
+
+  if (!shouldShowWallet) {
     return (
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <Card className="text-center py-12">

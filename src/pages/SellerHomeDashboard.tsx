@@ -40,7 +40,7 @@ const SellerHomeDashboard = () => {
   const { user } = useAuth();
   const { isFoundingSeller } = useFoundingSeller();
   const { streakDays, isLoading: momentumLoading, hasActivity } = useSellerMomentum();
-  const { isEnabled: railsEnabled } = useMarketplaceRails();
+  const { isEnabled: railsEnabled, shouldShowWallet, shouldShowEarnings } = useMarketplaceRails();
   const [isLoading, setIsLoading] = useState(true);
   const [todayProgress, setTodayProgress] = useState<TodayProgress>({
     booksScanned: 0,
@@ -350,7 +350,7 @@ const SellerHomeDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Marketplace Rails Quick Links (when enabled) */}
+      {/* Marketplace Rails Quick Links (when any feature enabled) */}
       {railsEnabled && (
         <Card className="mb-4">
           <CardHeader className="pb-2">
@@ -358,14 +358,18 @@ const SellerHomeDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              <Button variant="outline" size="sm" onClick={() => navigate("/seller/wallet")}>
-                <Wallet className="h-4 w-4 mr-2" />
-                Wallet
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate("/seller/earnings")}>
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Earnings
-              </Button>
+              {shouldShowWallet && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/seller/wallet")}>
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Wallet
+                </Button>
+              )}
+              {shouldShowEarnings && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/seller/earnings")}>
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Earnings
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
