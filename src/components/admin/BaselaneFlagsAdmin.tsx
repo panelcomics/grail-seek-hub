@@ -99,32 +99,52 @@ export function BaselaneFlagsAdmin() {
     const newValue = currentValue === "true" ? "false" : "true";
     
     try {
+      // Use upsert to ensure the row exists
       const { error } = await supabase
         .from("app_settings")
-        .update({
+        .upsert({
+          key: flagKey,
           value: newValue,
           updated_by: user?.id,
           updated_at: new Date().toISOString(),
-        })
-        .eq("key", flagKey);
+        }, { 
+          onConflict: 'key' 
+        });
 
       if (error) throw error;
+
+      // Verify the update persisted by re-fetching
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", flagKey)
+        .single();
+
+      if (verifyError) throw verifyError;
+
+      if (verifyData?.value !== newValue) {
+        throw new Error("Update did not persist - please check permissions");
+      }
 
       // Clear cache so all components pick up the new value
       clearBaselaneFlagsCache();
 
-      // Update local state
+      // Update local state with verified value
       setFlags((prev) =>
         prev.map((f) =>
-          f.key === flagKey ? { ...f, value: newValue } : f
+          f.key === flagKey ? { ...f, value: newValue, updated_at: new Date().toISOString() } : f
         )
       );
 
       const isEnabled = newValue === "true";
-      toast.success(`${FLAG_LABELS[flagKey]?.label || flagKey} ${isEnabled ? "enabled" : "disabled"}`);
+      toast.success(`${FLAG_LABELS[flagKey]?.label || flagKey} ${isEnabled ? "enabled" : "disabled"}`, {
+        description: "Change saved to database"
+      });
     } catch (error: any) {
       console.error("[BASELANE_FLAGS_ADMIN] Error toggling flag:", error);
       toast.error(error.message || "Failed to update flag");
+      // Revert optimistic UI by re-fetching
+      await fetchFlags();
     } finally {
       setSaving(null);
     }
@@ -133,23 +153,27 @@ export function BaselaneFlagsAdmin() {
   const setAllFlags = async (enabled: boolean) => {
     setSaving("all");
     try {
-      // Update each flag individually since we can't do bulk update easily
+      // Use upsert for each flag to ensure rows exist
       for (const key of BASELANE_FLAG_KEYS) {
         const { error } = await supabase
           .from("app_settings")
-          .update({
+          .upsert({
+            key,
             value: enabled ? "true" : "false",
             updated_by: user?.id,
             updated_at: new Date().toISOString(),
-          })
-          .eq("key", key);
+          }, {
+            onConflict: 'key'
+          });
 
         if (error) throw error;
       }
 
       clearBaselaneFlagsCache();
       await fetchFlags();
-      toast.success(`All Baselane features ${enabled ? "enabled" : "disabled"}`);
+      toast.success(`All Baselane features ${enabled ? "enabled" : "disabled"}`, {
+        description: "Changes saved to database"
+      });
     } catch (error: any) {
       console.error("[BASELANE_FLAGS_ADMIN] Error setting all flags:", error);
       toast.error(error.message || "Failed to update flags");
