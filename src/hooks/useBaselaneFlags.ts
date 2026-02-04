@@ -17,6 +17,7 @@ export interface BaselaneFlags {
   ENABLE_EARNINGS_DASHBOARD: boolean;
   ENABLE_RISK_HOLDS: boolean;
   ENABLE_NOTIFICATIONS: boolean;
+  ENABLE_TAX_1099: boolean;
 }
 
 // Map app_settings keys to BaselaneFlags keys
@@ -27,6 +28,7 @@ const FLAG_KEY_MAP: Record<string, keyof BaselaneFlags> = {
   enable_earnings_dashboard: "ENABLE_EARNINGS_DASHBOARD",
   enable_risk_holds: "ENABLE_RISK_HOLDS",
   enable_notifications: "ENABLE_NOTIFICATIONS",
+  enable_tax_1099: "ENABLE_TAX_1099",
 };
 
 const DEFAULT_FLAGS: BaselaneFlags = {
@@ -36,6 +38,7 @@ const DEFAULT_FLAGS: BaselaneFlags = {
   ENABLE_EARNINGS_DASHBOARD: false,
   ENABLE_RISK_HOLDS: false,
   ENABLE_NOTIFICATIONS: false,
+  ENABLE_TAX_1099: false,
 };
 
 interface UseBaselaneFlagsResult {
@@ -129,7 +132,8 @@ export function useBaselaneFlags(): UseBaselaneFlagsResult {
       flags.ENABLE_SELLER_WALLET ||
       flags.ENABLE_EARNINGS_DASHBOARD ||
       flags.ENABLE_RISK_HOLDS ||
-      flags.ENABLE_NOTIFICATIONS;
+      flags.ENABLE_NOTIFICATIONS ||
+      flags.ENABLE_TAX_1099;
   }, [flags]);
 
   return {

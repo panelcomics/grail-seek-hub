@@ -3737,6 +3737,57 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_tax_profiles: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          business_name: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          legal_name: string | null
+          state: string | null
+          tax_classification: string | null
+          tax_id_encrypted: string | null
+          updated_at: string
+          user_id: string
+          zip_code: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          business_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          legal_name?: string | null
+          state?: string | null
+          tax_classification?: string | null
+          tax_id_encrypted?: string | null
+          updated_at?: string
+          user_id: string
+          zip_code?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          business_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          legal_name?: string | null
+          state?: string | null
+          tax_classification?: string | null
+          tax_id_encrypted?: string | null
+          updated_at?: string
+          user_id?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
       seller_wallet_summary: {
         Row: {
           available_cents: number

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Camera, ArrowRight, CheckCircle2, BookOpen, Tag, Wallet, TrendingUp } from "lucide-react";
+import { Camera, ArrowRight, CheckCircle2, BookOpen, Tag, Wallet, TrendingUp, FileText } from "lucide-react";
 import { FoundingSellerBadge } from "@/components/FoundingSellerBadge";
 import { useFoundingSeller } from "@/hooks/useFoundingSeller";
 import { SellerMomentumIndicator, SellerMomentumEmpty } from "@/components/seller/SellerMomentumIndicator";
@@ -40,7 +40,7 @@ const SellerHomeDashboard = () => {
   const { user } = useAuth();
   const { isFoundingSeller } = useFoundingSeller();
   const { streakDays, isLoading: momentumLoading, hasActivity } = useSellerMomentum();
-  const { isEnabled: railsEnabled, shouldShowWallet, shouldShowEarnings } = useMarketplaceRails();
+  const { isEnabled: railsEnabled, shouldShowWallet, shouldShowEarnings, shouldShowTax1099 } = useMarketplaceRails();
   const [isLoading, setIsLoading] = useState(true);
   const [todayProgress, setTodayProgress] = useState<TodayProgress>({
     booksScanned: 0,
@@ -368,6 +368,12 @@ const SellerHomeDashboard = () => {
                 <Button variant="outline" size="sm" onClick={() => navigate("/seller/earnings")}>
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Earnings
+                </Button>
+              )}
+              {shouldShowTax1099 && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/seller/tax-1099")}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Tax & 1099
                 </Button>
               )}
             </div>
