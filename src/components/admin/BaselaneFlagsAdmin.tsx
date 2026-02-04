@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ToggleLeft, RefreshCw, Info, Zap } from "lucide-react";
+import { ToggleLeft, RefreshCw, Info, Zap, Bell } from "lucide-react";
 import { clearBaselaneFlagsCache } from "@/hooks/useBaselaneFlags";
 
 interface FlagRow {
@@ -70,6 +70,7 @@ export function BaselaneFlagsAdmin() {
   const [flags, setFlags] = useState<FlagRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [sendingTestNotification, setSendingTestNotification] = useState(false);
 
   useEffect(() => {
     fetchFlags();
@@ -182,6 +183,39 @@ export function BaselaneFlagsAdmin() {
     }
   };
 
+  const sendTestNotification = async () => {
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+    
+    setSendingTestNotification(true);
+    try {
+      const { error } = await supabase
+        .from("notification_queue")
+        .insert({
+          user_id: user.id,
+          type: "test",
+          title: "Test Notification",
+          message: `This is a test notification sent at ${new Date().toLocaleTimeString()}. If you see this, notifications are working!`,
+          link: "/notifications",
+          sent: false,
+          data: { test: true },
+        });
+
+      if (error) throw error;
+      
+      toast.success("Test notification sent!", {
+        description: "Check the bell icon in the header"
+      });
+    } catch (error: any) {
+      console.error("[BASELANE_FLAGS_ADMIN] Error sending test notification:", error);
+      toast.error(error.message || "Failed to send test notification");
+    } finally {
+      setSendingTestNotification(false);
+    }
+  };
+
   const masterFlag = flags.find((f) => f.key === "enable_baselane_pack_v1");
   const otherFlags = flags.filter((f) => f.key !== "enable_baselane_pack_v1");
   const enabledCount = flags.filter((f) => f.value === "true").length;
@@ -265,6 +299,15 @@ export function BaselaneFlagsAdmin() {
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh (clears cache)
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={sendTestNotification}
+            disabled={sendingTestNotification}
+          >
+            <Bell className="h-4 w-4 mr-2" />
+            {sendingTestNotification ? "Sending..." : "Send Test Notification"}
           </Button>
         </div>
 
