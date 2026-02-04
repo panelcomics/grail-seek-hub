@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck, Crown, Zap, ShoppingCart } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck, Crown, Zap, ShoppingCart, Bell } from "lucide-react";
 import { CartIconButton } from "@/components/cart/CartIconButton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { SubscriptionStatusIndicator } from "@/components/subscription/SubscriptionStatusIndicator";
-
+import { useBaselaneFlag } from "@/hooks/useBaselaneFlags";
+import { useNotificationQueue } from "@/hooks/useNotificationQueue";
+import { Badge } from "@/components/ui/badge";
 export function AppHeader() {
   const [user, setUser] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +19,10 @@ export function AppHeader() {
   const [displayName, setDisplayName] = useState<string>("");
   const [newDealsCount, setNewDealsCount] = useState(0);
   const navigate = useNavigate();
+  
+  // Feature flag for notifications
+  const notificationsEnabled = useBaselaneFlag("ENABLE_NOTIFICATIONS");
+  const { unreadCount } = useNotificationQueue();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -209,6 +215,20 @@ export function AppHeader() {
 
           {/* Cart Icon with Badge */}
           <CartIconButton className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0" />
+
+          {/* Notifications Bell - gated by feature flag */}
+          {user && notificationsEnabled && (
+            <Button variant="ghost" size="icon" asChild aria-label="Notifications" className="relative h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+              <Link to="/notifications">
+                <Bell className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+                {unreadCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center font-medium">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Badge>
+                )}
+              </Link>
+            </Button>
+          )}
 
           <Button
             variant="ghost" 
