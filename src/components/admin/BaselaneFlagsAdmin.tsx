@@ -36,6 +36,7 @@ const BASELANE_FLAG_KEYS = [
   "enable_earnings_dashboard",
   "enable_risk_holds",
   "enable_notifications",
+  "enable_tax_1099",
 ];
 
 const FLAG_LABELS: Record<string, { label: string; description: string }> = {
@@ -62,6 +63,10 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
   enable_notifications: {
     label: "Notifications Center",
     description: "Bell icon with unread count and notification history",
+  },
+  enable_tax_1099: {
+    label: "Tax & 1099",
+    description: "Seller tax profile collection and 1099-K status overview (view + collect only)",
   },
 };
 

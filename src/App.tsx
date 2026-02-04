@@ -103,6 +103,7 @@ import SettingsNotifications from "./pages/SettingsNotifications";
 import Cart from "./pages/Cart";
 import SellerWallet from "./pages/SellerWallet";
 import SellerEarnings from "./pages/SellerEarnings";
+import SellerTax1099 from "./pages/SellerTax1099";
 import { ModalProvider } from "./contexts/ModalContext";
 import { BetaBanner } from "./components/BetaBanner";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -147,6 +148,7 @@ const AppContent = () => {
             <Route path="/seller/home" element={<SellerHomeDashboard />} />
             <Route path="/seller/wallet" element={<SellerWallet />} />
             <Route path="/seller/earnings" element={<SellerEarnings />} />
+            <Route path="/seller/tax-1099" element={<SellerTax1099 />} />
             <Route path="/seller" element={<SellerHomeDashboard />} />
             <Route path="/checkout/:orderId" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
