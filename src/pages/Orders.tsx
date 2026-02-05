@@ -11,6 +11,7 @@ import { formatCents } from "@/lib/fees";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
+import { InvoiceAvailabilityBadge } from "@/components/invoice/InvoiceAvailabilityBadge";
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -144,6 +145,7 @@ export default function Orders() {
                   </div>
                   <div className="flex items-center gap-3">
                     {getStatusBadge(order)}
+                    <InvoiceAvailabilityBadge order={order} />
                     {!isMobile && shouldShowInvoiceOrderView && (
                       <Button
                         variant="outline"
