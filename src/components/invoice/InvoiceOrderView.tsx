@@ -87,7 +87,7 @@
    // Calculate line item - for now single item per order
    const lineItems = order.listing ? [{
      id: order.listing.id || order.id,
-     title: order.listing.title || "Marketplace Item",
+    title: order.listing.title || `Order #${order.id.slice(0, 8)}`,
      imageUrl: order.listing.image_url,
      condition: order.listing.condition,
      grade: order.listing.grade,
@@ -96,7 +96,7 @@
      unitPriceCents: order.amount_cents,
    }] : [{
      id: order.id,
-     title: "Marketplace Item",
+    title: `Order #${order.id.slice(0, 8)}`,
      imageUrl: null,
      condition: null,
      grade: null,

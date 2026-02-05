@@ -13,6 +13,7 @@ import { OrderTimeline } from "@/components/marketplace-rails/OrderTimeline";
 import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
  import { useBaselaneFlags } from "@/hooks/useBaselaneFlags";
  import { InvoiceOrderView } from "@/components/invoice/InvoiceOrderView";
+import { InvoiceNotAvailableHelp } from "@/components/invoice/InvoiceNotAvailableHelp";
 
 interface OrderDetailRecord {
   id: string;
@@ -96,22 +97,53 @@ const OrderDetail = () => {
         .from("orders")
         .select(`
           *,
-           listing:listing_id (id, title, image_url, condition, grade, is_slab),
-          buyer_profile:buyer_id (username, display_name),
-           seller_profile:seller_id (username, display_name, custom_fee_rate)
+          listing:listing_id (id, title, image_url, condition, grade, is_slab)
         `)
         .eq("id", id)
         .maybeSingle();
 
       if (error) {
         console.error("[ORDER-DETAIL] Error fetching order:", error);
-        throw error;
+        // Don't throw - try fallback instead
+      }
+
+      // If primary query succeeded, fetch profiles separately
+      if (data) {
+        // Fetch buyer and seller profiles separately (no FK required)
+        const [buyerResult, sellerResult] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("username, display_name")
+            .eq("id", data.buyer_id)
+            .maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("username, display_name, custom_fee_rate")
+            .eq("id", data.seller_id)
+            .maybeSingle(),
+        ]);
+
+        console.log("[ORDER-DETAIL] Order loaded successfully:", {
+          orderId: data.id,
+          buyer_id: data.buyer_id,
+          seller_id: data.seller_id,
+          status: data.status,
+          payment_status: data.payment_status,
+          amount_cents: data.amount_cents
+        });
+
+        setOrder({
+          ...data,
+          buyer_profile: buyerResult.data,
+          seller_profile: sellerResult.data,
+          dataSource: "orders",
+        } as OrderDetailRecord);
+        setDataSource("orders");
+        return;
       }
 
       // FALLBACK: If primary query fails, try minimal order fetch
-      // This handles claim-sale orders or early test orders that may not have full joins
-      if (!data) {
-        console.log("[ORDER-DETAIL] Primary query returned null, attempting fallback...");
+      console.log("[ORDER-DETAIL] Primary query returned null, attempting fallback...");
         
        // FALLBACK 1: Try claim_sales for legacy claim-sale orders
        const { data: claimData, error: claimError } = await supabase
@@ -229,22 +261,10 @@ const OrderDetail = () => {
         console.warn("[ORDER-DETAIL] Order not found in any query", { id, userId: user?.id });
         setNotFoundReason("processing");
         return;
-      }
-
-      console.log("[ORDER-DETAIL] Order loaded successfully:", {
-        orderId: data.id,
-        buyer_id: data.buyer_id,
-        seller_id: data.seller_id,
-        status: data.status,
-        payment_status: data.payment_status,
-        amount_cents: data.amount_cents
-      });
-
-      setOrder(data as OrderDetailRecord);
-     setDataSource("orders");
     } catch (err) {
       console.error("[ORDER-DETAIL] Failed to load order:", err);
-      toast.error("Failed to load order");
+      // Log technical error internally, show user-friendly message
+      console.error("[ORDER-DETAIL] Technical error details:", err);
     } finally {
       setIsLoading(false);
     }
@@ -270,15 +290,7 @@ const OrderDetail = () => {
            ← Back to Orders
          </Button>
        </div>
-       <Card className="max-w-2xl mx-auto">
-         <CardContent className="p-8 text-center">
-           <ShieldOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-           <h2 className="text-lg font-semibold mb-2">Invoice Unavailable</h2>
-           <p className="text-muted-foreground">
-             You don't have permission to view this invoice.
-           </p>
-         </CardContent>
-       </Card>
+        <InvoiceNotAvailableHelp reason="permission_denied" orderId={id} />
      </main>
    );
  }
@@ -291,16 +303,7 @@ const OrderDetail = () => {
             ← Back to Orders
           </Button>
         </div>
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Invoice Not Available</h2>
-            <p className="text-muted-foreground">
-              This invoice is not yet available. The order may still be processing 
-              or was created under an earlier system.
-            </p>
-          </CardContent>
-        </Card>
+        <InvoiceNotAvailableHelp reason="processing" orderId={id} />
       </main>
     );
   }
@@ -363,7 +366,7 @@ const OrderDetail = () => {
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
-              This invoice is not yet available.
+              Invoice data unavailable for this order.
             </p>
           </CardContent>
         </Card>
@@ -429,7 +432,7 @@ const OrderDetail = () => {
               <h3 className="font-semibold">Item</h3>
             </div>
             <p className="text-lg break-words">
-              {order.listing?.title || "Marketplace order"}
+              {order.listing?.title || `Order #${order.id.slice(0, 8)}`}
             </p>
           </div>
 
