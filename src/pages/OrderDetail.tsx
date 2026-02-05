@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { Package, User, MapPin, CreditCard, Loader2 } from "lucide-react";
 import { OrderTimeline } from "@/components/marketplace-rails/OrderTimeline";
 import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
+ import { useBaselaneFlags } from "@/hooks/useBaselaneFlags";
+ import { InvoiceOrderView } from "@/components/invoice/InvoiceOrderView";
 
 interface OrderDetailRecord {
   id: string;
@@ -23,8 +25,24 @@ interface OrderDetailRecord {
   shipping_name?: string | null;
   shipping_address?: any;
   payment_method?: string | null;
+   carrier?: string | null;
+   tracking_number?: string | null;
+   shipping_status?: string | null;
+   platform_fee_amount?: number | null;
+   platform_fee_rate?: number | null;
+   payout_status?: string | null;
+   payout_hold_until?: string | null;
+   payout_released_at?: string | null;
+   delivery_confirmed_at?: string | null;
+   shipping_charged_cents?: number | null;
+   label_cost_cents?: number | null;
   listing?: {
+     id?: string;
     title?: string | null;
+     image_url?: string | null;
+     condition?: string | null;
+     grade?: string | null;
+     is_slab?: boolean;
   } | null;
   buyer_profile?: {
     username?: string | null;
@@ -33,6 +51,7 @@ interface OrderDetailRecord {
   seller_profile?: {
     username?: string | null;
     display_name?: string | null;
+     custom_fee_rate?: number | null;
   } | null;
 }
 
@@ -41,8 +60,11 @@ const OrderDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { shouldShowTimeline } = useMarketplaceRails();
+   const { isEnabled } = useBaselaneFlags();
   const [order, setOrder] = useState<OrderDetailRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+ 
+   const showInvoiceView = isEnabled("ENABLE_INVOICE_ORDER_VIEW");
 
   useEffect(() => {
     if (!user) {
@@ -65,9 +87,9 @@ const OrderDetail = () => {
         .from("orders")
         .select(`
           *,
-          listing:listing_id (title),
+           listing:listing_id (id, title, image_url, condition, grade, is_slab),
           buyer_profile:buyer_id (username, display_name),
-          seller_profile:seller_id (username, display_name)
+           seller_profile:seller_id (username, display_name, custom_fee_rate)
         `)
         .eq("id", id)
         .maybeSingle();
@@ -102,7 +124,8 @@ const OrderDetail = () => {
     }
   };
 
-  if (isLoading) {
+   // Loading state
+   if (isLoading) {
     return (
       <main className="container mx-auto py-12 px-4">
         <div className="flex justify-center items-center min-h-[400px]">
@@ -112,6 +135,52 @@ const OrderDetail = () => {
     );
   }
 
+   // Invoice view when flag is enabled
+   if (showInvoiceView && order && user) {
+     return (
+       <main className="container mx-auto py-8 px-4">
+         <InvoiceOrderView
+           order={{
+             ...order,
+             shipping_address: order.shipping_address as any,
+             listing: order.listing ? {
+               id: order.listing.id,
+               title: order.listing.title || undefined,
+               image_url: order.listing.image_url,
+               condition: order.listing.condition,
+               grade: order.listing.grade,
+               is_slab: order.listing.is_slab,
+             } : null,
+             buyer_profile: order.buyer_profile ? {
+               username: order.buyer_profile.username,
+               display_name: order.buyer_profile.display_name,
+             } : undefined,
+             seller_profile: order.seller_profile ? {
+               username: order.seller_profile.username,
+               display_name: order.seller_profile.display_name,
+               custom_fee_rate: order.seller_profile.custom_fee_rate,
+             } : undefined,
+           }}
+           userId={user.id}
+           onOrderUpdate={fetchOrder}
+         />
+         
+         {/* Order Timeline (Marketplace Rails) - still show after invoice */}
+         {shouldShowTimeline && (
+           <div className="max-w-3xl mx-auto mt-6 print:hidden">
+             <OrderTimeline
+               orderId={order.id}
+               orderStatus={order.status}
+               paymentStatus={order.payment_status}
+               paidAt={order.paid_at}
+             />
+           </div>
+         )}
+       </main>
+     );
+   }
+ 
+   // Order not found
   if (!order) {
     return (
       <main className="container mx-auto py-12 px-4">
