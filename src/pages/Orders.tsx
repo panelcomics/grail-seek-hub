@@ -10,6 +10,7 @@ import { Loader2, FileText } from "lucide-react";
 import { formatCents } from "@/lib/fees";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Orders() {
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
+  const { shouldShowInvoiceOrderView } = useMarketplaceRails();
 
   useEffect(() => {
     if (!user) {
@@ -142,7 +144,7 @@ export default function Orders() {
                   </div>
                   <div className="flex items-center gap-3">
                     {getStatusBadge(order)}
-                    {!isMobile && (
+                    {!isMobile && shouldShowInvoiceOrderView && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -161,7 +163,7 @@ export default function Orders() {
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold">{formatCents(order.amount_cents)}</span>
                   </div>
-                  {isMobile && (
+                  {isMobile && shouldShowInvoiceOrderView && (
                     <Button
                       variant="outline"
                       className="w-full"

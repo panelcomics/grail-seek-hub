@@ -32,9 +32,10 @@ export function useMarketplaceRails() {
   const riskEnabled = isEnabled("ENABLE_RISK_HOLDS");
   const notificationsEnabled = isEnabled("ENABLE_NOTIFICATIONS");
   const tax1099Enabled = isEnabled("ENABLE_TAX_1099");
+  const invoiceOrderViewEnabled = isEnabled("ENABLE_INVOICE_ORDER_VIEW");
   
   // Any feature enabled = show Financial Tools section
-  const anyEnabled = walletEnabled || earningsEnabled || timelineEnabled || riskEnabled || tax1099Enabled;
+  const anyEnabled = walletEnabled || earningsEnabled || timelineEnabled || riskEnabled || tax1099Enabled || invoiceOrderViewEnabled;
   
   return {
     loading,
@@ -46,6 +47,7 @@ export function useMarketplaceRails() {
     shouldShowRiskHolds: riskEnabled,
     shouldShowNotifications: notificationsEnabled,
     shouldShowTax1099: tax1099Enabled,
+    shouldShowInvoiceOrderView: invoiceOrderViewEnabled,
     shouldLogEvents: timelineEnabled || riskEnabled,
   };
 }
