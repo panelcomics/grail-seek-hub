@@ -7,12 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, Users, Package } from "lucide-react";
+ import { Loader2, Save, Users, Package, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FeatureFlagsCard } from "@/components/admin/FeatureFlagsCard";
 import { ScannerAnalyticsCard } from "@/components/admin/ScannerAnalyticsCard";
 import { BaselaneFlagsAdmin } from "@/components/admin/BaselaneFlagsAdmin";
+ import { InvoiceQATools } from "@/components/admin/InvoiceQATools";
 
 export default function AdminSettings() {
   const navigate = useNavigate();
@@ -162,6 +163,12 @@ export default function AdminSettings() {
         <div className="mb-6">
           <BaselaneFlagsAdmin />
         </div>
+
+       {/* QA Tools Section */}
+       <h2 className="text-2xl font-bold mb-4">QA Tools</h2>
+       <div className="grid gap-4 md:grid-cols-2 mb-6">
+         <InvoiceQATools />
+       </div>
 
         <h2 className="text-2xl font-bold mb-4">Legacy Feature Toggles</h2>
         <Card>
