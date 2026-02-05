@@ -397,3 +397,72 @@ All colors MUST be HSL.
     scroll-snap-stop: always;
   }
 }
+ 
+ /* Print styles for Invoice View */
+ @media print {
+   body {
+     background: white !important;
+     -webkit-print-color-adjust: exact;
+     print-color-adjust: exact;
+   }
+ 
+   /* Hide non-essential elements */
+   .print\\:hidden,
+   nav,
+   footer,
+   .fixed,
+   button:not(.print\\:block) {
+     display: none !important;
+   }
+ 
+   /* Reset shadows and borders for printing */
+   .print\\:shadow-none {
+     box-shadow: none !important;
+   }
+ 
+   .print\\:border-0 {
+     border: none !important;
+   }
+ 
+   /* Ensure content fills page width */
+   .print\\:max-w-none {
+     max-width: none !important;
+   }
+ 
+   /* Compact spacing */
+   .print\\:space-y-2 > * + * {
+     margin-top: 0.5rem !important;
+   }
+ 
+   /* Reset backgrounds */
+   .print\\:bg-white {
+     background-color: white !important;
+   }
+ 
+   /* Text alignment adjustments */
+   .print\\:text-left {
+     text-align: left !important;
+   }
+ 
+   /* Image sizing for print */
+   .print\\:w-12 {
+     width: 3rem !important;
+   }
+ 
+   .print\\:h-16 {
+     height: 4rem !important;
+   }
+ 
+   /* Page breaks */
+   .page-break-before {
+     page-break-before: always;
+   }
+ 
+   .page-break-after {
+     page-break-after: always;
+   }
+ 
+   .avoid-break {
+     page-break-inside: avoid;
+   }
+ }

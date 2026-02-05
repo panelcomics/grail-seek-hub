@@ -37,6 +37,7 @@ const BASELANE_FLAG_KEYS = [
   "enable_risk_holds",
   "enable_notifications",
   "enable_tax_1099",
+   "enable_invoice_order_view",
 ];
 
 const FLAG_LABELS: Record<string, { label: string; description: string }> = {
@@ -68,6 +69,10 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
     label: "Tax & 1099",
     description: "Seller tax profile collection and 1099-K status overview (view + collect only)",
   },
+   enable_invoice_order_view: {
+     label: "Invoice Order View",
+     description: "HipComic-style invoice order detail with seller payout breakdown and print support",
+   },
 };
 
 export function BaselaneFlagsAdmin() {
