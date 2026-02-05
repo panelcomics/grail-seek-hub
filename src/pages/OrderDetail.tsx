@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Package, User, MapPin, CreditCard, Loader2, AlertCircle } from "lucide-react";
+ import { Package, User, MapPin, CreditCard, Loader2, AlertCircle, ShieldOff } from "lucide-react";
+ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { OrderTimeline } from "@/components/marketplace-rails/OrderTimeline";
 import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
  import { useBaselaneFlags } from "@/hooks/useBaselaneFlags";
@@ -53,17 +54,21 @@ interface OrderDetailRecord {
     display_name?: string | null;
      custom_fee_rate?: number | null;
   } | null;
+   /** Where the order data was loaded from */
+   dataSource?: "orders" | "claim_sales" | "fallback" | "unknown";
 }
 
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+ const { isAdmin } = useAdminCheck();
   const { shouldShowTimeline } = useMarketplaceRails();
    const { isEnabled } = useBaselaneFlags();
   const [order, setOrder] = useState<OrderDetailRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [notFoundReason, setNotFoundReason] = useState<"not_found" | "processing" | null>(null);
+ const [notFoundReason, setNotFoundReason] = useState<"not_found" | "processing" | "permission_denied" | null>(null);
+ const [dataSource, setDataSource] = useState<"orders" | "claim_sales" | "fallback" | "unknown">("unknown");
  
    const showInvoiceView = isEnabled("ENABLE_INVOICE_ORDER_VIEW");
 
@@ -83,6 +88,7 @@ const OrderDetail = () => {
     try {
       setIsLoading(true);
       setNotFoundReason(null);
+     setDataSource("unknown");
       console.log("[ORDER-DETAIL] Fetching order:", { orderId: id, userId: user?.id });
 
       // Primary query: Full marketplace order with joins
@@ -107,6 +113,81 @@ const OrderDetail = () => {
       if (!data) {
         console.log("[ORDER-DETAIL] Primary query returned null, attempting fallback...");
         
+       // FALLBACK 1: Try claim_sales for legacy claim-sale orders
+       const { data: claimData, error: claimError } = await supabase
+         .from("claims")
+         .select(`
+           id,
+           user_id,
+           claim_sale_id,
+           item_id,
+           claimed_at,
+           total_price,
+           item_price,
+           seller_fee,
+           shipping_tier,
+           claim_sale:claim_sale_id (
+             id,
+             title,
+             seller_id,
+             price
+           ),
+           claim_item:item_id (
+             id,
+             title,
+             image_url,
+             condition,
+             category
+           )
+         `)
+         .eq("id", id)
+         .maybeSingle();
+       
+       if (claimError) {
+         console.log("[ORDER-DETAIL] Claim query error (expected if not a claim):", claimError.message);
+       }
+       
+       if (claimData && claimData.claim_sale) {
+         console.log("[ORDER-DETAIL] Loaded from claim_sales:", { claimId: claimData.id });
+         
+         // Check permission: user must be buyer or seller (or admin)
+         const claimSale = claimData.claim_sale as { id: string; title: string; seller_id: string | null; price: number };
+         const isBuyerOrSeller = claimData.user_id === user?.id || claimSale.seller_id === user?.id;
+         
+         if (!isBuyerOrSeller && !isAdmin) {
+           console.warn("[ORDER-DETAIL] Permission denied for claim:", { userId: user?.id });
+           setNotFoundReason("permission_denied");
+           return;
+         }
+         
+         // Map claim data to order format
+         const claimItem = claimData.claim_item as { id: string; title: string; image_url: string | null; condition: string; category: string } | null;
+         setOrder({
+           id: claimData.id,
+           amount_cents: Math.round((claimData.total_price || 0) * 100),
+           status: "paid",
+           payment_status: "paid",
+           created_at: claimData.claimed_at,
+           paid_at: claimData.claimed_at,
+           buyer_id: claimData.user_id,
+           seller_id: claimSale.seller_id || "",
+           listing: claimItem ? {
+             id: claimItem.id,
+             title: claimItem.title,
+             image_url: claimItem.image_url,
+             condition: claimItem.condition,
+             grade: null,
+             is_slab: false,
+           } : null,
+           buyer_profile: null,
+           seller_profile: null,
+           dataSource: "claim_sales",
+         } as OrderDetailRecord);
+         setDataSource("claim_sales");
+         return;
+       }
+       
+       // FALLBACK 2: Minimal orders fetch (no joins)
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("orders")
           .select("*")
@@ -115,9 +196,22 @@ const OrderDetail = () => {
         
         if (fallbackError) {
           console.error("[ORDER-DETAIL] Fallback query error:", fallbackError);
+         // Check if it's a permission error
+         if (fallbackError.code === "PGRST116" || fallbackError.message?.includes("permission")) {
+           setNotFoundReason("permission_denied");
+           return;
+         }
         }
         
         if (fallbackData) {
+         // Check permission: user must be buyer or seller (or admin)
+         const isBuyerOrSeller = fallbackData.buyer_id === user?.id || fallbackData.seller_id === user?.id;
+         if (!isBuyerOrSeller && !isAdmin) {
+           console.warn("[ORDER-DETAIL] Permission denied:", { userId: user?.id });
+           setNotFoundReason("permission_denied");
+           return;
+         }
+         
           console.log("[ORDER-DETAIL] Fallback order loaded:", { orderId: fallbackData.id });
           // Set minimal order data - invoice components will gracefully hide missing sections
           setOrder({
@@ -125,7 +219,9 @@ const OrderDetail = () => {
             listing: null,
             buyer_profile: null,
             seller_profile: null,
+           dataSource: "fallback",
           } as OrderDetailRecord);
+         setDataSource("fallback");
           return;
         }
         
@@ -145,6 +241,7 @@ const OrderDetail = () => {
       });
 
       setOrder(data as OrderDetailRecord);
+     setDataSource("orders");
     } catch (err) {
       console.error("[ORDER-DETAIL] Failed to load order:", err);
       toast.error("Failed to load order");
@@ -165,7 +262,28 @@ const OrderDetail = () => {
   }
 
   // Neutral empty-state when order not found or still processing
-  if (notFoundReason === "processing" || (!order && !isLoading)) {
+ if (notFoundReason === "permission_denied") {
+   return (
+     <main className="container mx-auto py-12 px-4">
+       <div className="mb-6">
+         <Button variant="outline" onClick={() => navigate("/orders")}>
+           ← Back to Orders
+         </Button>
+       </div>
+       <Card className="max-w-2xl mx-auto">
+         <CardContent className="p-8 text-center">
+           <ShieldOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+           <h2 className="text-lg font-semibold mb-2">Invoice Unavailable</h2>
+           <p className="text-muted-foreground">
+             You don't have permission to view this invoice.
+           </p>
+         </CardContent>
+       </Card>
+     </main>
+   );
+ }
+ 
+ if (notFoundReason === "processing" || (!order && !isLoading)) {
     return (
       <main className="container mx-auto py-12 px-4">
         <div className="mb-6">

@@ -12,6 +12,9 @@
  import { SellerPayoutBreakdown } from "./SellerPayoutBreakdown";
  import { InvoiceBuyerActions } from "./InvoiceBuyerActions";
  import { calculateMarketplaceFeeWithCustomRate } from "@/lib/fees";
+ import { InvoiceTrustActions } from "./InvoiceTrustActions";
+ import { InvoiceAdminDebug } from "./InvoiceAdminDebug";
+ import { useAdminCheck } from "@/hooks/useAdminCheck";
  
  interface InvoiceOrderRecord {
    id: string;
@@ -42,6 +45,7 @@
    payout_hold_until?: string | null;
    payout_released_at?: string | null;
    delivery_confirmed_at?: string | null;
+   dataSource?: "orders" | "claim_sales" | "fallback" | "unknown";
    listing?: {
      id?: string;
      title?: string;
@@ -70,6 +74,7 @@
  export function InvoiceOrderView({ order, userId, onOrderUpdate }: InvoiceOrderViewProps) {
    const navigate = useNavigate();
    const [isMarkingReceived, setIsMarkingReceived] = useState(false);
+   const { isAdmin } = useAdminCheck();
  
    const isBuyer = userId === order.buyer_id;
    const isSeller = userId === order.seller_id;
@@ -208,6 +213,28 @@
            hasBeenDelivered={hasBeenDelivered}
            onMarkReceived={handleMarkReceived}
            isMarkingReceived={isMarkingReceived}
+         />
+       )}
+
+       {/* Trust Actions (Print/PDF/Copy) */}
+       <InvoiceTrustActions
+         orderId={order.id}
+         trackingNumber={order.tracking_number}
+         shippingAddress={order.shipping_address}
+         shippingName={order.shipping_name}
+         totalCents={totalCents}
+       />
+
+       {/* Admin Debug Strip */}
+       {isAdmin && (
+         <InvoiceAdminDebug
+           orderId={order.id}
+           loadedFrom={order.dataSource || "unknown"}
+           buyerId={order.buyer_id}
+           sellerId={order.seller_id}
+           itemCount={lineItems.length}
+           totalCents={totalCents}
+           rawData={order as unknown as Record<string, unknown>}
          />
        )}
      </div>
