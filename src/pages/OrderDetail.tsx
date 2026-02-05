@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Package, User, MapPin, CreditCard, Loader2 } from "lucide-react";
+import { Package, User, MapPin, CreditCard, Loader2, AlertCircle } from "lucide-react";
 import { OrderTimeline } from "@/components/marketplace-rails/OrderTimeline";
 import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
  import { useBaselaneFlags } from "@/hooks/useBaselaneFlags";
@@ -63,6 +63,7 @@ const OrderDetail = () => {
    const { isEnabled } = useBaselaneFlags();
   const [order, setOrder] = useState<OrderDetailRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [notFoundReason, setNotFoundReason] = useState<"not_found" | "processing" | null>(null);
  
    const showInvoiceView = isEnabled("ENABLE_INVOICE_ORDER_VIEW");
 
@@ -81,8 +82,10 @@ const OrderDetail = () => {
 
     try {
       setIsLoading(true);
+      setNotFoundReason(null);
       console.log("[ORDER-DETAIL] Fetching order:", { orderId: id, userId: user?.id });
 
+      // Primary query: Full marketplace order with joins
       const { data, error } = await supabase
         .from("orders")
         .select(`
@@ -99,10 +102,36 @@ const OrderDetail = () => {
         throw error;
       }
 
+      // FALLBACK: If primary query fails, try minimal order fetch
+      // This handles claim-sale orders or early test orders that may not have full joins
       if (!data) {
-        console.warn("[ORDER-DETAIL] Order not found", { id, userId: user?.id });
-        toast.error("Order not found");
-        navigate("/orders");
+        console.log("[ORDER-DETAIL] Primary query returned null, attempting fallback...");
+        
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        
+        if (fallbackError) {
+          console.error("[ORDER-DETAIL] Fallback query error:", fallbackError);
+        }
+        
+        if (fallbackData) {
+          console.log("[ORDER-DETAIL] Fallback order loaded:", { orderId: fallbackData.id });
+          // Set minimal order data - invoice components will gracefully hide missing sections
+          setOrder({
+            ...fallbackData,
+            listing: null,
+            buyer_profile: null,
+            seller_profile: null,
+          } as OrderDetailRecord);
+          return;
+        }
+        
+        // No order found in any query - show neutral message instead of error
+        console.warn("[ORDER-DETAIL] Order not found in any query", { id, userId: user?.id });
+        setNotFoundReason("processing");
         return;
       }
 
@@ -131,6 +160,29 @@ const OrderDetail = () => {
         <div className="flex justify-center items-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
+      </main>
+    );
+  }
+
+  // Neutral empty-state when order not found or still processing
+  if (notFoundReason === "processing" || (!order && !isLoading)) {
+    return (
+      <main className="container mx-auto py-12 px-4">
+        <div className="mb-6">
+          <Button variant="outline" onClick={() => navigate("/orders")}>
+            ← Back to Orders
+          </Button>
+        </div>
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Invoice Not Available</h2>
+            <p className="text-muted-foreground">
+              This invoice is not yet available. The order may still be processing 
+              or was created under an earlier system.
+            </p>
+          </CardContent>
+        </Card>
       </main>
     );
   }
@@ -180,12 +232,22 @@ const OrderDetail = () => {
      );
    }
  
-   // Order not found
+  // Safety check - should not reach here but handle gracefully
   if (!order) {
     return (
       <main className="container mx-auto py-12 px-4">
-        <Card className="max-w-2xl mx-auto text-center p-8">
-          <p className="text-muted-foreground">Order not found</p>
+        <div className="mb-6">
+          <Button variant="outline" onClick={() => navigate("/orders")}>
+            ← Back to Orders
+          </Button>
+        </div>
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              This invoice is not yet available.
+            </p>
+          </CardContent>
         </Card>
       </main>
     );
