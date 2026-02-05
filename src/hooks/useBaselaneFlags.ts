@@ -18,7 +18,11 @@ export interface BaselaneFlags {
   ENABLE_RISK_HOLDS: boolean;
   ENABLE_NOTIFICATIONS: boolean;
   ENABLE_TAX_1099: boolean;
-   ENABLE_INVOICE_ORDER_VIEW: boolean;
+  ENABLE_INVOICE_ORDER_VIEW: boolean;
+  ENABLE_INVOICE_TRUST_ACTIONS: boolean;
+  ENABLE_INVOICE_AVAILABILITY_BADGES: boolean;
+  ENABLE_ADMIN_QA_TOOLS: boolean;
+  ENABLE_SELLER_WALLET_UI_ENHANCEMENTS: boolean;
 }
 
 // Map app_settings keys to BaselaneFlags keys
@@ -30,7 +34,11 @@ const FLAG_KEY_MAP: Record<string, keyof BaselaneFlags> = {
   enable_risk_holds: "ENABLE_RISK_HOLDS",
   enable_notifications: "ENABLE_NOTIFICATIONS",
   enable_tax_1099: "ENABLE_TAX_1099",
-   enable_invoice_order_view: "ENABLE_INVOICE_ORDER_VIEW",
+  enable_invoice_order_view: "ENABLE_INVOICE_ORDER_VIEW",
+  enable_invoice_trust_actions: "ENABLE_INVOICE_TRUST_ACTIONS",
+  enable_invoice_availability_badges: "ENABLE_INVOICE_AVAILABILITY_BADGES",
+  enable_admin_qa_tools: "ENABLE_ADMIN_QA_TOOLS",
+  enable_seller_wallet_ui_enhancements: "ENABLE_SELLER_WALLET_UI_ENHANCEMENTS",
 };
 
 const DEFAULT_FLAGS: BaselaneFlags = {
@@ -41,7 +49,11 @@ const DEFAULT_FLAGS: BaselaneFlags = {
   ENABLE_RISK_HOLDS: false,
   ENABLE_NOTIFICATIONS: false,
   ENABLE_TAX_1099: false,
-   ENABLE_INVOICE_ORDER_VIEW: false,
+  ENABLE_INVOICE_ORDER_VIEW: false,
+  ENABLE_INVOICE_TRUST_ACTIONS: false,
+  ENABLE_INVOICE_AVAILABILITY_BADGES: false,
+  ENABLE_ADMIN_QA_TOOLS: false,
+  ENABLE_SELLER_WALLET_UI_ENHANCEMENTS: false,
 };
 
 interface UseBaselaneFlagsResult {
@@ -136,8 +148,8 @@ export function useBaselaneFlags(): UseBaselaneFlagsResult {
       flags.ENABLE_EARNINGS_DASHBOARD ||
       flags.ENABLE_RISK_HOLDS ||
       flags.ENABLE_NOTIFICATIONS ||
-       flags.ENABLE_TAX_1099 ||
-       flags.ENABLE_INVOICE_ORDER_VIEW;
+      flags.ENABLE_TAX_1099 ||
+      flags.ENABLE_INVOICE_ORDER_VIEW;
   }, [flags]);
 
   return {

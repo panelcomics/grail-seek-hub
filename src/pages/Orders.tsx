@@ -20,7 +20,7 @@ export default function Orders() {
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
-  const { shouldShowInvoiceOrderView } = useMarketplaceRails();
+  const { shouldShowInvoiceOrderView, shouldShowInvoiceAvailabilityBadges } = useMarketplaceRails();
 
   useEffect(() => {
     if (!user) {
@@ -145,7 +145,9 @@ export default function Orders() {
                   </div>
                   <div className="flex items-center gap-3">
                     {getStatusBadge(order)}
-                    <InvoiceAvailabilityBadge order={order} />
+                    {shouldShowInvoiceAvailabilityBadges && (
+                      <InvoiceAvailabilityBadge order={order} />
+                    )}
                     {!isMobile && shouldShowInvoiceOrderView && (
                       <Button
                         variant="outline"

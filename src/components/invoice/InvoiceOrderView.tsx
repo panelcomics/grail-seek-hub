@@ -15,6 +15,7 @@
  import { InvoiceTrustActions } from "./InvoiceTrustActions";
  import { InvoiceAdminDebug } from "./InvoiceAdminDebug";
  import { useAdminCheck } from "@/hooks/useAdminCheck";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
  
  interface InvoiceOrderRecord {
    id: string;
@@ -75,6 +76,7 @@
    const navigate = useNavigate();
    const [isMarkingReceived, setIsMarkingReceived] = useState(false);
    const { isAdmin } = useAdminCheck();
+  const { shouldShowInvoiceTrustActions } = useMarketplaceRails();
  
    const isBuyer = userId === order.buyer_id;
    const isSeller = userId === order.seller_id;
@@ -216,14 +218,16 @@
          />
        )}
 
-       {/* Trust Actions (Print/PDF/Copy) */}
-       <InvoiceTrustActions
-         orderId={order.id}
-         trackingNumber={order.tracking_number}
-         shippingAddress={order.shipping_address}
-         shippingName={order.shipping_name}
-         totalCents={totalCents}
-       />
+      {/* Trust Actions (Print/PDF/Copy) - gated by feature flag */}
+      {shouldShowInvoiceTrustActions && (
+        <InvoiceTrustActions
+          orderId={order.id}
+          trackingNumber={order.tracking_number}
+          shippingAddress={order.shipping_address}
+          shippingName={order.shipping_name}
+          totalCents={totalCents}
+        />
+      )}
 
        {/* Admin Debug Strip */}
        {isAdmin && (

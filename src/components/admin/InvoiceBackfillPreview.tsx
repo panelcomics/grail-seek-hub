@@ -107,9 +107,10 @@
          <CardTitle className="flex items-center gap-2">
            <FileText className="h-5 w-5" />
            Invoice Backfill Preview
+          <Badge variant="outline" className="ml-2 text-xs">Read-Only</Badge>
          </CardTitle>
          <CardDescription>
-           Read-only analysis of orders for future invoice generation. No actions available.
+          Informational analysis of orders for future invoice generation. No execution buttons — this is view-only.
          </CardDescription>
        </CardHeader>
        <CardContent className="space-y-4">
@@ -165,7 +166,7 @@
          </ScrollArea>
  
          <p className="text-xs text-muted-foreground">
-           This is an informational preview only. Invoice backfill requires manual approval.
+          This preview doesn't affect payments or data. Backfill execution requires manual admin action elsewhere.
          </p>
        </CardContent>
      </Card>
