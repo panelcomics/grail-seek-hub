@@ -47,6 +47,7 @@ export function TaxEarningsSummary({
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
           Sales Summary
+          <span className="text-xs font-normal text-muted-foreground ml-2">(Preview)</span>
         </CardTitle>
         <CardDescription>
           These totals reflect your gross sales before fees and refunds. This information is commonly used for tax reporting purposes.
@@ -70,7 +71,7 @@ export function TaxEarningsSummary({
 
         {grossSales === 0 && (
           <p className="text-sm text-muted-foreground text-center mt-4">
-            You haven't had any sales yet. This section will update automatically as you begin selling.
+            No data yet — this will update automatically as you begin selling.
           </p>
         )}
       </CardContent>

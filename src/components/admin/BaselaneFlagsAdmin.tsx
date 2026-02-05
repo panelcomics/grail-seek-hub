@@ -37,7 +37,11 @@ const BASELANE_FLAG_KEYS = [
   "enable_risk_holds",
   "enable_notifications",
   "enable_tax_1099",
-   "enable_invoice_order_view",
+  "enable_invoice_order_view",
+  "enable_invoice_trust_actions",
+  "enable_invoice_availability_badges",
+  "enable_admin_qa_tools",
+  "enable_seller_wallet_ui_enhancements",
 ];
 
 const FLAG_LABELS: Record<string, { label: string; description: string }> = {
@@ -69,10 +73,26 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
     label: "Tax & 1099",
     description: "Seller tax profile collection and 1099-K status overview (view + collect only)",
   },
-   enable_invoice_order_view: {
-     label: "Invoice Order View",
-     description: "HipComic-style invoice order detail with seller payout breakdown and print support",
-   },
+  enable_invoice_order_view: {
+    label: "Invoice Order View",
+    description: "HipComic-style invoice order detail with seller payout breakdown and print support",
+  },
+  enable_invoice_trust_actions: {
+    label: "Invoice Trust Actions",
+    description: "Print, PDF download, and one-click copy buttons on invoice pages",
+  },
+  enable_invoice_availability_badges: {
+    label: "Invoice Availability Badges",
+    description: "Show 'Invoice Ready', 'Pending', or 'Legacy Order' badges on orders list",
+  },
+  enable_admin_qa_tools: {
+    label: "Admin QA Tools",
+    description: "Admin-only tools for creating test invoices without payment impact",
+  },
+  enable_seller_wallet_ui_enhancements: {
+    label: "Wallet UX Enhancements",
+    description: "Payout button disabled reasons and 'How payouts work' tooltip",
+  },
 };
 
 export function BaselaneFlagsAdmin() {

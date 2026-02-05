@@ -33,6 +33,7 @@ import {
 import { useSellerWallet, WalletSummary } from "@/hooks/useSellerWallet";
 import { formatCents } from "@/lib/fees";
 import { toast } from "sonner";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
 
 interface BalanceItemProps {
   label: string;
@@ -84,6 +85,7 @@ export function SellerWalletCard() {
   const [payoutAmount, setPayoutAmount] = useState("");
   const [payoutNote, setPayoutNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { shouldShowWalletUiEnhancements } = useMarketplaceRails();
 
   const handleRequestPayout = async () => {
     const amountDollars = parseFloat(payoutAmount);
@@ -157,6 +159,27 @@ export function SellerWalletCard() {
     updated_at: new Date().toISOString(),
   };
 
+  // Determine why payout button might be disabled
+  const getPayoutDisabledReason = (): string | null => {
+    if (!summary) return "Wallet data loading...";
+    if (walletData.available_cents <= 0 && walletData.pending_cents <= 0 && walletData.on_hold_cents <= 0) {
+      return "Payouts unlock after your first completed sale";
+    }
+    if (walletData.available_cents <= 0 && walletData.pending_cents > 0) {
+      return "Pending funds must clear hold period";
+    }
+    if (walletData.available_cents <= 0 && walletData.on_hold_cents > 0) {
+      return "Funds currently on hold for verification";
+    }
+    if (walletData.available_cents <= 0) {
+      return "No available balance for payout";
+    }
+    return null;
+  };
+
+  const payoutDisabledReason = getPayoutDisabledReason();
+  const isPayoutDisabled = walletData.available_cents <= 0;
+
   return (
     <Card>
       <CardHeader>
@@ -170,16 +193,30 @@ export function SellerWalletCard() {
               Track your earnings and request payouts
             </CardDescription>
           </div>
-          <Dialog open={payoutOpen} onOpenChange={setPayoutOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                size="sm" 
-                disabled={walletData.available_cents <= 0}
-              >
-                <ArrowDownToLine className="h-4 w-4 mr-2" />
-                Request Payout
-              </Button>
-            </DialogTrigger>
+          <div className="flex flex-col items-end gap-1">
+            <Dialog open={payoutOpen} onOpenChange={setPayoutOpen}>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <DialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          disabled={isPayoutDisabled}
+                        >
+                          <ArrowDownToLine className="h-4 w-4 mr-2" />
+                          Request Payout
+                        </Button>
+                      </DialogTrigger>
+                    </span>
+                  </TooltipTrigger>
+                  {shouldShowWalletUiEnhancements && isPayoutDisabled && payoutDisabledReason && (
+                    <TooltipContent side="bottom" className="max-w-[250px]">
+                      <p className="text-sm">{payoutDisabledReason}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Request Payout</DialogTitle>
@@ -231,6 +268,28 @@ export function SellerWalletCard() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+            {/* How Payouts Work tooltip - gated */}
+            {shouldShowWalletUiEnhancements && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground">
+                      <HelpCircle className="h-3 w-3 mr-1" />
+                      How payouts work
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[300px]">
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Pending:</strong> Buyer paid, waiting for delivery confirmation.</p>
+                      <p><strong>Available:</strong> Cleared funds ready for payout.</p>
+                      <p><strong>On Hold:</strong> Funds held for verification (typically 7 days for new sellers or high-value orders).</p>
+                      <p className="text-xs text-muted-foreground mt-2">Payouts typically process in 3-5 business days via Stripe.</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

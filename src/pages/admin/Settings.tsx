@@ -13,12 +13,14 @@ import { toast } from "sonner";
 import { FeatureFlagsCard } from "@/components/admin/FeatureFlagsCard";
 import { ScannerAnalyticsCard } from "@/components/admin/ScannerAnalyticsCard";
 import { BaselaneFlagsAdmin } from "@/components/admin/BaselaneFlagsAdmin";
- import { InvoiceQATools } from "@/components/admin/InvoiceQATools";
+import { InvoiceQATools } from "@/components/admin/InvoiceQATools";
 import { InvoiceBackfillPreview } from "@/components/admin/InvoiceBackfillPreview";
+import { useMarketplaceRails } from "@/hooks/useMarketplaceRails";
 
 export default function AdminSettings() {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useAdminCheck();
+  const { shouldShowAdminQaTools } = useMarketplaceRails();
   const [settings, setSettings] = useState({
     allow_new_signups: true,
     marketplace_live: true,
@@ -165,12 +167,16 @@ export default function AdminSettings() {
           <BaselaneFlagsAdmin />
         </div>
 
-       {/* QA Tools Section */}
-       <h2 className="text-2xl font-bold mb-4">QA Tools</h2>
-       <div className="grid gap-4 md:grid-cols-2 mb-6">
-         <InvoiceQATools />
-          <InvoiceBackfillPreview />
-       </div>
+      {/* QA Tools Section - gated by feature flag */}
+      {shouldShowAdminQaTools && (
+        <>
+          <h2 className="text-2xl font-bold mb-4">QA Tools</h2>
+          <div className="grid gap-4 md:grid-cols-2 mb-6">
+            <InvoiceQATools />
+            <InvoiceBackfillPreview />
+          </div>
+        </>
+      )}
 
         <h2 className="text-2xl font-bold mb-4">Legacy Feature Toggles</h2>
         <Card>

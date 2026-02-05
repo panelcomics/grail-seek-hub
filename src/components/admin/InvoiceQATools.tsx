@@ -99,6 +99,9 @@
              <li>Sample tracking number</li>
              <li>7-day payout hold</li>
            </ul>
+          <p className="mt-2 text-xs text-primary/70 italic">
+            This doesn't affect payments, wallet balances, or Stripe.
+          </p>
          </div>
  
          <Button

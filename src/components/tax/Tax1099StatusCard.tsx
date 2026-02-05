@@ -1,12 +1,12 @@
 /**
  * 1099-K Status Overview Card
- * READ-ONLY display of current reporting status
+ * READ-ONLY display of current reporting status with calm, non-alarming copy
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FileText, Info, CheckCircle2 } from "lucide-react";
 
 interface Tax1099StatusCardProps {
   taxYear: number;
@@ -60,16 +60,16 @@ export function Tax1099StatusCard({
           {isBelowThreshold ? (
             <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
           ) : (
-            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+            <Info className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
           )}
           <div>
             <p className="font-medium">
               {isBelowThreshold
                 ? "Based on your current activity and IRS guidance, you are below the reporting threshold for this tax year."
-                : "Based on your current activity and IRS guidance, you may receive a 1099-K for this tax year."}
+                : "Based on your current activity, you may receive a 1099-K form. This is normal for active sellers."}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Reporting requirements are subject to change. This is an informational preview only.
+              This is an informational preview. Reporting requirements may change. No action needed now.
             </p>
           </div>
         </div>

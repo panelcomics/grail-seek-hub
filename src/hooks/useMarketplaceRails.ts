@@ -33,6 +33,10 @@ export function useMarketplaceRails() {
   const notificationsEnabled = isEnabled("ENABLE_NOTIFICATIONS");
   const tax1099Enabled = isEnabled("ENABLE_TAX_1099");
   const invoiceOrderViewEnabled = isEnabled("ENABLE_INVOICE_ORDER_VIEW");
+  const invoiceTrustActionsEnabled = isEnabled("ENABLE_INVOICE_TRUST_ACTIONS");
+  const invoiceAvailabilityBadgesEnabled = isEnabled("ENABLE_INVOICE_AVAILABILITY_BADGES");
+  const adminQaToolsEnabled = isEnabled("ENABLE_ADMIN_QA_TOOLS");
+  const walletUiEnhancementsEnabled = isEnabled("ENABLE_SELLER_WALLET_UI_ENHANCEMENTS");
   
   // Any feature enabled = show Financial Tools section
   const anyEnabled = walletEnabled || earningsEnabled || timelineEnabled || riskEnabled || tax1099Enabled || invoiceOrderViewEnabled;
@@ -48,6 +52,10 @@ export function useMarketplaceRails() {
     shouldShowNotifications: notificationsEnabled,
     shouldShowTax1099: tax1099Enabled,
     shouldShowInvoiceOrderView: invoiceOrderViewEnabled,
+    shouldShowInvoiceTrustActions: invoiceTrustActionsEnabled,
+    shouldShowInvoiceAvailabilityBadges: invoiceAvailabilityBadgesEnabled,
+    shouldShowAdminQaTools: adminQaToolsEnabled,
+    shouldShowWalletUiEnhancements: walletUiEnhancementsEnabled,
     shouldLogEvents: timelineEnabled || riskEnabled,
   };
 }
