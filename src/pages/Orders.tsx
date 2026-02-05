@@ -5,9 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, FileText } from "lucide-react";
 import { formatCents } from "@/lib/fees";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function Orders() {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!user) {
@@ -125,21 +128,50 @@ export default function Orders() {
         orders.map((order) => (
           <Card
             key={order.id}
-            className="cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => navigate(`/orders/${order.id}`)}
+            className="hover:shadow-md transition-shadow"
           >
             <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold break-words">{order.listing?.title || "Unknown Item"}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(order.created_at), "MMM d, yyyy")}
-                  </p>
+              <div className="flex flex-col gap-4">
+                {/* Order Info Row */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold break-words">{order.listing?.title || "Unknown Item"}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(order.created_at), "MMM d, yyyy")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(order)}
+                    {!isMobile && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                        className="shrink-0"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Invoice
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                {getStatusBadge(order)}
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-bold">{formatCents(order.amount_cents)}</span>
+
+                {/* Price and Mobile Action Row */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold">{formatCents(order.amount_cents)}</span>
+                  </div>
+                  {isMobile && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate(`/orders/${order.id}`)}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Invoice
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
