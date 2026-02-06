@@ -52,8 +52,16 @@ const REPRINT_KEYWORDS = [
   'deluxe edition', 'hardcover', 'hc edition', 'prestige format',
   'treasury', 'facsimile', 'reprint', 'reprinting', 'magazine',
   'epic collection', 'masterworks', 'essentials', 'showcase presents',
-  'archives', 'absolute', 'library edition', 'artist edition',
+  'archives', 'absolute edition', 'library edition', 'artist edition',
   'gallery edition', 'artifact edition', 'premiere edition',
+];
+
+// Series titles that START with reprint keywords but are NOT reprints
+// e.g., "Absolute Batman" is a new ongoing series, not an "Absolute Edition"
+const REPRINT_KEYWORD_EXCEPTIONS = [
+  'absolute batman', 'absolute superman', 'absolute wonder woman',
+  'absolute flash', 'absolute green lantern', 'absolute martian manhunter',
+  'absolute power',
 ];
 
 // REBOOT SERIES PATTERNS - modern series that share names with classic runs
@@ -1380,6 +1388,12 @@ function scoreResults(
     let isReprint = false;
     for (const keyword of REPRINT_KEYWORDS) {
       if (combinedTitle.includes(keyword)) {
+        // Check if this is an exception (e.g., "Absolute Batman" is NOT a reprint)
+        const isException = REPRINT_KEYWORD_EXCEPTIONS.some(exc => combinedTitle.includes(exc));
+        if (isException) {
+          console.log('[SCAN-ITEM] Reprint keyword exception (not penalized):', result.title, 'keyword:', keyword);
+          break;
+        }
         isReprint = true;
         score = Math.max(0.20, score - 0.25); // Heavy penalty for reprints
         console.log('[SCAN-ITEM] Reprint penalty applied for:', result.title, 'keyword:', keyword);
