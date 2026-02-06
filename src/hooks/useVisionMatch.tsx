@@ -675,9 +675,32 @@ export function useVisionMatch(): UseVisionMatchReturn {
   };
 }
 
+// Keywords indicating a collected/reprint edition (not original single issue)
+const REPRINT_TITLE_KEYWORDS = [
+  'masterworks', 'omnibus', 'tpb', 'trade paperback', 'graphic novel',
+  'compendium', 'collected', 'collection', 'complete collection',
+  'ultimate collection', 'deluxe edition', 'hardcover', 'hc edition',
+  'epic collection', 'essentials', 'showcase presents', 'archives',
+  'library edition', 'artist edition', 'gallery edition', 'artifact edition',
+  'premiere edition', 'facsimile', 'treasury',
+];
+
+/**
+ * Check if a pick title indicates it's a reprint/collected edition
+ */
+function isReprintTitle(title: string): boolean {
+  const lower = title.toLowerCase();
+  return REPRINT_TITLE_KEYWORDS.some(kw => lower.includes(kw));
+}
+
 /**
  * Apply vision match result to update the selected pick
  * Returns the updated pick if vision override was applied
+ * 
+ * CRITICAL: If vision selects a reprint/collected edition (e.g., "Marvel Masterworks"),
+ * we check if an original series issue with the same issue number exists in candidates
+ * and prefer that instead. This prevents Masterworks from overriding original issues
+ * when they reproduce the same cover art.
  */
 export function applyVisionOverride(
   currentPick: ComicVinePick | null,
@@ -713,6 +736,36 @@ export function applyVisionOverride(
   );
 
   if (matchedCandidate) {
+    const matchedTitle = (matchedCandidate.volumeName || matchedCandidate.title || "");
+    
+    // POST-VISION REPRINT CHECK:
+    // If vision matched a reprint (e.g., "Marvel Masterworks: The Amazing Spider-Man"),
+    // look for the original series issue with the same issue number
+    if (isReprintTitle(matchedTitle)) {
+      const matchedIssue = matchedCandidate.issue;
+      console.log(`[VISION-OVERRIDE] Vision selected reprint: "${matchedTitle}" #${matchedIssue} — looking for original series`);
+      
+      // Find a non-reprint candidate with the same issue number
+      const originalCandidate = candidates.find(c => {
+        if (c.id === matchedCandidate.id) return false; // skip itself
+        const cTitle = (c.volumeName || c.title || "");
+        if (isReprintTitle(cTitle)) return false; // skip other reprints
+        // Must have the same issue number
+        return c.issue === matchedIssue;
+      });
+      
+      if (originalCandidate) {
+        console.log(`[VISION-OVERRIDE] Swapping reprint for original: "${originalCandidate.volumeName || originalCandidate.title}" #${originalCandidate.issue}`);
+        return {
+          ...originalCandidate,
+          source: "vision" as const,
+          score: visionResult.similarityScore,
+        };
+      } else {
+        console.log(`[VISION-OVERRIDE] No original series found — keeping reprint match`);
+      }
+    }
+    
     // Return updated pick with vision source marker
     return {
       ...matchedCandidate,
