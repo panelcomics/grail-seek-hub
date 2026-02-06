@@ -179,8 +179,7 @@ const ClaimSaleDetail = () => {
           .from("claims")
           .select(`
             user_id,
-            claimed_at,
-            profiles!claims_user_id_fkey (username)
+            claimed_at
           `)
           .eq("claim_sale_id", id)
           .eq("is_winner", true)
@@ -188,12 +187,23 @@ const ClaimSaleDetail = () => {
 
         if (winnersError) {
           console.error("Error fetching winners:", winnersError);
-        } else if (winnersData) {
+        } else if (winnersData && winnersData.length > 0) {
+          // Fetch winner usernames from public_profiles
+          const winnerUserIds = winnersData.map(w => w.user_id);
+          const { data: winnerProfiles } = await supabase
+            .from("public_profiles")
+            .select("user_id, username")
+            .in("user_id", winnerUserIds);
+
+          const profileMap = new Map(
+            (winnerProfiles || []).map(p => [p.user_id, p.username])
+          );
+
           const formattedWinners = winnersData.map((w: any, idx: number) => ({
             user_id: w.user_id,
             claimed_at: w.claimed_at,
             rank: idx + 1,
-            username: w.profiles?.username || "Unknown User",
+            username: profileMap.get(w.user_id) || "Unknown User",
           }));
           setWinners(formattedWinners);
         }

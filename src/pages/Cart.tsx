@@ -56,10 +56,6 @@ const Cart = () => {
               series,
               issue_number,
               images
-            ),
-            profiles:user_id (
-              username,
-              avatar_url
             )
           `)
           .in("id", listingIds);
@@ -70,6 +66,16 @@ const Cart = () => {
           return;
         }
 
+        // Batch fetch seller profiles from public_profiles
+        const sellerIds = [...new Set((data || []).map(l => l.user_id).filter(Boolean))];
+        const { data: profilesData } = await supabase
+          .from("public_profiles")
+          .select("user_id, username, avatar_url")
+          .in("user_id", sellerIds);
+        const profileMap = new Map(
+          (profilesData || []).map(p => [p.user_id, p])
+        );
+
         // Transform data and check for unavailable items
         const transformedListings: CartListingDetails[] = [];
         const unavailableIds: string[] = [];
@@ -78,7 +84,7 @@ const Cart = () => {
           const invItem = Array.isArray(listing.inventory_items) 
             ? listing.inventory_items[0] 
             : listing.inventory_items;
-          const profile = listing.profiles as any;
+          const profile = profileMap.get(listing.user_id);
 
           if (listing.status !== "active") {
             // Item is no longer available

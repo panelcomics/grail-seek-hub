@@ -52,7 +52,7 @@ export function OfferDrawer({ offer, open, onClose, onOfferUpdated }: OfferDrawe
         try {
           // Fetch buyer's email
           const { data: buyerProfile } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("user_id")
             .eq("user_id", offer.buyer_id)
             .single();

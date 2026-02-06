@@ -20,7 +20,7 @@ export function LiveAuctionsStrip() {
       // Fetch active auctions
       const { data: auctionData, error: auctionError } = await supabase
         .from("listings")
-        .select("*")
+        .select("id, title, image_url, ends_at, type, status, price_cents, start_bid, user_id, created_at")
         .eq("type", "auction")
         .eq("status", "active")
         .not("ends_at", "is", null)

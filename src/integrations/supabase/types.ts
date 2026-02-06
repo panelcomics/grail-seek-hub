@@ -2317,7 +2317,6 @@ export type Database = {
           payout_cents: number | null
           price: number | null
           price_cents: number | null
-          private_notes: string | null
           quantity: number | null
           reserve: number | null
           seller_notes: string | null
@@ -2350,7 +2349,6 @@ export type Database = {
           payout_cents?: number | null
           price?: number | null
           price_cents?: number | null
-          private_notes?: string | null
           quantity?: number | null
           reserve?: number | null
           seller_notes?: string | null
@@ -2383,7 +2381,6 @@ export type Database = {
           payout_cents?: number | null
           price?: number | null
           price_cents?: number | null
-          private_notes?: string | null
           quantity?: number | null
           reserve?: number | null
           seller_notes?: string | null
@@ -4928,13 +4925,22 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          city: string | null
+          completed_purchases_count: number | null
+          completed_sales_count: number | null
+          country: string | null
           display_name: string | null
+          favorites_total: number | null
           is_featured_seller: boolean | null
+          is_founding_seller: boolean | null
           is_verified_seller: boolean | null
           joined_at: string | null
+          lat: number | null
+          lng: number | null
           profile_image_url: string | null
           seller_level: string | null
           seller_tier: string | null
+          state: string | null
           user_id: string | null
           username: string | null
           verified_artist: boolean | null
@@ -4942,13 +4948,22 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
+          completed_purchases_count?: never
+          completed_sales_count?: never
+          country?: string | null
           display_name?: string | null
+          favorites_total?: never
           is_featured_seller?: boolean | null
+          is_founding_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
+          lat?: never
+          lng?: never
           profile_image_url?: string | null
           seller_level?: never
           seller_tier?: string | null
+          state?: string | null
           user_id?: string | null
           username?: string | null
           verified_artist?: boolean | null
@@ -4956,13 +4971,22 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
+          completed_purchases_count?: never
+          completed_sales_count?: never
+          country?: string | null
           display_name?: string | null
+          favorites_total?: never
           is_featured_seller?: boolean | null
+          is_founding_seller?: boolean | null
           is_verified_seller?: boolean | null
           joined_at?: string | null
+          lat?: never
+          lng?: never
           profile_image_url?: string | null
           seller_level?: never
           seller_tier?: string | null
+          state?: string | null
           user_id?: string | null
           username?: string | null
           verified_artist?: boolean | null

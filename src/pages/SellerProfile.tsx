@@ -139,7 +139,7 @@ export default function SellerProfile() {
 
       // Fetch actual sales count and founding seller status (from profiles table with proper auth)
       const { data: salesData } = await supabase
-        .from("profiles")
+        .from("public_profiles")
         .select("completed_sales_count, is_founding_seller")
         .eq("user_id", profileData.user_id)
         .maybeSingle();

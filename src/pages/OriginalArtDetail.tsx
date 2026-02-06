@@ -75,7 +75,7 @@ export default function OriginalArtDetail() {
         // Fetch owner profile
         if (data.owner_user_id) {
           const { data: profileData } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("username, is_verified_seller")
             .eq("user_id", data.owner_user_id)
             .maybeSingle();
