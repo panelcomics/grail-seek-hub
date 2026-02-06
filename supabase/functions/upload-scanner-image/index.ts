@@ -114,13 +114,10 @@ Deno.serve(async (req) => {
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error('Upload failed:', uploadResponse.status, errorText);
+      console.error('Upload failed:', { status: uploadResponse.status, body: errorText, timestamp: new Date().toISOString() });
       return new Response(
-        JSON.stringify({ 
-          error: `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`,
-          details: errorText 
-        }),
-        { status: uploadResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Upload failed. Please try again.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -179,9 +176,14 @@ Deno.serve(async (req) => {
 
   } catch (error: any) {
     const elapsed = Date.now() - startTime;
-    console.error('[upload-scanner-image] Error:', { error: error.message, elapsed: `${elapsed}ms` });
+    console.error('[upload-scanner-image] Error:', { 
+      error: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      elapsed: `${elapsed}ms`,
+      timestamp: new Date().toISOString()
+    });
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: 'Upload failed. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
