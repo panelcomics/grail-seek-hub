@@ -270,11 +270,11 @@ export function useVisionMatch(): UseVisionMatchReturn {
     
     for (const query of searchQueries) {
       try {
-        const { data, error } = await supabase.functions.invoke("manual-comicvine-search", {
+      const { data, error } = await supabase.functions.invoke("manual-comicvine-search", {
           body: {
             searchText: query,
             publisher: identifiedPublisher,
-            issue: identifiedIssue,
+            issueNumber: identifiedIssue,
           },
         });
         
