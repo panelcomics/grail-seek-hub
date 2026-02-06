@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -15,15 +15,34 @@ import { debugLog } from "@/lib/debug";
 
 export default function Marketplace() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Restore state from URL params on mount
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "title">("newest");
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "title">(
+    (searchParams.get("sort") as any) || "newest"
+  );
+  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
   const [showFilters, setShowFilters] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const ITEMS_PER_PAGE = 24;
+
+  // Sync state to URL params (preserves state on back navigation)
+  const updateUrlParams = useCallback((updates: Record<string, string>) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) next.set(key, value);
+        else next.delete(key);
+      });
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   useEffect(() => {
     fetchListings(true);
@@ -158,6 +177,35 @@ export default function Marketplace() {
     }
   };
 
+  // Handlers that sync to URL
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    updateUrlParams({ q: value });
+  };
+
+  const handleSortChange = (value: "newest" | "price_asc" | "price_desc" | "title") => {
+    setSortBy(value);
+    updateUrlParams({ sort: value === "newest" ? "" : value });
+  };
+
+  const handleMinPriceChange = (value: string) => {
+    setMinPrice(value);
+    updateUrlParams({ minPrice: value });
+  };
+
+  const handleMaxPriceChange = (value: string) => {
+    setMaxPrice(value);
+    updateUrlParams({ maxPrice: value });
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setSortBy("newest");
+    setMinPrice("");
+    setMaxPrice("");
+    setSearchParams({}, { replace: true });
+  };
+
   const filteredAndSortedListings = (() => {
     let filtered = search
       ? listings.filter((item) =>
@@ -166,6 +214,17 @@ export default function Marketplace() {
           item.details?.toLowerCase().includes(search.toLowerCase())
         )
       : listings;
+
+    // Price range filter
+    const minCents = minPrice ? Math.round(parseFloat(minPrice) * 100) : null;
+    const maxCents = maxPrice ? Math.round(parseFloat(maxPrice) * 100) : null;
+    
+    if (minCents !== null && !isNaN(minCents)) {
+      filtered = filtered.filter(item => (item.price_cents || 0) >= minCents);
+    }
+    if (maxCents !== null && !isNaN(maxCents)) {
+      filtered = filtered.filter(item => (item.price_cents || 0) <= maxCents);
+    }
 
     // Sort
     switch (sortBy) {
@@ -188,6 +247,8 @@ export default function Marketplace() {
 
     return filtered;
   })();
+
+  const hasActiveFilters = !!search || !!minPrice || !!maxPrice || sortBy !== "newest";
 
   return (
     <>
@@ -214,12 +275,12 @@ export default function Marketplace() {
               <Input
                 placeholder="Search listings..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
             <div className="flex gap-2">
-              <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+              <Select value={sortBy} onValueChange={(v: any) => handleSortChange(v)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
@@ -231,7 +292,7 @@ export default function Marketplace() {
                 </SelectContent>
               </Select>
               <Button
-                variant="outline"
+                variant={showFilters ? "default" : "outline"}
                 size="icon"
                 onClick={() => setShowFilters(!showFilters)}
               >
@@ -239,6 +300,41 @@ export default function Marketplace() {
               </Button>
             </div>
           </div>
+
+          {/* Price Range Filter */}
+          {showFilters && (
+            <div className="flex flex-wrap items-end gap-3 p-4 rounded-lg border border-border bg-muted/30">
+              <div className="flex-1 min-w-[120px]">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Min Price ($)</label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={minPrice}
+                  onChange={(e) => handleMinPriceChange(e.target.value)}
+                  min="0"
+                  step="1"
+                  className="h-9"
+                />
+              </div>
+              <div className="flex-1 min-w-[120px]">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Max Price ($)</label>
+                <Input
+                  type="number"
+                  placeholder="Any"
+                  value={maxPrice}
+                  onChange={(e) => handleMaxPriceChange(e.target.value)}
+                  min="0"
+                  step="1"
+                  className="h-9"
+                />
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
+                  Clear All
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -254,7 +350,7 @@ export default function Marketplace() {
               <p className="text-muted-foreground mb-4">
                 We couldn't find any grails matching your search. Try adjusting your filters or broadening your criteria.
               </p>
-              <Button onClick={() => window.location.reload()} variant="outline">
+              <Button onClick={clearFilters} variant="outline">
                 Reset Filters & Browse All
               </Button>
             </div>
@@ -315,9 +411,15 @@ export default function Marketplace() {
       
       <MobileFilterBar
         sortBy={sortBy}
-        onSortChange={setSortBy}
+        onSortChange={handleSortChange}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters(!showFilters)}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        onMinPriceChange={handleMinPriceChange}
+        onMaxPriceChange={handleMaxPriceChange}
+        onClearFilters={clearFilters}
+        hasActiveFilters={hasActiveFilters}
       />
     </main>
     </>
