@@ -326,6 +326,12 @@ Analyze:
 5. Characters depicted
 6. Color scheme and art style
 
+CRITICAL RULE — ORIGINAL vs REPRINT:
+If multiple candidates have visually identical or near-identical cover art, ALWAYS prefer the ORIGINAL single issue over collected editions, reprints, or reprint series. Specifically:
+- "Marvel Masterworks", "Omnibus", "Epic Collection", "Essentials", "Facsimile Edition", "TPB", "Treasury" etc. are REPRINTS that often reproduce original cover art.
+- The original single issue (e.g., "The Amazing Spider-Man" #18 from 1964) should ALWAYS be preferred over a collected edition (e.g., "Marvel Masterworks: The Amazing Spider-Man" #19 from 2017) even if the reprint cover is visually identical.
+- Look at the price on the scanned cover (e.g., 12¢, 15¢, 25¢) as a strong indicator of the original era.
+
 Respond with a JSON object containing:
 - "best_match_index": The 1-based index of the best matching candidate (1-${candidatesCount}), or 0 if none match well
 - "similarity_score": A confidence score from 0.0 to 1.0 indicating how well the best match matches
