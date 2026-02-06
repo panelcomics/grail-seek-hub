@@ -147,6 +147,12 @@ const KNOWN_TITLE_PATTERNS = [
   'Black Panther', 'Captain Marvel', 'Guardians of the Galaxy',
   'Silver Surfer', 'Doctor Strange', 'Hawkeye', 'Black Widow',
   'Ant-Man', 'Loki', 'Scarlet Witch',
+  // Venom mini-series (1990s)
+  'Venom: The Mace', 'Venom: Lethal Protector', 'Venom: Funeral Pyre',
+  'Venom: Separation Anxiety', 'Venom: Carnage Unleashed', 'Venom: License to Kill',
+  'Venom: Sign of the Boss', 'Venom: Tooth and Claw', 'Venom: Along Came a Spider',
+  'Venom: The Hunger', 'Venom: Sinner Takes All', 'Venom: The Enemy Within',
+  'Venom: Nights of Vengeance', 'Venom: The Madness', 'Venom: Seed of Darkness',
 // Comico and other indie titles
   'Jonny Quest', 'Johnny Quest', 'Robotech', 'Grendel', 'Mage', 'The Maze Agency',
   'Justice Machine', 'Elementals', 'E-Man', 'Nexus', 'Badger', 'Rocketeer',
@@ -269,9 +275,12 @@ const OCR_TYPO_MAP: Record<string, string> = {
   // Deadpool variants
   'deadp00l': 'Deadpool',
   'deadpooi': 'Deadpool',
-  // Venom variants
-  'venom': 'Venom',
+  // Venom variants - OCR often misreads stylized "VENOM"
+  'yenom': 'Venom',
   'ven0m': 'Venom',
+  'venom': 'Venom',
+  'vemom': 'Venom',
+  'venam': 'Venom',
 };
 
 // Word-boundary matching helper to prevent substring false positives
