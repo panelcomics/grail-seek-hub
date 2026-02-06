@@ -85,30 +85,35 @@ export function ImageCarousel({ images, className, rotation }: ImageCarouselProp
 
   const currentImageUrl = images[currentIndex].url;
 
+  // Detect touch device - hide magnifier lens on mobile
+  const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
   return (
     <div className={cn("relative group", className)}>
-      {/* Zoom Toggle Button */}
-      <button
-        onClick={toggleZoom}
-        className={cn(
-          "absolute top-3 right-3 z-20 p-2 rounded-full transition-all duration-200",
-          "bg-background/80 backdrop-blur-sm border border-border shadow-md",
-          "hover:bg-background hover:scale-105",
-          isZoomEnabled && "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
-        aria-label={isZoomEnabled ? "Disable zoom" : "Enable zoom"}
-      >
-        {isZoomEnabled ? (
-          <ZoomOut className="h-5 w-5" />
-        ) : (
-          <ZoomIn className="h-5 w-5" />
-        )}
-      </button>
+      {/* Zoom Toggle Button - only on desktop (non-touch) */}
+      {!isTouchDevice && (
+        <button
+          onClick={toggleZoom}
+          className={cn(
+            "absolute top-3 right-3 z-20 p-2 rounded-full transition-all duration-200",
+            "bg-background/80 backdrop-blur-sm border border-border shadow-md",
+            "hover:bg-background hover:scale-105",
+            isZoomEnabled && "bg-primary text-primary-foreground hover:bg-primary/90"
+          )}
+          aria-label={isZoomEnabled ? "Disable zoom" : "Enable zoom"}
+        >
+          {isZoomEnabled ? (
+            <ZoomOut className="h-5 w-5" />
+          ) : (
+            <ZoomIn className="h-5 w-5" />
+          )}
+        </button>
+      )}
 
-      {/* Zoom hint */}
-      {isZoomEnabled && !showMagnifier && (
+      {/* Zoom hint - desktop only */}
+      {!isTouchDevice && isZoomEnabled && !showMagnifier && (
         <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm border border-border text-xs text-muted-foreground">
-          Hover or touch to magnify
+          Hover to magnify
         </div>
       )}
 
@@ -121,9 +126,9 @@ export function ImageCarousel({ images, className, rotation }: ImageCarouselProp
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onTouchMove={handleTouchMove}
-        onTouchStart={() => isZoomEnabled && setShowMagnifier(true)}
-        onTouchEnd={() => setShowMagnifier(false)}
+        onTouchMove={!isTouchDevice ? handleTouchMove : undefined}
+        onTouchStart={!isTouchDevice ? () => isZoomEnabled && setShowMagnifier(true) : undefined}
+        onTouchEnd={!isTouchDevice ? () => setShowMagnifier(false) : undefined}
       >
         <img
           src={currentImageUrl}
