@@ -104,11 +104,15 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('[pricing-pipeline] Error:', error);
+    console.error('[pricing-pipeline] Error:', {
+      error: error instanceof Error ? error.message : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
     return new Response(
       JSON.stringify({ 
         ok: false, 
-        error: error.message,
+        error: 'Pricing lookup failed. Please try again.',
         pricing: null
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

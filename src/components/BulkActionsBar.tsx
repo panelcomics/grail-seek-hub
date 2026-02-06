@@ -59,11 +59,16 @@ export function BulkActionsBar({ selectedIds, onClearSelection, onActionComplete
           break;
 
         case "update_location":
-          if (!newLocation.trim()) {
+          const trimmedLocation = newLocation.trim();
+          if (!trimmedLocation) {
             toast.error("Enter a location");
             return;
           }
-          updateData = { private_location: newLocation };
+          if (trimmedLocation.length > 200) {
+            toast.error("Location must be under 200 characters");
+            return;
+          }
+          updateData = { private_location: trimmedLocation };
           break;
 
         case "move_to_container":
@@ -81,7 +86,13 @@ export function BulkActionsBar({ selectedIds, onClearSelection, onActionComplete
             toast.error("Enter a valid price");
             return;
           }
-          updateData = { listed_price: price };
+          if (price > 999999) {
+            toast.error("Price must be under $1,000,000");
+            return;
+          }
+          // Round to 2 decimal places
+          const roundedPrice = Math.round(price * 100) / 100;
+          updateData = { listed_price: roundedPrice };
           break;
 
         default:
@@ -171,6 +182,7 @@ export function BulkActionsBar({ selectedIds, onClearSelection, onActionComplete
             placeholder="Enter location..."
             value={newLocation}
             onChange={(e) => setNewLocation(e.target.value)}
+            maxLength={200}
             className="w-[200px]"
           />
         )}
@@ -194,6 +206,8 @@ export function BulkActionsBar({ selectedIds, onClearSelection, onActionComplete
           <Input
             type="number"
             step="0.01"
+            min="0.01"
+            max="999999"
             placeholder="Price..."
             value={newPrice}
             onChange={(e) => setNewPrice(e.target.value)}
