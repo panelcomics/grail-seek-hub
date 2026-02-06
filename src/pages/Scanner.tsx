@@ -1934,8 +1934,9 @@ export default function Scanner() {
           }}
           onQuickAction={(action) => {
             if (action === "list") {
+              // Dismiss recap to show success screen with Quick List (price/shipping)
+              // instead of navigating to the full sell page — fewer clicks
               dismissGrailRecapCard();
-              handleSetPrice();
             } else if (action === "save") {
               dismissGrailRecapCard();
               // Item is already saved, just dismiss

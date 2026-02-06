@@ -9,6 +9,7 @@
 import { useEffect, useState, useRef } from "react";
 import { ChevronRight } from "lucide-react";
 import ItemCard from "@/components/ItemCard";
+import { CarouselScrollButtons } from "@/components/home/CarouselScrollButtons";
 import { ListingCardSkeleton } from "@/components/ui/listing-card-skeleton";
 import { Button } from "@/components/ui/button";
 import { resolvePrice } from "@/lib/listingPriceUtils";
@@ -40,6 +41,7 @@ export function ListingsCarousel({
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   // Guard against React StrictMode double effects and race conditions between mobile/desktop
   const requestIdRef = useRef(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const viewport = typeof window !== 'undefined' ? `${window.innerWidth}px` : 'SSR';
@@ -121,8 +123,10 @@ export function ListingsCarousel({
           </div>
         </div>
       ) : listings.length > 0 ? (
-        <div className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
-          <div className="flex gap-3 md:gap-4 px-4 min-w-min">
+        <div className="relative">
+          <CarouselScrollButtons scrollRef={scrollContainerRef} />
+          <div ref={scrollContainerRef} className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
+            <div className="flex gap-3 md:gap-4 px-4 min-w-min">
             {listings.map((listing, index) => {
               const price = resolvePrice(listing);
               const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
@@ -161,6 +165,7 @@ export function ListingsCarousel({
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       ) : (

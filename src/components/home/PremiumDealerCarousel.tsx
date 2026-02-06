@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SellerBadge } from "@/components/SellerBadge";
 import { VerifiedSellerBadge } from "@/components/VerifiedSellerBadge";
 import { ChevronRight } from "lucide-react";
+import { CarouselScrollButtons } from "@/components/home/CarouselScrollButtons";
 import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getSellerSlug, getListingImageUrl } from "@/lib/sellerUtils";
 import { fetchSellerListings, fetchHomepageSellerListings } from "@/lib/listingsQuery";
@@ -29,6 +30,7 @@ export function PremiumDealerCarousel({
   const [loading, setLoading] = useState(true);
   const [sellerProfile, setSellerProfile] = useState<any>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Guard against React StrictMode double effects and race conditions between mobile/desktop
   const requestIdRef = useRef(0);
@@ -187,8 +189,10 @@ export function PremiumDealerCarousel({
         </div>
       </div>
       {listings.length > 0 ? (
-        <div className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
-          <div className="flex gap-3 md:gap-4 px-4 min-w-min">
+        <div className="relative">
+          <CarouselScrollButtons scrollRef={scrollContainerRef} />
+          <div ref={scrollContainerRef} className="overflow-x-auto overflow-y-visible pb-4 scrollbar-hide snap-x snap-mandatory">
+            <div className="flex gap-3 md:gap-4 px-4 min-w-min">
             {listings.slice(0, 6).map((listing) => {
               const price = resolvePrice(listing);
               return (
@@ -217,6 +221,7 @@ export function PremiumDealerCarousel({
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       ) : (

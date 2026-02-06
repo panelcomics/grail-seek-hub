@@ -308,7 +308,7 @@ export function ScannerSuccessScreen({
         <div className="space-y-2">
           <Button onClick={onSetPrice} variant="outline" className="w-full" size="lg">
             <DollarSign className="w-4 h-4 mr-2" />
-            Add More Details
+            Add More Details / Photos
           </Button>
           <Button onClick={onScanAnother} variant="outline" className="w-full">
             <ScanLine className="w-4 h-4 mr-2" />
