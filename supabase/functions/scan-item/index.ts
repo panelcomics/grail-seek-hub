@@ -744,13 +744,38 @@ function extractYear(text: string): number | null {
     return fullYear;
   }
   
-  // PRIORITY 2: Look for standalone 4-digit year, but EXCLUDE year ranges (anniversary text)
-  // "1961-1991" should NOT match - this is anniversary text, not the comic's year
+  // PRIORITY 2: Look for standalone 4-digit year, but EXCLUDE:
+  // - Year ranges (anniversary text like "1961-1991")
+  // - Copyright/trademark years (like "1984 MARVEL ENT GROUP", "© 1986 DC COMICS")
+  
   // First, remove year ranges from consideration
   const textWithoutRanges = text.replace(/\b(19[3-9]\d|20[0-3]\d)\s*[-–—]\s*(19[3-9]\d|20[0-3]\d)\b/g, '');
   
+  // Remove copyright/trademark year patterns:
+  // "1984 MARVEL ENT GROUP", "1986 DC COMICS INC", "© 1994 MARVEL", "TM 1994 MARVEL"
+  const COPYRIGHT_PUBLISHER_NAMES = [
+    'MARVEL', 'DC', 'IMAGE', 'DARK HORSE', 'IDW', 'BOOM', 'VERTIGO',
+    'VALIANT', 'ECLIPSE', 'COMICO', 'MALIBU', 'DYNAMITE', 'ONI',
+    'ARCHIE', 'HARVEY', 'FAWCETT', 'CHARLTON', 'DELL', 'GOLD KEY',
+    'COMICS', 'ENTERTAINMENT', 'ENT', 'PUBLISHING', 'PUBLICATIONS',
+  ];
+  const copyrightPublisherPattern = COPYRIGHT_PUBLISHER_NAMES.join('|');
+  // Match: YEAR followed by publisher-like word (e.g., "1984 MARVEL ENT GROUP")
+  const copyrightYearRegex = new RegExp(
+    `\\b(19[3-9]\\d|20[0-3]\\d)\\s+(?:${copyrightPublisherPattern})\\b`,
+    'gi'
+  );
+  // Also match: ©/TM before YEAR
+  const tmCopyrightRegex = /(?:©|TM|®)\s*(?:&\s*(?:©|TM|®)\s*)*(19[3-9]\d|20[0-3]\d)/gi;
+  
+  let textForYearSearch = textWithoutRanges
+    .replace(copyrightYearRegex, ' ')  // Remove "1984 MARVEL ENT GROUP" patterns
+    .replace(tmCopyrightRegex, ' ');    // Remove "© 1994 MARVEL" patterns
+  
+  console.log('[SCAN-ITEM] Text for year search (copyright stripped):', textForYearSearch.trim().substring(0, 100));
+  
   // Now find standalone years
-  const yearMatch = textWithoutRanges.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
+  const yearMatch = textForYearSearch.match(/\b(19[3-9]\d|20[0-3]\d)\b/);
   if (yearMatch) {
     console.log('[SCAN-ITEM] Standalone year detected:', yearMatch[1]);
     return parseInt(yearMatch[1]);
