@@ -303,34 +303,51 @@ export function useVisionMatch(): UseVisionMatchReturn {
             isReprint: false,
           }));
           
-          // CRITICAL: Re-rank to prioritize EXACT title matches
+          // Known foreign reprint publishers to deprioritize
+          const REPRINT_PUBLISHERS = new Set([
+            'panini comics', 'panini', 'panini uk', 'panini books',
+            'editorial vid', 'editorial televisa', 'planeta deagostini',
+            'semic', 'egmont', 'marvel italia', 'marvel france',
+            'hachette', 'planeta comic', 'ediciones zinco',
+            'comics usa', 'juniorpress', 'atlantic forlag',
+            'condor verlag', 'williams verlag', 'bsv williams',
+          ]);
+          
+          // CRITICAL: Re-rank to prioritize EXACT title matches AND original publishers
           const targetTitle = identifiedTitle || query;
           const titleLower = targetTitle.toLowerCase().trim();
-          // Also check subtitle-style match (e.g., "Venom: The Mace" → "Venom: The Mace")
           const fullTitleLower = (identifiedTitle || "").toLowerCase().trim();
           
           picks = picks.map(pick => {
             const pickTitleLower = (pick.volumeName || pick.title || "").toLowerCase().trim();
+            const pickPublisherLower = (pick.publisher || "").toLowerCase().trim();
+            let scoreAdj = pick.score || 0;
             
+            // === PUBLISHER PENALTIES ===
+            // Heavy penalty for foreign reprint publishers (Panini, etc.)
+            if (REPRINT_PUBLISHERS.has(pickPublisherLower)) {
+              console.log(`[VISION-MATCH] Reprint publisher penalty: "${pick.publisher}" for "${pick.volumeName}"`);
+              scoreAdj -= 1.0;
+            }
+            
+            // === TITLE MATCHING ===
             // Exact full title match (e.g., "Venom: The Mace" === "Venom: The Mace")
             if (fullTitleLower && pickTitleLower === fullTitleLower) {
               console.log(`[VISION-MATCH] Exact full title match boost: "${pick.volumeName}"`);
-              return { ...pick, score: (pick.score || 0) + 0.7 };
+              scoreAdj += 0.7;
             }
-            
             // Exact base title match (e.g., "Venom" === "Venom")
-            if (pickTitleLower === titleLower) {
+            else if (pickTitleLower === titleLower) {
               console.log(`[VISION-MATCH] Exact title match boost: "${pick.volumeName}"`);
-              return { ...pick, score: (pick.score || 0) + 0.5 };
+              scoreAdj += 0.5;
             }
-            
             // Penalty for title that CONTAINS our title but isn't exact
-            if (pickTitleLower.includes(titleLower) && pickTitleLower !== titleLower) {
+            else if (pickTitleLower.includes(titleLower) && pickTitleLower !== titleLower) {
               console.log(`[VISION-MATCH] Partial match penalty: "${pick.volumeName}" (wanted "${targetTitle}")`);
-              return { ...pick, score: (pick.score || 0) - 0.3 };
+              scoreAdj -= 0.3;
             }
             
-            return pick;
+            return { ...pick, score: scoreAdj };
           });
           
           // Re-sort by adjusted score
