@@ -347,8 +347,40 @@ export function useVisionMatch(): UseVisionMatchReturn {
               scoreAdj -= 0.3;
             }
             
+            // === REPRINT TITLE PENALTY ===
+            if (isReprintTitle(pickTitleLower)) {
+              console.log(`[VISION-MATCH] Reprint title penalty: "${pick.volumeName}"`);
+              scoreAdj -= 0.8;
+            }
+            
             return { ...pick, score: scoreAdj };
           });
+          
+          // === DUPLICATE TITLE+ISSUE: PREFER OLDEST (ORIGINAL) ===
+          // When multiple candidates share the same title and issue but differ in year,
+          // boost the oldest one. Vintage comics are originals; modern ones are relaunches.
+          const titleIssueGroups = new Map<string, typeof picks>();
+          for (const pick of picks) {
+            const key = `${(pick.volumeName || pick.title || "").toLowerCase().trim()}|${pick.issue || ""}`;
+            if (!titleIssueGroups.has(key)) titleIssueGroups.set(key, []);
+            titleIssueGroups.get(key)!.push(pick);
+          }
+          
+          for (const [key, group] of titleIssueGroups) {
+            if (group.length > 1) {
+              // Find the oldest year in this group
+              const withYear = group.filter(p => p.year && p.year > 1900);
+              if (withYear.length > 1) {
+                const oldestYear = Math.min(...withYear.map(p => p.year!));
+                for (const pick of group) {
+                  if (pick.year === oldestYear) {
+                    console.log(`[VISION-MATCH] Original issue boost: "${pick.volumeName}" #${pick.issue} (${pick.year}) — oldest in group "${key}"`);
+                    pick.score = (pick.score || 0) + 0.4;
+                  }
+                }
+              }
+            }
+          }
           
           // Re-sort by adjusted score
           picks.sort((a, b) => (b.score || 0) - (a.score || 0));
