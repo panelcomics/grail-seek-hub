@@ -70,12 +70,12 @@ serve(async (req) => {
         finalIssueId = searchData.results[0].id;
         console.log(`Found issue ID: ${finalIssueId}`);
       } else {
+        // Issue not found in this volume — return graceful null response instead of 404
+        // This prevents scanner crashes when volume/issue combination doesn't exist
+        console.log(`[FETCH-CV-ISSUE] No issue found for volume ${volume_id} #${issue_number} — returning null`);
         return new Response(
-          JSON.stringify({ 
-            error: 'Issue not found',
-            details: `No issue found for volume ${volume_id} #${issue_number}` 
-          }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify(null),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }

@@ -749,10 +749,20 @@ export default function Scanner() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('[SCANNER] fetch-comicvine-issue error (non-fatal):', error.message);
+        return null;
+      }
+      
+      // Handle null response (issue not found in volume)
+      if (!data) {
+        console.log('[SCANNER] Issue not found in volume, skipping detail fetch');
+        return null;
+      }
+      
       return data;
     } catch (err) {
-      console.error('Failed to fetch issue details:', err);
+      console.warn('[SCANNER] Failed to fetch issue details (non-fatal):', err);
       return null;
     }
   };
