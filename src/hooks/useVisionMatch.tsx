@@ -257,58 +257,76 @@ export function useVisionMatch(): UseVisionMatchReturn {
     const searchText = searchTerms.join(" ");
     console.log(`[VISION-MATCH] Searching ComicVine for identified: "${searchText}" issue: "${identifiedIssue}"`);
     
-    try {
-      const { data, error } = await supabase.functions.invoke("manual-comicvine-search", {
-        body: {
-          searchText,
-          publisher: identifiedPublisher,
-          issue: identifiedIssue,
-        },
-      });
-      
-      if (error) {
-        console.error("[VISION-MATCH] Identification search error:", error);
-        return [];
+    // Try full title first, then base title (without subtitle) if needed
+    // e.g., "Venom: The Mace" → fallback to "Venom"
+    const searchQueries = [searchText];
+    if (identifiedTitle && identifiedTitle.includes(':')) {
+      const baseTitle = identifiedTitle.split(':')[0].trim();
+      if (baseTitle.length >= 3) {
+        searchQueries.push(baseTitle);
+        console.log(`[VISION-MATCH] Will try base title fallback: "${baseTitle}"`);
       }
-      
-      if (data?.ok && data.results?.length > 0) {
-        console.log(`[VISION-MATCH] Identification search found ${data.results.length} results`);
+    }
+    
+    for (const query of searchQueries) {
+      try {
+        const { data, error } = await supabase.functions.invoke("manual-comicvine-search", {
+          body: {
+            searchText: query,
+            publisher: identifiedPublisher,
+            issue: identifiedIssue,
+          },
+        });
         
-        // Convert to ComicVinePick format
-        let picks: ComicVinePick[] = data.results.slice(0, 20).map((result: any) => ({
-          id: result.id,
-          resource: result.resource || "issue",
-          title: result.volumeName || result.title,
-          volumeName: result.volumeName || result.title,
-          volumeId: result.volumeId || result.id,
-          issue: result.issue || identifiedIssue || "",
-          year: result.year || null,
-          publisher: result.publisher || identifiedPublisher || null,
-          coverUrl: result.coverUrl || null,
-          thumbUrl: result.thumbUrl || null,
-          source: "vision_identification" as const,
-          score: result.score || 0.8,
-          isReprint: false,
-        }));
+        if (error) {
+          console.error("[VISION-MATCH] Identification search error:", error);
+          continue;
+        }
         
-        // CRITICAL: Re-rank to prioritize EXACT title matches
-        // This fixes cases like "Hulk" returning "Incredible Hulk" first
-        if (identifiedTitle) {
-          const titleLower = identifiedTitle.toLowerCase().trim();
+        if (data?.ok && data.results?.length > 0) {
+          console.log(`[VISION-MATCH] Identification search for "${query}" found ${data.results.length} results`);
+          
+          // Convert to ComicVinePick format
+          let picks: ComicVinePick[] = data.results.slice(0, 20).map((result: any) => ({
+            id: result.id,
+            resource: result.resource || "issue",
+            title: result.volumeName || result.title,
+            volumeName: result.volumeName || result.title,
+            volumeId: result.volumeId || result.id,
+            issue: result.issue || identifiedIssue || "",
+            year: result.year || null,
+            publisher: result.publisher || identifiedPublisher || null,
+            coverUrl: result.coverUrl || null,
+            thumbUrl: result.thumbUrl || null,
+            source: "vision_identification" as const,
+            score: result.score || 0.8,
+            isReprint: false,
+          }));
+          
+          // CRITICAL: Re-rank to prioritize EXACT title matches
+          const targetTitle = identifiedTitle || query;
+          const titleLower = targetTitle.toLowerCase().trim();
+          // Also check subtitle-style match (e.g., "Venom: The Mace" → "Venom: The Mace")
+          const fullTitleLower = (identifiedTitle || "").toLowerCase().trim();
           
           picks = picks.map(pick => {
             const pickTitleLower = (pick.volumeName || pick.title || "").toLowerCase().trim();
             
-            // Exact match gets huge bonus
+            // Exact full title match (e.g., "Venom: The Mace" === "Venom: The Mace")
+            if (fullTitleLower && pickTitleLower === fullTitleLower) {
+              console.log(`[VISION-MATCH] Exact full title match boost: "${pick.volumeName}"`);
+              return { ...pick, score: (pick.score || 0) + 0.7 };
+            }
+            
+            // Exact base title match (e.g., "Venom" === "Venom")
             if (pickTitleLower === titleLower) {
               console.log(`[VISION-MATCH] Exact title match boost: "${pick.volumeName}"`);
               return { ...pick, score: (pick.score || 0) + 0.5 };
             }
             
             // Penalty for title that CONTAINS our title but isn't exact
-            // e.g., "Incredible Hulk" when we want "Hulk"
             if (pickTitleLower.includes(titleLower) && pickTitleLower !== titleLower) {
-              console.log(`[VISION-MATCH] Partial match penalty: "${pick.volumeName}" (wanted "${identifiedTitle}")`);
+              console.log(`[VISION-MATCH] Partial match penalty: "${pick.volumeName}" (wanted "${targetTitle}")`);
               return { ...pick, score: (pick.score || 0) - 0.3 };
             }
             
@@ -318,39 +336,46 @@ export function useVisionMatch(): UseVisionMatchReturn {
           // Re-sort by adjusted score
           picks.sort((a, b) => (b.score || 0) - (a.score || 0));
           
-          console.log(`[VISION-MATCH] Re-ranked top result: "${picks[0]?.volumeName}" #${picks[0]?.issue}`);
-        }
-        
-        // FIX: If top result has no cover URL (volume-level result), fetch the specific issue
-        const topPick = picks[0];
-        if (topPick && (!topPick.coverUrl || topPick.coverUrl === "")) {
-          console.log(`[VISION-MATCH] Top pick has no cover URL, fetching issue from volume ${topPick.volumeId}`);
+          // Filter out picks with score <= 0
+          picks = picks.filter(p => (p.score || 0) > 0);
           
-          const issueData = await fetchIssueFromVolume(
-            topPick.volumeId || topPick.id,
-            identifiedIssue || topPick.issue || "1"
-          );
-          
-          if (issueData) {
-            console.log(`[VISION-MATCH] Fetched issue cover: ${issueData.coverUrl?.substring(0, 50)}...`);
-            picks[0] = {
-              ...topPick,
-              id: issueData.issueId,
-              coverUrl: issueData.coverUrl,
-              thumbUrl: issueData.coverUrl,
-              resource: "issue",
-            };
+          if (picks.length === 0) {
+            console.log(`[VISION-MATCH] All picks filtered out for "${query}", trying next query`);
+            continue;
           }
+          
+          console.log(`[VISION-MATCH] Re-ranked top result: "${picks[0]?.volumeName}" #${picks[0]?.issue}`);
+          
+          // FIX: If top result has no cover URL (volume-level result), fetch the specific issue
+          const topPick = picks[0];
+          if (topPick && (!topPick.coverUrl || topPick.coverUrl === "")) {
+            console.log(`[VISION-MATCH] Top pick has no cover URL, fetching issue from volume ${topPick.volumeId}`);
+            
+            const issueData = await fetchIssueFromVolume(
+              topPick.volumeId || topPick.id,
+              identifiedIssue || topPick.issue || "1"
+            );
+            
+            if (issueData) {
+              console.log(`[VISION-MATCH] Fetched issue cover: ${issueData.coverUrl?.substring(0, 50)}...`);
+              picks[0] = {
+                ...topPick,
+                id: issueData.issueId,
+                coverUrl: issueData.coverUrl,
+                thumbUrl: issueData.coverUrl,
+                resource: "issue",
+              };
+            }
+          }
+          
+          return picks;
         }
-        
-        return picks;
+      } catch (err) {
+        console.error("[VISION-MATCH] Identification search error:", err);
       }
-      
-      return [];
-    } catch (err) {
-      console.error("[VISION-MATCH] Identification search error:", err);
-      return [];
     }
+    
+    return [];
   };
 
   /**
@@ -513,6 +538,24 @@ export function useVisionMatch(): UseVisionMatchReturn {
               bestMatchCoverUrl: topPick.coverUrl || null,
               visionOverrideApplied: true,
               similarityScore: result.identificationConfidence || 0.8,
+            };
+          }
+          
+          // ComicVine search failed but vision DID identify the comic
+          // Return identification data so Scanner can use it for prefill/manual search
+          if (result.identificationConfidence && result.identificationConfidence >= 0.7) {
+            console.log(`[VISION-MATCH] ComicVine search failed but vision identified: "${result.identifiedTitle}" #${result.identifiedIssue}`);
+            return {
+              ...result,
+              bestMatchComicId: null,
+              bestMatchTitle: result.identifiedTitle || null,
+              bestMatchIssue: result.identifiedIssue || null,
+              bestMatchPublisher: result.identifiedPublisher || null,
+              bestMatchYear: null,
+              bestMatchCoverUrl: null,
+              visionOverrideApplied: false,
+              similarityScore: result.identificationConfidence,
+              identificationMode: true,
             };
           }
         }

@@ -324,6 +324,9 @@ export default function Scanner() {
     setLoading(true);
     setErrorType(null);
     
+    // CRITICAL: Scroll to top immediately so user sees scanning state
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     try {
       const compressed = await compressImageDataUrl(imageData, 1200, 0.85);
       
@@ -400,7 +403,6 @@ export default function Scanner() {
                 matchSource = 'vision';
                 
                 // AUTO-LEARN: Save vision result to cache for future scans
-                // This makes future scans of similar covers instant (no vision call needed)
                 if (ocrTextRef.current && visionResult.similarityScore >= 0.70) {
                   console.log(`[SCANNER] AUTO-LEARNING: Saving vision result to cache`);
                   saveVisionResultToCache(
@@ -410,6 +412,27 @@ export default function Scanner() {
                   );
                 }
               }
+            } else if (visionResult && visionResult.identificationMode && visionResult.identifiedTitle) {
+              // Vision identified the comic but ComicVine search didn't find exact match
+              // Use the identification for manual search prefill instead of garbage OCR result
+              console.log(`[SCANNER] Vision identified "${visionResult.identifiedTitle}" #${visionResult.identifiedIssue} but no ComicVine match — prefilling search`);
+              
+              const identTitle = visionResult.identifiedTitle;
+              const identIssue = visionResult.identifiedIssue || '';
+              const searchQuery = identIssue ? `${identTitle} ${identIssue}` : identTitle;
+              
+              setManualSearchQuery(searchQuery);
+              setNeedsUserConfirmation(true);
+              setShowManualConfirm(false);
+              
+              // Override the garbage OCR prefill data with vision identification
+              setPrefillData({
+                title: identTitle,
+                issueNumber: identIssue || undefined,
+                publisher: visionResult.identifiedPublisher || undefined,
+              });
+              
+              matchSource = 'vision_identification_partial';
             }
           } catch (visionError) {
             console.error('[SCANNER] Vision match failed:', visionError);
