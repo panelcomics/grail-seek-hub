@@ -137,6 +137,16 @@ const KNOWN_TITLE_PATTERNS = [
   'Swamp Thing', 'Saga of the Swamp Thing', 'Hellblazer', 'Sandman', 'Preacher',
   'Spawn', 'Savage Dragon', 'Invincible', 'Walking Dead', 'Saga',
   'Teenage Mutant Ninja Turtles', 'TMNT', 'Star Wars', 'Transformers', 'G.I. Joe',
+  // DC Modern titles
+  'Harley Quinn', 'Suicide Squad', 'Nightwing', 'Batgirl', 'Birds of Prey',
+  'Green Arrow', 'Deathstroke', 'Red Hood', 'Supergirl', 'Catwoman',
+  'Titans', 'Doom Patrol', 'Hawkman', 'Shazam', 'Black Adam',
+  'Justice League Dark', 'Cyborg', 'Blue Beetle', 'Firestorm',
+  // Marvel Modern titles
+  'Deadpool', 'Venom', 'Carnage', 'Miles Morales', 'Ms. Marvel',
+  'Black Panther', 'Captain Marvel', 'Guardians of the Galaxy',
+  'Silver Surfer', 'Doctor Strange', 'Hawkeye', 'Black Widow',
+  'Ant-Man', 'Loki', 'Scarlet Witch',
 // Comico and other indie titles
   'Jonny Quest', 'Johnny Quest', 'Robotech', 'Grendel', 'Mage', 'The Maze Agency',
   'Justice Machine', 'Elementals', 'E-Man', 'Nexus', 'Badger', 'Rocketeer',
@@ -244,7 +254,33 @@ const OCR_TYPO_MAP: Record<string, string> = {
   'ghost rlider': 'Ghost Rider',
   'moon kn1ght': 'Moon Knight',
   'moonknight': 'Moon Knight',
+  // Harley Quinn variants - CRITICAL: OCR often garbles "Quinn"
+  'harley quinen': 'Harley Quinn',
+  'harley qulnn': 'Harley Quinn',
+  'harley quinm': 'Harley Quinn',
+  'harley qunn': 'Harley Quinn',
+  'harley quin': 'Harley Quinn',
+  'harley qu1nn': 'Harley Quinn',
+  'harlev quinn': 'Harley Quinn',
+  'harley quinnn': 'Harley Quinn',
+  // Nightwing variants
+  'nightwlng': 'Nightwing',
+  'n1ghtwing': 'Nightwing',
+  // Deadpool variants
+  'deadp00l': 'Deadpool',
+  'deadpooi': 'Deadpool',
+  // Venom variants
+  'venom': 'Venom',
+  'ven0m': 'Venom',
 };
+
+// Word-boundary matching helper to prevent substring false positives
+// e.g., prevents "thor" from matching inside "authority"
+function matchesWholeWord(text: string, word: string): boolean {
+  // Escape special regex chars, allow flexible hyphen/space handling
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, 'i').test(text);
+}
 
 // Publisher names that should NOT be treated as comic titles
 const PUBLISHER_NAMES = [
@@ -440,7 +476,7 @@ function extractTitleAndIssue(ocrText: string): {
   
   // Strategy 0-PRE: Check explicit OCR typo map first (handles known OCR errors)
   for (const [typo, correctTitle] of Object.entries(OCR_TYPO_MAP)) {
-    if (lowerText.includes(typo)) {
+    if (matchesWholeWord(lowerText, typo)) {
       // CRITICAL: Use textWithoutPrices for issue extraction to avoid "25¢" → "#25"
       const issue = extractIssueNumber(textWithoutPrices, correctTitle);
       console.log('[SCAN-ITEM] Strategy 0-PRE (OCR typo map):', typo, '->', correctTitle, '#', issue);
@@ -457,7 +493,7 @@ function extractTitleAndIssue(ocrText: string): {
   for (const knownTitle of KNOWN_TITLE_PATTERNS) {
     const lowerKnown = knownTitle.toLowerCase();
     // Direct match
-    if (lowerText.includes(lowerKnown)) {
+    if (matchesWholeWord(lowerText, lowerKnown)) {
       // CRITICAL: Use textWithoutPrices for issue extraction
       const issue = extractIssueNumber(textWithoutPrices, knownTitle);
       console.log('[SCAN-ITEM] Strategy 0a (known title):', knownTitle, '#', issue);
@@ -471,7 +507,7 @@ function extractTitleAndIssue(ocrText: string): {
     const baseTitle = knownTitle.replace(/ Annual$/i, '').replace(/^Giant-Size /i, '');
     const lowerBase = baseTitle.toLowerCase();
     
-    if (!isAnnualTitle && hasAnnualInText && lowerText.includes(lowerBase)) {
+    if (!isAnnualTitle && hasAnnualInText && matchesWholeWord(lowerText, lowerBase)) {
       // Found base title (e.g., "Fantastic Four") and "Annual" appears elsewhere in OCR
       // Upgrade to Annual edition
       const annualTitle = `${baseTitle} Annual`;
@@ -481,7 +517,7 @@ function extractTitleAndIssue(ocrText: string): {
       return { title: annualTitle, issue, confidence: 0.95, method: 'known_title_annual' };
     }
     
-    if (!isGiantSizeTitle && hasGiantSizeInText && lowerText.includes(lowerBase)) {
+    if (!isGiantSizeTitle && hasGiantSizeInText && matchesWholeWord(lowerText, lowerBase)) {
       // Found base title and "Giant-Size" in text
       const giantTitle = `Giant-Size ${baseTitle}`;
       const issue = extractIssueNumber(textWithoutPrices, giantTitle);
