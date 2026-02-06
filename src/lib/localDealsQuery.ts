@@ -78,7 +78,7 @@ export async function fetchLocalDeals(options: LocalDealsOptions): Promise<Listi
     
     // Fetch seller profiles with location data
     const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
+      .from("public_profiles")
       .select("*")
       .in("user_id", sellerIds)
       .not("lat", "is", null)

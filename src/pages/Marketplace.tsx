@@ -56,7 +56,31 @@ export default function Marketplace() {
       const { data, error } = await supabase
         .from("listings")
         .select(`
-          *,
+          id,
+          type,
+          price_cents,
+          status,
+          created_at,
+          updated_at,
+          user_id,
+          start_bid,
+          ends_at,
+          shipping_price,
+          fee_cents,
+          payout_cents,
+          quantity,
+          is_signed,
+          image_url,
+          title,
+          issue_number,
+          volume_name,
+          cover_date,
+          condition_notes,
+          details,
+          seller_notes,
+          signature_type,
+          signed_by,
+          signature_date,
           inventory_items!inner(
             id,
             title,
@@ -82,13 +106,6 @@ export default function Marketplace() {
             key_issue,
             key_details,
             key_type
-          ),
-          profiles!user_id(
-            user_id,
-            username,
-            avatar_url,
-            is_verified_seller,
-            completed_sales_count
           )
         `)
         .eq("status", "active")
@@ -97,14 +114,23 @@ export default function Marketplace() {
 
       if (error) throw error;
 
+      // Batch fetch public profiles for all unique user_ids
+      const userIds = [...new Set((data || []).map(l => l.user_id).filter(Boolean))];
+      const { data: profilesData } = await supabase
+        .from("public_profiles")
+        .select("*")
+        .in("user_id", userIds);
+
       // Transform data to include inventory_items properties at top level
       const transformedData = (data || []).map(listing => {
         const item = listing.inventory_items;
+        const profile = profilesData?.find(p => p.user_id === listing.user_id);
         return {
           ...listing,
           ...item,
           listing_id: listing.id,
           price_cents: listing.price_cents,
+          profiles: profile ? { ...profile, completed_sales_count: profile.completed_sales_count || 0 } : undefined,
           // Keep nested for backwards compatibility
           inventory_items: item,
         };

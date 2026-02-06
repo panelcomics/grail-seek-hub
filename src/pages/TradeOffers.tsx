@@ -74,7 +74,7 @@ export default function TradeOffers() {
         const itemIds = [...new Set(allOffers.map(o => o.listing_id))];
 
         const [{ data: profiles }, { data: items }] = await Promise.all([
-          supabase.from("profiles").select("user_id, username").in("user_id", userIds),
+          supabase.from("public_profiles").select("user_id, username").in("user_id", userIds),
           supabase.from("inventory_items").select("id, title, series, issue_number").in("id", itemIds),
         ]);
 

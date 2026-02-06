@@ -53,7 +53,7 @@ export function TradeMessageThread({ tradeId, buyerId, sellerId }: TradeMessageT
           
           // Fetch sender username
           const { data: profile } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("username")
             .eq("user_id", newMsg.sender_id)
             .single();
@@ -103,7 +103,7 @@ export function TradeMessageThread({ tradeId, buyerId, sellerId }: TradeMessageT
       const messagesWithUsernames = await Promise.all(
         (data || []).map(async (msg) => {
           const { data: profile } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("username")
             .eq("user_id", msg.sender_id)
             .single();
