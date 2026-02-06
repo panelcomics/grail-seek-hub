@@ -134,6 +134,7 @@ export default function Scanner() {
   // Vision match hook for cover image similarity with auto-learning
   const { 
     runVisionMatch, 
+    runVisionIdentification,
     shouldTriggerVision, 
     saveVisionResultToCache,
     isLoading: visionLoading 
@@ -545,45 +546,160 @@ export default function Scanner() {
           setRecentScans(loadRecentScans());
         }
       } else {
-        // No matches found
-        setScannerState("match_low");
-        setSearchResults([]);
-        setShowManualConfirm(false);
-        setNeedsUserConfirmation(false);
+        // No matches from OCR/text matching
+        // VISION-FIRST: Before giving up, ask AI to visually identify the comic
+        console.log('[SCANNER] No OCR picks — triggering VISION IDENTIFICATION fallback');
         
-        // Scroll to top for low confidence too
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-        const searchText = buildPrefilledQuery(data.extracted) || data.extracted?.title || "";
-        if (searchText) {
-          setManualSearchQuery(searchText);
+        let visionSaved = false;
+        if (compressedImageRef.current) {
+          try {
+            const identResult = await runVisionIdentification(
+              compressedImageRef.current,
+              data.requestId
+            );
+            
+            if (identResult && identResult.picks.length > 0) {
+              console.log(`[SCANNER] Vision identified: "${identResult.identifiedTitle}" with ${identResult.picks.length} candidates`);
+              
+              const picks = identResult.picks;
+              const topPick = picks[0];
+              const pickConfidence = topPick.score || 0.8;
+              
+              // Store OCR text for auto-learning
+              ocrTextRef.current = data.ocr || null;
+              
+              setConfidence(pickConfidence);
+              setSearchResults(picks);
+              setSelectedPick(topPick);
+              setPrefillData({
+                title: topPick.volumeName || topPick.title,
+                issueNumber: topPick.issue || undefined,
+                publisher: topPick.publisher || undefined,
+                year: topPick.year || undefined,
+                comicvineId: topPick.id,
+                comicvineCoverUrl: topPick.coverUrl
+              });
+              setScanSource('vision');
+              
+              // Show manual confirm since this was vision-identified (user should verify)
+              setNeedsUserConfirmation(true);
+              setShowManualConfirm(picks.length > 1);
+              
+              setDebugData({
+                status: "success",
+                raw_ocr: data.ocr || "",
+                extracted: data.extracted || null,
+                confidence: pickConfidence,
+                queryParams: null,
+                comicvineQuery: identResult.identifiedTitle || "",
+                strategy: "vision-identification",
+                candidates: picks.map((p: any) => ({
+                  id: p.id,
+                  series: p.volumeName || p.title,
+                  issue: p.issue,
+                  year: p.year,
+                  publisher: p.publisher,
+                  confidence: Math.round((p.score || 0) * 100),
+                  coverUrl: p.coverUrl || p.thumbUrl || null,
+                  comicvine_issue_id: p.id,
+                  comicvine_volume_id: p.volumeId
+                })),
+                timings: data.timings || {}
+              });
+              
+              // AUTO-LEARN: Cache the vision result for future scans
+              if (ocrTextRef.current && pickConfidence >= 0.70) {
+                console.log('[SCANNER] AUTO-LEARNING: Caching vision identification result');
+                saveVisionResultToCache(ocrTextRef.current, topPick, pickConfidence);
+              }
+              
+              // Go to transition state for magic feel
+              setScannerState("transition");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              
+              // Fetch detailed issue info in background
+              const ocrKeyNotes = extractKeyNotesFromOCR(data.ocr || '');
+              const issueDetails = await fetchIssueDetails(topPick);
+              if (issueDetails) {
+                topPick.title = issueDetails.title || topPick.title;
+                topPick.coverUrl = issueDetails.cover_url || topPick.coverUrl;
+                topPick.writer = issueDetails.writer;
+                topPick.artist = issueDetails.artist;
+                topPick.coverArtist = issueDetails.coverArtist;
+                topPick.description = issueDetails.description;
+                topPick.deck = issueDetails.deck;
+                topPick.characters = issueDetails.characters;
+                if (ocrKeyNotes) {
+                  topPick.keyNotes = ocrKeyNotes;
+                } else if (issueDetails.keyNotes && !issueDetails.keyNotes.includes('changes to the character')) {
+                  topPick.keyNotes = issueDetails.keyNotes;
+                }
+                setSelectedPick({ ...topPick });
+                setPrefillData({
+                  title: issueDetails.volume_name || topPick.volumeName || topPick.title,
+                  issueNumber: topPick.issue || undefined,
+                  publisher: topPick.publisher || issueDetails.publisher,
+                  year: topPick.year || undefined,
+                  comicvineId: topPick.id,
+                  comicvineCoverUrl: issueDetails.cover_url || topPick.coverUrl,
+                  description: issueDetails.description
+                });
+              }
+              
+              saveToRecentScans(topPick);
+              if (user?.id && uploadedImageUrlRef.current) {
+                await saveScanToHistory(user.id, uploadedImageUrlRef.current, topPick);
+                const dbHistory = await loadScanHistory(user.id, 10);
+                if (dbHistory.length > 0) setRecentScans(dbHistory);
+              } else {
+                setRecentScans(loadRecentScans());
+              }
+              
+              visionSaved = true;
+            }
+          } catch (visionErr) {
+            console.error('[SCANNER] Vision identification fallback failed:', visionErr);
+          }
         }
         
-        // Check if OCR returned empty or nearly empty text (virgin cover / no text)
-        const ocrText = data.ocr || "";
-        const hasMinimalText = ocrText.trim().length < 10;
-        
-        if (hasMinimalText) {
-          // Auto-open correction sheet for covers that couldn't be read
-          setIsLowConfidenceMode(true);
-          setShowCorrectionSheet(true);
-          sonnerToast.info("This cover has minimal text", {
-            description: "Use manual search to find your comic.",
-            duration: 4000
+        if (!visionSaved) {
+          // Vision also failed — show no match
+          setScannerState("match_low");
+          setSearchResults([]);
+          setShowManualConfirm(false);
+          setNeedsUserConfirmation(false);
+          
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          const searchText = buildPrefilledQuery(data.extracted) || data.extracted?.title || "";
+          if (searchText) {
+            setManualSearchQuery(searchText);
+          }
+          
+          const ocrText = data.ocr || "";
+          const hasMinimalText = ocrText.trim().length < 10;
+          
+          if (hasMinimalText) {
+            setIsLowConfidenceMode(true);
+            setShowCorrectionSheet(true);
+            sonnerToast.info("This cover has minimal text", {
+              description: "Use manual search to find your comic.",
+              duration: 4000
+            });
+          }
+          
+          setDebugData({
+            status: "no_match",
+            raw_ocr: ocrText,
+            extracted: data.extracted || null,
+            confidence: 0,
+            queryParams: null,
+            comicvineQuery: searchText,
+            strategy: "none",
+            candidates: [],
+            timings: data.timings || {}
           });
         }
-        
-        setDebugData({
-          status: "no_match",
-          raw_ocr: ocrText,
-          extracted: data.extracted || null,
-          confidence: 0,
-          queryParams: null,
-          comicvineQuery: searchText,
-          strategy: "none",
-          candidates: [],
-          timings: data.timings || {}
-        });
       }
     } catch (err: any) {
       console.error('Scan error:', err);
