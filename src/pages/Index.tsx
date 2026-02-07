@@ -14,9 +14,12 @@ import { useOnboardingCheck } from "@/hooks/useOnboardingCheck";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import { LazyCarousel } from "@/components/LazyCarousel";
 import { EventsLane } from "@/components/home/EventsLane";
+import { useVisualParityFlag } from "@/hooks/useVisualParity";
+import { HomepageConfidenceSections } from "@/components/home/HomepageConfidenceSections";
 
 export default function Index() {
-  useOnboardingCheck(); // Check if user needs onboarding
+  useOnboardingCheck();
+  const visualParity = useVisualParityFlag();
   
   const [searchParams, setSearchParams] = useSearchParams();
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
@@ -92,6 +95,9 @@ export default function Index() {
         
         {/* Event Lane: Shows live/upcoming seller events */}
         <EventsLane />
+
+        {/* === Visual Parity Upgrade: Confidence Sections === */}
+        {visualParity && <HomepageConfidenceSections />}
         
         {/* Featured Shop: Panel Comics */}
         <LazyCarousel>
