@@ -16,9 +16,9 @@ export function AuctionSpotlight() {
             <Gavel className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-black text-foreground">Auction Preview — Coming Soon</h2>
           </div>
-          <p className="text-muted-foreground">
-            Preview lots close in sequence. Bidding is disabled in beta.
-          </p>
+           <p className="text-muted-foreground">
+             See how curated auction events will work on GrailSeeker. Bidding opens after beta.
+           </p>
         </div>
       </section>
     );
@@ -43,7 +43,7 @@ export function AuctionSpotlight() {
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Preview lots close in sequence. Bidding is disabled in beta.
+                See how curated auction events will work on GrailSeeker. Bidding opens after beta.
               </p>
             </div>
           </div>
@@ -73,6 +73,22 @@ export function AuctionSpotlight() {
           <Link to="/auction/auction-preview-1">
             <Button variant="outline" size="sm" className="gap-1">
               See all auction previews <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+
+        {/* Seller CTA */}
+        <div className="mt-6 rounded-lg border border-border/50 bg-background/50 p-4 text-center space-y-2">
+          <p className="text-sm text-foreground font-medium">
+            Want to run an auction event on GrailSeeker?
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Curated seller shows and auction houses are opening soon.
+          </p>
+          <Link to="/seller/onboarding">
+            <Button variant="outline" size="sm" className="mt-1 text-xs font-bold gap-1.5">
+              <Gavel className="h-3.5 w-3.5" />
+              Apply to Run an Auction Show
             </Button>
           </Link>
         </div>
