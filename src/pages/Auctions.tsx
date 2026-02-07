@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import { Gavel } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Gavel, List, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   SAMPLE_AUCTIONS,
   AuctionPreviewItem,
@@ -50,6 +52,7 @@ function groupByEvent(auctions: AuctionPreviewItem[]): {
 /* ------------------------------------------------------------------ */
 
 export default function Auctions() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<AuctionViewFilter>("events");
 
   const { eventGroups, standalone } = useMemo(
@@ -57,7 +60,6 @@ export default function Auctions() {
     []
   );
 
-  // Sort standalone by close time
   const sortedStandalone = useMemo(
     () =>
       [...standalone].sort(
@@ -91,7 +93,24 @@ export default function Auctions() {
               open soon.
             </p>
           </div>
-          <AuctionFilterDropdown value={filter} onChange={setFilter} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <AuctionFilterDropdown value={filter} onChange={setFilter} />
+            <div className="flex gap-1">
+              <Button variant="secondary" size="sm" className="gap-1.5" disabled>
+                <List className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">List</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => navigate("/auctions/calendar")}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Calendar</span>
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Content by filter */}
@@ -127,7 +146,6 @@ export default function Auctions() {
 
         {filter === "weekly" && (
           <div className="space-y-10">
-            {/* Weekly: show all lots as a flat grid sorted by close time */}
             <WeeklyGrid auctions={SAMPLE_AUCTIONS} />
           </div>
         )}

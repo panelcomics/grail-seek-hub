@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Gavel, Info, ArrowLeft, Clock, Lock, CalendarClock } from "lucide-react";
+import { Gavel, Info, ArrowLeft, Clock, Lock, CalendarClock, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   AuctionPreviewItem,
@@ -13,12 +14,14 @@ import {
 } from "@/config/auctionConfig";
 import { AuctionRulesPanel } from "./AuctionRulesPanel";
 import { AuctionEndingSoonPanel, AuctionEndingSoonStrip } from "./AuctionEndingSoonPanel";
+import { AuctionReminderModal } from "./AuctionReminderModal";
 
 interface AuctionDetailContentProps {
   auction: AuctionPreviewItem;
 }
 
 export function AuctionDetailContent({ auction }: AuctionDetailContentProps) {
+  const [reminderOpen, setReminderOpen] = useState(false);
   const closeAt = computeCloseAt(auction);
   const timeLabel = getAuctionTimeLabel(closeAt);
 
@@ -216,6 +219,24 @@ export function AuctionDetailContent({ auction }: AuctionDetailContentProps) {
                 )}
               </CardContent>
             </Card>
+
+            {/* Remind me button */}
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              size="sm"
+              onClick={() => setReminderOpen(true)}
+            >
+              <Bell className="h-4 w-4" />
+              Remind Me
+            </Button>
+
+            <AuctionReminderModal
+              open={reminderOpen}
+              onOpenChange={setReminderOpen}
+              auctionId={auction.id}
+              auctionTitle={`${auction.title} ${auction.issue}`}
+            />
 
             {/* Rules panel (mobile) */}
             <div className="lg:hidden">
