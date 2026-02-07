@@ -78,6 +78,7 @@ import SellerSetup from "./pages/SellerSetup";
 import SellerOnboarding from "./pages/SellerOnboarding";
 import SellerRulesFees from "./pages/SellerRulesFees";
 import AuctionDetail from "./pages/AuctionDetail";
+import Auctions from "./pages/Auctions";
 import Crowdfund from "./pages/Crowdfund";
 import CrowdfundLaunch from "./pages/CrowdfundLaunch";
 import CrowdfundMyProjects from "./pages/CrowdfundMyProjects";
@@ -225,6 +226,7 @@ const AppContent = () => {
             <Route path="/help/returns" element={<HelpReturns />} />
             <Route path="/help/buyer-protection" element={<HelpBuyerProtection />} />
             <Route path="/settings/notifications" element={<SettingsNotifications />} />
+            <Route path="/auctions" element={<Auctions />} />
             <Route path="/auction/:id" element={<AuctionDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
