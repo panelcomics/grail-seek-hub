@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationQueue } from "@/hooks/useNotificationQueue";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Clock, Trophy, Package, TrendingUp, CheckCheck, Inbox, Heart } from "lucide-react";
+import { Bell, Clock, Trophy, Package, TrendingUp, CheckCheck, Inbox, Heart, ArrowUpRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
@@ -18,6 +18,8 @@ const getNotificationIcon = (type: string) => {
       return <Trophy className="h-5 w-5 text-yellow-500" />;
     case "auction_ended":
       return <Package className="h-5 w-5 text-blue-500" />;
+    case "outbid":
+      return <ArrowUpRight className="h-5 w-5 text-destructive" />;
     case "new_listing":
       return <TrendingUp className="h-5 w-5 text-green-500" />;
     case "price_drop":
