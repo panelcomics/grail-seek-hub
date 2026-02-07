@@ -86,7 +86,7 @@ export function AuctionSpotlight() {
             Curated seller shows and auction houses are opening soon.
           </p>
           <Link to="/seller/onboarding">
-            <Button variant="outline" size="sm" className="mt-1 text-xs font-bold gap-1.5">
+            <Button variant="destructive" size="sm" className="mt-1 text-xs font-bold gap-1.5">
               <Gavel className="h-3.5 w-3.5" />
               Apply to Run an Auction Show
             </Button>
