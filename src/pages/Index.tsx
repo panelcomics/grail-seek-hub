@@ -16,6 +16,7 @@ import { LazyCarousel } from "@/components/LazyCarousel";
 import { EventsLane } from "@/components/home/EventsLane";
 import { useVisualParityFlag } from "@/hooks/useVisualParity";
 import { HomepageConfidenceSections } from "@/components/home/HomepageConfidenceSections";
+import { AuctionSpotlight } from "@/components/auction/AuctionSpotlight";
 
 export default function Index() {
   useOnboardingCheck();
@@ -93,6 +94,9 @@ export default function Index() {
         {/* 6. Heat Index Feature (Secondary) */}
         <FeatureHighlightSection feature="heat-index" />
         
+        {/* Auction House — Preview Mode Discovery */}
+        <AuctionSpotlight />
+
         {/* Event Lane: Shows live/upcoming seller events */}
         <EventsLane />
 
