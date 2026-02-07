@@ -47,8 +47,12 @@ export const NotificationDropdown = () => {
         <DropdownMenuSeparator />
         <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              No notifications yet
+            <div className="flex flex-col items-center py-8 px-4">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-2.5">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium mb-0.5">You're all caught up</p>
+              <p className="text-xs text-muted-foreground">New notifications will appear here.</p>
             </div>
           ) : (
             notifications.map((notification) => (

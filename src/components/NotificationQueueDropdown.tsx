@@ -80,9 +80,14 @@ export function NotificationQueueDropdown() {
               Loading notifications...
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-8 text-center">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">No notifications yet</p>
+            <div className="flex flex-col items-center py-10 px-4">
+              <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center mb-3">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium mb-0.5">You're all caught up</p>
+              <p className="text-xs text-muted-foreground text-center">
+                New notifications will appear here.
+              </p>
             </div>
           ) : (
             notifications.map((notification) => (

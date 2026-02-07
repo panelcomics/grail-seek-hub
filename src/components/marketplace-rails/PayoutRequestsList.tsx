@@ -51,10 +51,13 @@ export function PayoutRequestsList({ requests, loading }: PayoutRequestsListProp
           <CardDescription>Your payout history will appear here</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <ArrowDownToLine className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground">
-              No payout requests yet
+          <div className="flex flex-col items-center py-10 px-4">
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <ArrowDownToLine className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium mb-1">No payout requests yet</p>
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              When you request a payout, it'll appear here so you can track its status.
             </p>
           </div>
         </CardContent>

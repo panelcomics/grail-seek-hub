@@ -76,20 +76,17 @@ export default function Notifications() {
           </Card>
         ) : notifications.length === 0 ? (
           <Card>
-            <CardContent className="p-12 text-center">
-              <Inbox className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-semibold mb-2">No notifications yet</h2>
-              <p className="text-muted-foreground mb-6">
-                You'll see auction alerts, winner notifications, and updates here
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button asChild>
-                  <Link to="/market">Browse Auctions</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/sellers">Follow Sellers</Link>
-                </Button>
+            <CardContent className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Inbox className="h-7 w-7 text-muted-foreground" />
               </div>
+              <h2 className="text-lg font-semibold mb-1.5">You're all caught up</h2>
+              <p className="text-sm text-muted-foreground text-center max-w-xs mb-1">
+                Notifications about orders, messages, and account updates will appear here.
+              </p>
+              <p className="text-xs text-muted-foreground/70 text-center max-w-xs">
+                You'll only see notifications when something needs your attention.
+              </p>
             </CardContent>
           </Card>
         ) : (
