@@ -17,6 +17,7 @@ import { EventsLane } from "@/components/home/EventsLane";
 import { useVisualParityFlag } from "@/hooks/useVisualParity";
 import { HomepageConfidenceSections } from "@/components/home/HomepageConfidenceSections";
 import { AuctionSpotlight } from "@/components/auction/AuctionSpotlight";
+import { AuctionEndingNextHourStrip } from "@/components/auction/AuctionEndingNextHourStrip";
 
 export default function Index() {
   useOnboardingCheck();
@@ -76,6 +77,9 @@ export default function Index() {
         
         {/* 2. Hero Section - Primary Identity */}
         <HeroSection />
+        
+        {/* Ending in the Next Hour — preview auction strip */}
+        <AuctionEndingNextHourStrip />
         
         {/* 3. Featured Grails — Buy It Now (moved up for faster time-to-first-comic) */}
         <ListingsCarousel
