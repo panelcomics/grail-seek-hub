@@ -18,7 +18,7 @@ import { useVisualParityFlag } from "@/hooks/useVisualParity";
 import { HomepageConfidenceSections } from "@/components/home/HomepageConfidenceSections";
 import { AuctionSpotlight } from "@/components/auction/AuctionSpotlight";
 import { AuctionEndingNextHourStrip } from "@/components/auction/AuctionEndingNextHourStrip";
-
+import { OriginalArtSection } from "@/components/home/OriginalArtSection";
 export default function Index() {
   useOnboardingCheck();
   const visualParity = useVisualParityFlag();
@@ -125,6 +125,11 @@ export default function Index() {
             useCache
             cacheKey="newly-listed"
           />
+        </LazyCarousel>
+
+        {/* Original Art — curated gallery section (below all comic sections) */}
+        <LazyCarousel>
+          <OriginalArtSection />
         </LazyCarousel>
       </main>
     </>
