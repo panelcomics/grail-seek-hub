@@ -1,20 +1,54 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Gavel } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Gavel, Clock, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
-import { AuctionPreviewItem, getAuctionTimeLabel } from "@/config/auctionConfig";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  AuctionPreviewItem,
+  computeCloseAt,
+  getAuctionTimeLabel,
+  formatCloseTime,
+} from "@/config/auctionConfig";
 
 interface AuctionPreviewCardProps {
   auction: AuctionPreviewItem;
 }
 
 export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
-  const timeLabel = getAuctionTimeLabel(auction.endsAt);
-  const isEndingSoon = timeLabel === "Ends Today" || timeLabel === "Ending Soon";
+  const closeAt = computeCloseAt(auction);
+  const timeLabel = getAuctionTimeLabel(closeAt);
+  const isEnded = timeLabel === "Ended";
+  const isUrgent = !isEnded && closeAt.getTime() - Date.now() < 60 * 60 * 1000; // < 1h
+
+  const bidDisplay = auction.currentBid > 0 ? auction.currentBid : auction.startingBid ?? 0;
+  const bidLabel = auction.currentBid > 0 ? "Current Bid" : "Starting Bid";
+
+  const hasHardClose = !!auction.auctionEvent?.hardCloseAt;
 
   return (
     <Link to={`/auction/${auction.id}`} className="block group">
-      <Card className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full">
+      <Card className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
+        {/* Time Ribbon */}
+        <div
+          className={`flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold ${
+            isEnded
+              ? "bg-muted text-muted-foreground"
+              : isUrgent
+              ? "bg-destructive text-destructive-foreground"
+              : "bg-primary/10 text-primary"
+          }`}
+        >
+          <Clock className="h-3 w-3" />
+          {isEnded ? "Ended" : `Bidding ends: ${timeLabel}`}
+        </div>
+
+        {/* Cover Image */}
         <div className="relative aspect-[3/4] bg-muted overflow-hidden">
           <img
             src={auction.imageUrl}
@@ -30,18 +64,18 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
             <Gavel className="h-3 w-3" />
             Auction Preview
           </Badge>
-          {/* Time label */}
-          <div
-            className={`absolute top-2 right-2 backdrop-blur-sm px-2 py-1 rounded-md text-[11px] font-semibold ${
-              isEndingSoon
-                ? "bg-destructive/90 text-destructive-foreground"
-                : "bg-background/90 text-foreground"
-            }`}
-          >
-            {timeLabel}
-          </div>
+
+          {/* Lot number */}
+          {auction.lotNumber != null && (
+            <div className="absolute bottom-2 left-2 bg-background/90 backdrop-blur-sm text-foreground text-[10px] font-bold px-1.5 py-0.5 rounded">
+              Lot #{auction.lotNumber}
+            </div>
+          )}
         </div>
-        <CardContent className="p-3 space-y-2">
+
+        {/* Card Body */}
+        <CardContent className="p-3 space-y-2 flex-1 flex flex-col">
+          {/* Title + meta */}
           <div>
             <h3 className="font-bold text-sm text-foreground line-clamp-1">
               {auction.title}
@@ -50,18 +84,51 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
               {auction.issue} • {auction.certification} {auction.grade}
             </p>
           </div>
+
+          {/* Bid info */}
           <div className="flex items-baseline justify-between pt-1 border-t border-border/40">
             <div>
-              <div className="text-[10px] text-muted-foreground">Current Bid</div>
+              <div className="text-[10px] text-muted-foreground">{bidLabel}</div>
               <div className="text-base font-black text-primary">
-                ${auction.currentBid.toLocaleString()}
+                ${bidDisplay.toLocaleString()}
               </div>
             </div>
             <div className="text-right">
               <div className="text-[10px] text-muted-foreground">
-                {auction.bidCount} bids
+                {auction.bidCount} bid{auction.bidCount !== 1 ? "s" : ""}
               </div>
             </div>
+          </div>
+
+          {/* Hard-close indicator */}
+          {hasHardClose && (
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Lock className="h-3 w-3 flex-shrink-0" />
+              <span>
+                Hard close: {formatCloseTime(new Date(auction.auctionEvent!.hardCloseAt!))} ({auction.auctionEvent!.timezoneLabel})
+              </span>
+            </div>
+          )}
+
+          {/* CTA - always last */}
+          <div className="mt-auto pt-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="w-full text-xs font-bold gap-1.5"
+                    disabled
+                  >
+                    <Gavel className="h-3.5 w-3.5" />
+                    Bid Now
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Auction preview — bidding disabled</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </CardContent>
       </Card>
