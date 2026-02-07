@@ -121,11 +121,21 @@ export default function Orders() {
     );
   }
 
-  const OrdersList = ({ orders }: { orders: any[] }) => (
+  const OrdersList = ({ orders, variant = "purchases" }: { orders: any[]; variant?: "purchases" | "sales" }) => (
     <div className="space-y-4">
       {orders.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No orders yet</p>
+        <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mb-4">
+            <FileText className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h3 className="text-base font-semibold mb-1.5">
+            {variant === "sales" ? "No orders yet" : "No purchases yet"}
+          </h3>
+          <p className="text-sm text-muted-foreground text-center max-w-xs">
+            {variant === "sales"
+              ? "When you make a sale, it'll appear here with full order details and invoice access."
+              : "Once you buy a comic, your order and receipt will show up here."}
+          </p>
         </div>
       ) : (
         orders.map((order) => (
@@ -199,10 +209,10 @@ export default function Orders() {
               <TabsTrigger value="sales">Sales ({sales.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="purchases">
-              <OrdersList orders={purchases} />
+              <OrdersList orders={purchases} variant="purchases" />
             </TabsContent>
             <TabsContent value="sales">
-              <OrdersList orders={sales} />
+              <OrdersList orders={sales} variant="sales" />
             </TabsContent>
           </Tabs>
         </CardContent>
