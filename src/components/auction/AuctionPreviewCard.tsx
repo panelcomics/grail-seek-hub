@@ -45,7 +45,7 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
           }`}
         >
           <Clock className="h-3 w-3" />
-          {isEnded ? "Ended" : `Preview closes: ${timeLabel}`}
+          {isEnded ? "Ended" : `Preview closing order · ${timeLabel}`}
         </div>
 
         {/* Cover Image */}
@@ -68,7 +68,7 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
             variant="outline"
             className="absolute bottom-2 right-2 text-[9px] bg-background/80 backdrop-blur-sm text-muted-foreground"
           >
-            Bidding Disabled
+            Auction Preview
           </Badge>
 
           {/* Lot number */}
@@ -131,7 +131,7 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p className="text-xs">Auction preview — bidding is not live yet</p>
+                  <p className="text-xs">Auction preview — bidding opens after beta</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

@@ -86,7 +86,7 @@ function EndingCard({ auction }: { auction: AuctionPreviewItem }) {
           }`}
         >
           <Clock className="h-3 w-3" />
-          {isEnded ? "Ended" : `Preview closes in: ${formatCountdown(remaining)}`}
+          {isEnded ? "Ended" : `Sample auction sequence · ${formatCountdown(remaining)}`}
         </div>
 
         {/* Cover */}
@@ -108,7 +108,7 @@ function EndingCard({ auction }: { auction: AuctionPreviewItem }) {
             variant="outline"
             className="absolute bottom-1.5 left-1.5 text-[8px] bg-background/80 backdrop-blur-sm text-muted-foreground"
           >
-            Bidding Disabled
+            Auction Preview
           </Badge>
           {auction.grade && (
             <Badge
@@ -154,7 +154,7 @@ function EndingCard({ auction }: { auction: AuctionPreviewItem }) {
               </TooltipTrigger>
               <TooltipContent side="top">
                 <p className="text-xs">
-                  Auctions are in preview mode — bidding is not live yet.
+                  Auction preview — bidding opens after beta.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -173,10 +173,10 @@ export function AuctionEndingNextHourStrip() {
     return (
       <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <h2 className="text-lg font-bold text-foreground">
-          Auction Preview — Ending Soon
+          Auction Preview — Coming Soon
         </h2>
         <p className="text-xs text-muted-foreground mt-1 mb-4">
-          Preview lots close in sequence. Bidding is disabled in beta.
+          See how curated auction events will work on GrailSeeker. Bidding opens after beta.
         </p>
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <p className="text-sm text-muted-foreground font-medium">
@@ -194,7 +194,7 @@ export function AuctionEndingNextHourStrip() {
     <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-1">
         <h2 className="text-lg font-bold text-foreground">
-          Auction Preview — Ending Soon
+          Auction Preview — Coming Soon
         </h2>
         <Link
           to="/auctions?sort=ending_soon"
@@ -205,7 +205,7 @@ export function AuctionEndingNextHourStrip() {
         </Link>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Preview lots close in sequence. Bidding is disabled in beta.
+        See how curated auction events will work on GrailSeeker. Bidding opens after beta.
       </p>
 
       {/* Scrollable strip */}
@@ -224,6 +224,22 @@ export function AuctionEndingNextHourStrip() {
             <EndingCard key={lot.id} auction={lot} />
           ))}
         </div>
+      </div>
+
+      {/* Seller CTA */}
+      <div className="mt-6 rounded-lg border border-border/50 bg-muted/30 p-4 text-center space-y-2">
+        <p className="text-sm text-foreground font-medium">
+          Want to run an auction event on GrailSeeker?
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Curated seller shows and auction houses are opening soon.
+        </p>
+        <Link to="/seller/onboarding">
+          <Button variant="outline" size="sm" className="mt-1 text-xs font-bold gap-1.5">
+            <Gavel className="h-3.5 w-3.5" />
+            Apply to Run an Auction Show
+          </Button>
+        </Link>
       </div>
     </section>
   );
