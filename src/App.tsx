@@ -79,6 +79,11 @@ import SellerOnboarding from "./pages/SellerOnboarding";
 import SellerRulesFees from "./pages/SellerRulesFees";
 import AuctionDetail from "./pages/AuctionDetail";
 import Auctions from "./pages/Auctions";
+import AuctionCalendar from "./pages/AuctionCalendar";
+import SellerAuctions from "./pages/seller/SellerAuctions";
+import SellerAuctionNew from "./pages/seller/SellerAuctionNew";
+import SellerAuctionDetail from "./pages/seller/SellerAuctionDetail";
+import AuctionReminders from "./pages/admin/AuctionReminders";
 import Crowdfund from "./pages/Crowdfund";
 import CrowdfundLaunch from "./pages/CrowdfundLaunch";
 import CrowdfundMyProjects from "./pages/CrowdfundMyProjects";
@@ -227,7 +232,12 @@ const AppContent = () => {
             <Route path="/help/buyer-protection" element={<HelpBuyerProtection />} />
             <Route path="/settings/notifications" element={<SettingsNotifications />} />
             <Route path="/auctions" element={<Auctions />} />
+            <Route path="/auctions/calendar" element={<AuctionCalendar />} />
             <Route path="/auction/:id" element={<AuctionDetail />} />
+            <Route path="/seller/auctions" element={<SellerAuctions />} />
+            <Route path="/seller/auctions/new" element={<SellerAuctionNew />} />
+            <Route path="/seller/auctions/:id" element={<SellerAuctionDetail />} />
+            <Route path="/admin/auction-reminders" element={<AuctionReminders />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
