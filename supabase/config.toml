@@ -171,3 +171,42 @@ verify_jwt = true
 
 [functions.vision-match]
 verify_jwt = false
+
+[functions.place-bid]
+verify_jwt = false
+
+[functions.send-offer-email]
+verify_jwt = true
+
+[functions.send-trade-email]
+verify_jwt = true
+
+[functions.marketplace-bundle-checkout]
+verify_jwt = true
+
+[functions.fetch-comicvine-issue]
+verify_jwt = false
+
+[functions.sync-comicvine-issues]
+verify_jwt = true
+
+[functions.submit-offer]
+verify_jwt = true
+
+[functions.submit-trade-request]
+verify_jwt = true
+
+[functions.geocode-profile]
+verify_jwt = true
+
+[functions.creator-notify]
+verify_jwt = true
+
+[functions.create-campaign-pledge]
+verify_jwt = true
+
+[functions.crowdfund-webhook]
+verify_jwt = false
+
+[functions.seed-demo-campaigns]
+verify_jwt = true
