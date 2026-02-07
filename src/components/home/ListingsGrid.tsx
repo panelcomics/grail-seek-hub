@@ -19,6 +19,8 @@ import { resolvePrice } from "@/lib/listingPriceUtils";
 import { getListingImageUrl } from "@/lib/sellerUtils";
 import { Listing } from "@/types/listing";
 import { applyHomepageFairness } from "@/lib/homepageFairness";
+import { useVisualParityFlag } from "@/hooks/useVisualParity";
+import { EnhancedListingsGrid } from "@/components/home/EnhancedListingsGrid";
 
 interface ListingsGridProps {
   filterType: string;
@@ -27,6 +29,18 @@ interface ListingsGridProps {
 }
 
 export function ListingsGrid({ filterType, applyFairness = true }: ListingsGridProps) {
+  const visualParity = useVisualParityFlag();
+  
+  // When visual parity is on, delegate to enhanced grid
+  if (visualParity) {
+    return <EnhancedListingsGrid filterType={filterType} applyFairness={applyFairness} />;
+  }
+
+  return <StandardListingsGrid filterType={filterType} applyFairness={applyFairness} />;
+}
+
+/** Original grid — unchanged when flag is OFF */
+function StandardListingsGrid({ filterType, applyFairness = true }: ListingsGridProps) {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
