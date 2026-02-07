@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tag, Heart, Search, User2, ScanLine, LogOut, BookOpen, UserCircle, ShoppingBag, MessageSquare, Settings, Package, BarChart3, Mail, HandshakeIcon, Rocket, PenTool, ClipboardCheck, Crown, Zap, ShoppingCart, Bell } from "lucide-react";
+import { Tag, Heart, Search, User2, ScanLine, Rocket, Bell } from "lucide-react";
 import { CartIconButton } from "@/components/cart/CartIconButton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { SubscriptionStatusIndicator } from "@/components/subscription/SubscriptionStatusIndicator";
 import { useBaselaneFlag } from "@/hooks/useBaselaneFlags";
 import { useNotificationQueue } from "@/hooks/useNotificationQueue";
 import { Badge } from "@/components/ui/badge";
+import { HeaderSearchBar } from "@/components/layout/HeaderSearchBar";
+import { HeaderUserDropdown } from "@/components/layout/HeaderUserDropdown";
+import { MobileNavDrawer } from "@/components/layout/MobileNavDrawer";
+
 export function AppHeader() {
   const [user, setUser] = useState<any>(null);
-  const [isOpen, setIsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isArtist, setIsArtist] = useState(false);
   const [hasCreatorRole, setHasCreatorRole] = useState(false);
@@ -19,8 +21,7 @@ export function AppHeader() {
   const [displayName, setDisplayName] = useState<string>("");
   const [newDealsCount, setNewDealsCount] = useState(0);
   const navigate = useNavigate();
-  
-  // Feature flag for notifications
+
   const notificationsEnabled = useBaselaneFlag("ENABLE_NOTIFICATIONS");
   const { unreadCount } = useNotificationQueue();
 
@@ -46,14 +47,12 @@ export function AppHeader() {
 
   const fetchDisplayName = async (user: any) => {
     if (!user) return;
-    
     try {
       const { data } = await supabase
         .from('profiles')
         .select('username')
         .eq('user_id', user.id)
         .single();
-      
       if (data?.username) {
         setDisplayName(data.username);
       } else {
@@ -82,7 +81,6 @@ export function AppHeader() {
         setIsArtist(hasArtist);
       }
 
-      // Check creator roles
       const { data: creatorRoles } = await supabase
         .from('creator_roles')
         .select('is_artist, is_writer')
@@ -91,7 +89,6 @@ export function AppHeader() {
       
       setHasCreatorRole(!!(creatorRoles?.is_artist || creatorRoles?.is_writer));
 
-      // Check if user has submitted an application
       const { data: creatorApp } = await supabase
         .from('creator_applications')
         .select('id')
@@ -110,7 +107,6 @@ export function AppHeader() {
         .from('deal_matches')
         .select('*', { count: 'exact', head: true })
         .eq('is_viewed', false);
-
       setNewDealsCount(count || 0);
     } catch (error) {
       console.error('Error fetching deals count:', error);
@@ -119,7 +115,6 @@ export function AppHeader() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setIsOpen(false);
     navigate('/');
   };
 
@@ -128,8 +123,6 @@ export function AppHeader() {
       navigate('/auth?redirect=/seller-setup');
       return;
     }
-    
-    // Check seller onboarding ONLY when user clicks Sell (lazy check)
     try {
       const { data: profile } = await supabase
         .from("profiles")
@@ -157,72 +150,102 @@ export function AppHeader() {
     } catch (error) {
       console.error("Error checking seller onboarding:", error);
     }
-    
     navigate('/my-inventory');
   };
 
-
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-10 sm:h-12 max-w-screen-xl items-center justify-between px-2 sm:px-4">
-        <Link to="/" className="flex items-center gap-1 sm:gap-2">
-          <div className="h-[22px] w-[22px] sm:h-8 sm:w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-[9px] sm:text-sm">
+    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/80 shadow-sm">
+      <div className="mx-auto flex h-14 max-w-screen-xl items-center gap-2 px-3 sm:px-4 lg:px-6">
+        {/* Mobile hamburger */}
+        <MobileNavDrawer
+          user={user}
+          displayName={displayName}
+          isAdmin={isAdmin}
+          isArtist={isArtist}
+          hasCreatorRole={hasCreatorRole}
+          hasCreatorApp={hasCreatorApp}
+          notificationsEnabled={notificationsEnabled}
+          unreadCount={unreadCount}
+          newDealsCount={newDealsCount}
+          onSignOut={handleSignOut}
+          onSellClick={handleSellClick}
+        />
+
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground grid place-items-center font-bold text-sm shadow-sm">
             GS
           </div>
-          <span className="md:hidden bg-primary text-primary-foreground text-[6px] font-semibold px-[3px] py-[1px] rounded-full leading-none">
-            Beta
-          </span>
-          <span className="font-bold hidden xs:inline">
+          <span className="font-bold text-base hidden sm:inline">
             Grail<span className="text-primary">Seeker</span>
+          </span>
+          <span className="sm:hidden bg-primary text-primary-foreground text-[7px] font-semibold px-1 py-0.5 rounded-full leading-none">
+            Beta
           </span>
         </Link>
 
-        <nav className="flex items-center gap-0.5 sm:gap-2">
-          <Button variant="ghost" size="icon" asChild aria-label="Scanner" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+        {/* Desktop search bar */}
+        <div className="flex-1 flex justify-center px-2">
+          <HeaderSearchBar />
+        </div>
+
+        {/* Navigation actions */}
+        <nav className="flex items-center gap-1 sm:gap-1.5">
+          {/* Desktop-only nav links */}
+          <Button variant="ghost" size="sm" asChild className="hidden lg:inline-flex gap-1.5 text-sm font-medium h-9">
             <Link to="/scanner">
-              <ScanLine className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+              <ScanLine className="h-4 w-4" />
+              Scan
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Crowdfund" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+          <Button variant="ghost" size="sm" asChild className="hidden lg:inline-flex gap-1.5 text-sm font-medium h-9">
             <Link to="/crowdfund">
-              <Rocket className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+              <Rocket className="h-4 w-4" />
+              Crowdfund
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Search" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+          {/* Icon-only on mobile, visible on all sizes */}
+          <Button variant="ghost" size="icon" asChild aria-label="Search" className="lg:hidden h-9 w-9">
             <Link to="/search">
-              <Search className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+              <Search className="h-[18px] w-[18px]" />
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Favorites" className="relative h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+          <Button variant="ghost" size="icon" asChild aria-label="Scanner" className="lg:hidden h-9 w-9">
+            <Link to="/scanner">
+              <ScanLine className="h-[18px] w-[18px]" />
+            </Link>
+          </Button>
+
+          <Button variant="ghost" size="icon" asChild aria-label="Favorites" className="relative h-9 w-9">
             <Link to="/watchlist">
-              <Heart className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+              <Heart className="h-[18px] w-[18px]" />
             </Link>
           </Button>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Deals & Alerts" className="relative h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+          <Button variant="ghost" size="icon" asChild aria-label="Deals & Alerts" className="relative h-9 w-9 hidden sm:inline-flex">
             <Link to="/deals">
-              <Tag className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+              <Tag className="h-[18px] w-[18px]" />
               {newDealsCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center font-medium">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center font-semibold">
                   {newDealsCount > 99 ? "99+" : newDealsCount}
                 </span>
               )}
             </Link>
           </Button>
 
-          {/* Cart Icon with Badge */}
-          <CartIconButton className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0" />
+          {/* Cart */}
+          <CartIconButton className="h-9 w-9" />
 
-          {/* Notifications Bell - gated by feature flag */}
+          {/* Notifications bell */}
           {user && notificationsEnabled && (
-            <Button variant="ghost" size="icon" asChild aria-label="Notifications" className="relative h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+            <Button variant="ghost" size="icon" asChild aria-label="Notifications" className="relative h-9 w-9 hidden sm:inline-flex">
               <Link to="/notifications">
-                <Bell className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+                <Bell className="h-[18px] w-[18px]" />
                 {unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center font-medium">
+                  <Badge className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] grid place-items-center font-semibold">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </Badge>
                 )}
@@ -230,177 +253,40 @@ export function AppHeader() {
             </Button>
           )}
 
+          {/* Sell CTA — desktop */}
           <Button
-            variant="ghost" 
-            className="hidden md:inline-flex" 
-            aria-label="Sell"
+            variant="default"
+            size="sm"
+            className="hidden lg:inline-flex font-semibold text-sm h-9 px-4"
             onClick={handleSellClick}
           >
-            Sell on GrailSeeker
+            Sell
           </Button>
 
+          {/* User menu — desktop */}
           {user ? (
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(!isOpen)}
-                aria-label="Account"
-                className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0"
-              >
-                <User2 className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
-              </Button>
-              
-              {isOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-64 rounded-lg border bg-card shadow-lg z-50 max-h-[80vh] overflow-y-auto">
-                    <div className="p-3 border-b space-y-2">
-                      <p className="text-sm font-medium truncate">{displayName}</p>
-                      <SubscriptionStatusIndicator />
-                    </div>
-                    <div className="py-1">
-                      <DropdownLink href="/my-collection" onClick={() => setIsOpen(false)}>
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        My Collection
-                      </DropdownLink>
-                      <DropdownLink href="/profile" onClick={() => setIsOpen(false)}>
-                        <UserCircle className="mr-2 h-4 w-4" />
-                        My Profile & Settings
-                      </DropdownLink>
-                      <DropdownLink href="/orders" onClick={() => setIsOpen(false)}>
-                        <ShoppingBag className="mr-2 h-4 w-4" />
-                        My Orders
-                      </DropdownLink>
-                      <DropdownLink href="/crowdfund/my-projects" onClick={() => setIsOpen(false)}>
-                        <Rocket className="mr-2 h-4 w-4" />
-                        My Campaigns
-                      </DropdownLink>
-                      {hasCreatorRole ? (
-                        <DropdownLink href="/creators/dashboard" onClick={() => setIsOpen(false)}>
-                          <PenTool className="mr-2 h-4 w-4" />
-                          Creator Dashboard
-                        </DropdownLink>
-                      ) : !hasCreatorApp && (
-                        <DropdownLink href="/creators/apply" onClick={() => setIsOpen(false)}>
-                          <PenTool className="mr-2 h-4 w-4" />
-                          Creator Application
-                        </DropdownLink>
-                      )}
-                      <DropdownLink href="/account/offers" onClick={() => setIsOpen(false)}>
-                        <HandshakeIcon className="mr-2 h-4 w-4" />
-                        My Offers & Trades
-                      </DropdownLink>
-                      <DropdownLink href="/trades" onClick={() => setIsOpen(false)}>
-                        <Package className="mr-2 h-4 w-4" />
-                        My Item Trades
-                      </DropdownLink>
-                      <DropdownLink href="/messages" onClick={() => setIsOpen(false)}>
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Messages
-                      </DropdownLink>
-                      <DropdownLink href="/elite/deals" onClick={() => setIsOpen(false)}>
-                        <Zap className="mr-2 h-4 w-4" />
-                        Deal Finder
-                      </DropdownLink>
-                      <DropdownLink href="/plans" onClick={() => setIsOpen(false)}>
-                        <Crown className="mr-2 h-4 w-4" />
-                        Plans & Upgrade
-                      </DropdownLink>
-                      <DropdownLink href="/dashboard" onClick={() => setIsOpen(false)}>
-                        <BarChart3 className="mr-2 h-4 w-4" />
-                        Dashboard
-                      </DropdownLink>
-                      <DropdownLink href="/notifications" onClick={() => setIsOpen(false)}>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Notifications
-                      </DropdownLink>
-                      <DropdownLink href="/settings" onClick={() => setIsOpen(false)}>
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
-                      </DropdownLink>
-                      <DropdownLink href="/seller/dashboard" onClick={() => setIsOpen(false)}>
-                        <Package className="mr-2 h-4 w-4" />
-                        Winners & Orders
-                      </DropdownLink>
-                      <DropdownLink href="#" onClick={() => {
-                        setIsOpen(false);
-                        handleSellClick();
-                      }}>
-                        <Tag className="mr-2 h-4 w-4" />
-                        Sell on GrailSeeker
-                      </DropdownLink>
-                      <DropdownLink href="/seller-onboarding" onClick={() => setIsOpen(false)}>
-                        <ClipboardCheck className="mr-2 h-4 w-4" />
-                        Seller Setup Guide
-                      </DropdownLink>
-                      {isArtist && (
-                        <>
-                          <div className="my-1 border-t" />
-                          <DropdownLink href="/artist/my-art" onClick={() => setIsOpen(false)}>
-                            <Package className="mr-2 h-4 w-4" />
-                            My Original Art
-                          </DropdownLink>
-                        </>
-                      )}
-                       {isAdmin && (
-                        <>
-                          <div className="my-1 border-t" />
-                          <DropdownLink href="/admin/settings" onClick={() => setIsOpen(false)}>
-                            <Settings className="mr-2 h-4 w-4" />
-                            Admin Settings
-                          </DropdownLink>
-                          <DropdownLink href="/creators/admin" onClick={() => setIsOpen(false)}>
-                            <PenTool className="mr-2 h-4 w-4" />
-                            Creator Applications (Admin)
-                          </DropdownLink>
-                          <DropdownLink href="/admin/original-art/manage" onClick={() => setIsOpen(false)}>
-                            <Package className="mr-2 h-4 w-4" />
-                            Original Art (Admin)
-                          </DropdownLink>
-                          <DropdownLink href="/admin/invite-artist" onClick={() => setIsOpen(false)}>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Invite Artist
-                          </DropdownLink>
-                        </>
-                      )}
-                      <div className="my-1 border-t" />
-                      <button
-                        onClick={handleSignOut}
-                        className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent transition-colors"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign Out
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+            <div className="hidden lg:block">
+              <HeaderUserDropdown
+                displayName={displayName}
+                isAdmin={isAdmin}
+                isArtist={isArtist}
+                hasCreatorRole={hasCreatorRole}
+                hasCreatorApp={hasCreatorApp}
+                notificationsEnabled={notificationsEnabled}
+                unreadCount={unreadCount}
+                onSignOut={handleSignOut}
+                onSellClick={handleSellClick}
+              />
             </div>
           ) : (
-            <Button variant="ghost" size="icon" asChild aria-label="Sign In" className="h-[34px] w-[34px] sm:h-10 sm:w-10 p-0">
+            <Button variant="ghost" size="icon" asChild aria-label="Sign In" className="h-9 w-9">
               <Link to="/auth">
-                <User2 className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+                <User2 className="h-5 w-5" />
               </Link>
             </Button>
           )}
         </nav>
       </div>
     </header>
-  );
-}
-
-function DropdownLink({ href, onClick, children }: { href: string; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <Link
-      to={href}
-      onClick={onClick}
-      className="flex items-center px-3 py-2 text-sm hover:bg-accent transition-colors"
-    >
-      {children}
-    </Link>
   );
 }
