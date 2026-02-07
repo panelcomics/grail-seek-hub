@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { HeroSection } from "@/components/home/HeroSection";
-import { BuiltForCollectorsSection } from "@/components/home/BuiltForCollectorsSection";
-import { FeatureHighlightSection } from "@/components/home/FeatureHighlightSection";
 import { ListingsCarousel } from "@/components/home/ListingsCarousel";
 import { PremiumDealerCarousel } from "@/components/home/PremiumDealerCarousel";
 import { FEATURED_SELLERS } from "@/config/featuredSellers";
@@ -13,15 +11,11 @@ import { Check, Camera } from "lucide-react";
 import { useOnboardingCheck } from "@/hooks/useOnboardingCheck";
 import { FoundingSellersBanner } from "@/components/home/FoundingSellersBanner";
 import { LazyCarousel } from "@/components/LazyCarousel";
-import { EventsLane } from "@/components/home/EventsLane";
-import { useVisualParityFlag } from "@/hooks/useVisualParity";
-import { HomepageConfidenceSections } from "@/components/home/HomepageConfidenceSections";
-import { AuctionSpotlight } from "@/components/auction/AuctionSpotlight";
 import { AuctionEndingNextHourStrip } from "@/components/auction/AuctionEndingNextHourStrip";
 import { OriginalArtSection } from "@/components/home/OriginalArtSection";
+
 export default function Index() {
   useOnboardingCheck();
-  const visualParity = useVisualParityFlag();
   
   const [searchParams, setSearchParams] = useSearchParams();
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
@@ -78,10 +72,7 @@ export default function Index() {
         {/* 2. Hero Section - Primary Identity */}
         <HeroSection />
         
-        {/* Ending in the Next Hour — preview auction strip */}
-        <AuctionEndingNextHourStrip />
-        
-        {/* 3. Featured Grails — Buy It Now (moved up for faster time-to-first-comic) */}
+        {/* 3. Featured Grails — Buy It Now */}
         <ListingsCarousel
           title="✨ Featured Grails — Buy It Now" 
           filterType="featured-grails"
@@ -89,25 +80,7 @@ export default function Index() {
           cacheKey="featured-grails"
         />
         
-        {/* 4. Built for Collectors - Grounding Section (compressed) */}
-        <BuiltForCollectorsSection />
-        
-        {/* 5. Scanner Assist Feature (Core Tool - Equal/Greater Weight) */}
-        <FeatureHighlightSection feature="scanner-assist" />
-        
-        {/* 6. Heat Index Feature (Secondary) */}
-        <FeatureHighlightSection feature="heat-index" />
-        
-        {/* Auction House — Preview Mode Discovery */}
-        <AuctionSpotlight />
-
-        {/* Event Lane: Shows live/upcoming seller events */}
-        <EventsLane />
-
-        {/* === Visual Parity Upgrade: Confidence Sections === */}
-        {visualParity && <HomepageConfidenceSections />}
-        
-        {/* Featured Shop: Panel Comics */}
+        {/* 4. Featured Shop: Panel Comics */}
         <LazyCarousel>
           <PremiumDealerCarousel 
             sellerId={FEATURED_SELLERS.PANEL_COMICS.sellerId}
@@ -117,7 +90,7 @@ export default function Index() {
           />
         </LazyCarousel>
         
-        {/* Newly Listed */}
+        {/* 5. Newly Listed */}
         <LazyCarousel>
           <ListingsCarousel 
             title="Newly Listed" 
@@ -127,7 +100,10 @@ export default function Index() {
           />
         </LazyCarousel>
 
-        {/* Original Art — curated gallery section (below all comic sections) */}
+        {/* 6. Auction Preview — Ending Soon (preview-only) */}
+        <AuctionEndingNextHourStrip />
+
+        {/* 7. Original Art (Curated) */}
         <LazyCarousel>
           <OriginalArtSection />
         </LazyCarousel>
