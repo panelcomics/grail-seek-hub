@@ -14,10 +14,10 @@ export function AuctionSpotlight() {
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Gavel className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-black text-foreground">Auction House</h2>
+            <h2 className="text-2xl font-black text-foreground">Auction Preview — Coming Soon</h2>
           </div>
           <p className="text-muted-foreground">
-            Auctions are coming soon. Preview select items below.
+            Preview lots close in sequence. Bidding is disabled in beta.
           </p>
         </div>
       </section>
@@ -36,20 +36,20 @@ export function AuctionSpotlight() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl md:text-3xl font-black text-foreground">
-                  Auction House
+                  Auction Preview — Coming Soon
                 </h2>
                 <Badge variant="outline" className="text-[10px] font-semibold text-muted-foreground border-muted-foreground/30">
                   Preview
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Curated grails up for auction — bidding opens soon
+                Preview lots close in sequence. Bidding is disabled in beta.
               </p>
             </div>
           </div>
           <Link to="/auction/auction-preview-1" className="hidden sm:block">
             <Button variant="link" className="gap-1 text-primary hover:text-primary/80">
-              View All <ArrowRight className="h-4 w-4" />
+              See all auction previews <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -72,7 +72,7 @@ export function AuctionSpotlight() {
         <div className="sm:hidden mt-4 text-center">
           <Link to="/auction/auction-preview-1">
             <Button variant="outline" size="sm" className="gap-1">
-              View All Auctions <ArrowRight className="h-4 w-4" />
+              See all auction previews <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>

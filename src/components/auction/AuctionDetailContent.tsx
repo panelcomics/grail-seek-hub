@@ -42,6 +42,21 @@ export function AuctionDetailContent({ auction }: AuctionDetailContentProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Preview banner */}
+      {!AUCTIONS_ENABLED && (
+        <div className="bg-primary/10 border-b border-primary/20">
+          <div className="container mx-auto px-4 py-3 max-w-6xl flex items-start gap-3">
+            <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-foreground">Auction Preview</p>
+              <p className="text-xs text-muted-foreground">
+                This is a preview experience. Real bidding is not live yet.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Back nav */}
         <Link
@@ -124,7 +139,7 @@ export function AuctionDetailContent({ auction }: AuctionDetailContentProps) {
                     }
                     className="text-[10px]"
                   >
-                    {timeLabel === "Ended" ? "Ended" : `Ends: ${timeLabel}`}
+                    {timeLabel === "Ended" ? "Ended" : `Preview closes: ${timeLabel}`}
                   </Badge>
                 </div>
                 <p className="text-sm font-medium text-foreground">
@@ -206,7 +221,7 @@ export function AuctionDetailContent({ auction }: AuctionDetailContentProps) {
                   disabled={!AUCTIONS_ENABLED}
                 >
                   <Gavel className="h-5 w-5" />
-                  {AUCTIONS_ENABLED ? "Place Bid" : "Bidding Opens Soon"}
+                  {AUCTIONS_ENABLED ? "Place Bid" : "View Preview"}
                 </Button>
 
                 {!AUCTIONS_ENABLED && (

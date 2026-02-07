@@ -86,7 +86,7 @@ function EndingCard({ auction }: { auction: AuctionPreviewItem }) {
           }`}
         >
           <Clock className="h-3 w-3" />
-          {isEnded ? "Ended" : `Ends in: ${formatCountdown(remaining)}`}
+          {isEnded ? "Ended" : `Preview closes in: ${formatCountdown(remaining)}`}
         </div>
 
         {/* Cover */}
@@ -103,6 +103,12 @@ function EndingCard({ auction }: { auction: AuctionPreviewItem }) {
           >
             <Gavel className="h-2.5 w-2.5" />
             Preview
+          </Badge>
+          <Badge
+            variant="outline"
+            className="absolute bottom-1.5 left-1.5 text-[8px] bg-background/80 backdrop-blur-sm text-muted-foreground"
+          >
+            Bidding Disabled
           </Badge>
           {auction.grade && (
             <Badge
@@ -139,16 +145,16 @@ function EndingCard({ auction }: { auction: AuctionPreviewItem }) {
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
+                  variant="outline"
                   className="w-full text-[10px] font-bold gap-1 mt-auto h-7"
-                  disabled
                 >
                   <Gavel className="h-3 w-3" />
-                  Bid Now
+                  View Preview
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">
                 <p className="text-xs">
-                  Auctions are in preview mode.
+                  Auctions are in preview mode — bidding is not live yet.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -167,10 +173,10 @@ export function AuctionEndingNextHourStrip() {
     return (
       <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <h2 className="text-lg font-bold text-foreground">
-          ⏱ Ending in the Next Hour
+          Auction Preview — Ending Soon
         </h2>
         <p className="text-xs text-muted-foreground mt-1 mb-4">
-          Preview — auction lots end in sequence. Bidding is disabled in beta.
+          Preview lots close in sequence. Bidding is disabled in beta.
         </p>
         <div className="rounded-lg border border-dashed border-border p-8 text-center">
           <p className="text-sm text-muted-foreground font-medium">
@@ -188,18 +194,18 @@ export function AuctionEndingNextHourStrip() {
     <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-1">
         <h2 className="text-lg font-bold text-foreground">
-          ⏱ Ending in the Next Hour
+          Auction Preview — Ending Soon
         </h2>
         <Link
           to="/auctions?sort=ending_soon"
           className="text-xs text-primary hover:underline flex items-center gap-0.5"
         >
-          See all ending soon
+          See all auction previews
           <ChevronRight className="h-3 w-3" />
         </Link>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Preview — auction lots end in sequence. Bidding is disabled in beta.
+        Preview lots close in sequence. Bidding is disabled in beta.
       </p>
 
       {/* Scrollable strip */}

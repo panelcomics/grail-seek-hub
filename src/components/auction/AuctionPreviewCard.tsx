@@ -45,7 +45,7 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
           }`}
         >
           <Clock className="h-3 w-3" />
-          {isEnded ? "Ended" : `Bidding ends: ${timeLabel}`}
+          {isEnded ? "Ended" : `Preview closes: ${timeLabel}`}
         </div>
 
         {/* Cover Image */}
@@ -62,7 +62,13 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
             className="absolute top-2 left-2 text-[10px] gap-1 bg-secondary/90 backdrop-blur-sm"
           >
             <Gavel className="h-3 w-3" />
-            Auction Preview
+            Preview
+          </Badge>
+          <Badge
+            variant="outline"
+            className="absolute bottom-2 right-2 text-[9px] bg-background/80 backdrop-blur-sm text-muted-foreground"
+          >
+            Bidding Disabled
           </Badge>
 
           {/* Lot number */}
@@ -117,15 +123,15 @@ export function AuctionPreviewCard({ auction }: AuctionPreviewCardProps) {
                 <TooltipTrigger asChild>
                   <Button
                     size="sm"
+                    variant="outline"
                     className="w-full text-xs font-bold gap-1.5"
-                    disabled
                   >
                     <Gavel className="h-3.5 w-3.5" />
-                    Bid Now
+                    View Preview
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p className="text-xs">Auction preview — bidding disabled</p>
+                  <p className="text-xs">Auction preview — bidding is not live yet</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
